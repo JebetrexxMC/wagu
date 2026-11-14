@@ -6355,7 +6355,7 @@ static void SectionServers(void*)
         ImGui::Separator();
     }
 
-    // ---- custom servers (saved, max 99) ----
+    // ---- custom servers (saved, max MP_MAX_SERVERS = 499) ----
     ImGui::Text("Custom servers in %s  (%d / %d)", g_MPRegionNames[settings.region], ServerList::Count(), MP_MAX_SERVERS);
     int shown = 0;
     for(int i = 0; i < ServerList::Count(); ++i)

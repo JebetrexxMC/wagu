@@ -1279,7 +1279,7 @@ static void NetThread()
                 std::lock_guard<std::mutex> lk(s_DetMx);
                 if(!tok) {}
                 else if(pn < 4 || pl[0] != 0xFF || pl[1] != 0xD8) s_Previews.erase(tok);
-                else if(pn <= 200 * 1024 && (s_Previews.size() < 300 || s_Previews.count(tok))) s_Previews[tok] = std::string((const char*)pl, pn);
+                else if(pn <= 200 * 1024 && (s_Previews.size() < 600 || s_Previews.count(tok))) s_Previews[tok] = std::string((const char*)pl, pn);
             }
             else if(!strncmp(t, "g/", 2) && strlen(t) == 10)   // 4.07: title logo of a server
             {
@@ -1288,7 +1288,7 @@ static void NetThread()
                 bool png = pn >= 8 && pl[0] == 0x89 && pl[1] == 'P' && pl[2] == 'N' && pl[3] == 'G', jpg = pn >= 4 && pl[0] == 0xFF && pl[1] == 0xD8;
                 if(!tok) {}
                 else if(!png && !jpg) s_Logos.erase(tok);
-                else if(pn <= 200 * 1024 && (s_Logos.size() < 300 || s_Logos.count(tok))) s_Logos[tok] = std::string((const char*)pl, pn);
+                else if(pn <= 200 * 1024 && (s_Logos.size() < 600 || s_Logos.count(tok))) s_Logos[tok] = std::string((const char*)pl, pn);
             }
             else if(!strncmp(t, "c/", 2) && pn >= 4)              // to us, from a host
             {

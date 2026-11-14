@@ -18,7 +18,7 @@
 -- The sound gets quieter as you walk away and stops after StopDistance metres.
 script_name('TV Player')
 script_author('ThirtyFoxMCx00E1 (MP port), tvplayer mod')
-script_version('1.7-mp')
+script_version('1.7.1-mp')
 
 local DIR = getWorkingDirectory() .. '/tvplayer'
 local cfg = { Volume = 80, PromptDistance = 2.5, StopDistance = 20, FullVolumeDistance = 4, SeekSeconds = 10,
@@ -209,9 +209,15 @@ do
 end
 local fingerDown = { false, false, false, false }
 local lastTapId, lastTapAt = nil, -1
-local function osd(text)
+local function osd(text, secs)
   st.msg = text
-  st.osdUntil = now() + cfg.OsdSeconds
+  st.osdUntil = now() + (secs or cfg.OsdSeconds)
+end
+-- 1.7: what the TV is doing, on screen for 8 s (a screenshot of it tells what to fix; the same line is in moonloader.log)
+local function tvStatus(text)
+  print('TV Player: ' .. text)
+  if #text > 90 then text = text:sub(1, 87) .. '...' end
+  osd('TV: ' .. text, 8)
 end
 
 local function listVideos()
@@ -339,11 +345,11 @@ local function drawScreen(tex)
     if ptr and ptr ~= 0 then
       local ok, res, info = pcall(setEntityScreenTexture, ptr, tex, s.center, n, s.width or 0.5, s.height or 0.4, screenAxes(s))
       if ok and res then
-        if st.mode ~= 'surface' then st.mode = 'surface' print('TV Player: picture on the TV model (' .. tostring(info) .. ')') end
+        if st.mode ~= 'surface' then st.mode = 'surface' tvStatus('on the TV screen - ' .. tostring(info)) end
         return
       end
       st.surfRetry = now() + 5
-      if not st.surfWarned then st.surfWarned = true print('TV Player: TV screen material not used (' .. tostring(ok and info or res) .. ') - 3D mesh instead') end
+      if not st.surfWarned then st.surfWarned = true tvStatus('3D mesh (screen material not used: ' .. tostring(ok and info or res) .. ')') end
     end
   end
   if cfg.Render3D ~= 0 and isRender3DAvailable and isRender3DAvailable() then
@@ -565,7 +571,10 @@ function main()
           local fr, up = P.stats(st.p)
           print(string.format('TV Player: %s - %d frames decoded, %d textures, 3D %s, drawn as %s', videos[st.index] or '?', fr, up,
             tostring(isRender3DAvailable and isRender3DAvailable()), tostring(st.mode or '2D')))
-          if getRender3DStats then print(string.format('TV Player: 3D mesh draws %d, ok %d', getRender3DStats())) end
+          local d3, ok3 = 0, 0
+          if getRender3DStats then d3, ok3 = getRender3DStats() print(string.format('TV Player: 3D mesh draws %d, ok %d', d3, ok3)) end
+          tvStatus(string.format('%d frames, %d textures, %s%s', fr, up, tostring(st.mode or '2D'),
+            st.mode == 'mesh' and string.format(' (%d/%d drawn)', ok3 or 0, d3 or 0) or ''))
           if st.p.kind == 'seq' then
             if up == 0 then osd("No picture: can't load " .. string.format('%s/%05d.jpg', videos[st.index], math.max(1, st.p.idx))) end
           elseif fr == 0 then osd("No picture: the phone can't decode this video - use an image sequence (videos/README.txt)")

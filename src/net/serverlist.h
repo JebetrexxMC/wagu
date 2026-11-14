@@ -1,4 +1,4 @@
-// Saved server list (max MP_MAX_SERVERS = 100) with live info (players x/max, ping) via PKT_QUERY.
+// Saved server list (max MP_MAX_SERVERS = 499 + the default server = 500) with live info (players x/max, ping) via PKT_QUERY.
 #pragma once
 #include <stdint.h>
 #include <netinet/in.h>
@@ -39,7 +39,7 @@ namespace ServerList
     int  Count();
     ServerEntry* Get(int i);
     int  CountInRegion(int region);
-    bool Add(const char* name, const char* host, int port, int region, const char* password = "", const char* lang = ""); // false if full (100) or invalid
+    bool Add(const char* name, const char* host, int port, int region, const char* password = "", const char* lang = ""); // false if full (MP_MAX_SERVERS) or invalid
     void SetPassword(int i, const char* password);   // 2.19
     void SetDetails(int i, const char* cc, int modeCol, const char* mode, const char* tags, const char* desc);   // 4.03
     void SetFav(int i, bool fav);                                                                              // 4.03

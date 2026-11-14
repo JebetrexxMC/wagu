@@ -56,6 +56,10 @@ static bool Resolve(ServerEntry& e)
         auto it = s_Dns.find(h);
         if(it == s_Dns.end() || (!it->second.pending && now - it->second.time > 120000))
         {
+            // 4.13.47: up to 500 saved servers - at most 8 name lookups at a time (not one thread per server at once)
+            int busy = 0;
+            for(auto& d : s_Dns) if(d.second.pending) ++busy;
+            if(busy >= 8) return false;
             s_Dns[h] = { true, false, 0, now };
             std::thread([h]()
             {
@@ -230,6 +234,8 @@ void ServerList::Refresh()
         s_Sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         if(s_Sock < 0) return;
         fcntl(s_Sock, F_SETFL, fcntl(s_Sock, F_GETFL, 0) | O_NONBLOCK);
+        int rb = 1024 * 1024;   // 4.13.47: 500 servers answer at once (the default buffer dropped some answers)
+        setsockopt(s_Sock, SOL_SOCKET, SO_RCVBUF, &rb, sizeof(rb));
     }
     uint64_t now = MP_NowMs();
     s_nLastRefresh = now;
@@ -248,7 +254,7 @@ void ServerList::Poll()
     if(s_Sock >= 0)
     {
         uint8_t buf[640];
-        for(int guard = 0; guard < 128; ++guard)
+        for(int guard = 0; guard < 600; ++guard)
         {
             sockaddr_in from; socklen_t fl = sizeof(from);
             int r = (int)recvfrom(s_Sock, buf, sizeof(buf), 0, (sockaddr*)&from, &fl);

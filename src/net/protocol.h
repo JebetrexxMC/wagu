@@ -13,10 +13,10 @@
 // phones refuse servers older than that too (they would let old phones in).
 // 3.10: build 31000. MP_MIN_BUILD stays 30406 and the lobby stays thirtyfox/mp5/: 3.04.6 (no cheats)
 // and 3.10 phones play together on the same servers; only 3.04.5 and older (mp4) stay shut out.
-#define MP_BUILD 41346   // 4.13.46
+#define MP_BUILD 41347   // 4.13.47
 #define MP_MIN_BUILD       30406
 #define MP_AUTH_MIN_BUILD  32106   // 3.21.6: servers with the login system refuse older phones (they could not log in)
-#define MP_VERSION_STR     "4.13.46"
+#define MP_VERSION_STR     "4.13.47"
 #define MP_VOICE_BUILD     31100   // 3.11: phones from this build on get voice packets
 #define MP_DOWNLOAD_URL    "mpsamp-open.github.io"   // 4.05.4: new website (mpsamp-open org); thirtyfoxmcx00e1.github.io/wagu still works as a backup
 #define MP_DEFAULT_HOST    "127.0.0.1"
@@ -24,7 +24,7 @@
 #define MP_DEFAULT_SERVER_NAME "MP LAN Server"   // default hosted server; one per Wi-Fi/hotspot
 #define MP_MAX_PLAYERS     250    // 3.25: hard cap (slot ids 0..249); only Mega Vil Futuristic goes past 100
 #define MP_STD_MAX_PLAYERS 100    // 3.25: every other server (default, custom, phone hosted) stays 1..100
-#define MP_MAX_SERVERS     99     // custom servers in the list (+ the default server = 100)
+#define MP_MAX_SERVERS     499    // 4.13.47: custom servers in the list (+ the default server = 500; was 99 + 1 = 100)
 #define MP_NAME_LEN        24
 #define MP_CHAT_LEN        128
 #define MP_INVALID_ID      0xFF

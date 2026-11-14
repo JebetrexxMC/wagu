@@ -1085,7 +1085,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
         {
             last = now;
             for(auto& r : rows) { if(r.ping < 0) continue; LRowKey(r, key, sizeof(key)); auto& v = s_PingHist[key]; v.push_back(r.ping); if(v.size() > 40) v.erase(v.begin()); }
-            if(s_PingHist.size() > 300) s_PingHist.clear();
+            if(s_PingHist.size() > 1200) s_PingHist.clear();   // 4.13.47: 500 servers
         }
     }
     for(int i = 0; i < (int)rows.size(); ++i)
