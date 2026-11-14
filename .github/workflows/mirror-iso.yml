@@ -1,0 +1,44 @@
+name: Mirror a big file into a release
+# 4.13.47: puts a file bigger than GitHub's 2 GiB asset limit (an Ubuntu / Debian ISO from archive.org...) into a release
+# as parts under 2 GiB + a .sha256. Join: cat NAME.part* > NAME   (Windows: copy /b NAME.part00 + NAME.part01 NAME)
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Download URL'
+        required: true
+        default: 'https://archive.org/download/ubuntu-26.04.1-live-server-amd64/ubuntu-26.04.1-live-server-amd64.iso'
+      tag:
+        description: 'Release tag'
+        required: true
+        default: 'v4.13.45'
+      sha1:
+        description: 'Expected SHA-1 (optional)'
+        required: false
+        default: 'b23aa96b8398cccf2204b4a435139be691c46785'
+permissions:
+  contents: write
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download, check, split
+        env:
+          URL: ${{ inputs.url }}
+          SHA1: ${{ inputs.sha1 }}
+        run: |
+          set -e
+          mkdir out && cd out
+          NAME=$(basename "${URL%%\?*}")
+          echo "NAME=$NAME" >> $GITHUB_ENV
+          curl -fL --retry 5 -o "$NAME" "$URL"
+          ls -l "$NAME"
+          if [ -n "$SHA1" ]; then echo "$SHA1  $NAME" | sha1sum -c -; fi
+          sha256sum "$NAME" > "$NAME.sha256"
+          split -b 1900M -d "$NAME" "$NAME.part"
+          rm "$NAME"
+          ls -l
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: cd out && gh release upload "${{ inputs.tag }}" * --clobber -R "${{ github.repository }}"
