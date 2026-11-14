@@ -35,7 +35,7 @@
 #include "net/server.h"
 
 // 4.12.7: the config is files/TYFMC/TYFMC.MP.ini (the old configs/net.thirtyfox.mp.ini is moved there)
-TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 4.13.50, ThirtyFoxMCx00E1, MP, net.thirtyfox.mp)
+TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 4.13.51, ThirtyFoxMCx00E1, MP, net.thirtyfox.mp)
 // 4.13.36: no NEEDGAME(com.rockstargames.gtasa) - AML would refuse libMP in GTA Vice City. OnModLoad starts the
 // San Andreas code only when libGTASA.so is there, and the Vice City layer (src/vc/) when libGTAVC.so is.
 
@@ -165,6 +165,7 @@ static uint64_t s_nNeonMenuPassMs = 0;   // 4.13.23: the last MobileMenu::Render
 // game's menu stack and the player ped from the wrong thread.
 static std::atomic<uint64_t> s_nNeonCoverMs{0};
 static inline bool NeonCoverRecent() { const uint64_t t = s_nNeonCoverMs.load(); return t && MP_NowMs() - t < 400; }
+static uint64_t s_nR2dMs = 0;   // 4.13.51: the last frame the game's 2D pass drew MP's HUD
 DECL_HOOKv(Render2dStuff)
 {
     Render2dStuff();
@@ -172,6 +173,7 @@ DECL_HOOKv(Render2dStuff)
     // 4.13.23: while the neon title menu replaces the game's menu, MP's frame is drawn from MobileMenu::Render
     // (the game's menu pass, after Render2dStuff), like PCMenu does: one frame, nothing of the game's menu on top
     if(MP_NowMs() - s_nNeonMenuPassMs < 250 && MP::NeonNativeTitle()) return;   // 4.13.28: no ImGui on the title
+    s_nR2dMs = MP_NowMs();   // 4.13.51
     if(HUD::IsInitialised()) { PollTouches(); PadTick(); DrainIO(); }   // 3.39.2: + controller
     HUD::Render();
     int cm = s_nClearMouse.load();
@@ -226,6 +228,17 @@ DECL_HOOKv(MobileMenu_Render, void* self)
         if(s_nMenuRenderSkips++ == 0) logger->Info("Neon menu: painted natively after the game's menu pass (mode %d)", paint);
         s_nNeonMenuPassMs = MP_NowMs();
         HUD::GuardedNative("neon paint", NeonPaintFn, nullptr);
+    }
+    else if(!paint && !HUD::TitleMenuBroken() && MP_NowMs() - s_nR2dMs > 200 && MP::TitleButtonWanted())
+    {   // 4.13.51: the title menu has no 2D pass (Render2dStuff), so MP's ImGui frame (the [MultiPlayer] button) is
+        // drawn here, after the game's menu, crash-guarded (HUD::RenderTitleMenu)
+        static int s_nBtnFrames = 0;
+        if(!s_bRWReady) { InitRenderWareFunctions(); s_bRWReady = true; }
+        if(HUD::IsInitialised()) { PollTouches(); PadTick(); DrainIO(); }
+        const bool ok = HUD::RenderTitleMenu();
+        if(s_nBtnFrames++ == 0) logger->Info("Main menu: [MultiPlayer] button drawn from MobileMenu::Render (%s)", ok ? "ok" : "failed");
+        int cm = s_nClearMouse.load();
+        if(cm > 0 && s_nClearMouse.compare_exchange_strong(cm, cm - 1) && cm == 1) QueueIO(TQ_CLEAR);
     }
 }
 DECL_HOOKv(LS_RenderLoadingBar)
@@ -1113,7 +1126,9 @@ static void InstallMenuHooks(bool titleMenu)
         logger->Info("Loading screen: PCMenu is installed - %d slot hooks (RenderSplash %s, RenderLoadingBar %s); PCMenu's loading screen wins while it is on",
             hooked, s1 ? "slot" : "no slot", s2 ? "slot" : "no slot");
     }
-    if(!titleMenu) { logger->Info("Title menu: ServerBrowserMode = default - the game's own menu, no MobileMenu::Render hook"); return; }
+    // 4.13.51: MobileMenu::Render is hooked in every mode now (slot hook, chained): the [MultiPlayer] button is drawn
+    // from there on the title menu, where the game has no 2D pass
+    if(!titleMenu) logger->Info("Title menu: ServerBrowserMode = default - the game's own menu + the [MultiPlayer] button (MobileMenu::Render hook)");
     MP_InstallTitleHook();
 }
 // 4.13.34: also from MP Settings > Display > Main menu (switching from default to neon / mp without a restart)

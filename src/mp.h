@@ -327,6 +327,7 @@ namespace MP
     bool MainMenuHookOn();
     bool MainMenuMpButton();      // 4.13.49: MainMenuMultiplayer (the button with ServerBrowserMode = default)
     void SetMainMenuMpButton(bool on);
+    bool TitleButtonWanted();     // 4.13.51: the title menu is up (no game loaded) and the button should be drawn
     bool NeonMenuMode();          // 4.13.22: ServerBrowserMode = neon
     bool NeonCoversGameMenu();
     int  NeonPaintWanted();        // 4.13.28: 0 nothing / 1 neon title / 2 mp tile / 3 pill - painted after MobileMenu::Render

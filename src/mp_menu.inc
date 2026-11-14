@@ -136,8 +136,9 @@ static void ApplyMode(int mode)
     s_nNeonMode = mode;
     // 4.13.49: default + MainMenuMultiplayer = 1 = the game's own menu with the [MultiPlayer] button (0 = no button).
     // mp / neon always show their menu.
-    if(mode == NEON_MODE_DEFAULT) s_bMenuMpOn = s_bMenuMpCfg;
-    else s_bMenuMpOn = true;   // 4.13.33: mp / neon always show their menu (MainMenuMultiplayer = 0 hid the mp tile)
+    // 4.13.51: the [MultiPlayer] button is always on (TYFMC.MP.ini kept going back to its defaults, so a 0 there
+    // hid the button for good)
+    s_bMenuMpCfg = true; s_bMenuMpOn = true;
 }
 // 4.13.49: MainMenuMultiplayer = 1 / 0 (also on / off / true / false, a "// comment" after the value is fine)
 static bool ParseOnOff(const char* v, bool def)
@@ -156,7 +157,8 @@ static void CfgBeforeSave(Config* c)
         char v[64];
         if(ReadIniKey("MP", "MainMenuMultiplayer", v, sizeof(v)))
         {
-            const bool on = ParseOnOff(v, s_bMenuMpCfg);
+            const bool on = true;   // 4.13.51: always on
+            (void)ParseOnOff;
             if(on != s_bMenuMpCfg)
             {
                 s_bMenuMpCfg = on; ApplyMode(s_nNeonMode);
@@ -196,8 +198,18 @@ void MP::SetMainMenuMode(int mode)
 }
 bool MP::MainMenuHookOn() { return s_bTitleHookOn; }
 bool MP::MainMenuMpButton() { return s_bMenuMpCfg; }
+// 4.13.51: the game does not run its 2D pass (Render2dStuff -> HUD::Render) on the title menu, so the button was never
+// drawn there (Screenshot_20261115-063446.png: nothing of MP on the title). main.cpp draws MP's ImGui frame from
+// MobileMenu::Render when this is true and no 2D pass ran.
+bool MP::TitleButtonWanted()
+{
+    if(s_bMenuMp.load() || MenuMpBlack()) return false;
+    if(NeonOn() && !(HUD::TitleMenuBroken() || NeonPaint::Failed())) return false;   // the neon title paints itself
+    return Game::IsMainMenuShown() && Game::LocalPed() <= 0;
+}
 void MP::SetMainMenuMpButton(bool on)
 {
+    on = true;   // 4.13.51: always on
     s_bMenuMpCfg = on; ApplyMode(s_nNeonMode);
     s_bModeSelfWrite = true;
     ConfigEntry* e = ::cfg->Bind("MainMenuMultiplayer", on, "MP"); if(e) { e->SetBool(on); delete e; } ::cfg->Save();
@@ -207,10 +219,11 @@ void MP::SetMainMenuMpButton(bool on)
 
 void MP::InitMainMenu()
 {
-    s_bMenuMpCfg = ::cfg->GetBool("MainMenuMultiplayer", true, "MP");
-    {   // 4.13.49: the value on the disk wins (AML's copy can be older), "1 // comment" works
+    // 4.13.51: MainMenuMultiplayer is always 1 now (written back as 1, a 0 is ignored)
+    s_bMenuMpCfg = true;
+    {
         char v[64];
-        if(ReadIniKey("MP", "MainMenuMultiplayer", v, sizeof(v))) s_bMenuMpCfg = ParseOnOff(v, s_bMenuMpCfg);
+        if(ReadIniKey("MP", "MainMenuMultiplayer", v, sizeof(v)) && !ParseOnOff(v, true)) logger->Info("Main menu: MainMenuMultiplayer = 0 ignored - the [MultiPlayer] button is always on (4.13.51)");
         ConfigEntry* e = ::cfg->Bind("MainMenuMultiplayer", s_bMenuMpCfg, "MP"); if(e) { e->SetBool(s_bMenuMpCfg); delete e; }
     }
     s_bMenuMpOn = s_bMenuMpCfg;
@@ -477,8 +490,8 @@ void MP::DrawMenuMpFront()
     // 4.13.35: mp = this button (like 4.13.20); neon falls back to it when its native title crashed (caught) or
     // its files could not be loaded
     const bool neonFallback = NeonOn() && (HUD::TitleMenuBroken() || NeonPaint::Failed());
-    // 4.13.49: ServerBrowserMode = default shows it too when MainMenuMultiplayer = 1
-    const bool defaultBtn = s_nNeonMode == NEON_MODE_DEFAULT && s_bMenuMpCfg;
+    // 4.13.49 / 4.13.51: ServerBrowserMode = default shows it too (always)
+    const bool defaultBtn = s_nNeonMode == NEON_MODE_DEFAULT;
     if(s_nNeonMode != NEON_MODE_MP && !defaultBtn && !neonFallback && !s_bMenuMpViaApi) return;
     if(!s_bMenuMpOn || s_bMenuMpTile || s_bMenuMp.load() || !Game::IsMainMenuShown()) return;
     if(Game::LocalPed() > 0) return;   // 4.13.13: a game is loaded = the pause menu: no Multiplayer tile there

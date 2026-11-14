@@ -7335,11 +7335,7 @@ static void SectionDisplay(void*)
             for(int m = 0; m < 3; ++m) if(ImGui::Selectable(kMode[m], cur == m) && m != cur) MP::SetMainMenuMode(m);
             ImGui::EndCombo();
         }
-        if(MP::MainMenuMode() == 0)
-        {   // 4.13.49: MainMenuMultiplayer = 1 / 0
-            bool on = MP::MainMenuMpButton();
-            if(ImGui::Checkbox("[MultiPlayer] button on the game's menu", &on)) MP::SetMainMenuMpButton(on);
-        }
+        if(MP::MainMenuMode() == 0) ImGui::TextDisabled("[MultiPlayer] button on the game's menu: always on");   // 4.13.51
         ImGui::TextDisabled(MP::MainMenuMode() == 2 && !MP::MainMenuHookOn() ? "Restart the game to see it (the menu hook could not be added now)." : "Shown on the game's title menu (before a game is loaded).");
     }
     ImGui::TextUnformatted("Name tag size");
