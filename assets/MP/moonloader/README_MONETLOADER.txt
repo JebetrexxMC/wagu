@@ -1,4 +1,4 @@
-MonetLoader for MP (MonetLoader 3.8.6-mp, based on MonetLoaderOSS)
+MonetLoader for MP (MonetLoader 3.8.9-mp, based on MonetLoaderOSS)
 ==================================================================
 PC MoonLoader .lua scripts run on Android on MP servers.
 
@@ -73,6 +73,13 @@ TV Player (MP 4.13.34, MonetLoader 3.8.2-mp)
   colour. setEntityScreenTexture takes a 7th argument, the screen's axes {ox,oy,oz, ux,uy,uz, vx,vy,vz} (fitted from
   tvplayer/screens.lua): the screen's own uv are set to the whole picture and its vertex colours to white (the game
   rebuilds the mesh with RpGeometryLock / Unlock), and both are put back when the TV stops.
+  3.8.9-mp (MP 4.13.48): tvplayer.lua 1.7.2-mp. Fixes the TV glass staying flat black. Textures drawn in the 3D
+  world are sampled with mipmaps; the video frames had none, and GLES reads such an incomplete texture as black (2D
+  drawing does not use mipmaps, so the corner preview worked). Frames and renderLoadTextureFromFile(path, true) now
+  build mipmaps. The day/night vertex colours of buildings (CCustomBuildingDNPipeline) are set to white too, the old
+  GPU copy of the mesh is freed so the new uv are used, and the screen material is found from the screen's own points:
+  setEntityScreenTexture takes an 8th argument, the points of the screen from tvplayer/screens.lua {x,y,z,...}.
+  If no material matches, the TV uses the 3D mesh in front of the glass; moonloader.log lists every material.
   Hitmarker (MP 4.13.44): hitmarker.lua + resources/hitmarker/ - "Dynamic Hitmarker" by fausto200
   (https://ko-fi.com/fausto200), ported from PC MoonLoader. White cross on a hit, gold + skull on a
   headshot, red on a kill, blue + broken shield when armour breaks, damage numbers, xN combo and sounds.

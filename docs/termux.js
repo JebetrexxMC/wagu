@@ -208,6 +208,25 @@
       print('  3. <span class="g">' + esc(G + 'clean ThirtyFoxMCx00E1/REPO --push') + '</span>  <span class="m">rewrite + force-push</span>');
       p('m', '  run it in Termux (pkg install gh git) after gh auth login. wagu itself is already clean.');
     },
+    'xdp-setup': function () {   // 4.13.48: XDP on the VPS (docs/XDP_SETUP.md) - Linux VPS only, not on the phone
+      p('m', 'XDP flood filter for the MP ports (UDP 1922 1930 1931 1932, TCP 22 80 1883 8883 8884) - run on the VPS, not in Termux:');
+      print('  1. <span class="g">' + esc('sudo apt install -y xdp-tools bpftool clang llvm libbpf-dev') + '</span>');
+      print('  2. <span class="g">' + esc('echo XDP_FILTER=1 | sudo tee -a /etc/mp-hivemq/mp.env && sudo systemctl restart mp-xdp') + '</span>');
+      print('  3. <span class="g">' + esc('sudo /opt/mp/console/mp-xdp.sh status') + '</span>  <span class="m">both layers + counters</span>');
+      p('m', '  by hand: sudo xdp-filter load -m native -p allow eth0   (-m skb if native fails)');
+      p('m', '           for p in 17 19 161 389 520 1900 3702 11211; do sudo xdp-filter port $p -m src -p udp; done');
+      p('m', '  block an IP: mp-xdp.sh block IP / unblock IP   - never -p deny (drops ARP: the VPS goes offline)');
+      p('m', '  guide: https://mpsamp-open.github.io/XDP_SETUP.md');
+    },
+    'iso-join': function () {   // 4.13.48: the 2-part Ubuntu ISO from release v4.13.45
+      var I = 'ubuntu-26.04.1-live-server-amd64.iso';
+      p('m', 'join the Ubuntu 26.04.1 ISO (release v4.13.45, 2 parts) and check it:');
+      print('  Linux / Termux: <span class="g">' + esc('cat ' + I + '.part0* > ' + I) + '</span>');
+      print('                  <span class="g">' + esc('sha256sum -c ' + I + '.sha256') + '</span>  <span class="m">-> ' + esc(I) + ': OK</span>');
+      print('  Windows (cmd):  <span class="g">' + esc('copy /b ' + I + '.part00+' + I + '.part01 ' + I) + '</span>');
+      print('                  <span class="g">' + esc('certutil -hashfile ' + I + ' SHA256') + '</span>');
+      p('m', '  sha256 cc8a95cde20f6ced61a322420de00f10cc3c90ced545daa46cb9c1a117f1d927');
+    },
     'clear': function () { out.innerHTML = ''; }
   };
   // what the bot types -> which command runs
@@ -218,7 +237,7 @@
     'cat $MP_DATA/broker.txt': 'cat-broker',
     'cat $MP_DATA/regions.txt': 'cat-regions',
     'mp-server status': 'status', 'mp-server list': 'list', 'mp-server log': 'log', 'mp-server doctor': 'doctor', 'mp-server vps-update': 'vps-update', 'mp-server vps-setup': 'vps-setup', 'curl -fsSL https://mpsamp-open.github.io/HiveMQ/update.sh | sudo bash': 'vps-update',
-    'git-helper': 'git-helper', 'git-helper scan': 'git-helper', 'ping -c 2 $BROKERS': 'ping', 'curl -s $MP/release.json': 'release', 'clear': 'clear'
+    'git-helper': 'git-helper', 'git-helper scan': 'git-helper', 'ping -c 2 $BROKERS': 'ping', 'curl -s $MP/release.json': 'release', 'mp-server xdp-setup': 'xdp-setup', 'xdp-setup': 'xdp-setup', 'mp-server iso-join': 'iso-join', 'iso-join': 'iso-join', 'clear': 'clear'
   };
   function run(line) {
     print('<span class="g">~ $</span> ' + esc(line));
@@ -232,7 +251,7 @@
   // ------------------------------------------------------------ MP Bot planner
   var boot = ['termux-info', 'curl -fsSL $MP/install.sh | grep say', 'cat ~/mp-server/server.conf', 'cat $MP_DATA/broker.txt', 'cat $MP_DATA/regions.txt', 'curl -s $MP/release.json', 'curl -fsSL https://mpsamp-open.github.io/HiveMQ/update.sh | sudo bash', 'mp-server status'];
   var relCheck = false, relSeen = '';
-  var rot = ['mp-server status', 'mp-server list', 'mp-server log', 'mp-server status', 'mp-server log'], ri = 0, cycles = 0, lastRel = Date.now();
+  var rot = ['mp-server status', 'mp-server list', 'mp-server log', 'mp-server status', 'mp-server log', 'mp-server status', 'mp-server xdp-setup', 'mp-server list', 'mp-server log', 'mp-server iso-join'], ri = 0, cycles = 0, lastRel = Date.now();
   function next() {
     if (boot.length) return { cmd: boot.shift(), why: 'start-up check' };
     var dj = window.MPDebian && MPDebian.tick(); if (dj) return dj;   // 3.31: the Debian one-line setup

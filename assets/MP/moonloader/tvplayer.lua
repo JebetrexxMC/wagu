@@ -18,7 +18,7 @@
 -- The sound gets quieter as you walk away and stops after StopDistance metres.
 script_name('TV Player')
 script_author('ThirtyFoxMCx00E1 (MP port), tvplayer mod')
-script_version('1.7.1-mp')
+script_version('1.7.2-mp')
 
 local DIR = getWorkingDirectory() .. '/tvplayer'
 local cfg = { Volume = 80, PromptDistance = 2.5, StopDistance = 20, FullVolumeDistance = 4, SeekSeconds = 10,
@@ -128,7 +128,8 @@ local function seqTexture(p)
   end
   local i = math.max(1, math.min(p.count, math.floor(t * p.fps) + 1))
   if i ~= p.idx then
-    local ok, tex = pcall(renderLoadTextureFromFile, string.format('%s/%05d.jpg', p.dir, i))
+    -- 1.7.2: true = with mip levels: the game's 3D drawing reads a texture without them as pure black on the phone's GPU
+    local ok, tex = pcall(renderLoadTextureFromFile, string.format('%s/%05d.jpg', p.dir, i), true)
     p.frames = p.frames + 1
     if ok and tex then
       if p.tex then p.old[#p.old + 1] = p.tex end
@@ -213,11 +214,11 @@ local function osd(text, secs)
   st.msg = text
   st.osdUntil = now() + (secs or cfg.OsdSeconds)
 end
--- 1.7: what the TV is doing, on screen for 8 s (a screenshot of it tells what to fix; the same line is in moonloader.log)
+-- 1.7: what the TV is doing, on screen for 15 s (1.7.2, was 8) (a screenshot of it tells what to fix; the same line is in moonloader.log)
 local function tvStatus(text)
   print('TV Player: ' .. text)
   if #text > 90 then text = text:sub(1, 87) .. '...' end
-  osd('TV: ' .. text, 8)
+  osd('TV: ' .. text, 15)
 end
 
 local function listVideos()
@@ -299,6 +300,18 @@ local warned2d = false
 -- 1.7: the screen's axes from screens.lua (model space): uv (0,0) point, edge to uv (1,0), edge to uv (0,1).
 -- MonetLoader 3.8.8 gives the TV model's own screen these uv, so the whole picture shows on it (before, many TVs
 -- mapped their glass to a few dark texels and the video came out as one black colour)
+-- 1.7.2: the screen's vertex positions (from the game's TV model): MonetLoader 3.8.9 finds the screen material by them
+local function screenPoints(s)
+  if s.pts then return s.pts end
+  local v, pts, seen = s.verts, {}, {}
+  for i = 0, #v / 8 - 1 do
+    local k = i * 8
+    local key = string.format('%.3f %.3f %.3f', v[k + 1], v[k + 2], v[k + 3])
+    if not seen[key] and #pts < 3 * 400 then seen[key] = true pts[#pts + 1] = v[k + 1] pts[#pts + 1] = v[k + 2] pts[#pts + 1] = v[k + 3] end
+  end
+  s.pts = pts
+  return pts
+end
 local function screenAxes(s)
   if s.axes ~= nil then return s.axes or nil end
   s.axes = false
@@ -343,7 +356,7 @@ local function drawScreen(tex)
     local ptr = st.ent and st.ent.ptr
     if not ptr and st.obj and getObjectPointer then local okp, op = pcall(getObjectPointer, st.obj) if okp then ptr = op end end
     if ptr and ptr ~= 0 then
-      local ok, res, info = pcall(setEntityScreenTexture, ptr, tex, s.center, n, s.width or 0.5, s.height or 0.4, screenAxes(s))
+      local ok, res, info = pcall(setEntityScreenTexture, ptr, tex, s.center, n, s.width or 0.5, s.height or 0.4, screenAxes(s), screenPoints(s))
       if ok and res then
         if st.mode ~= 'surface' then st.mode = 'surface' tvStatus('on the TV screen - ' .. tostring(info)) end
         return

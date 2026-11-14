@@ -265,7 +265,7 @@
       [['status', 'health of every region (broker, 24/7 server, bridge, uptime)'], ['servers', 'live server list (all regions)'],
        ['ping', 'measure ping to every region now'], ['regions', 'what regions.txt contains (no passwords shown)'],
        ['console [region]', 'open the server terminal of a region (login admin)'], ['ssh [region]', 'SSH command / Termius link for a region'], ['setup [region]', 'one command: a new 24/7 VPS (HiveMQ + bridge + Mega Vil), SSH or Termux'],
-       ['broker', 'connection details for the mod / MQTT apps'], ['diagnose [region]', 'what is wrong with a region + what its autopilot did'], ['autopilot', 'new actions of the server autopilots'], ['update [region]', 'is the VPS on the newest version + the update command'], ['clear', 'clear the screen']].forEach(function (c) {
+       ['broker', 'connection details for the mod / MQTT apps'], ['diagnose [region]', 'what is wrong with a region + what its autopilot did'], ['autopilot', 'new actions of the server autopilots'], ['update [region]', 'is the VPS on the newest version + the update command'], ['xdp', 'XDP flood filter setup for the MP ports (on the VPS)'], ['iso', 'join + check the 2-part Ubuntu 26.04.1 ISO'], ['clear', 'clear the screen']].forEach(function (c) {
         print('  <span class="g">' + esc(c[0]) + '</span>' + ' '.repeat(Math.max(1, 18 - c[0].length)) + '<span class="m">' + esc(c[1]) + '</span>');
       });
     },
@@ -340,6 +340,27 @@
       });
     },
     clear: function () { out.innerHTML = ''; },
+    // 4.13.48: XDP (docs/XDP_SETUP.md) and the 2-part ISO of release v4.13.45
+    xdp: function () {
+      p('a', 'XDP flood filter - on the VPS as root (UDP 1922 1930 1931 1932 + TCP 22 80 1883 8883 8884 stay open):');
+      ['sudo apt install -y xdp-tools bpftool clang llvm libbpf-dev',
+       'echo XDP_FILTER=1 | sudo tee -a /etc/mp-hivemq/mp.env && sudo systemctl restart mp-xdp',
+       'sudo /opt/mp/console/mp-xdp.sh status'].forEach(function (c) { print('  <span class="g">' + esc(c) + '</span>' + copyBtn(c)); });
+      var man = 'sudo xdp-filter load -m native -p allow eth0 && for p in 17 19 161 389 520 1900 3702 11211; do sudo xdp-filter port $p -m src -p udp; done';
+      p('m', '  by hand (-m skb if native fails):');
+      print('  <span class="g">' + esc(man) + '</span>' + copyBtn(man));
+      p('m', '  block: mp-xdp.sh block IP · unblock IP · never -p deny (it drops ARP and the VPS goes offline)');
+      print('  <span class="m">guide:</span> <a href="XDP_SETUP.md" target="_blank" rel="noopener">XDP_SETUP.md</a>');
+    },
+    iso: function () {
+      var I = 'ubuntu-26.04.1-live-server-amd64.iso';
+      p('a', 'Ubuntu 26.04.1 ISO (release v4.13.45, 2 parts):');
+      [['Linux / Termux', 'cat ' + I + '.part0* > ' + I], ['', 'sha256sum -c ' + I + '.sha256'],
+       ['Windows (cmd)', 'copy /b ' + I + '.part00+' + I + '.part01 ' + I], ['', 'certutil -hashfile ' + I + ' SHA256']].forEach(function (c) {
+        print('  <span class="m">' + esc((c[0] + '                ').slice(0, 15)) + '</span><span class="g">' + esc(c[1]) + '</span>' + copyBtn(c[1]));
+      });
+      p('m', '  sha256 cc8a95cde20f6ced61a322420de00f10cc3c90ced545daa46cb9c1a117f1d927');
+    },
     // 3.34: one featured server (the lanes of the bot watch the 4 of them, 24/7)
     keepalive: function (a) {
       prune();
@@ -370,7 +391,7 @@
   }
 
   // ---------------------------------------------------------------- 2.22: MP Bot planner
-  var boot = ['status', 'regions', 'servers', 'broker', UPD], rot = ['status', 'servers', 'autopilot', 'status', 'servers', 'broker', 'update'], ri = 0, cycles = 0;
+  var boot = ['status', 'regions', 'servers', 'broker', UPD], rot = ['status', 'servers', 'autopilot', 'status', 'servers', 'broker', 'update', 'status', 'xdp', 'servers', 'iso'], ri = 0, cycles = 0;
   function next() {
     if (boot.length) return { cmd: boot.shift(), why: 'start-up check' };
     var dj = window.MPDebian && MPDebian.tick(); if (dj) return dj;   // 3.31: the Debian one-line setup

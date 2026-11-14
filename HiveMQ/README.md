@@ -83,7 +83,7 @@ download only this folder (sparse clone), so a new VPS is set up fast.
 | cache / log trim | `tools/mp-trim.sh`, `mp-trim.timer` | every 6 h: journald 200 MB / 7 days, old HiveMQ logs, big server logs, apt cache, old /tmp. The Linux page cache is NOT dropped (that cache keeps the servers fast) |
 | priorities | `systemd/*.service` | game servers and the broker get the CPU first and are the last to be killed on low RAM |
 
-Settings (in `/etc/mp-hivemq/mp.env`): `XDP=1`, `XDP_PPS=20000`, `XDP_ALLOW=`, `NOTRACK=1`, `KEEPALIVE_STRIKES=3`.
+Settings (in `/etc/mp-hivemq/mp.env`): `XDP=1`, `XDP_PPS=20000`, `XDP_ALLOW=`, `XDP_FILTER=0` (1 = xdp-filter in front, see [docs/XDP_SETUP.md](../docs/XDP_SETUP.md)), `XDP_BLOCK=`, `NOTRACK=1`, `KEEPALIVE_STRIKES=3`.
 
 ```
 sudo /opt/mp/console/mp-xdp.sh status     # XDP on/off + passed / dropped counters
