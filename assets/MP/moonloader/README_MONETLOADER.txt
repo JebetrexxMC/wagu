@@ -68,6 +68,11 @@ TV Player (MP 4.13.34, MonetLoader 3.8.2-mp)
   getRender3DStats() -> draws, ok, available. renderDrawTexture3D keeps its vertices in a persistent buffer (the phone's
   renderer reads them after the call; 3.8.5 / 3.8.6 freed them first, so the mesh stayed black). The corner preview is
   off by default (Preview=1 turns it on). Surface=0 in tvplayer.ini uses the 3D mesh only.
+  3.8.8-mp (MP 4.13.46): tvplayer.lua 1.7-mp. Many TV models map their glass to a few texels of a shared texture
+  (and some have dark vertex colours there), so the video swapped into the screen material came out as one black
+  colour. setEntityScreenTexture takes a 7th argument, the screen's axes {ox,oy,oz, ux,uy,uz, vx,vy,vz} (fitted from
+  tvplayer/screens.lua): the screen's own uv are set to the whole picture and its vertex colours to white (the game
+  rebuilds the mesh with RpGeometryLock / Unlock), and both are put back when the TV stops.
   Hitmarker (MP 4.13.44): hitmarker.lua + resources/hitmarker/ - "Dynamic Hitmarker" by fausto200
   (https://ko-fi.com/fausto200), ported from PC MoonLoader. White cross on a hit, gold + skull on a
   headshot, red on a kill, blue + broken shield when armour breaks, damage numbers, xN combo and sounds.

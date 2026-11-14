@@ -18,7 +18,7 @@
 -- The sound gets quieter as you walk away and stops after StopDistance metres.
 script_name('TV Player')
 script_author('ThirtyFoxMCx00E1 (MP port), tvplayer mod')
-script_version('1.6-mp')
+script_version('1.7-mp')
 
 local DIR = getWorkingDirectory() .. '/tvplayer'
 local cfg = { Volume = 80, PromptDistance = 2.5, StopDistance = 20, FullVolumeDistance = 4, SeekSeconds = 10,
@@ -290,6 +290,37 @@ end
 -- hides the picture, the picture never shows through a body like a ghost, and it is not a flat camera overlay.
 -- Older MonetLoader builds only have the 2D overlay (renderDrawTextureTriangles) - that is kept as a fallback.
 local warned2d = false
+-- 1.7: the screen's axes from screens.lua (model space): uv (0,0) point, edge to uv (1,0), edge to uv (0,1).
+-- MonetLoader 3.8.8 gives the TV model's own screen these uv, so the whole picture shows on it (before, many TVs
+-- mapped their glass to a few dark texels and the video came out as one black colour)
+local function screenAxes(s)
+  if s.axes ~= nil then return s.axes or nil end
+  s.axes = false
+  -- least squares over every vertex: p = O + u * U + v * V (one fit per coordinate, features 1, u, v)
+  local v = s.verts
+  local n, su, sv, suu, svv, suv = 0, 0, 0, 0, 0, 0
+  local sp, spu, spv = { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }
+  for i = 0, #v / 8 - 1 do
+    local j = i * 8
+    local u, w = v[j + 7], v[j + 8]
+    n = n + 1 su = su + u sv = sv + w suu = suu + u * u svv = svv + w * w suv = suv + u * w
+    for c = 1, 3 do sp[c] = sp[c] + v[j + c] spu[c] = spu[c] + v[j + c] * u spv[c] = spv[c] + v[j + c] * w end
+  end
+  if n < 3 then return nil end
+  -- normal equations [n su sv; su suu suv; sv suv svv] x = [sp spu spv], solved with Cramer's rule
+  local function det3(a, b, c, d, e, f, g, h, k) return a * (e * k - f * h) - b * (d * k - f * g) + c * (d * h - e * g) end
+  local D = det3(n, su, sv, su, suu, suv, sv, suv, svv)
+  if math.abs(D) < 1e-9 then return nil end
+  local O, U, V = {}, {}, {}
+  for c = 1, 3 do
+    local y0, y1, y2 = sp[c], spu[c], spv[c]
+    O[c] = det3(y0, su, sv, y1, suu, suv, y2, suv, svv) / D
+    U[c] = det3(n, y0, sv, su, y1, suv, sv, y2, svv) / D
+    V[c] = det3(n, su, y0, su, suu, y1, sv, suv, y2) / D
+  end
+  s.axes = { O[1], O[2], O[3], U[1], U[2], U[3], V[1], V[2], V[3] }
+  return s.axes
+end
 local function drawScreen(tex)
   if not tvValid() then return end
   local s = screens[st.mdl]
@@ -306,7 +337,7 @@ local function drawScreen(tex)
     local ptr = st.ent and st.ent.ptr
     if not ptr and st.obj and getObjectPointer then local okp, op = pcall(getObjectPointer, st.obj) if okp then ptr = op end end
     if ptr and ptr ~= 0 then
-      local ok, res, info = pcall(setEntityScreenTexture, ptr, tex, s.center, n, s.width or 0.5, s.height or 0.4)
+      local ok, res, info = pcall(setEntityScreenTexture, ptr, tex, s.center, n, s.width or 0.5, s.height or 0.4, screenAxes(s))
       if ok and res then
         if st.mode ~= 'surface' then st.mode = 'surface' print('TV Player: picture on the TV model (' .. tostring(info) .. ')') end
         return
