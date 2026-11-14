@@ -15,6 +15,7 @@ static std::atomic<int>  s_nMenuMpPct{-1};       // black-screen countdown 0..10
 static std::atomic<bool> s_bMenuMpCard{false};   // launcher closed on the black screen: [Servers] / [Single player]
 static bool     s_bMenuMpTile = false;           // SAUtils has our tile
 static bool     s_bMenuMpOn = true;              // MainMenuMultiplayer (MP.ini)
+static bool     s_bMenuMpCfg = true;             // 4.13.49: MainMenuMultiplayer itself (1 = the [MultiPlayer] button with ServerBrowserMode = default too)
 static uint64_t s_nMenuMpTapAt = 0;
 static uint64_t s_nMenuMpBlackAt = 0;
 static bool     s_bMenuMpHeld = false;           // player frozen + invisible by us
@@ -133,13 +134,37 @@ static bool s_bTitleHookOn = false;
 static void ApplyMode(int mode)
 {
     s_nNeonMode = mode;
-    if(mode == NEON_MODE_DEFAULT) s_bMenuMpOn = false;
+    // 4.13.49: default + MainMenuMultiplayer = 1 = the game's own menu with the [MultiPlayer] button (0 = no button).
+    // mp / neon always show their menu.
+    if(mode == NEON_MODE_DEFAULT) s_bMenuMpOn = s_bMenuMpCfg;
     else s_bMenuMpOn = true;   // 4.13.33: mp / neon always show their menu (MainMenuMultiplayer = 0 hid the mp tile)
+}
+// 4.13.49: MainMenuMultiplayer = 1 / 0 (also on / off / true / false, a "// comment" after the value is fine)
+static bool ParseOnOff(const char* v, bool def)
+{
+    while(*v == ' ' || *v == '\t') ++v;
+    if(!*v || *v == '/' || *v == ';' || *v == '#') return def;
+    if(!strncasecmp(v, "on", 2) || !strncasecmp(v, "true", 4) || !strncasecmp(v, "yes", 3)) return true;
+    if(!strncasecmp(v, "off", 3) || !strncasecmp(v, "false", 5) || !strncasecmp(v, "no", 2)) return false;
+    return atoi(v) != 0;
 }
 static bool s_bModeSelfWrite = false;   // 4.13.35: MP Settings writes the mode itself (not a hand edit)
 static void CfgBeforeSave(Config* c)
 {
     if(c != ::cfg || s_bModeSelfWrite) return;
+    {   // 4.13.49: MainMenuMultiplayer typed in by hand while the game runs
+        char v[64];
+        if(ReadIniKey("MP", "MainMenuMultiplayer", v, sizeof(v)))
+        {
+            const bool on = ParseOnOff(v, s_bMenuMpCfg);
+            if(on != s_bMenuMpCfg)
+            {
+                s_bMenuMpCfg = on; ApplyMode(s_nNeonMode);
+                ConfigEntry* e = ::cfg->Bind("MainMenuMultiplayer", on, "MP"); if(e) { e->SetBool(on); delete e; }
+                logger->Info("Main menu: MainMenuMultiplayer = %d (changed in TYFMC.MP.ini by hand)", on ? 1 : 0);
+            }
+        }
+    }
     char m[24];
     if(!ReadIniKey("MP", "ServerBrowserMode", m, sizeof(m))) return;
     char low[24]; MP_CopyStr(low, m, sizeof(low));
@@ -170,10 +195,25 @@ void MP::SetMainMenuMode(int mode)
     logger->Info("Main menu: ServerBrowserMode = %s (MP Settings, title hook %s)", n, s_bTitleHookOn ? "on" : "off");
 }
 bool MP::MainMenuHookOn() { return s_bTitleHookOn; }
+bool MP::MainMenuMpButton() { return s_bMenuMpCfg; }
+void MP::SetMainMenuMpButton(bool on)
+{
+    s_bMenuMpCfg = on; ApplyMode(s_nNeonMode);
+    s_bModeSelfWrite = true;
+    ConfigEntry* e = ::cfg->Bind("MainMenuMultiplayer", on, "MP"); if(e) { e->SetBool(on); delete e; } ::cfg->Save();
+    s_bModeSelfWrite = false;
+    logger->Info("Main menu: MainMenuMultiplayer = %d (MP Settings)", on ? 1 : 0);
+}
 
 void MP::InitMainMenu()
 {
-    s_bMenuMpOn = ::cfg->GetBool("MainMenuMultiplayer", true, "MP");
+    s_bMenuMpCfg = ::cfg->GetBool("MainMenuMultiplayer", true, "MP");
+    {   // 4.13.49: the value on the disk wins (AML's copy can be older), "1 // comment" works
+        char v[64];
+        if(ReadIniKey("MP", "MainMenuMultiplayer", v, sizeof(v))) s_bMenuMpCfg = ParseOnOff(v, s_bMenuMpCfg);
+        ConfigEntry* e = ::cfg->Bind("MainMenuMultiplayer", s_bMenuMpCfg, "MP"); if(e) { e->SetBool(s_bMenuMpCfg); delete e; }
+    }
+    s_bMenuMpOn = s_bMenuMpCfg;
     {   // 4.13.22: ServerBrowserMode = neon (the neon title menu + server browser) / mp (the [Multiplayer] tile + the
         // launcher panel) / default (the game's own menu only)
         // 4.13.33: the value on the disk wins (see CfgBeforeSave); no more "set back to default" on start.
@@ -192,7 +232,7 @@ void MP::InitMainMenu()
         logger->Info("Main menu: ServerBrowserMode = %s (neon = new main menu, mp = [Multiplayer] button on the game's menu, default = nothing) - %s", m, ini.c_str());
     }
     LookUpPCMenuLoading();
-    if(!s_bMenuMpOn) { logger->Info("Main menu: Multiplayer tile off (MainMenuMultiplayer = 0 / ServerBrowserMode = default)"); return; }
+    if(!s_bMenuMpOn) { logger->Info("Main menu: Multiplayer tile off (MainMenuMultiplayer = 0 and ServerBrowserMode = default)"); return; }
     // 4.13.13: no SAUtils tile any more - SAUtils puts it on the pause menu too. MP draws its own tile, on the
     // title menu only (no game loaded yet).
     s_bMenuMpTile = false;
@@ -437,10 +477,26 @@ void MP::DrawMenuMpFront()
     // 4.13.35: mp = this button (like 4.13.20); neon falls back to it when its native title crashed (caught) or
     // its files could not be loaded
     const bool neonFallback = NeonOn() && (HUD::TitleMenuBroken() || NeonPaint::Failed());
-    if(s_nNeonMode != NEON_MODE_MP && !neonFallback && !s_bMenuMpViaApi) return;
+    // 4.13.49: ServerBrowserMode = default shows it too when MainMenuMultiplayer = 1
+    const bool defaultBtn = s_nNeonMode == NEON_MODE_DEFAULT && s_bMenuMpCfg;
+    if(s_nNeonMode != NEON_MODE_MP && !defaultBtn && !neonFallback && !s_bMenuMpViaApi) return;
     if(!s_bMenuMpOn || s_bMenuMpTile || s_bMenuMp.load() || !Game::IsMainMenuShown()) return;
     if(Game::LocalPed() > 0) return;   // 4.13.13: a game is loaded = the pause menu: no Multiplayer tile there
-    const ImVec2 sz(ds.x * 0.11f, ds.y * 0.17f), at(ds.x * 0.13f, ds.y * 0.70f);
+    // 4.13.49: the [MultiPlayer] button of the screenshot (Screenshots/T3El3XQQro8-HD.jpg): a dark rounded square
+    // with a thin light frame, a white two-people icon and "MultiPlayer" in blackletter under it. Tap = the newest
+    // save loads behind MP's own loading screen (DrawMenuLoading), then the server select.
+    // MainMenuMultiplayerX / Y in TYFMC.MP.ini = the centre in % of the screen (default 18.5 / 78.5).
+    static float s_fBtnX = -1, s_fBtnY = -1;
+    if(s_fBtnX < 0)
+    {
+        char v[32];
+        s_fBtnX = ReadIniKey("MP", "MainMenuMultiplayerX", v, sizeof(v)) ? (float)atof(v) : 18.5f;
+        s_fBtnY = ReadIniKey("MP", "MainMenuMultiplayerY", v, sizeof(v)) ? (float)atof(v) : 78.5f;
+        if(s_fBtnX < 5 || s_fBtnX > 95) s_fBtnX = 18.5f;
+        if(s_fBtnY < 5 || s_fBtnY > 95) s_fBtnY = 78.5f;
+    }
+    const float bh = ds.y * 0.19f, bw = bh * 1.10f;
+    const ImVec2 sz(bw, bh), at(ds.x * s_fBtnX * 0.01f - bw * 0.5f, ds.y * s_fBtnY * 0.01f - bh * 0.5f);
     ImGui::SetNextWindowPos(at); ImGui::SetNextWindowSize(sz);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
@@ -450,18 +506,37 @@ void MP::DrawMenuMpFront()
         ImVec2 p = ImGui::GetCursorScreenPos();
         bool tap = ImGui::InvisibleButton("##mpTile", sz);
         const bool hot = ImGui::IsItemActive();
-        // the game's tile look: a dark slab with a light, slightly slanted frame
-        ImVec2 q[4] = { ImVec2(p.x + sz.x * 0.04f, p.y), ImVec2(p.x + sz.x, p.y + sz.y * 0.03f), ImVec2(p.x + sz.x * 0.97f, p.y + sz.y), ImVec2(p.x, p.y + sz.y) };
-        dl->AddConvexPolyFilled(q, 4, hot ? IM_COL32(60, 60, 60, 230) : IM_COL32(12, 12, 12, 220));
-        dl->AddPolyline(q, 4, IM_COL32(200, 200, 200, 230), ImDrawFlags_Closed, UI::S(3));
-        // two people glyph
-        const ImU32 w = IM_COL32(220, 220, 220, 255);
-        ImVec2 c(p.x + sz.x * 0.5f, p.y + sz.y * 0.42f); const float r = sz.y * 0.10f;
-        dl->AddCircleFilled(ImVec2(c.x + r * 0.9f, c.y - r * 0.6f), r * 0.8f, w);
-        dl->AddCircleFilled(ImVec2(c.x - r * 0.4f, c.y - r * 0.3f), r, w);
-        dl->PathArcTo(ImVec2(c.x - r * 0.4f, c.y + r * 2.2f), r * 1.7f, 3.14159f, 6.28318f, 20); dl->PathFillConvex(w);
-        const char* lbl = "Multiplayer"; ImVec2 ts = ImGui::CalcTextSize(lbl);
-        dl->AddText(ImVec2(p.x + (sz.x - ts.x) * 0.5f, p.y + sz.y * 0.80f - ts.y * 0.5f), IM_COL32_WHITE, lbl);
+        const float rr = bh * 0.10f, fw = ImMax(1.5f, bh * 0.018f);
+        const ImVec2 p1(p.x + sz.x, p.y + sz.y);
+        dl->AddRectFilled(ImVec2(p.x + fw * 2, p.y + fw * 3), ImVec2(p1.x + fw * 2, p1.y + fw * 3), IM_COL32(0, 0, 0, 90), rr);   // soft shadow
+        dl->AddRectFilled(p, p1, hot ? IM_COL32(58, 58, 60, 240) : IM_COL32(14, 14, 15, 232), rr);
+        dl->AddRectFilledMultiColor(ImVec2(p.x + rr, p.y + fw), ImVec2(p1.x - rr, p.y + sz.y * 0.45f), IM_COL32(255, 255, 255, 16), IM_COL32(255, 255, 255, 16), IM_COL32(255, 255, 255, 0), IM_COL32(255, 255, 255, 0));
+        dl->AddRect(p, p1, hot ? IM_COL32(255, 255, 255, 255) : IM_COL32(205, 205, 205, 235), rr, 0, fw);
+        // two people (outline): the back one up and to the right, the front one bigger
+        const ImU32 w = IM_COL32(236, 236, 236, 255), bg = hot ? IM_COL32(58, 58, 60, 255) : IM_COL32(14, 14, 15, 255);
+        const float r = bh * 0.085f, lw = ImMax(1.5f, bh * 0.026f);
+        const ImVec2 c(p.x + sz.x * 0.47f, p.y + sz.y * 0.36f);
+        auto person = [&](ImVec2 h, float hr, ImU32 col, bool gap) {   // solid figure; gap = a dark rim against the one behind
+            const ImVec2 b(h.x, h.y + hr * 2.75f);   // shoulders' centre
+            const float R = hr * 1.75f;
+            if(gap)
+            {
+                dl->AddCircleFilled(h, hr + lw, bg, 24);
+                dl->PathArcTo(b, R + lw, 3.14159f, 6.28318f, 24); dl->PathFillConvex(bg);
+            }
+            dl->AddCircleFilled(h, hr, col, 24);
+            dl->PathArcTo(b, R, 3.14159f, 6.28318f, 24); dl->PathFillConvex(col);
+        };
+        person(ImVec2(c.x + r * 1.25f, c.y - r * 0.45f), r * 0.86f, IM_COL32(178, 178, 180, 255), false);
+        person(ImVec2(c.x - r * 0.35f, c.y), r, w, true);
+        // label: blackletter like the game's "San Andreas"
+        ImFont* gf = UI::GothicFont();
+        const char* lbl = "MultiPlayer";
+        float lfs = bh * 0.17f; ImVec2 ts = gf->CalcTextSizeA(lfs, FLT_MAX, 0, lbl);
+        if(ts.x > sz.x * 0.90f) { lfs *= sz.x * 0.90f / ts.x; ts = gf->CalcTextSizeA(lfs, FLT_MAX, 0, lbl); }
+        const ImVec2 tp(p.x + (sz.x - ts.x) * 0.5f, p.y + sz.y * 0.80f - ts.y * 0.5f);
+        dl->AddText(gf, lfs, ImVec2(tp.x + 1, tp.y + 2), IM_COL32(0, 0, 0, 200), lbl);
+        dl->AddText(gf, lfs, tp, IM_COL32_WHITE, lbl);
         if(tap) MenuMpTap(nullptr);
     }
     ImGui::End();

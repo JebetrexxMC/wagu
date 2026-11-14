@@ -325,6 +325,8 @@ namespace MP
     int  MainMenuMode();          // 4.13.34: 0 default / 1 mp / 2 neon (NEON_MODE_*)
     void SetMainMenuMode(int mode);
     bool MainMenuHookOn();
+    bool MainMenuMpButton();      // 4.13.49: MainMenuMultiplayer (the button with ServerBrowserMode = default)
+    void SetMainMenuMpButton(bool on);
     bool NeonMenuMode();          // 4.13.22: ServerBrowserMode = neon
     bool NeonCoversGameMenu();
     int  NeonPaintWanted();        // 4.13.28: 0 nothing / 1 neon title / 2 mp tile / 3 pill - painted after MobileMenu::Render
