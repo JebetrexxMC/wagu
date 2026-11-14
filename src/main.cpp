@@ -35,7 +35,7 @@
 #include "net/server.h"
 
 // 4.12.7: the config is files/TYFMC/TYFMC.MP.ini (the old configs/net.thirtyfox.mp.ini is moved there)
-TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 4.13.49, ThirtyFoxMCx00E1, MP, net.thirtyfox.mp)
+TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 4.13.50, ThirtyFoxMCx00E1, MP, net.thirtyfox.mp)
 // 4.13.36: no NEEDGAME(com.rockstargames.gtasa) - AML would refuse libMP in GTA Vice City. OnModLoad starts the
 // San Andreas code only when libGTASA.so is there, and the Vice City layer (src/vc/) when libGTAVC.so is.
 
@@ -1100,7 +1100,19 @@ static void InstallMenuHooks(bool titleMenu)
         HOOK_IF(LS_RenderLoadingBar, "_ZN14CLoadingScreen16RenderLoadingBarEv");
         logger->Info("Loading screen: %d hooks", hooked);
     }
-    else logger->Info("Loading screen: PCMenu is installed - its loading screen is used, MP does not hook the loading screen");
+    else
+    {   // 4.13.50: with PCMenu the loading screen is hooked through libGTASA's own .got.plt slots (chained with PCMenu's
+        // hook, no second patch of the same code - the 4.13.25 crash). 4.13.25 - 4.13.49 did not hook it at all, so a
+        // [MultiPlayer] tap showed the game's splash instead of MP's loading screen (4.13.20 had it). PCMenu's PC
+        // loading screen still wins while it is on (MP::PCMenuLoadingActive in LS_RenderSplash).
+        void* any = (void*)aml->GetSym(pGameHandle, "_ZN14CLoadingScreen12RenderSplashEv");
+        void** s1 = Game::FindPltSlot(any, "_ZN14CLoadingScreen12RenderSplashEv");
+        void** s2 = Game::FindPltSlot(any, "_ZN14CLoadingScreen16RenderLoadingBarEv");
+        if(s1 && *s1 && aml->HookPLT((void*)s1, (void*)&HookOf_LS_RenderSplash, (void**)&LS_RenderSplash)) ++hooked;
+        if(s2 && *s2 && aml->HookPLT((void*)s2, (void*)&HookOf_LS_RenderLoadingBar, (void**)&LS_RenderLoadingBar)) ++hooked;
+        logger->Info("Loading screen: PCMenu is installed - %d slot hooks (RenderSplash %s, RenderLoadingBar %s); PCMenu's loading screen wins while it is on",
+            hooked, s1 ? "slot" : "no slot", s2 ? "slot" : "no slot");
+    }
     if(!titleMenu) { logger->Info("Title menu: ServerBrowserMode = default - the game's own menu, no MobileMenu::Render hook"); return; }
     MP_InstallTitleHook();
 }

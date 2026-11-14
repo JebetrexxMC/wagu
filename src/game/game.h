@@ -50,6 +50,7 @@ namespace Game
     void  InitSkins(void* gameHandle);
     void  InitFileGuard(void* gameHandle);   // 3.11.5: bad file handles in the game's streaming don't crash
     int   FileGuardBlocked();
+    void** FindPltSlot(void* anyFnInLib, const char* name);   // 4.13.50: the .got.plt slot of an imported / own exported function (by name)
     bool  IsSafeSkin(int skin);        // network skin id we can show (normal ped or a known story character)
     bool  IsSpecialSkin(int skin);
     const char* SkinLabel(int skin);   // story character name, nullptr for normal peds

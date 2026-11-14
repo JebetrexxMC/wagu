@@ -85,3 +85,9 @@ TV Player (MP 4.13.34, MonetLoader 3.8.2-mp)
   headshot, red on a kill, blue + broken shield when armour breaks, damage numbers, xN combo and sounds.
   The PC package's MoonLoader.asi, bass.dll, lua51.dll and lib/*.dll are Windows files: not needed here.
   samp.events (lib/samp/) is included: copy the whole lib folder WITH its subfolders.
+  3.9.0-mp (MP 4.13.50): tvplayer.lua 1.8-mp. The RwIm3D mesh was drawn but read the video frame as pure black on
+  phones (the 2D preview of the same frame played). The TV picture is now a small model of its own (RpGeometry +
+  RpAtomic with the screen's triangles from tvplayer/screens.lua, the frame as its material texture), drawn by the
+  game's model pipeline in RenderEffects with the scene's depth buffer, so CJ in front of the TV hides it.
+  setRender3DMethod(1 = model, default / 2 = the old RwIm3D mesh); Render3DMethod in tvplayer.ini. getRender3DStats()
+  returns a 4th value: "ok" or why the model could not be made (moonloader.log: "TV model: ...").

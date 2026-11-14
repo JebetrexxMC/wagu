@@ -178,3 +178,43 @@ void Game::InitFileGuard(void* h)
     InitStdioGuard(h);   // 3.21
 }
 int Game::FileGuardBlocked() { return s_nBlocked.load(); }
+
+// 4.13.50: the .got.plt slot the library itself calls `name` through (libGTASA calls its own exported functions via its
+// PLT). Hooking that slot chains with another mod's inline or slot hook on the same function (PCMenu) instead of
+// patching the same code twice. nullptr = not found.
+void** Game::FindPltSlot(void* anyFnInLib, const char* name)
+{
+    Dl_info di; memset(&di, 0, sizeof(di));
+    if(!anyFnInLib || !name || !dladdr(anyFnInLib, &di) || !di.dli_fbase) return nullptr;
+    FindLib f = { (uintptr_t)di.dli_fbase, nullptr, 0 };
+    dl_iterate_phdr(FindCb, &f);
+    if(!f.phdr) return nullptr;
+    const ElfW(Dyn)* dyn = nullptr;
+    for(int i = 0; i < f.phnum; ++i) if(f.phdr[i].p_type == PT_DYNAMIC) dyn = (const ElfW(Dyn)*)(f.base + f.phdr[i].p_vaddr);
+    if(!dyn) return nullptr;
+    const ElfW(Sym)* symtab = nullptr; const char* strtab = nullptr; uintptr_t jmprel = 0; size_t jmpsz = 0;
+    for(const ElfW(Dyn)* d = dyn; d->d_tag != DT_NULL; ++d)
+    {
+        if(d->d_tag == DT_SYMTAB) symtab = (const ElfW(Sym)*)(f.base + d->d_un.d_ptr);
+        else if(d->d_tag == DT_STRTAB) strtab = (const char*)(f.base + d->d_un.d_ptr);
+        else if(d->d_tag == DT_JMPREL) jmprel = f.base + d->d_un.d_ptr;
+        else if(d->d_tag == DT_PLTRELSZ) jmpsz = d->d_un.d_val;
+    }
+    if(!symtab || !strtab || !jmprel || !jmpsz) return nullptr;
+#ifdef AML32
+    typedef ElfW(Rel) R;
+    const R* r = (const R*)jmprel;
+    for(size_t k = 0, cnt = jmpsz / sizeof(R); k < cnt; ++k)
+    {
+        const uint32_t si = (uint32_t)ELF32_R_SYM(r[k].r_info);
+#else
+    typedef ElfW(Rela) R;
+    const R* r = (const R*)jmprel;
+    for(size_t k = 0, cnt = jmpsz / sizeof(R); k < cnt; ++k)
+    {
+        const uint32_t si = (uint32_t)ELF64_R_SYM(r[k].r_info);
+#endif
+        if(si && !strcmp(strtab + symtab[si].st_name, name)) return (void**)(f.base + r[k].r_offset);
+    }
+    return nullptr;
+}

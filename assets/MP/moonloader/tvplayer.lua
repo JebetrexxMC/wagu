@@ -18,12 +18,12 @@
 -- The sound gets quieter as you walk away and stops after StopDistance metres.
 script_name('TV Player')
 script_author('ThirtyFoxMCx00E1 (MP port), tvplayer mod')
-script_version('1.7.2-mp')
+script_version('1.8.0-mp')
 
 local DIR = getWorkingDirectory() .. '/tvplayer'
 local cfg = { Volume = 80, PromptDistance = 2.5, StopDistance = 20, FullVolumeDistance = 4, SeekSeconds = 10,
   VolumeStep = 10, Loop = 0, AutoNext = 1, Stretch = 0, Brightness = 100, DepthTest = 1, DepthOffset = 0.01, OsdSeconds = 4, Debug = 0,
-  Fps = 30, Render3D = 1, Preview = 0, Surface = 1 }
+  Fps = 30, Render3D = 1, Render3DMethod = 1, Preview = 0, Surface = 1 }
 
 local function loadIni(path)
   local f = io.open(path, 'r')
@@ -128,8 +128,8 @@ local function seqTexture(p)
   end
   local i = math.max(1, math.min(p.count, math.floor(t * p.fps) + 1))
   if i ~= p.idx then
-    -- 1.7.2: true = with mip levels: the game's 3D drawing reads a texture without them as pure black on the phone's GPU
-    local ok, tex = pcall(renderLoadTextureFromFile, string.format('%s/%05d.jpg', p.dir, i), true)
+    -- 1.8: no mip levels again (1.7.2's mipmapped frames did not fix the black TV; the TV model samples without them)
+    local ok, tex = pcall(renderLoadTextureFromFile, string.format('%s/%05d.jpg', p.dir, i), false)
     p.frames = p.frames + 1
     if ok and tex then
       if p.tex then p.old[#p.old + 1] = p.tex end
@@ -374,6 +374,9 @@ local function drawScreen(tex)
       local x, y, z = toWorld(b, v[k + 1] + n[1] * off, v[k + 2] + n[2] * off, v[k + 3] + n[3] * off)
       out[#out + 1] = x; out[#out + 1] = y; out[#out + 1] = z; out[#out + 1] = v[k + 7]; out[#out + 1] = v[k + 8]
     end
+    -- 1.8: MonetLoader 3.9.0 draws it as a small model of its own (the game's model pipeline); Render3DMethod = 2 = the
+    -- old RwIm3D mesh (black on phones)
+    if setRender3DMethod then setRender3DMethod(cfg.Render3DMethod == 2 and 2 or 1) end
     if #out >= 15 then renderDrawTexture3D(tex, out, color, cfg.DepthTest ~= 0) end
     return
   end
@@ -584,10 +587,10 @@ function main()
           local fr, up = P.stats(st.p)
           print(string.format('TV Player: %s - %d frames decoded, %d textures, 3D %s, drawn as %s', videos[st.index] or '?', fr, up,
             tostring(isRender3DAvailable and isRender3DAvailable()), tostring(st.mode or '2D')))
-          local d3, ok3 = 0, 0
-          if getRender3DStats then d3, ok3 = getRender3DStats() print(string.format('TV Player: 3D mesh draws %d, ok %d', d3, ok3)) end
+          local d3, ok3, _, how = 0, 0, nil, nil
+          if getRender3DStats then d3, ok3, _, how = getRender3DStats() print(string.format('TV Player: 3D mesh draws %d, ok %d, model: %s', d3, ok3, tostring(how))) end
           tvStatus(string.format('%d frames, %d textures, %s%s', fr, up, tostring(st.mode or '2D'),
-            st.mode == 'mesh' and string.format(' (%d/%d drawn)', ok3 or 0, d3 or 0) or ''))
+            st.mode == 'mesh' and string.format(' (%d/%d drawn, model: %s)', ok3 or 0, d3 or 0, tostring(how or 'old MonetLoader')) or ''))
           if st.p.kind == 'seq' then
             if up == 0 then osd("No picture: can't load " .. string.format('%s/%05d.jpg', videos[st.index], math.max(1, st.p.idx))) end
           elseif fr == 0 then osd("No picture: the phone can't decode this video - use an image sequence (videos/README.txt)")
