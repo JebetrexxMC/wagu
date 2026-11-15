@@ -99,7 +99,7 @@ int main(int argc, char** argv)
     {
         SaRadarView v; v.meX = x; v.meY = y; v.meZ = z; v.meHeading = 360 - hd; v.camFx = -sinf((360 - hd) * 0.0174533f); v.camFy = cosf((360 - hd) * 0.0174533f);
         v.range = range; v.mode = mode;
-        SaPin pins[6] = {
+        static SaPin pins[6] = {
             { 1481, -1772, 14, 0x22C55EFF, "", 0 },     // city hall-ish
             { 1172, -1323, 14, 0xEF4444FF, "H", 0 },
             { 1555, -1675, 16, 0x2563EBFF, "P", 0 },
@@ -107,10 +107,17 @@ int main(int argc, char** argv)
             { 1500, -1600, 14, 0xF59E0BFF, "", 1 },
             { 2495, -1690, 14, 0xA855F7FF, "", 2 },
         };
+        int nPins = 6;
+        if(const char* e = getenv("MP_PINS"))   // "x,y,RRGGBBAA;..." : other players' blips (sync preview)
+        {
+            nPins = 0;
+            while(*e && nPins < 6) { float px, py; unsigned c; int used = 0; if(sscanf(e, "%f,%f,%x%n", &px, &py, &c, &used) < 3) break;
+                SaPin& q = pins[nPins++]; q.x = px; q.y = py; q.z = z; q.rgba = c; q.glyph[0] = 0; q.style = 1; e += used; if(*e == ';') ++e; }
+        }
         SaArea ar[1] = { { 1440, -1730, 1550, -1620, 0x22C55E40 } };
         float size = H * 0.25f;
         ImVec2 p0(W * 0.012f, H * 0.915f - size);
-        SaRadarDraw(dl, p0, size, v, pins, 6, ar, 1, 0.5f);
+        SaRadarDraw(dl, p0, size, v, pins, nPins, ar, getenv("MP_PINS") ? 0 : 1, 0.5f);
         SaRadarDrawChip(dl, p0, size, mode);
     }
     ImGui::Render();

@@ -9,12 +9,10 @@
 - Interaction wheel and menus
 
 ## Project Day Z Legacy
-![DayZ](../Screenshots/gifs/dayz.gif)
 
 Survival monitor, loot and inventory, hunting, zombies and bandits.
 
 ## Call of Duty: Modern Warfare 3 Team DM
-![MW3](../Screenshots/gifs/mw3.gif)
 
 Killstreaks, pickups and a scoreboard.
 

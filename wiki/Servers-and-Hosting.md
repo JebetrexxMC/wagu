@@ -1,6 +1,5 @@
 # Servers and hosting
 
-![Launcher](../Screenshots/gifs/launcher.gif)
 
 ## Kinds of servers
 

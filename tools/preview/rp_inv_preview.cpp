@@ -36,7 +36,16 @@ namespace Game {
     static bool IsCharInAnyCar(int) { return false; }
     static float GetCharSpeed(int) { return 0; }
     static bool GetCharPos(int, Vec3& v) { v = {0,0,0}; return true; }
+    static int GetMoney() { return 12450; }
+    static float GetCharHeading(int) { return 0; }
+    static void SetCharHeading(int, float) {}
+    static void FreezeChar(int, bool) {}
+    static void RestoreCamera() {}
+    static void SetFixedCamera(const Vec3&, const Vec3&) {}
+    static bool WorldToScreen(const Vec3&, float& x, float& y, float& d) { x = y = 0; d = -1; return false; }
 }
+namespace MP { static bool IsLocalMod() { return false; } }
+static void RpFacDraw() {}
 static int g_ItemsTex = 2; static int g_ItemsW, g_ItemsH; static unsigned char* g_Items;
 namespace HUD { static void* Texture(const char*, ImVec2* uv) { *uv = ImVec2(1, 1); return (void*)(intptr_t)g_ItemsTex; } }
 struct { bool active; int ped; } players[MP_MAX_PLAYERS];

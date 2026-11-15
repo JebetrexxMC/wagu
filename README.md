@@ -93,11 +93,11 @@ Prebuilt binaries:
 
 Full guide: the [wiki](wiki/Home.md) (Install, Features, Servers and hosting, Server Management, Gamemodes, MonetLoader mods, Vice City, FAQ).
 
-Every GIF below is made from real in-game screenshots of MP (in `Screenshots/`) and, for the radar, from MP's real radar / compass drawing code run on a PC (`tools/preview/radar_preview.cpp`). They are not screen recordings. To make them again, run `python3 tools/preview/make_gifs.py`.
+Every GIF below is generated on a PC by running MP's own code, not taken from screenshots or screen recordings: the radar, compass and sync blips come from `src/mp_radar.inc` / `src/mp_compass.inc` with the game's map data, the hit markers from the real `hitmarker.lua` run in Lua, the RP screens from `src/mp_rp_inv.inc` / `src/mp_rp_atm.inc`, the phone from `src/mp_phone.inc`, and the HG rules from the real `mods_loader.lua` test. Only the street backgrounds and the target figure are drawn for the GIF. To make them again, run `python3 tools/preview/make_gifs.py`.
 
 ### Online play and sync
 
-![Freeroam and sync](Screenshots/gifs/freeroam_sync.gif)
+![Sync: other players on the MP radar](Screenshots/gifs/freeroam_sync.gif)
 
 - **Servers that run on your phone, a PC or a 24/7 VPS.** The UDP server uses port **1922**. You can host a LAN server from the game, play online through the Broker (MQTT) relay, or run the standalone server on Debian or Ubuntu.
 - **What is synced:**
@@ -106,7 +106,11 @@ Every GIF below is made from real in-game screenshots of MP (in `Screenshots/`) 
   - every bullet and rocket
   - NPC people and traffic
   - weather and time
-- **Phone call sync (4.13.58).** In a Mega Vil phone call your character takes out the phone and talks, and everybody sees the animation and the phone model in its hand.
+- **Phone UI and calls on every server (4.13.59).** Open the phone with `/phone` (or `/p`, `/cellphone`) on the default server, the featured servers and your custom servers. Contacts lists the players online. Tap Call, use `/call <id or name>`, or press "Call (phone)" in the Players online list. The other player's phone rings and shows Answer / Decline (`/answer`, `/hangup`). Calls with no answer end after 30 s. While you talk, voice chat goes to the person you are calling, wherever they are on the map.
+- **Call sync - the phone in your hand.** When you call or talk, CJ takes the phone out and holds it to his ear (`TASK_USE_MOBILE_PHONE`). Everybody sees the animation and the phone model in his hand, and your weapon comes back when the call ends. This works on foot on every server. Mega Vil Futuristic RP keeps its own RP phone, with the same call sync.
+
+![Phone UI and calls on every server](Screenshots/gifs/phone_call.gif)
+
 - **Name tags with health and armour bars** in SA-MP style. You can change their size and draw distance.
 - **Player blips** on the radar and on the pause-menu map, in each player's own color.
 
@@ -121,7 +125,7 @@ Every GIF below is made from real in-game screenshots of MP (in `Screenshots/`) 
 
 ### Combat
 
-![Combat](Screenshots/gifs/combat.gif)
+![Hit markers from the Hitmarker mod](Screenshots/gifs/combat.gif)
 
 - **The shooter decides the damage.** Hits on players and on the street NPC copies are sent at once.
 - **Hit markers and kill feed:** kills, headshots, explosions and armour hits. The MonetLoader Hitmarker mod reads them through `MP_PopHit`.
@@ -130,8 +134,6 @@ Every GIF below is made from real in-game screenshots of MP (in `Screenshots/`) 
 
 ### Launcher and Server Management
 
-![Launcher](Screenshots/gifs/launcher.gif)
-
 - **MP Launcher:** Internet, Favorites and LAN lists, up to 500 servers, with ping, players, mode and language, and a server info panel.
 - **Server Management:** permissions, bans, moderators, rules and dialogs, Plugins, and the Textdraw Editor.
 - **MonetLoader - HG menu section (4.13.58):** shows whether HG can run right now, with the switch "HG menu on by default for my custom servers".
@@ -139,7 +141,7 @@ Every GIF below is made from real in-game screenshots of MP (in `Screenshots/`) 
 
 ### Gamemodes
 
-![Mega Vil Futuristic RP](Screenshots/gifs/megavil_rp.gif)
+![Mega Vil RP inventory, documents and ATM](Screenshots/gifs/megavil_rp.gif)
 
 - **Mega Vil Futuristic (Roleplay).** It includes:
   - phone with apps and calls, inventory and items, ATM
@@ -147,11 +149,7 @@ Every GIF below is made from real in-game screenshots of MP (in `Screenshots/`) 
   - showroom, houses with the Home Kit, wardrobe and clothes, hotel rooms with a computer
   - interaction wheel and menus
 
-![Project DayZ](Screenshots/gifs/dayz.gif)
-
 - **Project Day Z Legacy:** survival monitor, loot and inventory, hunting, zombies and bandits.
-
-![MW3 Team DM](Screenshots/gifs/mw3.gif)
 
 - **Call of Duty: Modern Warfare 3 Team DM:** killstreaks, pickups, scoreboard.
 - **Brief Case War** and **League (car football)**, plus freeroam and SA-MP / open.mp-style gamemodes and filterscripts.
@@ -160,20 +158,16 @@ Every GIF below is made from real in-game screenshots of MP (in `Screenshots/`) 
 
 ![MP radar](Screenshots/gifs/radar.gif)
 
-![Maps and HUD](Screenshots/gifs/maps_hud.gif)
-
 - **MP radar** in 2D (north up) and 3D (it turns with you). Its map is drawn from the game's own path nodes, water, parks and district names, without textures, and it has a GPS route.
 - **Compass** with heading, waypoints and distance.
 - **Full map** with player, property and job blips.
 - **Car HUD** with speedometer, fuel and damage.
 
-![Loading and pause](Screenshots/gifs/loading.gif)
-
 - **[MultiPlayer] button on the game's main menu**, a custom loading screen and a loading window.
 
 ### MonetLoader mods
 
-![MonetLoader mods](Screenshots/gifs/monetloader.gif)
+![HG on / off rules](Screenshots/gifs/monetloader.gif)
 
 - `moonloader/mods_loader.lua` starts every `.lua` in `moonloader/mods/`.
   - **TV Player:** video on the TV model in houses.
@@ -247,7 +241,8 @@ Use `asia`, `na` or `oceania` for the other regions. On a VPS, pick Debian 12 in
 
 ## Changelog
 
-- **4.13.58**: **Phone call sync (San Andreas).** When you are in a Mega Vil RP phone call (or calling someone), your character now plays the real phone animation (`TASK_USE_MOBILE_PHONE`: take the phone out, talk, put it away) and everybody sees it: the call animation is mirrored on your avatar and the cellphone model is put in its hand for as long as the call lasts. When the call ends the phone goes away and the weapon you held comes back. It only plays on foot, not in a car, while paused or when dead. **Server Management: "HG menu on by default for my custom servers"** (on by default). New custom servers you host start with the HG menu / MonetLoader cheats allowed, and the page shows whether HG can run right now (on, off on featured servers, off with "Block menu cheats", off because the host turned cheats off). Switching it on while hosting allows it at once. Featured servers and the default server never allow it. **Tests:** `test/mods_loader_test.py` runs the real `mods_loader.lua` (HG on offline, off when the host turns cheats off, on again, off on featured servers: 12/12 pass), and `test/cheatperm_test.cpp` now also checks the featured server and the HG default / off / on-again cases on a real server + client (8/8 pass).
+- **4.13.59**: **Phone UI and calls on every server.** The phone and call sync are no longer only on Mega Vil Futuristic RP. On the default server, the featured servers and custom servers, `/phone` opens a phone with a Contacts list of the players online. You can call from there, with `/call <id or name>`, or with the "Call (phone)" button in the Players online list. The called player's phone rings (ring sound, and a shaking phone icon when the phone is put away) with Answer / Decline. `/answer`, `/hangup` and `/h` work too. Calls stop ringing after 30 s and end when either player leaves. While on a call, voice chat goes to the other player wherever they are. During a call CJ holds the phone to his ear and the others see the animation and the phone in his hand. The server handles calls with the new `PKT_CALL` packet (dial / ring / accept / decline / busy / hang up). Mega Vil keeps its own RP phone. **Tests:** `test/call_test.cpp` runs a real server + clients through dial, ring, answer, busy, decline, hang up and leaving during a call (12/12 pass). **GIF:** `Screenshots/gifs/phone_call.gif` is made by running the real `src/mp_phone.inc` (`tools/preview/phone_preview.cpp`).
+- **4.13.58**: **Phone call sync (San Andreas).** When you are in a Mega Vil RP phone call (or calling someone), your character now plays the real phone animation (`TASK_USE_MOBILE_PHONE`: take the phone out, talk, put it away) and everybody sees it: the call animation is mirrored on your avatar and the cellphone model is put in its hand for as long as the call lasts. When the call ends the phone goes away and the weapon you held comes back. It only plays on foot, not in a car, while paused or when dead. **Server Management: "HG menu on by default for my custom servers"** (on by default). New custom servers you host start with the HG menu / MonetLoader cheats allowed, and the page shows whether HG can run right now (on, off on featured servers, off with "Block menu cheats", off because the host turned cheats off). Switching it on while hosting allows it at once. Featured servers and the default server never allow it. **Tests:** `test/mods_loader_test.py` runs the real `mods_loader.lua` (HG on offline, off when the host turns cheats off, on again, off on featured servers: 12/12 pass), and `test/cheatperm_test.cpp` now also checks the featured server and the HG default / off / on-again cases on a real server + client (8/8 pass). **README / wiki GIFs** are now generated on a PC from MP's own code (radar, compass, sync blips, RP inventory / documents / ATM, the real `hitmarker.lua`, the HG rules test) instead of screenshots: `tools/preview/make_gifs.py`.
 - **4.13.57**: **HG menu (TROPA DO HG MENU V2, `/hg`) added as `mods/hg.lua`, only where the server allows cheats.** Cheat mods follow the CheatMenu rule: they run offline (single player) and on a custom server whose owner has **Allow CheatMenu + MonetLoader cheats** on (Server Management / host settings, off by default). They never run on the default / LAN server or the featured servers, and never with "Block menu cheats". `mods_loader.lua` 1.1 asks MP every second (new `MP_LuaCheatsAllowed` export): when the owner turns it off, or you join a server that doesn't allow it, HG stops at once and starts again where it's allowed. A copy of HG anywhere else in `moonloader/` follows the same rule. HG's files come with it: `lib/samp/0_3_7-R1/hg/`, `config/HG MENU.json`, `lib/mimgui` (from the MonetLoader build MP uses, + `hgfont.ttf`), `lib/SAMemory`, `resource/hit sounds/`. MP's own MP-adapted libraries (samp.events, sampfuncs ...) are kept; HG's Windows-only files are left out. Choosing "No" on HG's Discord dialog no longer deletes the script. HG features that send SA-MP RakNet packets do nothing on MP servers.
 - **4.13.56**: **Vice City: back to the text buttons.** The ImGui top bar still didn't show on phones in 4.13.55, so Vice City uses the `[ Chat ] [ Players ] [ MP ] [ Class ]` text buttons and the text menus again (the ImGui code stays in, switched off with `kVcImGui`). **MonetLoader `mods/` folder:** `moonloader/mods_loader.lua` starts every `.lua` right inside `moonloader/mods/`; TV Player is now `mods/tvplayer.lua` + `mods/tvplayer/` and Hitmarker `mods/hitmarker.lua` + `mods/hitmarker/`. Old copies in `moonloader/` are stopped and renamed to `.lua.old`, old data folders still work. **Hitmarker works on servers:** MP read each hit on another player (or a street NPC copy), sent it and put the avatar's health back to 1000 in the same game tick, so the script's health check never saw a hit. MP now queues every hit it sends, and Hitmarker 1.1-mp reads them with the new `MP_PopHit` export (kill, headshot / explosion, armour and armour-broke flags, damage). The uploaded "HG" menu is not included: it is a cheat menu (aimbot, silent aim, wallhack / ESP, god mode, ramming).
 - **4.13.55**: **Vice City: the MP top bar and menus are visible now.** In 4.13.54 nothing of MP showed in VC (no ⋮ / Chat / mic / MonetLoader bar, and the old text buttons were gone too). MP passed ImGui's clip rectangle to the game's `CWidget::SetScissor` in the San Andreas layout; Vice City reads it differently, so every ImGui window was clipped away. VC no longer uses that function: the renderer drops the triangles outside each clip rectangle itself. The ImGui font texture on VC is now made the way the vc-android-sdk examples make textures (`RwRasterCreate` + `RwRasterLock` + RGBA copy), with San Andreas's RwImage path only as the fallback. mp_log.txt logs the first ImGui frames ("Vice City: ImGui frame ...").

@@ -204,6 +204,8 @@ private:
         float        dlScale;     //        1 = full rates, up to 6 = every far tier 6x slower (0 = not set yet = 1)
         uint8_t      pair;        // 2.31: mission-sync GROUP id (MP_INVALID_ID = none; was the partner id)
         uint8_t      pairReq;     // 2.16: who this player asked for Mission sync
+        uint8_t      callWith;    // 4.13.59: phone call partner (MP_INVALID_ID = none)
+        uint8_t      callReq;     // 4.13.59: the player this one is calling (ringing)
         char         uid[MP_UID_LEN + 1];   // 2.25 (empty for phones older than 2.25)
         uint64_t     joinedMs;
         bool         admin;       // 2.37: SENJI with the right admin key ("[ADMIN] SENJI" on the default server)
@@ -329,6 +331,9 @@ private:
     std::vector<BanEntry> m_Bans;
     char               m_szBanFile[512] = {0};
     void EndPair(int slot);                  // 2.31: slot leaves its mission group (everyone told)
+    void EndCall(int slot, bool left = false);   // 4.13.59: hang up / stop ringing (both phones told)
+    void HandleCall(int slot, const void* data, int len);   // 4.13.59: PKT_CALL
+    void CallMsg(int to, uint8_t act, int other);
     int  GroupSize(uint8_t g) const;
     void SendGroupLinks(int slot);           // PAIR_LINKED for every member, both ways
     uint8_t      m_nNextGroup = 0;
