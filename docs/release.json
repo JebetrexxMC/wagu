@@ -6,12 +6,12 @@
  "assets": [
   {
    "name": "bin/libMP32.so",
-   "size": 19112364,
+   "size": 19133252,
    "download_count": 0
   },
   {
    "name": "bin/libMP64.so",
-   "size": 23351928,
+   "size": 23381424,
    "download_count": 0
   },
   {
