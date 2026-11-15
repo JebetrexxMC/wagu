@@ -361,13 +361,26 @@ static uint64_t s_nNextStatus = 0;
 static bool s_bDead = false;
 static int  s_nLastHour = -1, s_nLastWeather = -1;
 static bool s_bTyping = false;
-enum { ASK_CHAT = 0, ASK_MENU, ASK_HOST, ASK_NAME, ASK_CLASS };
+enum { ASK_CHAT = 0, ASK_MENU, ASK_HOST, ASK_NAME, ASK_CLASS, ASK_LHOST, ASK_LPORT, ASK_LNAME, ASK_LPASS };   // 4.13.54: L* = launcher Add server
 static int  s_nAsk = ASK_CHAT;
-struct PendingDialog { bool open = false; uint16_t id = 0; uint8_t style = 0; int items = 0; };
+struct PendingDialog
+{
+    bool open = false; uint16_t id = 0; uint8_t style = 0; int items = 0;
+    // 4.13.54: list / message dialogs are an ImGui window (tap a row, then the button) instead of "type the number"
+    bool gui = false; int sel = 0;
+    std::string caption, b1, b2, header;
+    std::vector<std::string> lines;   // list rows (tabs kept: columns) or the message text
+};
 static PendingDialog s_Dialog;
 enum { BTN_CHAT = 0, BTN_PLAYERS, BTN_MP, BTN_CLASS, BTN_COUNT };
 static int s_Btn[BTN_COUNT][4];   // x, y, w, h (pixels); w 0 = hidden
 static bool s_bScoreboard = false;
+// 4.13.54: the ImGui floating menu (src/vc/vc_gui.inc) - false = it could not start, the old chat menu is used
+static bool s_bGuiOk = false, s_bGuiMenu = false, s_bGuiClass = false;
+static void VcVoicePacket(int id, uint16_t seq, uint8_t flags, const uint8_t* opus, int len);   // vc_gui.inc
+static void VcLauncherText(int what, const std::string& t);                                      // vc_gui.inc
+static void VoiceProcess();   // vc_gui.inc
+static void VcVoiceReset();   // vc_gui.inc
 // my state
 static int s_nMyChar = -1, s_nMyWeapon = 0, s_nKills = 0;
 static float s_LastPos[3] = {0, 0, 0}; static uint64_t s_nLastPosAt = 0;
@@ -491,6 +504,7 @@ static void DropAll()
     VcmpDrop();   // 4.13.40
     memset(s_AvPed, 0, sizeof(s_AvPed)); memset(s_AvCar, 0, sizeof(s_AvCar));
     s_nMyId = -1; s_bHaveVs = false; s_nKills = 0;
+    VcVoiceReset();   // 4.13.54
 }
 static float Dist2D(const float* a, const float* b) { float x = a[0] - b[0], y = a[1] - b[1]; return sqrtf(x * x + y * y); }
 static float Dist3(const float* a, const float* b) { float x = a[0] - b[0], y = a[1] - b[1], z = a[2] - b[2]; return sqrtf(x * x + y * y + z * z); }
@@ -515,6 +529,7 @@ public:
         Help("MP Vice City: connected");
         s_nLogoAt = MP_NowMs();   // 4.13.38: title_logo_connected2.png
     }
+    void OnVoice(int id, uint16_t seq, uint8_t flags, const uint8_t* opus, int len) override { VcVoicePacket(id, seq, flags, opus, len); }   // 4.13.54
     void OnRejected(uint8_t reason) override
     {
         const char* why = reason == REJECT_WRONG_GAME ? "this server is a GTA San Andreas server" :
@@ -630,30 +645,45 @@ public:
         Chat(0xFF6060FF, "%s: %s", k.banned ? "Banned" : "Kicked", why[0] ? why : "-");
     }
     void OnDialog(const PktDialog& d) override
-    {   // SA-MP style dialogs from the server's gamemodes: shown in the chat, answered with the phone keyboard
+    {   // SA-MP style dialogs from the server's gamemodes. 4.13.54: list / message dialogs open as an ImGui window
+        // (tap the row, then the button). Input / password ones (and every dialog when ImGui could not start) are
+        // shown in the chat and answered with the phone keyboard.
         char cap[65]; memcpy(cap, d.caption, 64); cap[64] = 0;
+        char b1[17], b2[17]; memcpy(b1, d.button1, 16); b1[16] = 0; memcpy(b2, d.button2, 16); b2[16] = 0;
         std::string info(d.info, strnlen(d.info, MP_DIALOG_INFO_LEN));
-        Chat(0xFFFFE080, "[%s]", cap);
+        const bool listStyle = d.style == DIALOG_STYLE_LIST || d.style == DIALOG_STYLE_TABLIST || d.style == DIALOG_STYLE_TABLIST_HEADERS;
+        const bool gui = s_bGuiOk && (listStyle || d.style == DIALOG_STYLE_MSGBOX);
+        if(s_Dialog.open && s_Dialog.gui == false && s_bTyping) { FilePick::TextReset(); s_bTyping = false; }
+        s_Dialog = PendingDialog();
+        s_Dialog.caption = cap; s_Dialog.b1 = b1[0] ? b1 : "OK"; s_Dialog.b2 = b2;
+        if(!gui) Chat(0xFFFFE080, "[%s]", cap);
         int items = 0; size_t st = 0;
         while(st <= info.size())
         {
             size_t e = info.find('\n', st); if(e == std::string::npos) e = info.size();
             std::string line = info.substr(st, e - st);
-            for(auto& c : line) if(c == '\t') c = ' ';
+            if(!gui || !listStyle) for(auto& c : line) if(c == '\t') c = ' ';
             std::string clean; for(size_t i = 0; i < line.size(); ++i)   // drop {RRGGBB} colour codes
             { if(line[i] == '{' && i + 7 < line.size() + 1 && line.find('}', i) == i + 7) { i += 7; continue; } clean += line[i]; }
-            if(!clean.empty())
-            {
-                if(d.style == DIALOG_STYLE_LIST || d.style == DIALOG_STYLE_TABLIST || d.style == DIALOG_STYLE_TABLIST_HEADERS)
-                {
-                    if(d.style == DIALOG_STYLE_TABLIST_HEADERS && items == 0 && st == 0) Chat(0xFFC0C0C0, "  %s", clean.c_str());
-                    else Chat(0xFFFFFFFF, "%d. %s", ++items, clean.c_str());
-                }
-                else Chat(0xFFFFFFFF, "%s", clean.c_str());
-            }
+            const bool first = st == 0;
             st = e + 1;
+            if(clean.empty() && listStyle) continue;
+            if(gui)
+            {
+                if(d.style == DIALOG_STYLE_TABLIST_HEADERS && first) s_Dialog.header = clean;
+                else { s_Dialog.lines.push_back(clean); if(listStyle) ++items; }
+                continue;
+            }
+            if(clean.empty()) continue;
+            if(listStyle)
+            {
+                if(d.style == DIALOG_STYLE_TABLIST_HEADERS && items == 0 && first) Chat(0xFFC0C0C0, "  %s", clean.c_str());
+                else Chat(0xFFFFFFFF, "%d. %s", ++items, clean.c_str());
+            }
+            else Chat(0xFFFFFFFF, "%s", clean.c_str());
         }
-        s_Dialog.open = true; s_Dialog.id = d.dialogId; s_Dialog.style = d.style; s_Dialog.items = items;
+        s_Dialog.open = true; s_Dialog.id = d.dialogId; s_Dialog.style = d.style; s_Dialog.items = items; s_Dialog.gui = gui;
+        if(gui) return;
         const bool list = items > 0;
         char title[128]; snprintf(title, sizeof(title), "%s%s", cap, list ? " - type the number" : (d.style == DIALOG_STYLE_MSGBOX ? " - OK" : ""));
         if(s_bTyping) FilePick::TextReset();
@@ -1342,6 +1372,7 @@ static void Reconnect()
 }
 static void ShowMenu()
 {
+    if(s_bGuiOk) { s_bGuiMenu = !s_bGuiMenu; return; }   // 4.13.54: the ImGui MP window
     Chat(0xFFFFE080, "[MP Vice City] %s:%d %s", cfg.host[0] ? cfg.host : "(no server)", cfg.port, Online() ? "online" : "offline");
     Chat(0xFFFFFFFF, "1. Players   2. Server   3. Name (%s)   4. Reconnect", cfg.name);
     Chat(0xFFFFFFFF, "5. Map markers %s   6. Name tags %s   7. Disconnect%s", cfg.blips ? "on" : "off", cfg.nameTags ? "on" : "off", s_VcClasses.empty() ? "" : "   8. Class");
@@ -1371,7 +1402,7 @@ static void PollTyping()
     FilePick::TextReset();
     s_bTyping = false;
     const int what = s_nAsk; s_nAsk = ASK_CHAT;
-    if(s_Dialog.open)
+    if(s_Dialog.open && !s_Dialog.gui)
     {
         PktDialogResp r; memset(&r, 0, sizeof(r));
         r.type = PKT_DIALOG_RESPONSE; r.dialogId = s_Dialog.id; r.listItem = -1;
@@ -1399,6 +1430,7 @@ static void PollTyping()
         if(hb[0]) { MP_CopyStr(cfg.host, hb, sizeof(cfg.host)); cfg.port = port > 0 && port < 65536 ? port : 7777; SaveSettings(); Reconnect(); }
         break;
     }
+    case ASK_LHOST: case ASK_LPORT: case ASK_LNAME: case ASK_LPASS: VcLauncherText(what, t); break;   // 4.13.54
     case ASK_NAME:
     {
         char nb[MP_NAME_LEN]; MP_CopyStr(nb, t.c_str(), sizeof(nb)); Trim(nb);
@@ -1454,6 +1486,7 @@ static const char* VcTeamName(int t)
 static void ShowClasses()
 {
     if(s_VcClasses.empty()) { Chat(0xFFC0C0C0, "This server has no classes (free roam)"); return; }
+    if(s_bGuiOk) { s_bGuiClass = true; return; }   // 4.13.54: the ImGui class window
     Chat(0xFFFFE080, "[%s] pick a class:", s_VcInfo.gameName);
     for(auto& k : s_VcClasses)
     {
@@ -1561,6 +1594,7 @@ static void Process()
     s_nLastFrame = now;
     if(!FindPlayerPed || !FindPlayerPed()) return;   // menu / loading
     s_nMyChar = MyChar();
+    VoiceProcess();   // 4.13.54
 
     if(cfg.host[0] && !s_bManualOff && s_Client.GetState() == NET_DISCONNECTED && now >= s_nNextJoin)
     {
@@ -1732,6 +1766,7 @@ static void DrawTitles(float sw, float sh, bool online, uint64_t now)
         DrawImage(s_ImgTitle, "title2.png", sw * 0.5f, sh * 0.13f, sw * 0.36f, sh * 0.20f, 1.0f);
 }
 
+#include "vc_gui.inc"   // 4.13.54: the San Andreas MP interface (top bar, launcher, pages, voice, dialogs); leaves namespace VC open
 static void Draw()
 {
     if(!FontPrint || !ScreenH || !FindPlayerPed || !FindPlayerPed()) return;
@@ -1748,6 +1783,9 @@ static void Draw()
     if(FontSetDropShadow) FontSetDropShadow(1);
 
     const uint64_t now = MP_NowMs();
+    const bool gui = s_bGuiOk;
+    if(gui) for(auto& b : s_Btn) b[2] = 0;   // 4.13.54: the top bar replaces the CFont buttons
+    else
     {   // buttons: Chat / Players (online), MP (always: server, name, reconnect...)
         const char* label[BTN_COUNT] = { s_bTyping ? "[ typing... ]" : "[ Chat ]", "[ Players ]", "[ MP ]", "[ Class ]" };
         const float bw[BTN_COUNT] = { 120.f, 140.f, 80.f, 120.f };
@@ -1795,7 +1833,7 @@ static void Draw()
             }
         }
     }
-    if(online && s_bScoreboard) DrawScoreboard(sw, sh, sc);
+    if(online && s_bScoreboard && !gui) DrawScoreboard(sw, sh, sc);
     if(online && !s_KillFeed.empty() && FontSetRightOn)
     {   // 4.13.40: kill feed, top right (VC:MP death window)
         FontSetRightOn();
@@ -1822,6 +1860,7 @@ static void Draw()
         char t[64]; snprintf(t, sizeof(t), "%s - %s", s_VcInfo.gameName, VcTeamName(s_nMyTeam));
         Text(sh * 0.03f, sh * 0.27f, t, s_nMyTeam < VCMP_MAX_TEAMS ? RgbaToAbgr(g_VcmpTeamColor[s_nMyTeam]) : 0xFFFFFFFF);
     }
+    GuiFrame(sw, sh, online);   // 4.13.54: ImGui on top of the game's HUD
 }
 
 // ---- hooks --------------------------------------------------------------------------------------------------------

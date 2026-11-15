@@ -10,6 +10,7 @@ namespace UI
     void TitleStep(const char* step);   // 4.13.26: neon title frame breadcrumb (mp_log.txt on the first frames, the crash report)
     // Scale a 1080p-designed pixel value to the current screen height.
     float S(float px);
+    void  SetBaseScale(float s);   // 4.13.54: Vice City (no HUD::Init there): screen height / 1080
     ImFont* Font();
     ImFont* PricedownFont();
     ImFont* GothicFont();   // 4.13.22: neon main menu items (UnifrakturMaguntia, 64 px base)

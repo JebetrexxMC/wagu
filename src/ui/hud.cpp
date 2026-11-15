@@ -78,6 +78,7 @@ void UI::SetLook(int font, int effect, float fontScale, float uiScale)
     if(s_bInit) { ImGuiIO& io = ImGui::GetIO(); io.FontDefault = UI::Font(); io.FontGlobalScale = s_fFontScale; }
 }
 float   UI::S(float px) { return px * s_fScale * s_fUiScale; }
+void    UI::SetBaseScale(float s) { if(!s_bInit && s > 0.1f) s_fScale = s; }   // 4.13.54
 ImFont* UI::Font()      { ImFont* f = s_nFont && s_pFonts[s_nFont] ? s_pFonts[s_nFont] : s_pFont; return f ? f : ImGui::GetFont(); }
 ImFont* UI::PricedownFont() { return s_pPricedown; }
 ImFont* UI::GothicFont() { return s_pGothic ? s_pGothic : s_pFont; }   // 4.13.22

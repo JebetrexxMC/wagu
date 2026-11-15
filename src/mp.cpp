@@ -7805,6 +7805,22 @@ static void MpFreeAllObjects()
 
 // ------------------------------------------------------------------------------------------
 #include "mp_launcher.inc"   // 2.25: full-screen server launcher, player management, kick / ban
+// 4.13.54: the same launcher pieces for the Vice City layer (src/ui/mpkit.h)
+#include "ui/mpkit.h"
+static_assert((int)MPKit::IC_REGION == (int)IC_REGION && (int)MPKit::IC_CHAT == (int)IC_CHAT, "MPKit icons");
+ImU32 MPKit::Teal() { return kVTeal; }  ImU32 MPKit::Text() { return kVText; }  ImU32 MPKit::Dim() { return kVDim; }
+ImU32 MPKit::Line() { return kVLine; }  ImU32 MPKit::Green() { return kVGreen; } ImU32 MPKit::Red() { return kVRed; }
+ImU32 MPKit::Dark() { return kVDark; }
+void MPKit::Glass(ImDrawList* dl, ImVec2 a, ImVec2 b) { VGlass(dl, a, b); }
+void MPKit::Pill(ImDrawList* dl, ImVec2 a, ImVec2 b, ImU32 fill, ImU32 border) { VPill(dl, a, b, fill, border); }
+void MPKit::PushWidgetStyle() { VPushWidgetStyle(); }
+void MPKit::PopWidgetStyle() { VPopWidgetStyle(); }
+void MPKit::Icon(ImDrawList* dl, int icon, ImVec2 c, float r, ImU32 col) { LIcon(dl, icon, c, r, col); }
+bool MPKit::ToolButton(const char* id, int icon, const char* label, float h, bool enabled, bool on) { return LToolButton(id, icon, label, h, enabled, on); }
+bool MPKit::SideItem(const char* id, int icon, const char* label, bool on, float w, float h) { return LSideItem(id, icon, label, on, w, h); }
+void MPKit::GroupLabel(const char* t) { LGroupLabel(t); }
+bool MPKit::Btn(const char* id, const char* label, float w, float h, int style, bool enabled, int icon) { return VBtn(id, label, w, h, style, enabled, icon); }
+void MPKit::AboutPage(float W) { LPageAbout(W); }
 #include "mp_psettings.inc"  // 3.35: player list > Settings (SA-MP style dialog)
 #include "mp_menu.inc"       // 4.13.4: main menu [Multiplayer], MP loading screen, black server select
 #include "mp_neon.inc"       // 4.13.22: neon title menu + server browser (ServerBrowserMode)
