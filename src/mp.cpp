@@ -828,7 +828,6 @@ static bool HkCommand(const char* cmd, const char* arg);
 static void HmReset(); static void HmProcess(int ped, uint64_t now); static void HmRender(); static bool HmCommand(const char* cmd, const char* arg);
 static void HmOnPacket(const uint8_t* d, int len); static void HmOpenEditor();
 static bool CoopIsPartnerOf(int id); static void CoopOnPacket(const uint8_t* d, int len); static void CoopProcess(int ped, uint64_t now);
-static int PhoneCallPartner(); static void PhoneReset(); static void PhoneOnCall(const PktCall& c); static void PhoneProcess(int ped, uint64_t now); static void PhoneRender(); static bool PhoneCommand(const char* cmd, const char* arg); static void PhoneButton(int id, float w);   // 4.13.59
 static void CoopRender(); static bool CoopCommand(const char* cmd, const char* arg); static void CoopButton(int i, float w); static void CoopReset(bool restore);
 static bool Modes2Command(const char* cmd, const char* arg);
 static void Modes2Process(int ped, uint64_t now);
@@ -2581,7 +2580,7 @@ public:
     void OnConnected(const PktWelcome& w) override
     {
         SampReset();   // 3.01
-        HkReset(); HmReset(); CoopReset(true); PhoneReset(); CgReset(); RulesReset(); Modes2Reset(); SrvSettingsReset(); HudReset(); ProgReset();   // 3.39: a new join: houses / rules / modes come again
+        HkReset(); HmReset(); CoopReset(true); CgReset(); RulesReset(); Modes2Reset(); SrvSettingsReset(); HudReset(); ProgReset();   // 3.39: a new join: houses / rules / modes come again
         myId = w.yourId; myColor = w.color;
         MP_CopyStr(s_szCurServer, w.serverName, sizeof(s_szCurServer));
         LuaOnConnected(w.yourId, s_szCurServer);   // 4.13.29
@@ -2875,7 +2874,6 @@ public:
     void OnLg(const uint8_t* d, int len) override { LgOnPacket(d, len); }     // 4.13.4
     void OnHostMap(const uint8_t* d, int len) override { HmOnPacket(d, len); }   // 4.13.15
     void OnCoop(const uint8_t* d, int len) override { CoopOnPacket(d, len); }    // 4.13.15
-    void OnCall(const PktCall& c) override { PhoneOnCall(c); }                   // 4.13.59: phone calls
     void OnCg(const uint8_t* d, int len) override { CgOnPacket(d, len); }
     void OnSamp(const uint8_t* d, int len) override { SampSrvOnPacket(d, len); }   // 4.11     // 4.09
     void OnBcw(const uint8_t* d, int len) override { BcwOnPacket(d, len); }   // 3.04   // 2.25: the dialog opens; PKT_REJECT follows
@@ -4541,7 +4539,7 @@ void MP::Process()
     LgProcess(ped, now);         // 4.13.4: Rocket League (was San Andreas Online League)
     CgProcess(ped, now);         // 4.09: CGRP systems
     SampSrvProcess(ped, now);    // 4.11: SA-MP gamemode servers
-    HkProcess(ped, now); HmProcess(ped, now); CoopProcess(ped, now); PhoneProcess(ped, now); NeedsProcess(ped, now); MvProcess(now); Modes2Process(ped, now); RulesProcess(now); ModCheckProcess(now); ProgProcess(ped, now); AdmProcess(ped); DealerProcess(ped, now);   // 3.39 / 3.54 staff commands
+    HkProcess(ped, now); HmProcess(ped, now); CoopProcess(ped, now); NeedsProcess(ped, now); MvProcess(now); Modes2Process(ped, now); RulesProcess(now); ModCheckProcess(now); ProgProcess(ped, now); AdmProcess(ped); DealerProcess(ped, now);   // 3.39 / 3.54 staff commands
     ProcessGates(ped, now);      // 3.04.2: Area 69 gates
     ProcessHotelPc(ped, now);    // 3.36: hotel rooms with a computer (eyefind.info vehicle shops)
     ProcessClothes(now);         // 3.10: clothing sync
@@ -4699,7 +4697,6 @@ int MP_DzPackMigrate();   // mp_launcher.inc
 #include "mp_mw3.inc"    // 3.23: Call Of Duty: Modern Warfare 3
 #include "mp_rp.inc"
 #include "mp_rp_phone.inc"   // 3.25: the RP phone
-#include "mp_phone.inc"      // 4.13.59: phone calls on every other server
 #include "mp_rp_inv.inc"     // 3.26: PANEL, player info + bag, documents, "Received" cards
 #include "mp_rp_cos.inc"     // 3.34: lobby wardrobe (cosmetics room)
 #include "mp_rp_fac.inc"     // 3.34: factions

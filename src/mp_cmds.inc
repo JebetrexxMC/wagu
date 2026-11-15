@@ -245,7 +245,6 @@ static bool HandleCommand(const char* text)
     int n = 0; while(*arg && *arg != ' ' && n < 30) cmd[n++] = (char)tolower((unsigned char)*arg++);
     cmd[n] = 0;
     while(*arg == ' ') ++arg;
-    if(PhoneCommand(cmd, arg)) return true;   // 4.13.59: /phone /call /answer /hangup (not on Mega Vil)
     if(AdmCommand(cmd, arg)) return true;     // 3.54: admin / moderator commands + /report (before the gamemode blocks)
     if(GatesCommand(cmd, arg)) return true;   // 3.04.2: /gatepos, /gates
     if(TdeCommand(cmd, arg)) return true;     // 3.50: /tde Textdraw Editor
@@ -612,7 +611,6 @@ static void PagePlayers(void* openPtr)
         if(ImGui::Button(bl, ImVec2(w3, UI::S(68))) && armed) { if(s_nBehindId == i) BehindCancel(nullptr); else BehindStart(i); }
         if(!armed) ImGui::EndDisabled();
         if((s_nServerPerms & PERM_MISSION_PAIR) && IsConnected() && client.GetServerBuild() >= 41315) CoopButton(i, -1);   // 4.13.15: Co-op story (2 players)
-        PhoneButton(i, -1);   // 4.13.59: call this player (phone)
         {   // 3.11: mute / unmute this player's voice (only for you), red X icon while muted
             bool muted = MP::VoiceMuted(i);
             ImGui::PushStyleColor(ImGuiCol_Button, muted ? ImVec4(0.70f, 0.12f, 0.12f, 0.95f) : ImVec4(0.18f, 0.18f, 0.18f, 0.95f));
@@ -1094,7 +1092,7 @@ static void Render219(void*)
     RenderDz();                // 3.58: Project Day Z Legacy
     RenderLg();                // 4.13.4: Rocket League (was San Andreas Online League)
     CgRender();                // 4.09: CGRP labels, ENTER / EXIT, /editor
-    HkRender(); HmRender(); CoopRender(); PhoneRender(); NeedsRender(); Modes2Render(); DealerRender();   // 3.39 / 3.55
+    HkRender(); HmRender(); CoopRender(); NeedsRender(); Modes2Render(); DealerRender();   // 3.39 / 3.55
     HudRenderExtras();   // 4.07: HUD Player + Ammo Info
     RenderHotelPc();           // 3.36: hotel room computer (every server)
     RenderSafeZones();         // 3.21: hospital safe zones

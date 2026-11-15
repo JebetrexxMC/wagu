@@ -4,11 +4,10 @@
 #   radar / sync : src/mp_radar.inc + src/mp_compass.inc (tools/preview/radar_preview.cpp), real SA map data
 #   combat       : assets/MP/moonloader/mods/hitmarker.lua run in Lua (tools/preview/hitmarker_preview.py)
 #   megavil_rp   : src/mp_rp_inv.inc and src/mp_rp_atm.inc (tools/preview/rp_inv_preview.cpp, rp_atm_preview.cpp)
-#   phone        : src/mp_phone.inc (tools/preview/phone_preview.cpp), the phone and calls on every server
 #   monetloader  : assets/MP/moonloader/mods_loader.lua run by test/mods_loader_test.py (HG on / off rules)
 # The backgrounds are drawn here (gradient sky, street, buildings), so nothing comes from Screenshots/.
 # Build the C++ previews first (see the "build:" line at the top of each .cpp) into /tmp/, then
-#   python3 tools/preview/make_gifs.py [radar|sync|combat|rp|monetloader|phone]
+#   python3 tools/preview/make_gifs.py [radar|sync|combat|rp|monetloader]
 import os, sys, math, random, subprocess
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
@@ -126,14 +125,9 @@ def combat():
     import hitmarker_preview as hm
     bg = street_bg(hm.SW, hm.SH, seed=11, blur=4)
     cx, cy = hm.SW * 0.53, hm.SH * 0.40
-    def target(img, t):   # a generated stand-in for the ped under the crosshair
-        d = ImageDraw.Draw(img); s = 1.0
-        d.ellipse((cx - 14, cy - 66, cx + 14, cy - 38), fill=(70, 52, 44))
-        d.rounded_rectangle((cx - 26, cy - 38, cx + 26, cy + 34), 10, fill=(52, 96, 60))
-        d.rectangle((cx - 22, cy + 34, cx - 4, cy + 100), fill=(30, 30, 36)); d.rectangle((cx + 4, cy + 34, cx + 22, cy + 100), fill=(30, 30, 36))
     ev = [(0.25, 24, 24, 0), (0.65, 24, 24, 0), (1.15, 31, 31, 4), (1.6, 38, 31, 12), (2.3, 46, 34, 2), (3.1, 120, 34, 3)]
     labels = [(0.0, 'Body hit: damage number'), (0.6, 'Combo: x2, x3 ...'), (1.1, 'Armour hit (blue), then the armour breaks'), (2.2, 'Headshot (gold) with the skull'), (3.0, 'Kill: red marker, ring and sparks')]
-    raw = hm.run(ev, 4.0, fps=20, bg=bg, scene=target)
+    raw = hm.run(ev, 4.0, fps=20, bg=bg)   # only the mod's hit indicator, no player figure
     frames = []
     for i, im in enumerate(raw):
         t = i / 20; lab = [l for s, l in labels if s <= t][-1]
@@ -171,24 +165,7 @@ def monetloader():
         durs.append(2600 if k == len(lines) else 380)
     save('monetloader', frames, durs, colors=32)
 
-# ---------------------------------------------------------------- phone + calls on every server: the real src/mp_phone.inc
-def phone():
-    # the phone widgets come from src/mp_rp_phone.inc (lines 59-94), the phone itself is src/mp_phone.inc
-    with open('src/mp_rp_phone.inc') as f: open('/tmp/phone_widgets.inc', 'w').write(''.join(f.readlines()[58:94]))
-    run(['g++', '-O2', '-std=c++17', '-w', '-Isrc', '-Iimgui', '-I/tmp', 'tools/preview/phone_preview.cpp', 'imgui/imgui.cpp', 'imgui/imgui_draw.cpp',
-         'imgui/imgui_tables.cpp', 'imgui/imgui_widgets.cpp', '-o', '/tmp/phone_preview'])
-    street_bg(3200, 1440, seed=27, blur=12).save('/tmp/_bg.png')
-    shots = [(0, 'Phone (/phone): players online, tap Call'), (1, 'Calling Carl_Johnson... CJ holds the phone to his ear'),
-             (2, "Carl's phone rings: Answer or Decline"), (3, 'On the call: voice goes to the call anywhere on the map'),
-             (4, 'Call ended'), (6, 'The other player is busy on another call'), (5, 'Phone put away: the icon shakes while it rings')]
-    imgs = []
-    for mode, lab in shots:
-        run(['/tmp/phone_preview', '/tmp/_bg.png', '/tmp/_r.ppm', str(mode)])
-        imgs.append(caption(fit(Image.open('/tmp/_r.ppm').crop((440, 100, 3196, 1340))), lab))
-    frames, durs = hold_fade(imgs, 2000)
-    save('phone_call', frames, durs, colors=128)
-
 os.makedirs(OUT, exist_ok=True)
-JOBS = {'radar': radar, 'sync': sync, 'combat': combat, 'rp': rp, 'monetloader': monetloader, 'phone': phone}
+JOBS = {'radar': radar, 'sync': sync, 'combat': combat, 'rp': rp, 'monetloader': monetloader}
 for j in (sys.argv[1:] or JOBS):
     JOBS[j]()

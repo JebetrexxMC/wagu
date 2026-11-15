@@ -180,7 +180,7 @@ bool MP::RpSubTag(int id, char* out, size_t n)
     else snprintf(out, n, "%s%s - Lv %d", job, (r.flags & 1) ? " (duty)" : "", r.level);
     return true;
 }
-int MP::RpCallPartner() { return RpOnServer() ? s_Rp.callWith : PhoneCallPartner(); }   // 4.13.59: the MP phone on every other server
+int MP::RpCallPartner() { return RpOnServer() ? s_Rp.callWith : -1; }
 
 static void RpSend(uint8_t cmd, uint8_t a = 0, uint8_t b = 0, int32_t val = 0, const char* text = nullptr)
 {

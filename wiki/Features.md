@@ -12,7 +12,7 @@ Everything below is synced between players:
 - **Vehicles:** model, speed, colours, paintjob, tuning, damage, doors and locks
 - **Shots:** every bullet and rocket
 - **World:** NPC people and traffic, weather and time
-- **Phone and call sync (4.13.59):** `/phone` opens the phone on the default, featured and custom servers. You can call a player (`/call <id or name>` or the Call button), and they can answer or decline. Voice goes to the call anywhere on the map. Your character holds the phone to his ear, and others see the animation and the phone in his hand. Mega Vil keeps its own RP phone with the same sync.
+- **Call sync (4.13.58):** on a phone call your character takes out the phone and holds it to his ear. Others see the animation and the phone in his hand on every server, and your weapon comes back when the call ends. Mega Vil Futuristic RP has its own RP phone.
 
 You also get name tags with health and armour bars, player blips in each player's color, chat with its own keyboard, voice chat (40 m range) and a kill feed.
 

@@ -13,12 +13,11 @@
 // phones refuse servers older than that too (they would let old phones in).
 // 3.10: build 31000. MP_MIN_BUILD stays 30406 and the lobby stays thirtyfox/mp5/: 3.04.6 (no cheats)
 // and 3.10 phones play together on the same servers; only 3.04.5 and older (mp4) stay shut out.
-#define MP_BUILD 41359   // 4.13.59
+#define MP_BUILD 41360   // 4.13.60
 #define MP_MIN_BUILD       30406
 #define MP_AUTH_MIN_BUILD  32106   // 3.21.6: servers with the login system refuse older phones (they could not log in)
-#define MP_VERSION_STR     "4.13.59"
+#define MP_VERSION_STR     "4.13.60"
 #define MP_VOICE_BUILD     31100   // 3.11: phones from this build on get voice packets
-#define MP_CALL_BUILD      41359   // 4.13.59: phones from this build on can call each other (PKT_CALL) on every server
 #define MP_DOWNLOAD_URL    "mpsamp-open.github.io"   // 4.05.4: new website (mpsamp-open org); thirtyfoxmcx00e1.github.io/wagu still works as a backup
 #define MP_DEFAULT_HOST    "127.0.0.1"
 #define MP_DEFAULT_PORT    1922
@@ -151,7 +150,6 @@ enum ePacket : uint8_t
     PKT_HOST_MAP,       // S<->C         4.13.15: host map editor objects (custom servers, net/hostmap.h)
     PKT_COOP,           // S<->C         4.13.15: Co-op story (2 players, net/coop.h)
     PKT_VCMP,           // S<->C         4.13.40: VC:MP-style gamemode on Vice City servers (net/vcmp.h)
-    PKT_CALL,           // C<->S         4.13.59: phone calls on the default, featured and custom servers (PktCall)
 };
 
 enum eRegion : uint8_t { REGION_ASIA = 0, REGION_EUROPE, REGION_NA, REGION_OCEANIA, REGION_COUNT };
@@ -525,13 +523,6 @@ enum ePairAction : uint8_t { PAIR_REQUEST = 1, PAIR_ACCEPT = 2, PAIR_END = 3, PA
                           PAIR_DECLINE = 6 /* 2.19 C->S: no thanks */, PAIR_DECLINED = 7 /* 2.19 S->C: they said no */ };
 // C->S: other = who I ask / accept / leave.  S->C: other = the other player, action as above
 struct PktPair        { uint8_t type; uint8_t action; uint8_t other; };
-// ---- 4.13.59: phone calls (every server but Mega Vil, which has its own numbers / RPC_CALL) -------
-// C->S: DIAL other / ACCEPT other (the caller) / DECLINE other (the caller) / HANGUP
-// S->C: RING (other is calling you) / RINGING (other's phone rings) / LINKED / ENDED / DECLINED / BUSY / UNAVAILABLE
-// While LINKED the server sends your voice chat to the other phone wherever it is (not only nearby).
-enum eCallAction : uint8_t { CALL_DIAL = 1, CALL_ACCEPT, CALL_DECLINE, CALL_HANGUP,
-                             CALL_RING = 10, CALL_RINGING, CALL_LINKED, CALL_ENDED, CALL_DECLINED, CALL_BUSY, CALL_UNAVAILABLE };
-struct PktCall        { uint8_t type; uint8_t action; uint8_t other; };
 // ---- 2.17 --------------------------------------------------------------------------------------
 // every shot: kind 0 = bullet (a = start, b = impact), 1 = thrown / fired projectile from the ped,
 // 2 = projectile from the player's vehicle (a = position, b = direction, force)

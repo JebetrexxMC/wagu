@@ -417,66 +417,6 @@ void MPServer::SendGroupLinks(int slot)
 }
 // slot leaves its group: it and every member get PAIR_END about each other. A group left with
 // one player is closed.
-// ---- 4.13.59: phone calls ---------------------------------------------------------------------
-void MPServer::CallMsg(int to, uint8_t act, int other) { PktCall a; a.type = PKT_CALL; a.action = act; a.other = (uint8_t)(other >= 0 && other < MP_MAX_PLAYERS ? other : MP_INVALID_ID); SendTo(to, &a, sizeof(a)); }
-void MPServer::EndCall(int slot, bool left)
-{
-    if(slot < 0 || slot >= MP_MAX_PLAYERS) return;
-    Slot& s = m_Slots[slot];
-    if(s.callWith < MP_MAX_PLAYERS)
-    {
-        int p = s.callWith; s.callWith = MP_INVALID_ID;
-        if(m_Slots[p].used && m_Slots[p].callWith == slot) { m_Slots[p].callWith = MP_INVALID_ID; CallMsg(p, CALL_ENDED, slot); }
-        if(!left) CallMsg(slot, CALL_ENDED, p);
-        Log("Call: %s hung up", s.name);
-    }
-    if(s.callReq < MP_MAX_PLAYERS)
-    {
-        int t = s.callReq; s.callReq = MP_INVALID_ID;
-        if(m_Slots[t].used) CallMsg(t, CALL_ENDED, slot);
-        if(!left) CallMsg(slot, CALL_ENDED, t);
-    }
-    for(int i = 0; i < MP_MAX_PLAYERS; ++i)   // somebody was ringing this phone
-        if(i != slot && m_Slots[i].used && m_Slots[i].callReq == slot) { m_Slots[i].callReq = MP_INVALID_ID; CallMsg(i, left ? CALL_UNAVAILABLE : CALL_DECLINED, slot); }
-}
-void MPServer::HandleCall(int slot, const void* data, int len)
-{
-    if(len < (int)sizeof(PktCall)) return;
-    PktCall q; memcpy(&q, data, sizeof(q));
-    Slot& s = m_Slots[slot];
-    if(IsRpServer()) return;                                   // Mega Vil: phone numbers + RPC_CALL instead
-    if(q.action == CALL_HANGUP) { EndCall(slot); return; }
-    const int o = q.other;
-    if(o >= MP_MAX_PLAYERS || o == slot || !m_Slots[o].used) { CallMsg(slot, CALL_UNAVAILABLE, o); return; }
-    Slot& t = m_Slots[o];
-    if(q.action == CALL_DIAL)
-    {
-        if(s.muted) { CallMsg(slot, CALL_UNAVAILABLE, o); return; }   // muted by the admin: no calls either
-        if(t.build < MP_CALL_BUILD) { CallMsg(slot, CALL_UNAVAILABLE, o); return; }   // their MP is too old for calls
-        if(s.callWith < MP_MAX_PLAYERS || s.callReq < MP_MAX_PLAYERS) EndCall(slot);
-        bool busy = t.callWith < MP_MAX_PLAYERS || t.callReq < MP_MAX_PLAYERS;
-        for(int i = 0; i < MP_MAX_PLAYERS && !busy; ++i) if(i != slot && m_Slots[i].used && m_Slots[i].callReq == o) busy = true;
-        if(busy) { CallMsg(slot, CALL_BUSY, o); return; }
-        s.callReq = (uint8_t)o;
-        CallMsg(o, CALL_RING, slot);
-        CallMsg(slot, CALL_RINGING, o);
-        Log("Call: %s is calling %s", s.name, t.name);
-    }
-    else if(q.action == CALL_ACCEPT)
-    {
-        if(t.callReq != slot) { CallMsg(slot, CALL_ENDED, o); return; }
-        if(s.callWith < MP_MAX_PLAYERS || s.callReq < MP_MAX_PLAYERS) EndCall(slot);
-        t.callReq = MP_INVALID_ID;
-        s.callWith = (uint8_t)o; t.callWith = (uint8_t)slot;
-        CallMsg(slot, CALL_LINKED, o); CallMsg(o, CALL_LINKED, slot);
-        Log("Call: %s and %s are talking", s.name, t.name);
-    }
-    else if(q.action == CALL_DECLINE)
-    {
-        if(t.callReq == slot) { t.callReq = MP_INVALID_ID; CallMsg(o, CALL_DECLINED, slot); }
-    }
-}
-
 void MPServer::EndPair(int slot)
 {
     Slot& s = m_Slots[slot];
@@ -664,7 +604,6 @@ void MPServer::Drop(int slot, uint8_t reason)
 {
     if(!m_Slots[slot].used) return;
     EndPair(slot);
-    EndCall(slot, true);   // 4.13.59
     CoopEnd(slot);   // 4.13.15
     VcmpLeave(slot); // 4.13.40
     for(int i = 0; i < MP_MAX_PLAYERS; ++i) if(m_Slots[i].used && m_Slots[i].pairReq == slot) m_Slots[i].pairReq = MP_INVALID_ID;
@@ -1110,7 +1049,6 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
                 AcReset(slot);   // 3.50
                 s.used = true; s.addr = from; s.lastSeen = MP_NowMs();
                 s.pair = s.pairReq = MP_INVALID_ID;
-                s.callWith = s.callReq = MP_INVALID_ID;   // 4.13.59
                 MP_CopyStr(s.uid, juid, sizeof(s.uid)); s.joinedMs = MP_NowMs();   // 2.25
                 s.spawnProtUntil = MP_NowMs() + MP_SPAWN_PROTECT_MS;   // 3.21: the first spawn is protected too
                 if(len >= (int)sizeof(PktJoin5)) memcpy(&s.build, data + offsetof(PktJoin5, build), sizeof(s.build));   // 3.11: who gets voice
@@ -1387,7 +1325,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             h->id = (uint8_t)slot; h->type = PKT_VOICE;
             int n = (int)sizeof(PktVoiceHdr) + h->len;
             const float r2 = MP_VOICE_RANGE * MP_VOICE_RANGE;
-            const int callee = IsRpServer() ? RpCallPartner(slot) : (s.callWith < MP_MAX_PLAYERS && m_Slots[s.callWith].used ? s.callWith : -1);   // 3.25 / 4.13.59: a phone call reaches anywhere
+            const int callee = IsRpServer() ? RpCallPartner(slot) : -1;   // 3.25: a phone call reaches anywhere
             for(int i = 0; i < MP_MAX_PLAYERS; ++i)
             {
                 const Slot& o = m_Slots[i];
@@ -1771,9 +1709,6 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             break;
         case PKT_COOP:       // 4.13.15: Co-op story (2 players)
             if(slot >= 0) CoopHandle(slot, (const uint8_t*)data, len);
-            break;
-        case PKT_CALL:       // 4.13.59: phone calls (default, featured and custom servers)
-            if(slot >= 0) HandleCall(slot, data, len);
             break;
         case PKT_SAMP:   // 4.11: SA-MP gamemode (commands, textdraw clicks, checkpoints)
             SampHandle(slot, (const uint8_t*)data, len);
