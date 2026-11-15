@@ -91,6 +91,8 @@ Prebuilt binaries:
 
 ## Features
 
+Full guide: the [wiki](wiki/Home.md) (Install, Features, Servers and hosting, Server Management, Gamemodes, MonetLoader mods, Vice City, FAQ).
+
 Every GIF below is made from real in-game screenshots of MP (in `Screenshots/`) and, for the radar, from MP's real radar / compass drawing code run on a PC (`tools/preview/radar_preview.cpp`). They are not screen recordings. To make them again, run `python3 tools/preview/make_gifs.py`.
 
 ### Online play and sync
