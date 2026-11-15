@@ -25,6 +25,25 @@ static void RwImBatchFrame(int totalIdx)
     }
     g_BatchUsed = 0;
 }
+// 4.13.55: CPU clipping for games without a usable scissor (Vice City): triangles that are fully outside the
+// clip rectangle are dropped. Partly visible ones are kept (ImGui clips most text and rects itself).
+static ImVector<ImDrawIdx> g_ClipIdx;
+static void RwImDrawBatched(RwIm2DVertex* base, int nVtx, const ImDrawIdx* idx, int nIdx);
+static void RwImDrawClipped(RwIm2DVertex* base, int nVtx, const ImDrawIdx* idx, int nIdx, const ImVec4& cr)
+{
+    g_ClipIdx.resize(0);
+    for(int i = 0; i + 2 < nIdx; i += 3)
+    {
+        const unsigned a = idx[i], b = idx[i + 1], c = idx[i + 2];
+        if(a >= (unsigned)nVtx || b >= (unsigned)nVtx || c >= (unsigned)nVtx) continue;
+        const RwIm2DVertex &A = base[a], &B = base[b], &C = base[c];
+        const float x0 = ImMin(A.x, ImMin(B.x, C.x)), x1 = ImMax(A.x, ImMax(B.x, C.x));
+        const float y0 = ImMin(A.y, ImMin(B.y, C.y)), y1 = ImMax(A.y, ImMax(B.y, C.y));
+        if(x1 <= cr.x || x0 >= cr.z || y1 <= cr.y || y0 >= cr.w) continue;
+        g_ClipIdx.push_back((ImDrawIdx)a); g_ClipIdx.push_back((ImDrawIdx)b); g_ClipIdx.push_back((ImDrawIdx)c);
+    }
+    if(!g_ClipIdx.empty()) RwImDrawBatched(base, nVtx, g_ClipIdx.Data, g_ClipIdx.Size);
+}
 static void RwImDrawBatched(RwIm2DVertex* base, int nVtx, const ImDrawIdx* idx, int nIdx)
 {
     static_assert(sizeof(ImDrawIdx) == 2, "the game takes 16-bit indices");
@@ -120,8 +139,12 @@ void ImGui_ImplRenderWare_RenderDrawData(ImDrawData* draw_data)
                   // radar made that 20 000 - 40 000+ vertices in one call, and past 65 535 the 16-bit indices
                   // wrapped). The 32-bit game (2.00) froze on that right after the spawn. Now every call gets at
                   // most kRwBatchIdx indices and only the vertices they use, re-based to 0.
-                  RwImDrawBatched(&g_pVB[vtx_offset + pcmd->VtxOffset],
-                      cmd_list->VtxBuffer.Size - (int)pcmd->VtxOffset, idx_buffer, (int)pcmd->ElemCount);
+                  if(SetScissorRect)
+                      RwImDrawBatched(&g_pVB[vtx_offset + pcmd->VtxOffset],
+                          cmd_list->VtxBuffer.Size - (int)pcmd->VtxOffset, idx_buffer, (int)pcmd->ElemCount);
+                  else
+                      RwImDrawClipped(&g_pVB[vtx_offset + pcmd->VtxOffset],
+                          cmd_list->VtxBuffer.Size - (int)pcmd->VtxOffset, idx_buffer, (int)pcmd->ElemCount, pcmd->ClipRect);
                   RwRenderStateSet(rwRENDERSTATETEXTURERASTER, (void*)0);
 
                 if(SetScissorRect)

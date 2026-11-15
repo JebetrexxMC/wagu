@@ -37,6 +37,8 @@ bool ImGui_ImplRenderWare_CreateDeviceObjects();
 void ImGui_ImplRenderWare_NewFrame();
 void ImGui_ImplRenderWare_RenderDrawData(ImDrawData* draw_data);
 namespace MonetEmbed { void* Handle(); }
+struct RwRaster;
+extern RwRaster* g_FontRaster;   // imgui_impl_renderware.cpp
 
 namespace VC
 {
@@ -672,15 +674,41 @@ static void GuiDialog(float sw, float sh)
 }
 
 // ---- start + frame -------------------------------------------------------------------------------------------------
+// 4.13.55: the font atlas as a Vice City texture, the way the vc-android-sdk examples make one
+// (RwRasterCreate(w, h, 32, rwRASTERTYPETEXTURE) + RwRasterLock + RGBA copy). San Andreas's RwImage path
+// (RwImageFindRasterFormat / RwRasterSetFromImage) is only the fallback.
+static bool VcFontTexture()
+{
+    ::RwRaster* (*rCreate)(int, int, int, int) = nullptr;
+    unsigned char* (*rLock)(::RwRaster*, unsigned char, int) = nullptr;
+    ::RwRaster* (*rUnlock)(::RwRaster*) = nullptr;
+    *(void**)&rCreate = (void*)aml->GetSym(s_hGame, "_Z14RwRasterCreateiiii");
+    *(void**)&rLock   = (void*)aml->GetSym(s_hGame, "_Z12RwRasterLockP8RwRasterhi");
+    *(void**)&rUnlock = (void*)aml->GetSym(s_hGame, "_Z14RwRasterUnlockP8RwRaster");
+    if(!rCreate || !rLock || !rUnlock) { logger->Info("Vice City: no RwRasterLock - the font texture uses RwImage"); return false; }
+    ImGuiIO& io = ImGui::GetIO();
+    unsigned char* px = nullptr; int w = 0, h = 0, bpp = 0;
+    io.Fonts->GetTexDataAsRGBA32(&px, &w, &h, &bpp);
+    if(!px || w <= 0 || h <= 0) return false;
+    ::RwRaster* r = rCreate(w, h, 32, 4);
+    if(!r) { logger->Error("Vice City: RwRasterCreate(%d, %d) failed", w, h); return false; }
+    unsigned char* dst = rLock(r, 0, 1);
+    if(!dst) { logger->Error("Vice City: RwRasterLock failed"); return false; }   // (the raster is left; it is small)
+    memcpy(dst, px, (size_t)w * h * 4);
+    rUnlock(r);
+    ::g_FontRaster = r;
+    io.Fonts->TexID = (ImTextureID)r;
+    logger->Info("Vice City: ImGui font texture %dx%d (raster lock)", w, h);
+    return true;
+}
+
 static bool GuiInit(float sw, float sh)
 {
     s_bGuiTried = true;
     static const char* kNeed[] = {
         "_Z28RwIm2DRenderIndexedPrimitive15RwPrimitiveTypeP14RwOpenGLVertexiPti",
         "_Z16RwRenderStateSet13RwRenderStatePv",
-        "_Z13RwImageCreateiii", "_Z21RwImageAllocatePixelsP7RwImage", "_Z14RwImageDestroyP7RwImage",
-        "_Z23RwImageFindRasterFormatP7RwImageiPiS1_S1_S1_", "_Z14RwRasterCreateiiii",
-        "_Z20RwRasterSetFromImageP8RwRasterP7RwImage",
+        "_Z14RwRasterCreateiiii",   // 4.13.55: the RwImage functions are only needed by the fallback texture path
     };
     for(const char* n : kNeed)
         if(!aml->GetSym(s_hGame, n)) { logger->Error("Vice City: %s not found - the MP menu stays in the chat", n); return false; }
@@ -696,7 +724,10 @@ static bool GuiInit(float sw, float sh)
         nearScreenZ = &s_fVcNearZ;
     }
     if(!recipNearClip) recipNearClip = &s_fVcRecipNear;
-    *(void**)&SetScissorRect = (void*)aml->GetSym(s_hGame, "_ZN7CWidget10SetScissorER5CRect");   // may be missing: no clipping
+    // 4.13.55: no CWidget::SetScissor on Vice City. It reads the rectangle in another layout than San Andreas, so every
+    // ImGui window was clipped away (nothing of MP showed, and the old text buttons are hidden while ImGui runs).
+    // The backend clips on the CPU instead when SetScissorRect is null.
+    SetScissorRect = nullptr;
 
     UI::SetBaseScale(sh / 1080.0f);   // UI::S() like San Andreas (HUD::Init does not run in Vice City)
     IMGUI_CHECKVERSION();
@@ -714,7 +745,7 @@ static bool GuiInit(float sw, float sh)
         else  io.Fonts->AddFontFromMemoryTTF((void*)arialData, (int)sizeof(arialData), UI::S(34.0f), &fc, io.Fonts->GetGlyphRangesCyrillic());
     }
     FloatMenu::ApplyStyle();
-    if(!ImGui_ImplRenderWare_CreateDeviceObjects())
+    if(!VcFontTexture() && !ImGui_ImplRenderWare_CreateDeviceObjects())
     {
         logger->Error("Vice City: the ImGui font texture failed - the MP menu stays in the chat");
         ImGui::DestroyContext(); return false;
@@ -757,7 +788,10 @@ static bool GuiFrame(float sw, float sh, bool online)
     VoicePanel(sw, sh);
     if(online) { GuiClass(sw, sh); GuiDialog(sw, sh); }
     ImGui::Render();
-    ImGui_ImplRenderWare_RenderDrawData(ImGui::GetDrawData());
+    ImDrawData* dd = ImGui::GetDrawData();
+    ImGui_ImplRenderWare_RenderDrawData(dd);
+    static int s_nLogged = 0;
+    if(s_nLogged < 3 && dd) { ++s_nLogged; logger->Info("Vice City: ImGui frame %d: %d lists, %d vertices, display %.0fx%.0f, near z %.3f", s_nLogged, dd->CmdListsCount, dd->TotalVtxCount, sw, sh, nearScreenZ ? *nearScreenZ : -1.f); }
     PublishHits();
     return true;
 }
