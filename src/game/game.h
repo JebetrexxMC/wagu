@@ -181,6 +181,10 @@ namespace Game
     // real walking legs, and the pose always adds up to 100 % (no T-pose from missing anims)
     // 2.19: stick = sender's joystick deflection 0..1 (-1 unknown), gait = sender's move state
     void  ReleaseMirroredAnims(int ped);   // 2.19.5: fade the copied full-body anims out (game walk task takes over)
+    // 4.13.58: call sync - phone_in / phone_talk / phone_out, the game's phone task, the cellphone in the hand
+    bool  IsPhoneAnim(uint32_t hash);
+    void  TaskUsePhone(int ped, bool on);
+    bool  SetPhoneProp(int ped, bool on);     // false = model 330 still streaming (try again)
     void  MirrorPedAnims(int ped, const PedAnim* in, int n, AppliedAnims& state, float dt, float moveSpeed = 0.0f, float stick = -1.0f, int gait = 0);
 
     // 2.15 passengers

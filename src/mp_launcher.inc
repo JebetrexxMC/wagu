@@ -1480,6 +1480,28 @@ static void LPageServerMgmt()
     }
     { bool on = st.rulesOn != 0; if(FloatMenu::ToggleSwitch("Rules window after the login", &on)) { st.rulesOn = on ? 1 : 0; send = true; } }
     if(!canEdit) ImGui::EndDisabled();
+    // 4.13.58: MonetLoader HG menu (mods/hg.lua): on by default for custom servers. Never on the default / featured servers.
+    LSrvHeader("MONETLOADER - HG MENU");
+    {
+        const bool hgNow = MP::CheatMenuAllowed();
+        if(featured) ImGui::TextColored(ImVec4(1, 0.45f, 0.4f, 1), "HG menu: OFF - never on the MP LAN server, the default server and the featured servers.");
+        else ImGui::TextColored(hgNow ? ImVec4(0.3f, 0.85f, 0.4f, 1) : ImVec4(1, 0.8f, 0.2f, 1), "HG menu on this server: %s  (/hg opens it)",
+                                hgNow ? "ON" : (st.perms & PERM_NO_CHEATS) ? "OFF (Disable cheats is on)" : "OFF (the host switched MonetLoader cheats off)");
+        if(FloatMenu::ToggleSwitch("HG menu on by default for my custom servers", &settings.hgDefaultOn))
+        {
+            SaveConfig();
+            const bool ownHost = !featured && IsHosting() && s_Server.IsRunning() && !MP::IsHostingDefault() && !s_Server.IsBcwServer();
+            if(ownHost && settings.hgDefaultOn && !s_bRunCheatMenu)   // the server you host now gets it at once
+            {
+                s_bRunCheatMenu = true; SrvCmPut(s_Server.GetName(), s_Server.GetPort(), true); ApplyServerPerms();
+                st.perms |= PERM_CHEAT_MENU; if(canEdit) send = true;
+                SysMsg(COL_GREEN, "HG menu on for \"%s\" (Allow CheatMenu + MonetLoader cheats).", s_Server.GetName());
+            }
+        }
+        ImGui::TextDisabled(settings.hgDefaultOn ? "On: every new custom server you host starts with \"Allow CheatMenu + MonetLoader cheats\" on, so /hg works there."
+                                                 : "Off: new custom servers start with MonetLoader cheats off (switch them on per server above).");
+        ImGui::TextDisabled("Switching \"Allow CheatMenu + MonetLoader cheats\" off above (or Disable cheats) stops HG for everyone on the server.");
+    }
     // 3.58: the anti-cheat gamemode (fly / teleport / airbreak / speed / rapid fire / CLEO + CheatMenu block)
     LSrvHeader("ANTI-CHEAT");
     {

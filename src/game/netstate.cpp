@@ -193,6 +193,7 @@ static void* HookStartFire(void* self, Vec3Arg pos, float size, u8 ext, void* cr
     return StartFire_orig(self, pos, size, ext, creator, burn, gens, unk);
 }
 
+static void PhoneInit(void* h);   // 4.13.58
 bool Game::InitNetState(void* h)
 {
     SET_TO(PoolsGetPed,          aml->GetSym(h, "_ZN6CPools6GetPedEi"));
@@ -226,6 +227,7 @@ bool Game::InitNetState(void* h)
         char n[16] = {0};
         if(!SafeRead(s_pAnimBlocks, n, 15) || strncasecmp(n, "ped", 3) != 0) s_pAnimBlocks = nullptr;
     }
+    PhoneInit(h);   // 4.13.58: call sync
     s_bAnimReady = PoolsGetPed && ClumpFirstAssoc && NextAssoc && BlendAnimGroup && GetAnimBlockName && GetAnimationBlock && s_pAssocGroups;
     logger->Info("Anim sync: %s (groups %s, blocks %s, by-hash %s)", s_bAnimReady ? "on" : "off",
                  s_pAssocGroups ? "ok" : "-", s_pAnimBlocks ? "ok" : "-", (BlendAnimHier && GetAnimationByHash) ? "ok" : "-");
@@ -244,6 +246,52 @@ bool Game::InitNetState(void* h)
 }
 
 bool Game::AnimSyncAvailable() { return s_bAnimReady; }
+
+// ---- 4.13.58: call sync (phone calls) ------------------------------------------------------------
+// The phone anims of the PED block (phone_in / phone_talk / phone_out) were already mirrored like any
+// other anim, but the avatar's hand stayed empty: the game puts the cellphone (model 330) in the hand
+// with CPed::AddWeaponModel inside its own phone task, which the avatar never runs. A Mega Vil /call
+// played no anim at all. Now: the caller runs the game's phone task (TASK_USE_MOBILE_PHONE, upper body:
+// you can still walk) for the whole call, and every avatar that plays a phone anim gets the cellphone
+// in its right hand until the anim is gone.
+DEFOPCODE(0729, TASK_USE_MOBILE_PHONE_4158, ib);
+static void (*PedAddWeaponModel)(void* ped, int model) = nullptr;
+static void (*PedRemoveWeaponModel)(void* ped, int model) = nullptr;
+static uint32_t (*KeyGenUpper)(const char*) = nullptr;
+static uint32_t s_PhoneHash[3] = { 0, 0, 0 };
+static uint32_t UpperKey(const char* s)   // CKeyGen::GetUppercaseKey (CRC-32 table, no final xor)
+{
+    if(KeyGenUpper) return KeyGenUpper(s);
+    uint32_t k = 0xFFFFFFFFu;
+    for(; *s; ++s)
+    {
+        uint8_t c = (uint8_t)*s; if(c >= 'a' && c <= 'z') c -= 32;
+        uint32_t r = (k ^ c) & 0xFF;
+        for(int i = 0; i < 8; ++i) r = (r & 1) ? (r >> 1) ^ 0xEDB88320u : (r >> 1);
+        k = r ^ (k >> 8);
+    }
+    return k;
+}
+static void PhoneInit(void* h)
+{
+    if(s_PhoneHash[0]) return;
+    SET_TO(PedAddWeaponModel,    aml->GetSym(h, "_ZN4CPed14AddWeaponModelEi"));
+    SET_TO(PedRemoveWeaponModel, aml->GetSym(h, "_ZN4CPed17RemoveWeaponModelEi"));
+    SET_TO(KeyGenUpper,          aml->GetSym(h, "_ZN7CKeyGen15GetUppercaseKeyEPKc"));
+    s_PhoneHash[0] = UpperKey("phone_in"); s_PhoneHash[1] = UpperKey("phone_talk"); s_PhoneHash[2] = UpperKey("phone_out");
+    logger->Info("Call sync: phone anims %08X %08X %08X, hand prop %s, keygen %s", s_PhoneHash[0], s_PhoneHash[1], s_PhoneHash[2],
+                 (PedAddWeaponModel && PedRemoveWeaponModel) ? "on" : "off", KeyGenUpper ? "game" : "own");
+}
+bool Game::IsPhoneAnim(uint32_t hash) { return hash && (hash == s_PhoneHash[0] || hash == s_PhoneHash[1] || hash == s_PhoneHash[2]); }
+void Game::TaskUsePhone(int ped, bool on) { if(ped > 0 && PedPtr(ped)) CALLSCM(TASK_USE_MOBILE_PHONE_4158, ped, on ? 1 : 0); }
+bool Game::SetPhoneProp(int ped, bool on)
+{
+    void* p = PedPtr(ped);
+    if(!p || !PedAddWeaponModel || !PedRemoveWeaponModel) return false;
+    if(on) { if(!ModelReady(330)) return false; PedAddWeaponModel(p, 330); }
+    else PedRemoveWeaponModel(p, 330);
+    return true;
+}
 
 // ---- entities ------------------------------------------------------------------------------
 void* Game::PedPtr(int ped)  { return (PoolsGetPed && ped > 0) ? PoolsGetPed(ped) : nullptr; }

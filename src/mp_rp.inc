@@ -724,6 +724,7 @@ static void RpInvReset();
 static void RpPanelToggle();
 static void RpInvShow(int win);
 static void RenderRpInv();
+static void RpCallAnimStop();   // 4.13.58 call sync
 static void RpShutdown()
 {
     logger->Info("RP: left"); fflush(nullptr);
@@ -733,6 +734,7 @@ static void RpShutdown()
     RpTaxiReset(false);   // 3.35
     if(!s_Rp.engaged) { s_bRpJoin = false; return; }
     RpTalkRelease();
+    RpCallAnimStop();   // 4.13.58
     RpClearBlips();
     if(s_Rp.radarHidden && Game::IsReady()) { Game::ShowRadar(true); s_Rp.radarHidden = false; }   // 3.27
     if(s_Rp.petObj) Game::DeleteWorldObject(s_Rp.petObj);
@@ -948,6 +950,30 @@ static bool RpMayArm()
     const PktRpMe& m = s_Rp.me;
     return m.duty && RpJobArmed(m.job) && m.level >= g_RpJobs[m.job].minLevel && m.newbieS == 0 && !m.cuffed && !m.jailS;
 }
+// ---- 4.13.58: call sync -------------------------------------------------------------------------
+// While you call someone (ringing out or talking) CJ holds the cellphone to his ear with the game's own
+// phone task (upper body: you can still walk). The anim goes out with the normal anim sync, so everyone
+// sees it, and their phones put the cellphone in your avatar's hand (mp.cpp). Hang up = phone_out.
+static bool s_bRpPhoneTask = false; static int s_nRpPhonePed = 0; static uint64_t s_nRpPhoneAt = 0;
+static void RpCallAnimTick(int ped, uint64_t now)
+{
+    const bool want = ped > 0 && (s_Rp.callWith >= 0 || (s_Rp.ringOut && s_Rp.ringFrom >= 0)) && !Game::IsCharInAnyCar(ped) && !Game::IsPaused();
+    if(want && (!s_bRpPhoneTask || s_nRpPhonePed != ped))
+    {
+        if(now - s_nRpPhoneAt < 1500) return;
+        s_nRpPhoneAt = now; Game::TaskUsePhone(ped, true); s_bRpPhoneTask = true; s_nRpPhonePed = ped;
+    }
+    else if(!want && s_bRpPhoneTask)
+    {
+        if(s_nRpPhonePed > 0 && Game::PedPtr(s_nRpPhonePed)) Game::TaskUsePhone(s_nRpPhonePed, false);
+        s_bRpPhoneTask = false; s_nRpPhonePed = 0; s_nRpPhoneAt = now;
+    }
+}
+static void RpCallAnimStop()
+{
+    if(s_bRpPhoneTask && s_nRpPhonePed > 0 && Game::IsReady() && Game::PedPtr(s_nRpPhonePed)) Game::TaskUsePhone(s_nRpPhonePed, false);
+    s_bRpPhoneTask = false; s_nRpPhonePed = 0;
+}
 static void RpProcess(int ped, uint64_t now)
 {
     if(!RpOnServer())
@@ -1034,6 +1060,7 @@ static void RpProcess(int ped, uint64_t now)
     if(s_Rp.callBlip && now - s_Rp.callAt > 180000) { Game::RemoveBlip(s_Rp.callBlip); s_Rp.callBlip = 0; }
     if(now - s_Rp.lastMoney > 1000) { s_Rp.lastMoney = now; RpSyncMoney(); }
     RpEmoteTick(ped, now);
+    RpCallAnimTick(ped, now);   // 4.13.58: call sync
     RpTaxiTick(ped, now);   // 3.35
     RpPedTick(ped, now);
     RpRadarTick(now);   // 3.27

@@ -101,6 +101,7 @@ struct MPSettings
     bool  hostCineCam       = true;    // 4.12: + Add server > Cinematic Join Camera (custom servers you host)
     bool  hostAuth          = false;   // 3.21.6: Add server > Authentication system (login with Discord) for a NEW server you host
     bool  allowCheatMenu    = false;   // 3.00: host permission (custom servers): players may use CheatMenu (libCheatMenu.so / libCheatMenu64.so)
+    bool  hgDefaultOn       = true;    // 4.13.58: new custom servers start with Allow CheatMenu + MonetLoader cheats on (HG menu)
     bool  hitSound          = true;    // 3.00: play sound_010.mp3 when your shot hits a player
     bool  allowMissionPair  = true;
     // 3.34: custom server permissions (Add server page, scroll down): the 4 featured servers always have them
@@ -205,6 +206,8 @@ struct RemotePlayer
     uint64_t  lastAim = 0, lastDuckFix = 0;
     float     lastAimPt[3] = { 0, 0, 0 };   // 2.32: where the aim task points (re-aim only when it moves)
     bool      gunUp = false;                // 2.32: aim pose is on (mirrored anims released)
+    bool      phoneProp = false;            // 4.13.58 call sync: the cellphone is in this avatar's hand
+    uint64_t  phoneSeen = 0;                // last time a phone anim came in (ms)
     Game::VehState vwant = {}, vhave = {};   // car look: wanted (from the driver) / shown here
     uint16_t  vwantModel = 0;
     uint64_t  vApplied = 0;

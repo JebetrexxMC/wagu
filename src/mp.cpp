@@ -1204,7 +1204,7 @@ static void DestroyAvatar(RemotePlayer& p)
     DropLeftCar(p); p.enterT = p.leaveT = 0; p.passEnterT = p.passLeaveT = 0; p.passCar = 0;   // 2.35
     if(p.jetObj) { Game::RemoveJetpack(p.jetObj); p.jetObj = 0; p.jetApplied = false; }   // 2.19.1
     if(p.ped)  { Game::DeleteChar(p.ped); p.ped = 0; }
-    p.rideCar = 0; p.mirror = false; p.gunUp = false;
+    p.rideCar = 0; p.mirror = false; p.gunUp = false; p.phoneProp = false; p.phoneSeen = 0;
     p.drawValid = false; p.weapon = 0; p.ducking = false; p.deadApplied = false; p.moveState = 0; p.pedSkin = -1;
     p.applied.n = 0; p.lastFrame = 0;   // 2.13
     p.appliedArea = -1; p.vhave.valid = false;   // 2.17
@@ -2067,6 +2067,12 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
 
     // --- weapon ----------------------------------------------------------------------------
     if(s.weapon != p.weapon) { if(Game::GiveAndSelectWeapon(p.ped, s.weapon)) p.weapon = s.weapon; }   // 3.32: false = still streaming
+    // 4.13.58 call sync: the cellphone in the avatar's hand while it plays a phone anim (on foot only)
+    {
+        const bool wantPhone = p.phoneSeen && now - p.phoneSeen < 500 && !(s.flags & SYNC_IN_CAR) && !(s.flags & SYNC_DEAD);
+        if(wantPhone && !p.phoneProp) { if(Game::SetPhoneProp(p.ped, true)) p.phoneProp = true; }
+        else if(!wantPhone && p.phoneProp) { Game::SetPhoneProp(p.ped, false); p.phoneProp = false; p.weapon = 255; }   // the weapon back in the hand
+    }
 
     // --- 2.15: passenger in another player's car (or in ours) -------------------------------
     if((s.flags & SYNC_IN_CAR) && !(s.flags & SYNC_DRIVER) && p.hasVeh)
@@ -2383,6 +2389,8 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
                 float el = (float)((p.renderT - (double)af->t) / 1000.0); if(el < 0) el = 0; if(el > 0.5f) el = 0.5f;
                 for(int i = 0; i < af->n; ++i) { pose[i] = af->a[i]; pose[i].time += el * pose[i].speed; }
                 Game::MirrorPedAnims(p.ped, pose, af->n, p.applied, dt, legSpeed, p.stick, p.extMove);   // 2.19: + joystick
+                // 4.13.58 call sync: a phone anim (story phone call or a Mega Vil /call) = the cellphone in the hand
+                for(int i = 0; i < af->n; ++i) if(Game::IsPhoneAnim(af->a[i].hash) && af->a[i].blend > 0.2f) { p.phoneSeen = now; break; }
             }
             // position: sideways error out firmly, along the way gently (the anim walks it)
             if(d > 0.05f || fabsf(target.z - cur.z) > 0.35f)
@@ -5000,7 +5008,7 @@ static bool StartLocalServer(const char* name, int port)
         int cm = SrvCmGet(name, port);
         bool own = !strcasecmp(name, settings.serverName) && port == settings.port;
         if(MP::IsDefaultServer(name, port) || bcw) s_bRunCheatMenu = false;
-        else if(creating || (cm < 0 && own)) { s_bRunCheatMenu = settings.allowCheatMenu; SrvCmPut(name, port, s_bRunCheatMenu); }
+        else if(creating || (cm < 0 && own)) { s_bRunCheatMenu = settings.allowCheatMenu || settings.hgDefaultOn; SrvCmPut(name, port, s_bRunCheatMenu); }   // 4.13.58: + HG on by default
         else s_bRunCheatMenu = cm > 0;
         // 3.21.6: login system (default + Brief Case War: always, in MPServer itself)
         int au = SrvAuthGet(name, port);
@@ -5707,7 +5715,7 @@ void MP::SaveConfig()
     F("NametagSize", settings.nametagSize); F("NametagDistance", settings.nametagDistance);
     B("ShowOwnNametag", settings.showOwnTag); B("ShowHealthBars", settings.showHealthBars); B("ShowRadarIcons", settings.showRadarIcons);
     B("ShowChat", settings.showChat); B("ShowKillFeed", settings.showKillFeed); B("ShowStatus", settings.showStatus);
-    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
+    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
     F("ChatX", settings.chatX); F("ChatY", settings.chatY); I("Skin", settings.skin);
     I("ChatLines", settings.chatLines); F("ChatSize", settings.chatSize); F("ChatScale", settings.chatScale); F("ChatWidth", settings.chatWidth);   // 2.19.6
     I("ChatFade", settings.chatFade); B("ChatFadeOn", settings.chatFadeOn); B("ChatBackground", settings.chatBg);
@@ -5763,6 +5771,7 @@ static void LoadConfig()
     settings.syncNpcs        = ::cfg->GetBool("SyncNPCs", true, "MP");
     settings.allowMissionPair = ::cfg->GetBool("AllowMissionPair", true, "MP");
     settings.allowCheatMenu = ::cfg->GetBool("AllowCheatMenu", false, "MP");   // 3.00
+    settings.hgDefaultOn = ::cfg->GetBool("HgDefaultOn", true, "MP");   // 4.13.58
     settings.hostAuth        = ::cfg->GetBool("HostAuth", false, "MP");   // 3.21.6
     settings.hostCineCam     = ::cfg->GetBool("HostCineCam", true, "MP");   // 4.12
     settings.hostDevStage    = ::cfg->GetBool("HostDevStage", false, "MP");   // 4.13.2
@@ -6371,6 +6380,7 @@ static void PermissionSwitches(const char* where)
     ImGui::TextDisabled(settings.allowCheatMenu ? "On: players may use Cheat Menu (libCheatMenu.so / libCheatMenu64.so) and MonetLoader cheat mods (HG menu) on your server."
                                                 : "Off: players with Cheat Menu can't join, MonetLoader cheat mods (HG menu) stop.");
     ImGui::TextDisabled("Never on the default server. \"Disable cheats\" (Settings > Cheats) switches it off too.");
+    if(FloatMenu::ToggleSwitch("HG menu on by default for new custom servers", &settings.hgDefaultOn)) SaveConfig();   // 4.13.58 (also in Server Management)
     // 3.34: AFK / damage indicator / player ids (always on on the 4 featured servers)
     ImGui::Separator();
     if(FloatMenu::ToggleSwitch("AFK (too long without moving)", &settings.permAfk)) { ApplyServerPerms(); SaveConfig(); }
