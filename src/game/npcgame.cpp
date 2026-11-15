@@ -430,6 +430,21 @@ int Game::CreateNpcCar(int model, int driverModel, const Vec3& p0, float heading
     return (int)car;
 }
 
+int Game::CreateNpcDriver(int car, int driverModel)
+{
+    if(car <= 0 || !CarPtr(car) || !driverModel || !IsSafePedModel(driverModel) || !CALLSCM(HAS_MODEL_LOADED, driverModel)) return 0;
+    if(CALLSCM(IS_CAR_DEAD, car)) return 0;
+    uint32_t d = 0;
+    CALLSCM(CREATE_CHAR_INSIDE_CAR, car, 24, driverModel, &d);
+    if(!d) return 0;
+    CALLSCM(SET_CHAR_KEEP_TASK, d, 1);
+    CALLSCM(SET_CHAR_SUFFERS_CRITICAL_HITS, d, 0);
+    CALLSCM(SET_CHAR_HEALTH, d, 1000);
+    CALLSCM(SET_CHAR_DROPS_WEAPONS_WHEN_DEAD, d, 0);
+    MakePuppet((int)d);
+    return (int)d;
+}
+
 // did the local player (on foot or with their car) do the last damage? then clear it
 bool Game::NpcDamagedByMe(int handle, bool car, int me, int myCar)
 {

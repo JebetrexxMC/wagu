@@ -859,6 +859,11 @@ static uint64_t s_nKickWaitUntil = 0;   // 3.39: a kick = wait 4:29 before joini
 static char s_szKickWaitSrv[32] = "";
 static int  s_nMyScoreFwd = 0;
 static int      s_nPassBtnCar = 0;   // 2.19.1: car we walk to via the Passenger button
+// 4.13.52 carjack: victim side = the car I was pulled out of (the jacker's avatar takes THAT car, no copy);
+// jacker side = the car I'm pulling a player out of (kept and entered, not deleted when they leave it)
+static int      s_nJackedCar = 0, s_nJackedBy = -1;
+static uint64_t s_nJackedAt = 0;
+static int      s_nJackCar = 0;
 static uint64_t s_nPassBtnT = 0;
 
 // ------------------------------------------------------------------------------------------
@@ -1135,6 +1140,23 @@ static void LeaveAvatarCar(RemotePlayer& p, const Vec3& outPos, uint64_t now)
     bool meIn = lp > 0 && Game::IsCharInCar(lp, p.car);
     bool anyRide = false;
     for(int i = 0; i < MP_MAX_PLAYERS; ++i) if(&players[i] != &p && players[i].rideCar == p.car) anyRide = true;
+    if(!meIn && p.jackUntil && now < p.jackUntil && lp > 0 && !anyRide)
+    {   // 4.13.52 carjack: I'm pulling them out. Before, the car was parked as their "left car" and deleted after 5 s
+        // (or at once) while my get-in animation was still running - the car vanished from under me. Now they are
+        // put out on the far side, the car is kept and I get in as its driver; it is a normal car from now on.
+        Vec3 cp; if(!Game::GetCarPos(p.car, cp)) cp = outPos;
+        if(p.ped && Game::IsCharInCar(p.ped, p.car))
+        {
+            const float h = Game::GetCarHeading(p.car) * 0.0174533f;
+            Game::WarpOutOfCar(p.ped, { cp.x - cosf(h) * 2.4f, cp.y - sinf(h) * 2.4f, cp.z });
+        }
+        s_nJackCar = p.car;
+        Game::ReleaseCar(p.car);   // a normal car of my game from now on (it was kept as the avatar's mission car)
+        if(!Game::IsCharGettingInToACar(lp) || Game::GetCarCharIsUsing(lp) != p.car) { Game::ClearTasksNow(lp); Game::TaskEnterCarAsDriver(lp, p.car, 3000); }
+        p.car = 0; p.carModel = 0; p.vhave.valid = false; p.jackUntil = 0;
+        logger->Info("Carjack: %s is out, getting in", p.name);
+        return;
+    }
     if(meIn || anyRide || !p.ped || !Game::IsCharInCar(p.ped, p.car)) { RemoveAvatarCar(p, outPos); return; }
     Game::TaskLeaveCar(p.ped, p.car);
     p.leaveT = now;
@@ -1729,20 +1751,21 @@ static void AvatarAim(RemotePlayer& p, const Vec3& aim, bool fire, uint64_t now)
     dirOf(aim.x, aim.y, aim.z, yawN, pitN);
     dirOf(p.lastAimPt[0], p.lastAimPt[1], p.lastAimPt[2], yawO, pitO);
     float dyaw = fabsf(fmodf(yawN - yawO + 540.0f, 360.0f) - 180.0f), dpit = fabsf(pitN - pitO);
-    const bool turned = dyaw > 9.0f || dpit > 7.0f;
+    const bool turned = dyaw > 4.0f || dpit > 3.5f;   // 4.13.52: was 9 / 7 degrees: the gun pointed off to the side
     // the body follows the aim between task updates (the arms come with it, no restart)
     {
         float want = fmodf(yawN - 90.0f + 360.0f, 360.0f), ch = Game::GetCharHeading(p.ped);
         float hd = fmodf(want - ch + 540.0f, 360.0f) - 180.0f;
-        if(fabsf(hd) > 2.0f && fabsf(hd) < 60.0f) Game::SetCharHeading(p.ped, LerpAngle(ch, want, 0.35f));
+        // 4.13.52: any turn (a quick 180 used to keep the body facing the old way until the next task)
+        if(fabsf(hd) > 1.5f) Game::SetCharHeading(p.ped, LerpAngle(ch, want, fabsf(hd) < 60.0f ? 0.35f : 0.6f));
     }
     if(fire)
     {
-        if(now - p.lastShoot > 1100 || (turned && now - p.lastShoot > 300))
+        if(now - p.lastShoot > 1100 || (turned && now - p.lastShoot > 200))
         { Game::TaskShootAt(p.ped, aim, 1500); p.lastShoot = now; p.lastAim = now; p.lastAimPt[0] = aim.x; p.lastAimPt[1] = aim.y; p.lastAimPt[2] = aim.z; }
         return;
     }
-    if(!p.lastAim || now - p.lastAim > 7000 || (turned && now - p.lastAim > 450) || (p.lastShoot && now - p.lastShoot < 1600 && now - p.lastAim > 1400))
+    if(!p.lastAim || now - p.lastAim > 7000 || (turned && now - p.lastAim > 220) || (p.lastShoot && now - p.lastShoot < 1600 && now - p.lastAim > 1400))
     { Game::TaskAimAt(p.ped, aim, 8000); p.lastAim = now; p.lastShoot = 0; p.lastAimPt[0] = aim.x; p.lastAimPt[1] = aim.y; p.lastAimPt[2] = aim.z; }
 }
 
@@ -2080,6 +2103,13 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
             {
                 Vec3 lc; if(Game::GetCarPos(p.leftCar, lc) && Dist2D(lc, cp) < 8.0f)
                 { p.car = p.leftCar; p.carBase = p.leftBase; p.leftCar = 0; p.leftModel = 0; reuse = true; }
+            }
+            if(!p.car && s_nJackedCar && s_nJackedBy == (int)(&p - players) && now - s_nJackedAt < 15000)
+            {   // 4.13.52: they just pulled me out of this car: they drive THIS one
+                Vec3 jc; int lp = Game::LocalPed();
+                if(Game::CarPtr(s_nJackedCar) && Game::GetCarModel(s_nJackedCar) == s.carModel && Game::GetCarPos(s_nJackedCar, jc) && Dist2D(jc, cp) < 12.0f && !(lp > 0 && Game::IsCharInCar(lp, s_nJackedCar)))
+                { p.car = s_nJackedCar; p.carBase = 0.0f; reuse = true; }
+                s_nJackedCar = 0; s_nJackedBy = -1;
             }
             if(!p.car) p.car = NpcTakeCopyCar(s.carModel, cp, p.carBase);
             if(p.car) reuse = true;
@@ -2794,6 +2824,9 @@ public:
         Vec3 cp; Game::GetCarPos(car, cp);
         float h = Game::GetCarHeading(car) * 0.0174533f;
         Game::WarpOutOfCar(ped, { cp.x - cosf(h) * 2.2f, cp.y - sinf(h) * 2.2f, cp.z });
+        // 4.13.52: the car stays for the jacker: their avatar gets into THIS car (it used to stay parked here while a
+        // second copy drove off with them)
+        s_nJackedCar = car; s_nJackedBy = j.from < MP_MAX_PLAYERS ? j.from : -1; s_nJackedAt = MP_NowMs();
         if(j.from < MP_MAX_PLAYERS && players[j.from].active) SysMsg(COL_YELLOW, "*** %s pulled you out of your car.", players[j.from].name);
     }
     void OnDamage(const PktDamage& d) override
@@ -3077,7 +3110,12 @@ static void ProcessPassengerEntry(int ped, uint64_t now)
     int target = players[owner].car;
     if(target == s_nPassBtnCar && now - s_nPassBtnT < 8000) return;   // 2.19.1: Passenger button already did it
     if(target == s_nCar && now - s_nT < 6000) return;   // already walking to the door
+    if(target == s_nJackCar) return;                     // 4.13.52: I'm getting in after a carjack
     int seat = Game::FreePassengerSeat(target, 0);
+    // 4.13.52: the enter button on a car another player drives = carjack (like SA-MP), the Passenger button seats
+    // you next to them. Before, any free passenger seat turned the enter button into "get in as passenger", so a
+    // car with a free seat could never be jacked.
+    if(seat >= 0 && (s_nServerPerms & PERM_V219)) seat = -1;
     if(seat < 0)                                         // 2.19: full -> pull the driver out (2.19 servers)
     {
         if(s_nServerPerms & PERM_V219) { TryJack(ped, owner, now); s_nCar = target; s_nT = now; }
@@ -3092,32 +3130,45 @@ static void ProcessPassengerEntry(int ped, uint64_t now)
 static void ProcessLocalCombat(int ped)
 {
     int hp = Game::GetCharHealth(ped);
+    int ar = Game::GetCharArmour(ped);
+    static int s_nPrevLocalArmour = -1;
+    if(s_nPrevLocalHealth < 0) s_nPrevLocalArmour = -1;   // reset with the health (respawn / reconnect)
 
     // Undo local damage caused by avatars (their bullets are cosmetic; real damage arrives via PKT_DAMAGE)
-    if(s_nPrevLocalHealth > 0 && hp > 0 && hp < s_nPrevLocalHealth)
+    // 4.13.52: armour too - a hit on a player with armour only takes armour, which was never given back,
+    // so armour was lost twice (here, and the damage packet came on top) and the bars differed per phone
+    const bool lostHp = s_nPrevLocalHealth > 0 && hp > 0 && hp < s_nPrevLocalHealth;
+    const bool lostAr = s_nPrevLocalArmour >= 0 && ar < s_nPrevLocalArmour && hp > 0;
+    if(lostHp || lostAr)
     {
         for(int i = 0; i < MP_MAX_PLAYERS; ++i)
         {
             RemotePlayer& p = players[i];
             if(p.active && p.ped && Game::HasCharBeenDamagedByChar(ped, p.ped))
             {
-                Game::SetCharHealth(ped, s_nPrevLocalHealth);
-                hp = s_nPrevLocalHealth;
+                if(lostHp) { Game::SetCharHealth(ped, s_nPrevLocalHealth); hp = s_nPrevLocalHealth; }
+                if(lostAr) { Game::SetCharArmour(ped, s_nPrevLocalArmour); ar = s_nPrevLocalArmour; }
                 Game::ClearCharLastDamageEntity(ped);
                 break;
             }
         }
     }
 
-    // Apply network damage
+    // Apply network damage: armour first, then health (as the game does with a real hit)
     if(s_fPendingDamage > 0 && hp > 0)
     {
         int dmg = (int)(s_fPendingDamage + 0.5f);
         s_fPendingDamage = 0;
         if(DzOnServer()) dmg = DzAdjustDamage(hp, dmg, dmg >= 1000);
-        hp -= dmg; if(hp < 0) hp = 0;
-        Game::SetCharHealth(ped, hp);
+        if(dmg < 1000 && ar > 0)
+        {
+            int take = dmg < ar ? dmg : ar;
+            ar -= take; dmg -= take;
+            Game::SetCharArmour(ped, ar);
+        }
+        if(dmg > 0) { hp -= dmg; if(hp < 0) hp = 0; Game::SetCharHealth(ped, hp); }
     }
+    s_nPrevLocalArmour = ar;
     s_nPrevLocalHealth = hp;
 
     bool dead = hp <= 0 || Game::IsCharDead(ped);
@@ -3419,6 +3470,7 @@ struct NpcCarCopy
     bool used, spawned; uint8_t owner; uint32_t uid; int car, driver; int model, driverModel;
     Vec3 target, vel; float fwd[3], up[3]; int health, lastSetHp; uint8_t col[2]; bool colApplied;
     bool dead, deadApplied, siren, lights; uint64_t seen; float base;
+    int wantDriver; uint64_t driverLeaveT, driverAddT;   // 4.13.52: the host's driver now (0 = got out) / leaving since
 };
 static NpcPedCopy s_NpcPed[NPC_MAX_PEDS];
 static NpcCarCopy s_NpcCar[NPC_MAX_CARS];
@@ -3956,6 +4008,7 @@ static void NpcReceive(const PktNpc& m, bool mission)
         c->vel = { e.vel[0] / 100.f, e.vel[1] / 100.f, e.vel[2] / 100.f };
         for(int k = 0; k < 3; ++k) { c->fwd[k] = e.fwd[k] / 127.f; c->up[k] = e.up[k] / 127.f; }
         c->health = e.health; c->col[0] = e.col[0]; c->col[1] = e.col[1];
+        c->wantDriver = e.driver;   // 4.13.52: followed every packet (it was only read when the copy was made)
         c->dead = (e.flags & NCARF_DEAD) != 0; c->siren = (e.flags & NCARF_SIREN) != 0; c->lights = (e.flags & NCARF_LIGHTS) != 0;
         c->seen = now;
     }
@@ -4073,12 +4126,27 @@ static void NpcUpdateCopies(int lp, uint64_t now)
         if(hp != ownerHp) { Game::SetCarHealth(c.car, ownerHp); }
         c.lastSetHp = ownerHp;
         if(c.driver && Game::PedPtr(c.driver) && Game::GetCharHealth(c.driver) < 1000) Game::SetCharHealth(c.driver, 1000);
+        if(c.driver && !Game::PedPtr(c.driver)) { c.driver = 0; c.driverLeaveT = 0; }
+        if(c.driver && !c.wantDriver && !Game::IsCharDead(c.driver))
+        {   // 4.13.52: the host's NPC got out of this car (parked, crashed, fled, pulled out): the copy gets out too -
+            // the real door / get-out anims, then it is removed (the host's ped list shows that person on foot).
+            // Before, the driver was warped back in every frame and sat in the car forever.
+            if(!c.driverLeaveT) { if(Game::IsCharInCar(c.driver, c.car)) Game::TaskLeaveCar(c.driver, c.car); c.driverLeaveT = now; }
+            else if(now - c.driverLeaveT > (Game::IsCharInCar(c.driver, c.car) ? 3000u : 1200u)) { Game::DeleteChar(c.driver); c.driver = 0; c.driverLeaveT = 0; }
+        }
         // 2.35 "weird exit": the copy's driver had its own brain and climbed out (bumped, stuck,
         // a gun pointed at it) and walked away as a second person. It is a puppet now and stays in.
-        if(c.driver && Game::PedPtr(c.driver) && !Game::IsCharDead(c.driver) && !Game::IsCharInCar(c.driver, c.car) && myCarUsing != c.car)
+        else if(c.driver && Game::PedPtr(c.driver) && !Game::IsCharDead(c.driver) && !Game::IsCharInCar(c.driver, c.car) && myCarUsing != c.car)
         {
+            c.driverLeaveT = 0;
             if(!Game::IsCharInAnyCar(c.driver)) Game::WarpIntoCar(c.driver, c.car);
             else { Game::DeleteChar(c.driver); c.driver = 0; }
+        }
+        else if(!c.driver && c.wantDriver && myCarUsing != c.car && now - c.driverAddT > 1500 && Game::ModelReady(c.wantDriver))
+        {   // 4.13.52: an NPC got into this car on the host's phone: the copy gets its driver (no driverless car)
+            c.driverAddT = now;
+            c.driver = Game::CreateNpcDriver(c.car, c.wantDriver);
+            c.driverModel = c.wantDriver; c.driverLeaveT = 0;
         }
         // motion: same smoothing as players' cars
         Vec3 cur; if(!Game::GetCarPos(c.car, cur)) continue;

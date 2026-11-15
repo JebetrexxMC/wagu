@@ -244,6 +244,7 @@ void  Game::SetCharHeading(int ped, float h) { CALLSCM(SET_CHAR_HEADING, ped, h)
 int   Game::GetCharHealth(int ped) { uint32_t v = 0; CALLSCM(GET_CHAR_HEALTH, ped, &v); return (int)v; }
 void  Game::SetCharHealth(int ped, int hp) { CALLSCM(SET_CHAR_HEALTH, ped, hp); }
 int   Game::GetCharArmour(int ped) { uint32_t v = 0; CALLSCM(GET_CHAR_ARMOUR, ped, &v); return (int)v; }
+void  Game::SetCharArmour(int ped, int v) { if(ped <= 0) return; int d = v - GetCharArmour(ped); if(d) CALLSCM(ADD_ARMOUR_TO_CHAR, ped, d); }   // 4.13.52 (035F takes negative amounts too)
 int   Game::GetCharWeapon(int ped) { uint32_t v = 0; CALLSCM(GET_CURRENT_CHAR_WEAPON, ped, &v); return (int)v; }
 float Game::GetCharSpeed(int ped) { float s = 0; CALLSCM(GET_CHAR_SPEED, ped, F2U(s)); return s; }
 bool  Game::IsCharDead(int ped) { return CALLSCM(IS_CHAR_DEAD, ped) != 0; }

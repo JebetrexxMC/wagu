@@ -1,3 +1,4 @@
+#include <math.h>
 // 2.19.6: player model sync + special characters.
 //
 // Skin ids on the network:
@@ -34,6 +35,7 @@ uint64_t MP_NowMs();   // 3.21 (net/server.cpp)
 DEFOPCODE(023C, LOAD_SPECIAL_CHARACTER, is);
 DEFOPCODE(023D, HAS_SPECIAL_CHARACTER_LOADED, i);
 DEFOPCODE(0665, GET_CHAR_MODEL, iv);
+DEFOPCODE(0652, GET_FLOAT_STAT, iv);
 
 struct SpecialChar { int skin; const char* name; const char* label; };
 static const SpecialChar kSpecials[] =
@@ -302,6 +304,16 @@ bool Game::GetLocalClothes(PktClothes& c)
     memcpy(c.model, d.model, sizeof(c.model));
     memcpy(c.tex, d.tex, sizeof(c.tex));
     c.fat = d.fat; c.muscle = d.muscle;
+    {   // 4.13.52 body build: the stats themselves (STAT_FAT 21, STAT_MUSCLE 23) - the outfit's copy only
+        // changes when the game rebuilds CJ, so a muscular / skinny CJ was sent with his old build
+        float f = -1.0f, m = -1.0f;
+        CALLSCM(GET_FLOAT_STAT, 21, &f); CALLSCM(GET_FLOAT_STAT, 23, &m);
+        if(f == f && f >= 0.0f && f <= 1000.0f) c.fat = f;
+        if(m == m && m >= 0.0f && m <= 1000.0f) c.muscle = m;
+        // steps of 25: the stats drift a little all the time (running, eating) and every tiny change was
+        // a new outfit hash -> the avatar was rebuilt (blinked) on every phone again and again
+        c.fat = floorf(c.fat / 25.0f + 0.5f) * 25.0f; c.muscle = floorf(c.muscle / 25.0f + 0.5f) * 25.0f;
+    }
     c.on = 1;
     return MP_ClothesSane(c);
 }

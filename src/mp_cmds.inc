@@ -431,7 +431,7 @@ static void TryJack(int ped, int id, uint64_t now)
     s_nJackSent = now;
     PktJack j; j.type = PKT_JACK; j.from = myId; j.victim = (uint8_t)id; j.seat = 0;
     client.Send(&j, sizeof(j));
-    players[id].jackUntil = now + 4000;
+    players[id].jackUntil = now + 6000;   // 4.13.52: read by LeaveAvatarCar (the car is kept for me)
 }
 
 // ---- Mission sync request popup ----------------------------------------------------------

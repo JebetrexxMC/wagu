@@ -47,6 +47,14 @@ static bool s_bNeonPendingJoin = false;   // a server picked on the neon title m
 static bool NeonOn() { return s_nNeonMode == NEON_MODE_NEON; }   // 4.13.23: ServerBrowserMode alone (an old MainMenuMultiplayer = 0 no longer hides it)
 static bool NeonDraw();          // mp_neon.inc
 static bool NeonPendingJoin();   // mp_neon.inc
+// 4.13.52: the native title tile is added when the game builds its title menu: not with the neon title (it paints its
+// own menu) unless the neon title failed
+static bool NativeTileWanted()
+{
+    if(s_bMenuMp.load()) return false;
+    if(NeonOn()) return HUD::TitleMenuBroken() || NeonPaint::Failed();
+    return true;
+}
 static void MenuMpTap(void*)
 {
     if(!s_bMenuMpOn && !s_bMenuMpViaApi) return;
@@ -203,6 +211,7 @@ bool MP::MainMenuMpButton() { return s_bMenuMpCfg; }
 // MobileMenu::Render when this is true and no 2D pass ran.
 bool MP::TitleButtonWanted()
 {
+    if(s_bMenuMpTile) return false;   // 4.13.52: the game's own tile, nothing of MP drawn on the title menu
     if(s_bMenuMp.load() || MenuMpBlack()) return false;
     if(NeonOn() && !(HUD::TitleMenuBroken() || NeonPaint::Failed())) return false;   // the neon title paints itself
     return Game::IsMainMenuShown() && Game::LocalPed() <= 0;
@@ -246,10 +255,12 @@ void MP::InitMainMenu()
     }
     LookUpPCMenuLoading();
     if(!s_bMenuMpOn) { logger->Info("Main menu: Multiplayer tile off (MainMenuMultiplayer = 0 and ServerBrowserMode = default)"); return; }
-    // 4.13.13: no SAUtils tile any more - SAUtils puts it on the pause menu too. MP draws its own tile, on the
-    // title menu only (no game loaded yet).
-    s_bMenuMpTile = false;
-    logger->Info("Main menu: Multiplayer tile on the title menu only");
+    // 4.13.13: no SAUtils tile any more - SAUtils puts it on the pause menu too.
+    // 4.13.52: [MultiPlayer] is a real tile of the game's title menu (Game::InstallMainMenuTile, menutile.cpp):
+    // the game draws and touches it like Resume / Start Game / Settings, never on the pause menu. MP's own drawn
+    // tile (DrawMenuMpFront) is only the fallback for game builds the native tile does not support.
+    s_bMenuMpTile = Game::InstallMainMenuTile(MenuMpTap, &NativeTileWanted);
+    logger->Info("Main menu: Multiplayer tile on the title menu only (%s)", s_bMenuMpTile ? "the game's own tile" : "MP's fallback tile");
 }
 
 static void MenuMpRelease(int ped)

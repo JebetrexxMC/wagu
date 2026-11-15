@@ -35,6 +35,7 @@ namespace Game
     int   GetCharHealth(int ped);
     void  SetCharHealth(int ped, int hp);
     int   GetCharArmour(int ped);
+    void  SetCharArmour(int ped, int armour);   // 4.13.52
     int   GetCharWeapon(int ped);
     float GetCharSpeed(int ped);
     bool  IsCharDead(int ped);
@@ -141,6 +142,10 @@ namespace Game
     // 4.13.4 (gamemenu.cpp): main menu [Multiplayer] tile (SAUtils), main menu check, game sound fader
     void  InitMenu(void* gameHandle);
     bool  AddMainMenuTile(const char* name, const char* pngRel, const char* pngFull, void (*onTap)(void*));   // false = SAUtils missing / too old
+    // 4.13.52 (menutile.cpp): [MultiPlayer] as a real tile of the game's title menu (MainMenuScreen::AddAllItems hook),
+    // never on the pause menu. wanted() = add it now. false = this game build is not supported (MP's fallback tile).
+    bool  InstallMainMenuTile(void (*onTap)(void*), bool (*wanted)());
+    bool  MainMenuTileNative();
     bool  ExitFrontendMenu();          // 4.13.9: MobileMenu::Exit (= Resume: all menu screens off, back to the game)
     bool  IsMainMenuShown();           // the game's own main menu (title or pause) is on screen
     bool  IsFrontendMenu();            // any menu screen of the game is on screen
@@ -343,6 +348,7 @@ namespace Game
     bool  ModelReady(int model);              // requests it if not loaded yet (never blocks)
     int   CreateNpcPed(int model, const Vec3& pos, float heading);
     int   CreateNpcCar(int model, int driverModel, const Vec3& pos, float heading, int* driverOut);
+    int   CreateNpcDriver(int car, int driverModel);   // 4.13.52: a puppet driver into an NPC copy car
     int   GetCarHealth(int car);
     void  LockCar(int car, bool locked);      // 3.39: /mv lock / unlock (synced to the others by the car sync)
     bool  CarExists(int car);                 // 3.39

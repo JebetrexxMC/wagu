@@ -100,6 +100,7 @@ DEFOPCODE(01C3, MARK_CAR_AS_NO_LONGER_NEEDED, i);
   #define AG_ID    24
 #endif
 #define AH_HASH        0
+#define AH_LEN         (AH_BLOCK + 4)   // CAnimBlendHierarchy::m_fTotalLength
 #define AB_SIZE        0x20
 #define AB_LOADED      16
 #define MAT_RIGHT      0
@@ -607,7 +608,13 @@ void Game::MirrorPedAnims(int ped, const PedAnim* inRaw, int nRaw, AppliedAnims&
                         : BlendAnimHier(clump, hier, (pa.flags & ANIMF_SAFE_MASK & ~ANIMF_AUTO_REMOVE), 8.0f);
             if(!a) { ++missing; continue; }
             Put<float>(a, AS_BLEND, pa.blend * 0.6f);
-            if(AssocSetCurrentTime && pa.time >= 0.0f) AssocSetCurrentTime(a, pa.time);
+            if(AssocSetCurrentTime && pa.time >= 0.0f)
+            {
+                float want = pa.time, len = 0.0f; void* hr = At<void*>(a, AS_HIER);
+                if(hr) SafeRead((u8*)hr + AH_LEN, &len, 4);
+                if(len > 0.01f && len < 600.0f) want = (pa.flags & 0x2) ? fmodf(want, len) : (want > len ? len : want);
+                AssocSetCurrentTime(a, want);
+            }
         }
         src[nk] = &pa;
         keep[nk++] = a;
@@ -633,8 +640,20 @@ void Game::MirrorPedAnims(int ped, const PedAnim* inRaw, int nRaw, AppliedAnims&
         if(pa.speed >= 0.0f && pa.speed < 5.0f) Put<float>(a, AS_SPEED, pa.speed);
         if(pa.time >= 0.0f)
         {
-            float t = At<float>(a, AS_TIME);
-            if(AssocSetCurrentTime && fabsf(t - pa.time) > 0.15f) AssocSetCurrentTime(a, pa.time);
+            // 4.13.52: the sender's time is moved on to the drawn moment, so for a looped anim (walk, run,
+            // idle, swim...) it went past the anim's end and never matched our wrapped time -> the anim was
+            // set back every frame (stutter / frozen legs). Wrapped into the anim here; one-shots are clamped.
+            float want = pa.time, len = 0.0f;
+            void* hier = At<void*>(a, AS_HIER);
+            if(hier) SafeRead((u8*)hier + AH_LEN, &len, 4);
+            if(len > 0.01f && len < 600.0f)
+            {
+                if(pa.flags & 0x2) want = fmodf(want, len);
+                else if(want > len) want = len;
+            }
+            float t = At<float>(a, AS_TIME), diff = fabsf(t - want);
+            if((pa.flags & 0x2) && len > 0.01f && len < 600.0f && diff > len * 0.5f) diff = len - diff;   // circular
+            if(AssocSetCurrentTime && diff > 0.15f) AssocSetCurrentTime(a, want);
         }
         if(!partial) solid += target;
     }
@@ -1161,43 +1180,57 @@ void Game::ApplyVehState(int car, const VehState& w, VehState& st)
     }
     if(!st.valid || st.lock != w.lock) CALLSCM(LOCK_CAR_DOORS, car, (int)w.lock);
     if(!st.valid || ((st.flags ^ w.flags) & VEHF_ENGINE)) CALLSCM(SET_CAR_ENGINE_ON, car, (w.flags & VEHF_ENGINE) ? 1 : 0);
-    if(!st.valid || ((st.flags ^ w.flags) & VEHF_LIGHTS)) CALLSCM(FORCE_CAR_LIGHTS, car, (w.flags & VEHF_LIGHTS) ? 2 : 1);
+    {   // 4.13.52: head lamps follow the driver's car as it is now (the game switches lamps of this copy on / off by itself)
+        u8 f0 = 0; bool on = SafeRead((u8*)v + V_FLAGS, &f0, 1) && (f0 & (1 << 6));
+        if(!st.valid || ((st.flags ^ w.flags) & VEHF_LIGHTS) || on != ((w.flags & VEHF_LIGHTS) != 0)) CALLSCM(FORCE_CAR_LIGHTS, car, (w.flags & VEHF_LIGHTS) ? 2 : 1);
+    }
     if(!st.valid || ((st.flags ^ w.flags) & VEHF_SIREN)) CALLSCM(SWITCH_CAR_SIREN, car, (w.flags & VEHF_SIREN) ? 1 : 0);
     CALLSCM(SET_CAR_HEALTH, car, (int)w.health);
     bool isAuto = IsAutomobileClass(v);
     if(isAuto && w.isAuto)
     {
+        // 4.13.52: damage is compared with what the car REALLY has here, not with what we set last time.
+        // A bump on this phone (the copy hits a wall / another car) used to leave extra dents, popped
+        // doors and lamps that the driver's car doesn't have, and a repair on the driver's phone was
+        // only copied when we had applied damage before.
+        u8 dm[24]; memset(dm, 0, sizeof(dm));
+        const bool haveDm = SafeRead((u8*)v + A_DMG, dm, sizeof(dm));
+        uint8_t rDoors[6], rWheels[4]; uint32_t rPanels = 0, rLights = 0;
+        memcpy(rWheels, dm + DM_WHEELS, 4); memcpy(rDoors, dm + DM_DOORS, 6);
+        memcpy(&rLights, dm + DM_LIGHTS, 4); memcpy(&rPanels, dm + DM_PANELS, 4);
         bool allFixed = true;
         for(int d = 0; d < 6; ++d) if(w.doors[d]) allFixed = false;
         for(int i = 0; i < 4; ++i) if(w.wheels[i]) allFixed = false;
         if(w.panels || w.lights) allFixed = false;
-        bool hadDamage = st.valid && (st.panels || st.lights || memcmp(st.doors, "\0\0\0\0\0\0", 6) || memcmp(st.wheels, "\0\0\0\0", 4));
-        if(allFixed && hadDamage) CALLSCM(FIX_CAR, car);   // repaired (Pay 'n' Spray / cheat)
-        else
+        bool hasDamage = haveDm && (rPanels || rLights || memcmp(rDoors, "\0\0\0\0\0\0", 6) || memcmp(rWheels, "\0\0\0\0", 4));
+        if(allFixed && hasDamage) CALLSCM(FIX_CAR, car);   // repaired (Pay 'n' Spray / cheat) or dented here only
+        else if(haveDm)
         {
             for(int d = 0; d < 6; ++d)
             {
-                uint8_t a = st.valid ? st.doors[d] : 0, b = w.doors[d];
+                uint8_t a = rDoors[d], b = w.doors[d];
                 if(a == b) continue;
                 if(b == 4) CALLSCM(POP_CAR_DOOR, car, d, 1);          // door missing
                 else if(b == 0) CALLSCM(FIX_CAR_DOOR, car, d);
+                else if(a == 4) { CALLSCM(FIX_CAR_DOOR, car, d); if(b >= 2) CALLSCM(DAMAGE_CAR_DOOR, car, d); }
                 else if(b >= 2 && a < 2) CALLSCM(DAMAGE_CAR_DOOR, car, d);
             }
             for(int pn = 0; pn < 7; ++pn)
             {
-                int a = st.valid ? (int)((st.panels >> (pn * 4)) & 0xF) : 0, b = (int)((w.panels >> (pn * 4)) & 0xF);
+                int a = (int)((rPanels >> (pn * 4)) & 0xF), b = (int)((w.panels >> (pn * 4)) & 0xF);
                 if(a == b) continue;
                 if(b == 0) CALLSCM(FIX_CAR_PANEL, car, pn);
-                else if(b >= 3) CALLSCM(POP_CAR_PANEL, car, pn, 0);
-                else CALLSCM(DAMAGE_CAR_PANEL, car, pn);
+                else if(b >= 3 && a < 3) CALLSCM(POP_CAR_PANEL, car, pn, 0);
+                else if(b < 3 && a >= 3) { CALLSCM(FIX_CAR_PANEL, car, pn); CALLSCM(DAMAGE_CAR_PANEL, car, pn); }
+                else if(a == 0) CALLSCM(DAMAGE_CAR_PANEL, car, pn);
             }
             for(int i = 0; i < 4; ++i)
             {
-                uint8_t a = st.valid ? st.wheels[i] : 0, b = w.wheels[i];
-                if(a == b) continue;
+                uint8_t a = rWheels[i], b = w.wheels[i];
+                if((a != 0) == (b != 0)) continue;
                 if(b) CALLSCM(BURST_CAR_TYRE, car, i); else CALLSCM(FIX_CAR_TYRE, car, i);
             }
-            Put<uint32_t>(v, A_DMG + DM_LIGHTS, w.lights);   // broken lamps: plain status bits
+            if(rLights != w.lights) Put<uint32_t>(v, A_DMG + DM_LIGHTS, w.lights);   // broken lamps: plain status bits
         }
         for(int d = 0; d < 6; ++d)
         {

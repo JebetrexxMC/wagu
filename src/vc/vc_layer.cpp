@@ -95,10 +95,13 @@ static void  (*RequestModel)(int mi, int flags) = nullptr;
 static void  (*LoadAllRequestedModels)(bool onlyPriority) = nullptr;
 static void  (*SetHelpMessage)(uint16_t* text, bool quick, bool showAlways, bool) = nullptr;
 static void  (*FontSetScale)(float, float) = nullptr;
-// CFont::SetColor(CRGBA) / SetDropColor(CRGBA) take the colour BY VALUE (symbol ...E5CRGBA, reVC Font.h): a 4-byte struct
-// goes in r0 / w0. The vc-android-sdk examples pass a CRGBA* - the game then reads the pointer's bits as the colour.
-static void  (*FontSetColor)(CRGBA) = nullptr;
-static void  (*FontSetDropColor)(CRGBA) = nullptr;
+// 4.13.52: CFont::SetColor(CRGBA) / SetDropColor(CRGBA) - the source signature is by value (...E5CRGBA), but the mobile
+// CRGBA has its own copy constructor, so the ABI passes it through a hidden pointer: the game READS r0 / x0 as a
+// CRGBA*. 4.13.36 - 4.13.51 passed the 4 colour bytes in r0 -> SIGSEGV SEGV_ACCERR in CFont::SetDropColor
+// (libGTAVC.so + 0x1E3190, fault address 0xFF000000 = {0,0,0,255}, LR in libMP32.so). Same as the vc-android-sdk
+// examples now: a pointer to a CRGBA that lives for the call.
+static void  (*FontSetColor)(const CRGBA*) = nullptr;
+static void  (*FontSetDropColor)(const CRGBA*) = nullptr;
 static void  (*FontSetDropShadow)(short) = nullptr;
 static void  (*FontSetStyle)(short) = nullptr;
 static void  (*FontSetJustifyOn)() = nullptr;
@@ -1588,7 +1591,7 @@ static void Text(float x, float y, const char* s, uint32_t abgr)
     for(; s[i] && i < 255; ++i) w[i] = (uint8_t)s[i];
     w[i] = 0;
     CRGBA c = { (uint8_t)(abgr), (uint8_t)(abgr >> 8), (uint8_t)(abgr >> 16), (uint8_t)(abgr >> 24) };
-    if(FontSetColor) FontSetColor(c);
+    if(FontSetColor) FontSetColor(&c);
     FontPrint(x, y, w);
 }
 static void Box(float l, float t, float r, float b, CRGBA c)
@@ -1737,7 +1740,7 @@ static void Draw()
     const bool online = Online();
     DrawTitles(sw, sh, online, MP_NowMs());
     if(FontSetBgOff) FontSetBgOff();
-    if(FontSetDropColor) FontSetDropColor(CRGBA{ 0, 0, 0, 255 });
+    if(FontSetDropColor) { static const CRGBA kDrop = { 0, 0, 0, 255 }; FontSetDropColor(&kDrop); }
     if(online) DrawTextDraws(sw, sh);
     if(FontSetStyle) FontSetStyle(1);
     if(FontSetScale) FontSetScale(0.8f * sc, 1.0f * sc);
