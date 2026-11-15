@@ -91,6 +91,99 @@ Prebuilt binaries:
 
 ## Features
 
+Every GIF below is made from real in-game screenshots of MP (in `Screenshots/`) and, for the radar, from MP's real radar / compass drawing code run on a PC (`tools/preview/radar_preview.cpp`). They are not screen recordings. To make them again, run `python3 tools/preview/make_gifs.py`.
+
+### Online play and sync
+
+![Freeroam and sync](Screenshots/gifs/freeroam_sync.gif)
+
+- **Servers that run on your phone, a PC or a 24/7 VPS.** The UDP server uses port **1922**. You can host a LAN server from the game, play online through the Broker (MQTT) relay, or run the standalone server on Debian or Ubuntu.
+- **What is synced:**
+  - players: position, walk / run / sprint, crouch, jump, climb and fight animations, aiming, health and armour, deaths, clothes and skins, interiors
+  - vehicles: model, speed, colours, paintjob, tuning, damage, doors and locks
+  - every bullet and rocket
+  - NPC people and traffic
+  - weather and time
+- **Phone call sync (4.13.58).** In a Mega Vil phone call your character takes out the phone and talks, and everybody sees the animation and the phone model in its hand.
+- **Name tags with health and armour bars** in SA-MP style. You can change their size and draw distance.
+- **Player blips** on the radar and on the pause-menu map, in each player's own color.
+
+### Chat, voice and menus
+
+- **Chat** with its own virtual keyboard and timestamps. You can move it and change its colors in Settings > Display.
+- **Voice chat:** players near you hear you up to 40 m. You can set mic boost and voice pitch, and mute players in the player list.
+- **Kill feed:** `Killer [weapon] Victim`.
+- **Floating MP menu:** draggable `MP` and `Chat` bubbles. Other mods can add their own sections, windows and bubbles (see Developer API).
+- **Languages and controller support.**
+- **Admin and moderator chat commands.**
+
+### Combat
+
+![Combat](Screenshots/gifs/combat.gif)
+
+- **The shooter decides the damage.** Hits on players and on the street NPC copies are sent at once.
+- **Hit markers and kill feed:** kills, headshots, explosions and armour hits. The MonetLoader Hitmarker mod reads them through `MP_PopHit`.
+- **Drive-bys and vehicle combat.** The car HUD shows speed, fuel and health.
+- **Server anti-cheat**, and old game versions are shut out.
+
+### Launcher and Server Management
+
+![Launcher](Screenshots/gifs/launcher.gif)
+
+- **MP Launcher:** Internet, Favorites and LAN lists, up to 500 servers, with ping, players, mode and language, and a server info panel.
+- **Server Management:** permissions, bans, moderators, rules and dialogs, Plugins, and the Textdraw Editor.
+- **MonetLoader - HG menu section (4.13.58):** shows whether HG can run right now, with the switch "HG menu on by default for my custom servers".
+- **Friends can join you.** Progress is saved.
+
+### Gamemodes
+
+![Mega Vil Futuristic RP](Screenshots/gifs/megavil_rp.gif)
+
+- **Mega Vil Futuristic (Roleplay).** It includes:
+  - phone with apps and calls, inventory and items, ATM
+  - jobs (taxi, timber ...) and factions
+  - showroom, houses with the Home Kit, wardrobe and clothes, hotel rooms with a computer
+  - interaction wheel and menus
+
+![Project DayZ](Screenshots/gifs/dayz.gif)
+
+- **Project Day Z Legacy:** survival monitor, loot and inventory, hunting, zombies and bandits.
+
+![MW3 Team DM](Screenshots/gifs/mw3.gif)
+
+- **Call of Duty: Modern Warfare 3 Team DM:** killstreaks, pickups, scoreboard.
+- **Brief Case War** and **League (car football)**, plus freeroam and SA-MP / open.mp-style gamemodes and filterscripts.
+
+### Radar, maps and HUD
+
+![MP radar](Screenshots/gifs/radar.gif)
+
+![Maps and HUD](Screenshots/gifs/maps_hud.gif)
+
+- **MP radar** in 2D (north up) and 3D (it turns with you). Its map is drawn from the game's own path nodes, water, parks and district names, without textures, and it has a GPS route.
+- **Compass** with heading, waypoints and distance.
+- **Full map** with player, property and job blips.
+- **Car HUD** with speedometer, fuel and damage.
+
+![Loading and pause](Screenshots/gifs/loading.gif)
+
+- **[MultiPlayer] button on the game's main menu**, a custom loading screen and a loading window.
+
+### MonetLoader mods
+
+![MonetLoader mods](Screenshots/gifs/monetloader.gif)
+
+- `moonloader/mods_loader.lua` starts every `.lua` in `moonloader/mods/`.
+  - **TV Player:** video on the TV model in houses.
+  - **Hitmarker:** hit markers from MP's real hits.
+  - **HG menu** (`/hg`).
+- **Cheat mods (HG, CLEO menu) follow one rule:**
+  - they run offline, and on custom servers whose owner allows CheatMenu + MonetLoader cheats
+  - they never run on the default or featured servers
+  - they stop at once when the host turns cheats off
+
+### Core details
+
 - **Local/online server data**: UDP server on port **1922**. Default host `127.0.0.1:1922`, editable in the menu.
 - **Host LAN server toggle**: runs the server inside the game, so friends on the same Wi-Fi or hotspot can join with your LAN IP (shown in the menu).
 - **Connect / Disconnect**: connecting teleports you to Grove Street (CJ's house). Once the server accepts you, `title_logo_connected.png` appears in the center of the screen and `sound_effect_connected.mp3` plays at the same moment. The logo stays fully visible, then fades off over 20 ticks (1 tick = 50 ms), and is gone at 7 s.
