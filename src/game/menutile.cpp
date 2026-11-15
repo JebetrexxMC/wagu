@@ -129,6 +129,8 @@ void HookAddAllItems(uint8_t* self)
 }
 } // namespace
 
+extern uintptr_t pGameLib;   // main.cpp (global)
+
 bool Game::InstallMainMenuTile(void (*onTap)(void*), bool (*wanted)())
 {
     s_fnTap = onTap; s_fnWanted = wanted;
@@ -137,7 +139,6 @@ bool Game::InstallMainMenuTile(void (*onTap)(void*), bool (*wanted)())
     logger->Info("Main menu tile: 64-bit game - MP's fallback tile is used");
     return false;
 #else
-    extern uintptr_t pGameLib;
     void* h = aml->GetLibHandle("libGTASA.so");
     if(!h || !pGameLib) return false;
     // the same check SAUtils makes: GTA SA 2.00 (the 32-bit 2.10 build has another menu layout)

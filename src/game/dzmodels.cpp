@@ -296,7 +296,7 @@ bool Fetch(const std::string& rel, uint32_t size, uint32_t crc, bool firstBaseOn
     for(int b = 0; !ok && b < (firstBaseOnly ? 1 : 2); ++b)
     {
         std::string body;
-        { std::lock_guard<std::mutex> lk(s_M); const char* u = kBaseUrls[b] + 8; s_CurHost.assign(u, strchr(u, '/') - u); s_CurHost += b ? " (mtadayz fork)" : " (wagu)"; }
+        { std::lock_guard<std::mutex> lk(s_M); const char* u = kBaseUrls[b] + 8; s_CurHost.assign(u, strchr(u, '/') - u); s_CurHost += b ? " (mirror)" : " (MP)"; }
         s_BCur = 0;
         if(!Online::HttpsFetch(kBaseUrls[b] + rel, body, 180000, why, (size_t)size + 65536, &s_BCur)) continue;
         d.assign(body.begin(), body.end());

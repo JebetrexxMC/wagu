@@ -884,7 +884,7 @@ static bool NeonDraw()
             if(s_nNeonPage == NP_ABOUT)
             {
                 char body[400];
-                snprintf(body, sizeof(body), "MP Multiplayer %s for GTA San Andreas (Android, AML).\nby ThirtyFoxMCx00E1 - github.com/ThirtyFoxMCx00E1/wagu\nDiscord: %s\n\n"
+                snprintf(body, sizeof(body), "MP Multiplayer %s for GTA San Andreas (Android, AML).\nby ThirtyFoxMCx00E1 - mpsamp-open.github.io\nDiscord: %s\n\n"
                          "Neon menu art: San Andreas fan art (GTA V style). Fonts: UnifrakturMaguntia, Cinzel (SIL OFL 1.1).", MP_VERSION_STR, MP_AUTH_DISCORD_URL);
                 bool y = false, n = false; NeonDialog(dl, ds, "About", body, "CLOSE", nullptr, &y, &n);
                 if(y) s_nNeonPage = NP_MAIN;
@@ -991,7 +991,7 @@ static void NeonPDialog(float W, float H, float u)
     if(about)
     {
         snprintf(l[n++], 120, "MP Multiplayer %s for GTA San Andreas (Android, AML).", MP_VERSION_STR);
-        snprintf(l[n++], 120, "by ThirtyFoxMCx00E1 - github.com/ThirtyFoxMCx00E1/wagu");
+        snprintf(l[n++], 120, "by ThirtyFoxMCx00E1 - mpsamp-open.github.io");
         snprintf(l[n++], 120, "Discord: %s", MP_AUTH_DISCORD_URL);
         snprintf(l[n++], 120, "Fonts: UnifrakturMaguntia, Cinzel, Fredoka (SIL OFL 1.1).");
     }

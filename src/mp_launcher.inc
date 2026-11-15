@@ -726,7 +726,7 @@ static void LDevNotice()
         ImGui::PushTextWrapPos(0.0f);
         ImGui::Text("%s is still in development.", client.GetServerName()[0] ? client.GetServerName() : "This server");
         ImGui::TextUnformatted("The owner is still working on it, so some features may not work yet. You can keep playing.");
-        ImGui::TextDisabled("Updates: github.com/ThirtyFoxMCx00E1/wagu  |  Discord: %s", MP_AUTH_DISCORD_URL);
+        ImGui::TextDisabled("Updates: mpsamp-open.github.io  |  Discord: %s", MP_AUTH_DISCORD_URL);
         ImGui::PopTextWrapPos();
         ImGui::Spacing();
         const float bw = (ImGui::GetContentRegionAvail().x - UI::S(12)) * 0.5f, bh = UI::S(64);
@@ -1921,7 +1921,7 @@ static void LPageCloud(float w)
     if(!askedAt || (!c.listReady && !c.listBusy && !c.busy && c.cache && MP_NowMs() - askedAt > 15000)) { askedAt = MP_NowMs(); DzModels::CloudRefresh(); }
     ImDrawList* dl = ImGui::GetWindowDrawList();
     ImGui::TextColored(ImVec4(0.25f, 0.9f, 0.75f, 1), "CLOUD STORAGE");
-    ImGui::TextDisabled("Server resources hosted on GitHub (wagu repo + website downloads). They are kept in the game cache.");
+    ImGui::TextDisabled("Server resources from the MP website downloads. They are kept in the game cache.");
     ImGui::Separator();
     DzPackSection(w);   // 4.12.3: the model pack first (works without the file list)
     ImGui::Separator();
@@ -2005,7 +2005,7 @@ static void LPageCloud(float w)
     if(c.busy || fHave >= fTot) ImGui::EndDisabled();
     ImGui::PushID(4299); delButton(-1, " everything (download again later)", ImMax(UI::S(300), w - UI::S(20)), !c.busy && fHave > 0); ImGui::PopID();
     if(!c.busy && FloatMenu::BigButton("Refresh the file list")) DzModels::CloudRefresh();
-    ImGui::TextDisabled("Files: github.com/ThirtyFoxMCx00E1/wagu  Host/DayZ/models  (second host: the mtadayz fork)");
+    ImGui::TextDisabled("Files: mpsamp-open.github.io  Host/DayZ/models");
 }
 
 static int LSectionIcon(const char* t)
@@ -2059,7 +2059,7 @@ static void LGroupLabel(const char* t)
 // ---- 4.13.42: About page - who made MP, where to find the author, and the credit / copyright notice ----
 #define MP_ABOUT_YOUTUBE "https://youtube.com/@thirtyfoxmc"
 #define MP_ABOUT_DISCORD "https://discord.gg/BbZ5xkmuYH"
-#define MP_ABOUT_GITHUB  "https://github.com/ThirtyFoxMCx00E1/wagu"
+#define MP_ABOUT_WEBSITE "https://mpsamp-open.github.io"   // 4.13.52: the website only (no source repo link)
 static void LAboutHeading(const char* t)
 {
     ImGui::Dummy(ImVec2(1, UI::S(10)));
@@ -2105,9 +2105,9 @@ static void LPageAbout(float W)
     ImGui::SetCursorScreenPos(ImVec2(r.x + bw + UI::S(12), r.y));
     if(VBtn("abdc", "DISCORD SERVER", bw, bh, 2, true, IC_CHAT)) Voice::OpenUrl(MP_ABOUT_DISCORD);
     ImGui::SetCursorScreenPos(ImVec2(r.x + (bw + UI::S(12)) * 2, r.y));
-    if(VBtn("abgh", "OFFICIAL SOURCE", bw, bh, 0, true, IC_GLOBE)) Voice::OpenUrl(MP_ABOUT_GITHUB);
+    if(VBtn("abgh", "OFFICIAL WEBSITE", bw, bh, 0, true, IC_GLOBE)) Voice::OpenUrl(MP_ABOUT_WEBSITE);
     ImGui::SetCursorScreenPos(ImVec2(r.x, r.y + bh + UI::S(6)));
-    ImGui::TextDisabled("YouTube: %s     Discord: %s", MP_ABOUT_YOUTUBE, MP_ABOUT_DISCORD);
+    ImGui::TextDisabled("Website: %s     YouTube: %s     Discord: %s", MP_ABOUT_WEBSITE, MP_ABOUT_YOUTUBE, MP_ABOUT_DISCORD);
 
     LAboutHeading("ABOUT THIS MOD");
     LAboutPara("MP Multiplayer is an independent, non-commercial project designed, programmed and maintained by one developer, "

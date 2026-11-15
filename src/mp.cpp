@@ -7107,7 +7107,7 @@ static void SectionAddServer(void*)
     if(settings.hostAuth)   // 4.13: the login system is still being worked on
     {
         ImGui::PushTextWrapPos(0.0f);
-        ImGui::TextColored(ImVec4(1.0f, 0.78f, 0.25f, 1.0f), "IN DEVELOPMENT: this server login system is on the developing stage. We are updating it on GitHub (github.com/ThirtyFoxMCx00E1/wagu) - players who join will see this notice first.");
+        ImGui::TextColored(ImVec4(1.0f, 0.78f, 0.25f, 1.0f), "IN DEVELOPMENT: this server login system is on the developing stage. We are updating it on the MP website (mpsamp-open.github.io) - players who join will see this notice first.");
         ImGui::PopTextWrapPos();
     }
     if(ownCustom) ImGui::TextColored(s_Server.AuthOn() ? kGreenTxt : kYellowTxt, "\"%s\": login %s", s_Server.GetName(), s_Server.AuthOn() ? "on" : "off");
