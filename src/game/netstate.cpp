@@ -419,6 +419,38 @@ bool Game::IsCharSawing(int ped)
     return false;
 }
 
+// ---- 4.13.61: drive-by sync -------------------------------------------------------------------
+// The anims of the game's drive-by task (plugin-sdk-sa eAnimations.h): group 72 "drivebys"
+// (Gang_DrivebyLHS / RHS / Top / _Fwd / _Bwd), 73-75 bike / cop / quad drive-by, PED DRIVEBY_L/R
+// (driver, ids 74-77) and the bike groups' DRIVEBYLHS / RHS / FT (ids 202-204).
+bool Game::IsDriveByPose(int ped)
+{
+    if(!s_bAnimReady) return false;
+    void* clump = ClumpOf(ped);
+    if(!clump) return false;
+    void* a = ClumpFirstAssoc(clump);
+    for(int guard = 0; a && guard < 48; ++guard, a = NextAssoc(a))
+    {
+        if(At<float>(a, AS_BLEND) < 0.3f) continue;
+        int group = At<int16_t>(a, AS_GROUP), id = At<int16_t>(a, AS_ID);
+        if(group >= 72 && group <= 75) return true;
+        if(group == 0 && id >= 74 && id <= 77) return true;
+        if(group >= 2 && group <= 10 && id >= 202 && id <= 204) return true;
+    }
+    return false;
+}
+void Game::TaskDriveBy(int ped, const Vec3& p0, bool rhs, int fireRate)
+{
+    Vec3 p = p0; if(ped <= 0 || !PedPtr(ped) || !MP_WorldPos(p)) return;
+    CALLSCM(TASK_DRIVE_BY, ped, -1, -1, p.x, p.y, p.z, 300.0f, 0, rhs ? 1 : 0, fireRate);   // style 0: AI, all directions
+}
+void Game::StopDriveBy(int ped)
+{
+    // a target outside the abort range ends the task at once; the ped stays seated
+    if(ped <= 0 || !PedPtr(ped)) return;
+    CALLSCM(TASK_DRIVE_BY, ped, -1, -1, 0.0f, 0.0f, -2000.0f, 1.0f, 0, 0, 0);
+}
+
 int Game::GetPedAnims(int ped, PedAnim* out, int maxOut, bool full)
 {
     if(!s_bAnimReady || maxOut <= 0) return 0;

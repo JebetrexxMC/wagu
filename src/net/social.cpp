@@ -73,7 +73,8 @@ namespace
 
     int64_t Now() { return (int64_t)time(nullptr); }
     uint64_t NowMs() { return (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
-    void Dirty() { g_bDirty = true; }
+    bool g_bBkDirtyAny = false;   // 4.13.61: something changed since the last Moquil backup
+    void Dirty() { g_bDirty = true; g_bBkDirtyAny = true; }
 
     int Rng(void*, unsigned char* o, size_t n) { return AuthCrypto::Random(o, n) ? 0 : -1; }
 
@@ -424,6 +425,215 @@ namespace
     }
     void WatchRich(const std::string& id) { if(id.empty() || g_RichSub.count(id)) return; g_RichSub.insert(id); Sub("p/" + id); }
 
+    // ---- 4.13.61: friends / chats backup shared with Moquil (s/<id>, kind "bk", JSON sealed to yourself) ----
+    // Moquil keeps its friends and chats in this retained backup. Before 4.13.61 the game never read it, so a game linked with Moquil
+    // showed "No friends yet" for friends made in Moquil. Now the game merges it and writes the same backup (with the parts it does
+    // not use - favs, ratings, communities - passed through untouched), so both sides keep the same friends and chats.
+    struct JV { char t = 'z'; std::string s; double n = 0; std::vector<std::pair<std::string, JV>> o; std::vector<JV> a; size_t b0 = 0, b1 = 0; };
+    void JWs(const std::string& j, size_t& i) { while(i < j.size() && (j[i] == ' ' || j[i] == '\t' || j[i] == '\n' || j[i] == '\r')) ++i; }
+    void JPutCp(std::string& o, uint32_t cp)
+    {
+        if(cp < 0x80) o += (char)cp;
+        else if(cp < 0x800) { o += (char)(0xC0 | (cp >> 6)); o += (char)(0x80 | (cp & 0x3F)); }
+        else if(cp < 0x10000) { o += (char)(0xE0 | (cp >> 12)); o += (char)(0x80 | ((cp >> 6) & 0x3F)); o += (char)(0x80 | (cp & 0x3F)); }
+        else { o += (char)(0xF0 | (cp >> 18)); o += (char)(0x80 | ((cp >> 12) & 0x3F)); o += (char)(0x80 | ((cp >> 6) & 0x3F)); o += (char)(0x80 | (cp & 0x3F)); }
+    }
+    bool JHex4(const std::string& j, size_t i, uint32_t& v) { if(i + 4 > j.size()) return false; v = 0; for(size_t k = i; k < i + 4; ++k) { char c = j[k]; v <<= 4; if(c >= '0' && c <= '9') v |= c - '0'; else if(c >= 'a' && c <= 'f') v |= c - 'a' + 10; else if(c >= 'A' && c <= 'F') v |= c - 'A' + 10; else return false; } return true; }
+    bool JStr(const std::string& j, size_t& i, std::string& o)
+    {
+        if(i >= j.size() || j[i] != '"') return false;
+        ++i; o.clear();
+        while(i < j.size())
+        {
+            char c = j[i++];
+            if(c == '"') return true;
+            if(c != '\\') { o += c; continue; }
+            if(i >= j.size()) return false;
+            char e = j[i++];
+            switch(e)
+            {
+                case 'n': o += '\n'; break; case 't': o += '\t'; break; case 'r': o += '\r'; break; case 'b': o += '\b'; break; case 'f': o += '\f'; break;
+                case 'u':
+                {
+                    uint32_t cp; if(!JHex4(j, i, cp)) return false; i += 4;
+                    if(cp >= 0xD800 && cp < 0xDC00 && i + 6 <= j.size() && j[i] == '\\' && j[i + 1] == 'u') { uint32_t lo; if(JHex4(j, i + 2, lo) && lo >= 0xDC00 && lo < 0xE000) { cp = 0x10000 + ((cp - 0xD800) << 10) + (lo - 0xDC00); i += 6; } }
+                    JPutCp(o, cp); break;
+                }
+                default: o += e; break;
+            }
+        }
+        return false;
+    }
+    bool JParse(const std::string& j, size_t& i, JV& v, int depth)
+    {
+        if(depth > 12) return false;
+        JWs(j, i); if(i >= j.size()) return false;
+        v.b0 = i; char c = j[i];
+        if(c == '{')
+        {
+            v.t = 'o'; ++i; JWs(j, i);
+            if(i < j.size() && j[i] == '}') { ++i; v.b1 = i; return true; }
+            for(;;)
+            {
+                JWs(j, i); std::string k; if(!JStr(j, i, k)) return false;
+                JWs(j, i); if(i >= j.size() || j[i] != ':') return false; ++i;
+                v.o.emplace_back(k, JV()); if(!JParse(j, i, v.o.back().second, depth + 1)) return false;
+                JWs(j, i); if(i < j.size() && j[i] == ',') { ++i; continue; }
+                if(i < j.size() && j[i] == '}') { ++i; v.b1 = i; return true; }
+                return false;
+            }
+        }
+        if(c == '[')
+        {
+            v.t = 'a'; ++i; JWs(j, i);
+            if(i < j.size() && j[i] == ']') { ++i; v.b1 = i; return true; }
+            for(;;)
+            {
+                v.a.emplace_back(); if(!JParse(j, i, v.a.back(), depth + 1)) return false;
+                JWs(j, i); if(i < j.size() && j[i] == ',') { ++i; continue; }
+                if(i < j.size() && j[i] == ']') { ++i; v.b1 = i; return true; }
+                return false;
+            }
+        }
+        if(c == '"') { v.t = 's'; bool ok = JStr(j, i, v.s); v.b1 = i; return ok; }
+        if(!j.compare(i, 4, "true"))  { v.t = 'b'; v.n = 1; i += 4; v.b1 = i; return true; }
+        if(!j.compare(i, 5, "false")) { v.t = 'b'; v.n = 0; i += 5; v.b1 = i; return true; }
+        if(!j.compare(i, 4, "null"))  { v.t = 'z'; i += 4; v.b1 = i; return true; }
+        char* end = nullptr; v.n = strtod(j.c_str() + i, &end);
+        if(!end || end == j.c_str() + i) return false;
+        v.t = 'n'; i = (size_t)(end - j.c_str()); v.b1 = i; return true;
+    }
+    const JV* JGet(const JV& o, const char* k) { if(o.t != 'o') return nullptr; for(auto& p : o.o) if(p.first == k) return &p.second; return nullptr; }
+    std::string JS(const JV& o, const char* k) { const JV* v = JGet(o, k); return v && v->t == 's' ? v->s : (v && v->t == 'n' ? std::to_string((long long)v->n) : std::string()); }
+    int64_t JN(const JV& o, const char* k) { const JV* v = JGet(o, k); return v && (v->t == 'n' || v->t == 'b') ? (int64_t)v->n : (v && v->t == 's' ? atoll(v->s.c_str()) : 0); }
+    std::string JQ(const std::string& s)
+    {
+        std::string o = "\"";
+        for(unsigned char c : s)
+        {
+            if(c == '"' || c == '\\') { o += '\\'; o += (char)c; }
+            else if(c < 0x20) { char b[8]; snprintf(b, sizeof(b), "\\u%04x", c); o += b; }
+            else o += (char)c;
+        }
+        return o + "\"";
+    }
+
+    int64_t g_BkFrom = 0, g_BkMine = 0, g_BkAt = 0, g_UpSince = 0;   // newest backup merged (ms), the one we wrote, when we wrote, connected since
+    bool g_bBkDirty = false, g_bBkMoquil = false;                   // something to back up / a Moquil uses this ID
+    std::string g_BkExtra;                                           // the parts of Moquil's backup the game passes through as they are
+    bool ValidId(const std::string& id) { if(id.size() != 8) return false; for(char c : id) if(c < '0' || c > '9') return false; return true; }
+    int64_t SecTs(int64_t t) { return t > 100000000000LL ? t / 1000 : t; }   // ms -> s
+
+    void MergePeople(const JV* arr, std::vector<Person>& into, bool& changed)
+    {
+        if(!arr || arr->t != 'a') return;
+        for(auto& x : arr->a)
+        {
+            std::string id = JS(x, "id"), pub = JS(x, "pub");
+            if(!ValidId(id) || id == g_Me || FindIn(into, id)) continue;
+            if(!pub.empty() && IdFromPub(pub) != id) continue;          // someone else's key under that ID
+            Person p; p.id = id; p.name = CleanName(JS(x, "name")); if(p.name.empty()) p.name = id; p.pub = pub; p.since = SecTs(JN(x, "since")); if(p.since <= 0) p.since = Now();
+            into.push_back(p); changed = true;
+        }
+    }
+    void OnBackup(const std::string& json)
+    {
+        JV o; size_t i = 0;
+        if(!JParse(json, i, o, 0) || o.t != 'o') { SLOG("backup: not JSON"); return; }
+        int64_t at = JN(o, "at");
+        if(at <= g_BkFrom || at == g_BkMine) return;   // old, or our own (the broker sends it back)
+        g_BkFrom = at; g_bBkMoquil = true;
+        {   // keep what only Moquil uses
+            std::string ex;
+            for(auto& kv : o.o) if(kv.first != "v" && kv.first != "at" && kv.first != "src" && kv.first != "friends" && kv.first != "inc" && kv.first != "out" && kv.first != "convs" && kv.second.b1 > kv.second.b0)
+                ex += "," + JQ(kv.first) + ":" + json.substr(kv.second.b0, kv.second.b1 - kv.second.b0);
+            if(ex.size() < 30000) g_BkExtra = ex;
+        }
+        bool changed = false; size_t f0 = g_Friends.size();
+        MergePeople(JGet(o, "friends"), g_Friends, changed);
+        for(size_t k = f0; k < g_Friends.size(); ++k) { RemoveFrom(g_In, g_Friends[k].id); RemoveFrom(g_Out, g_Friends[k].id); Sub("o/" + g_Friends[k].id); WatchRich(g_Friends[k].id); }
+        std::vector<Person> tmp;
+        MergePeople(JGet(o, "inc"), tmp, changed); for(auto& p : tmp) if(!FindIn(g_Friends, p.id) && !FindIn(g_In, p.id)) g_In.push_back(p); tmp.clear();
+        MergePeople(JGet(o, "out"), tmp, changed); for(auto& p : tmp) if(!FindIn(g_Friends, p.id) && !FindIn(g_Out, p.id)) g_Out.push_back(p);
+        int newMsgs = 0;
+        if(const JV* cs = JGet(o, "convs")) if(cs->t == 'a') for(auto& x : cs->a)
+        {
+            std::string key = JS(x, "key"); int kind = (int)JN(x, "kind");
+            if(key.size() < 2) continue;
+            Conv* c = ConvByKey(key);
+            if(!c && key[0] == 'u')
+            {
+                std::string id = key.substr(1); if(!FindIn(g_Friends, id)) continue;   // private chats: friends only, as for new messages
+                c = MakeDm(id, CleanName(JS(x, "title"))); changed = true;
+            }
+            else if(!c && key[0] == 'g' && (kind == CONV_GROUP || kind == CONV_PARTY))
+            {
+                std::unique_ptr<Conv> n(new Conv()); n->key = key; n->kind = kind; n->gid = JS(x, "gid"); if(n->gid.empty()) n->gid = key.substr(1);
+                n->title = Clean(JS(x, "title"), 40); n->owner = JS(x, "owner");
+                if(const JV* ms = JGet(x, "members")) if(ms->t == 'a') for(auto& m : ms->a) { std::string mid = JS(m, "id"); if(ValidId(mid)) n->members.push_back({ mid, CleanName(JS(m, "name")) }); }
+                if(!IsMember(n.get(), g_Me)) continue;                  // a group you are not in any more
+                c = n.get(); g_Convs.push_back(std::move(n)); changed = true;
+            }
+            if(!c) continue;
+            std::set<std::string> sig; for(auto& m : c->msgs) sig.insert(std::to_string((long long)m.ts) + "|" + m.fromId + "|" + m.text);
+            if(const JV* ms = JGet(x, "msgs")) if(ms->t == 'a') for(auto& m : ms->a)
+            {
+                Msg mm; mm.fromId = JS(m, "fromId"); mm.fromName = CleanName(JS(m, "fromName")); mm.text = Clean(JS(m, "text"), 400); mm.ts = SecTs(JN(m, "ts")); mm.mine = JN(m, "mine") != 0 || mm.fromId == g_Me;
+                if(mm.text.empty() || mm.ts <= 0) continue;
+                std::string k = std::to_string((long long)mm.ts) + "|" + mm.fromId + "|" + mm.text;
+                if(sig.count(k)) continue;
+                sig.insert(k); c->msgs.push_back(mm); ++newMsgs; changed = true;
+            }
+            std::stable_sort(c->msgs.begin(), c->msgs.end(), [](const Msg& a, const Msg& b) { return a.ts < b.ts; });
+            if((int)c->msgs.size() > CONV_KEEP) c->msgs.erase(c->msgs.begin(), c->msgs.begin() + (c->msgs.size() - CONV_KEEP));
+            int64_t last = SecTs(JN(x, "last")); if(last > c->last) c->last = last;
+            if(!c->msgs.empty() && c->msgs.back().ts > c->last) c->last = c->msgs.back().ts;
+        }
+        SLOG("backup from Moquil: %d friend(s) now, %d new message(s)%s", (int)g_Friends.size(), newMsgs, changed ? "" : " (nothing new)");
+        if(changed)
+        {
+            Dirty();
+            if(g_Friends.size() > f0) AddNotif(N_INFO, "", "", "", std::to_string((int)(g_Friends.size() - f0)) + " friend(s) and your chats from Moquil are here now");
+        }
+    }
+    std::string PeopleJson(const std::vector<Person>& v)
+    {
+        std::string o = "[";
+        for(size_t k = 0; k < v.size(); ++k) { if(k) o += ","; o += "{\"id\":" + JQ(v[k].id) + ",\"name\":" + JQ(v[k].name) + ",\"pub\":" + JQ(v[k].pub) + ",\"since\":" + std::to_string((long long)v[k].since) + "}"; }
+        return o + "]";
+    }
+    void Backup()
+    {
+        static const int keep[] = { 40, 15, 3, 0 };
+        std::string j;
+        int64_t at = (int64_t)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(); if(at <= g_BkFrom) at = g_BkFrom + 1;   // wall clock ms, as Moquil
+        for(int kk = 0; kk < 4; ++kk)
+        {
+            j = "{\"v\":1,\"at\":" + std::to_string((long long)at) + ",\"src\":\"MP\",\"friends\":" + PeopleJson(g_Friends) + ",\"inc\":" + PeopleJson(g_In) + ",\"out\":" + PeopleJson(g_Out) + ",\"convs\":[";
+            bool first = true;
+            for(auto& c : g_Convs)
+            {
+                if(!first) j += ","; first = false;
+                j += "{\"key\":" + JQ(c->key) + ",\"kind\":" + std::to_string(c->kind) + ",\"gid\":" + JQ(c->gid) + ",\"title\":" + JQ(c->title) + ",\"owner\":" + JQ(c->owner) + ",\"members\":[";
+                for(size_t m = 0; m < c->members.size(); ++m) { if(m) j += ","; j += "{\"id\":" + JQ(c->members[m].id) + ",\"name\":" + JQ(c->members[m].name) + "}"; }
+                j += "],\"msgs\":[";
+                size_t from = c->msgs.size() > (size_t)keep[kk] ? c->msgs.size() - keep[kk] : 0;
+                for(size_t m = from; m < c->msgs.size(); ++m)
+                {
+                    const Msg& x = c->msgs[m]; if(m > from) j += ",";
+                    j += "{\"fromId\":" + JQ(x.fromId) + ",\"fromName\":" + JQ(x.fromName) + ",\"text\":" + JQ(x.text) + ",\"ts\":" + std::to_string((long long)x.ts) + ",\"mine\":" + (x.mine ? "true" : "false") + "}";
+                }
+                j += "],\"unread\":0,\"last\":" + std::to_string((long long)c->last) + "}";
+            }
+            j += "]" + g_BkExtra + "}";
+            if(j.size() < 40000) break;
+        }
+        std::string sealed; if(!Seal(g_PubHex, j, sealed)) return;
+        Pub("s/" + g_Me, MakeEnv("bk", g_Me, sealed), true);
+        g_BkMine = at; g_BkFrom = std::max(g_BkFrom, at);
+        SLOG("backup for Moquil written (%d bytes)", (int)j.size());
+    }
+
     // ---- save / load (tab separated, one record per line) ----
     std::string T(const std::string& s) { std::string o = s; for(char& c : o) if(c == '\t' || c == '\n' || c == '\r') c = ' '; return o; }
     void Save()
@@ -644,6 +854,12 @@ namespace
             if(p.size() == 3 && p[0] == "m" && p[1] == g_Me) Pub(t, "", true);   // junk in our mailbox: clear it
             return;
         }
+        if(p.size() == 2 && p[0] == "s" && p[1] == g_Me && e.kind == "bk" && e.from == g_Me)
+        {   // 4.13.61: the friends / chats backup (Moquil's or ours)
+            if(e.pub != g_PubHex) return;
+            std::string j; if(Unseal(e.pub, e.body, j)) OnBackup(j);
+            return;
+        }
         if(p.size() == 2 && p[0] == "u" && e.kind == "prof" && e.from == p[1])
         {
             Person& pp = g_People[e.from]; pp.id = e.from; pp.name = CleanName(e.body); pp.pub = e.pub; pp.since = e.ts;
@@ -718,6 +934,7 @@ void Social::Init(const char* dataDir)
     Sub("o/+");                // who is online
     Sub("c/+/i");              // communities
     WatchRich(g_Me);           // 4.13: Moquil profiles (yours and your friends')
+    Sub("s/" + g_Me);          // 4.13.61: the friends / chats backup shared with Moquil
     for(auto& f : g_Friends) WatchRich(f.id);
     for(auto& c : g_Coms) if(ComWatched(c.get())) ComSubs(c.get(), true);
     SLOG("social: you are #%s", g_Me.c_str());
@@ -755,6 +972,10 @@ void Social::Tick()
     g_Pending.erase(std::remove_if(g_Pending.begin(), g_Pending.end(), [&](const PendingMail& p) { return p.until < now; }), g_Pending.end());
     if(!g_LinkCode.empty() && now >= g_LinkUntil) ClearLinkCode();
     if(g_bDirty && now - g_SaveAt >= 2) { g_SaveAt = now; Save(); }
+    // 4.13.61: keep the Moquil backup up to date (only when a Moquil uses this ID, and only after the broker had time to send the saved one)
+    if(!Online::SocLinkUp()) g_UpSince = 0; else if(!g_UpSince) g_UpSince = now;
+    if(g_MoqPres.count(g_Me)) g_bBkMoquil = true;
+    if(g_bBkDirtyAny && g_bBkMoquil && g_UpSince && now - g_UpSince >= 20 && now - g_BkAt >= 10) { g_bBkDirtyAny = false; g_BkAt = now; Backup(); }
 }
 
 bool Social::Up() { return g_bInit && Online::SocLinkUp(); }

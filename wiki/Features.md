@@ -12,6 +12,8 @@ Everything below is synced between players:
 - **Vehicles:** model, speed, colours, paintjob, tuning, damage, doors and locks
 - **Shots:** every bullet and rocket
 - **World:** NPC people and traffic, weather and time
+- **Drive-by sync (4.13.61):** lean out of a car window to shoot as a passenger or driver and the others see the real GTA SA drive-by animation aimed where you aim, with your bullets synced. Works on every server.
+- **Moquil chats (4.13.61):** after linking Moquil (Social > Moquil > link code), your Moquil friends and chats show up in the game's Social > Chats and Friends pages, and the other way around.
 - **Call sync (4.13.58):** on a phone call your character takes out the phone and holds it to his ear. Others see the animation and the phone in his hand on every server, and your weapon comes back when the call ends. Mega Vil Futuristic RP has its own RP phone.
 
 You also get name tags with health and armour bars, player blips in each player's color, chat with its own keyboard, voice chat (40 m range) and a kill feed.

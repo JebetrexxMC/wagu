@@ -87,4 +87,5 @@ DEFOPCODE(0860, SET_CHAR_AREA_VISIBLE, ii);
 DEFOPCODE(087E, SET_CHAR_DROPS_WEAPONS_WHEN_DEAD, ib);
 DEFOPCODE(0961, SET_CHAR_KEEP_TASK, ib);
 DEFOPCODE(09E7, IS_PLAYER_CONTROL_ON, i);
-DEFOPCODE(0501, SET_PLAYER_CAN_DO_DRIVE_BY, ib);   // 3.21: safe zones (player 0, bool)
+DEFOPCODE(0501, SET_PLAYER_CAN_DO_DRIVE_BY, ib);
+DEFOPCODE(0713, TASK_DRIVE_BY, iiiffffiii);   // 4.13.61: char, targetChar, targetCar, x y z, abort radius, style, rhs seat, fire rate %   // 3.21: safe zones (player 0, bool)

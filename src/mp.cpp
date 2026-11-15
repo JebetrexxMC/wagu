@@ -1204,7 +1204,7 @@ static void DestroyAvatar(RemotePlayer& p)
     DropLeftCar(p); p.enterT = p.leaveT = 0; p.passEnterT = p.passLeaveT = 0; p.passCar = 0;   // 2.35
     if(p.jetObj) { Game::RemoveJetpack(p.jetObj); p.jetObj = 0; p.jetApplied = false; }   // 2.19.1
     if(p.ped)  { Game::DeleteChar(p.ped); p.ped = 0; }
-    p.rideCar = 0; p.mirror = false; p.gunUp = false; p.phoneProp = false; p.phoneSeen = 0;
+    p.rideCar = 0; p.mirror = false; p.gunUp = false; p.phoneProp = false; p.phoneSeen = 0; p.dbT = 0;
     p.drawValid = false; p.weapon = 0; p.ducking = false; p.deadApplied = false; p.moveState = 0; p.pedSkin = -1;
     p.applied.n = 0; p.lastFrame = 0;   // 2.13
     p.appliedArea = -1; p.vhave.valid = false;   // 2.17
@@ -1737,6 +1737,31 @@ static int MoveStateFromExt(int st, float speed)
 // "raise the gun" blend again, so on other phones both arms / elbows stayed half down. Now the task
 // is long (8 s) and only given again when the aim DIRECTION really changes (> 9 degrees sideways /
 // > 7 up-down) or it is about to run out; between those the body turns to the aim with the heading.
+// 4.13.61 drive-by sync: the sender leans out of the window (X2_AIMING while in a car) -> the avatar
+// runs the game's own drive-by task (CTaskSimpleGangDriveBy, "drivebys" anims: body out of the window,
+// gun at the target, left / right / front / back like in GTA SA). Bullets come from shot sync as before
+// (fire rate 0); senders without shot sync let the task fire itself.
+static void AvatarDriveBy(RemotePlayer& p, const SyncData& s, bool rhs, uint64_t now)
+{
+    const bool want = settings.syncAnims && p.hasX2 && (p.x2flags & X2_AIMING) && (s.flags & SYNC_IN_CAR) &&
+                      !(s.flags & SYNC_DEAD) && p.weapon >= 22 && p.weapon <= 34 && p.ped && Game::IsCharInAnyCar(p.ped);
+    if(!want)
+    {
+        if(p.dbT && now - p.dbSeen > 600) { Game::StopDriveBy(p.ped); p.dbT = 0; }   // short gaps keep the pose
+        return;
+    }
+    p.dbSeen = now;
+    Vec3 at = MP_LoadVec3(s.aim);
+    if(!MP_Finite(at.x) || !MP_Finite(at.y) || !MP_Finite(at.z)) return;
+    float dx = at.x - p.dbAt.x, dy = at.y - p.dbAt.y, dz = at.z - p.dbAt.z;
+    if(!p.dbT || (now - p.dbT > 700 && dx * dx + dy * dy + dz * dz > 6.0f * 6.0f))
+    {
+        const bool bulletSync = now - p.lastShotPkt < 1500 || ((p.x2flags & X2_SHOTSYNC) && Game::ShotSyncAvailable());
+        Game::TaskDriveBy(p.ped, at, rhs, bulletSync ? 0 : 60);
+        p.dbT = now; p.dbAt = at;
+    }
+}
+
 static void AvatarAim(RemotePlayer& p, const Vec3& aim, bool fire, uint64_t now)
 {
     if(!p.gunUp) { Game::ReleaseMirroredAnims(p.ped); p.applied.n = 0; p.gunUp = true; p.lastAim = 0; p.lastShoot = 0; }
@@ -2121,6 +2146,7 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
                 }
             }
             else p.passEnterT = 0;
+            if(!p.passEnterT && Game::IsCharInCar(p.ped, car)) AvatarDriveBy(p, s, p.vehSeat != 1, now);   // 4.13.61: seat 0 / 2 = right side
             p.rideCar = car; p.mirror = false; p.moveState = -1;
             // 2.21: tag on the passenger's own seat, not on the middle of the car (on top of the driver's)
             Vec3 cp;
@@ -2233,6 +2259,7 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
             // turret every frame; colours, paintjob, tuning, health, damage, doors, lock,
             // engine, lights, siren and landing gear when the driver's state changes
             if(p.hasX2 && (p.x2flags & X2_VEHFAST)) Game::ApplyVehFast(p.car, p.vfast);
+            AvatarDriveBy(p, s, false, now);   // 4.13.61: driver drive-by (left / right window)
             if(p.vwant.valid && p.vwantModel == p.carModel && now - p.vApplied > 250)
             {
                 Game::ApplyVehState(p.car, p.vwant, p.vhave);
@@ -3098,6 +3125,18 @@ static void SendLocalSync(int ped, uint64_t now)
             if(dx * dx + dy * dy < 400.0f * 400.0f) { d.aim[0] = ap.x; d.aim[1] = ap.y; d.aim[2] = ap.z; }
         }
         if(aimHeld) e.x2flags |= X2_AIMING;
+    }
+    // 4.13.61 drive-by sync: leaning out of the window (passenger or driver, any server). In a car
+    // X2_AIMING + aim = drive-by pose at that point; older builds ignore X2_AIMING in cars.
+    if((d.flags & SYNC_IN_CAR) && aimWeap && d.weapon <= 34 && (Game::IsDriveByPose(ped) || (d.flags & SYNC_SHOOTING)))
+    {
+        Vec3 ap;
+        if(Game::GetAimPoint(ap))
+        {
+            Vec3 cp = MP_LoadVec3(d.carPos);
+            float dx = ap.x - cp.x, dy = ap.y - cp.y;
+            if(dx * dx + dy * dy < 400.0f * 400.0f) { d.aim[0] = ap.x; d.aim[1] = ap.y; d.aim[2] = ap.z; e.x2flags |= X2_AIMING; }
+        }
     }
     if((d.flags & SYNC_IN_CAR) && (d.flags & SYNC_DRIVER))
     {

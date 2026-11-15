@@ -208,6 +208,8 @@ struct RemotePlayer
     bool      gunUp = false;                // 2.32: aim pose is on (mirrored anims released)
     bool      phoneProp = false;            // 4.13.58 call sync: the cellphone is in this avatar's hand
     uint64_t  phoneSeen = 0;                // last time a phone anim came in (ms)
+    uint64_t  dbT = 0, dbSeen = 0;                     // 4.13.61 drive-by: when the task was (re)issued (0 = off)
+    Vec3      dbAt = { 0, 0, 0 };           //            its target point
     Game::VehState vwant = {}, vhave = {};   // car look: wanted (from the driver) / shown here
     uint16_t  vwantModel = 0;
     uint64_t  vApplied = 0;

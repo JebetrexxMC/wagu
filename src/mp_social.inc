@@ -277,6 +277,7 @@ static void SocPageFriends(float W)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(kVDim));
         ImGui::TextWrapped("No friends yet. Search a player above and tap ADD (+). When they accept, you can chat, make group chats and invite them to your party.");
+        ImGui::TextWrapped("Friends from Moquil? Link Moquil with this game (Social > Moquil > link code). Your Moquil friends and chats then show here too.");
         ImGui::PopStyleColor();
     }
     for(auto& f : fr) SocPersonRow(f, W, 3);
@@ -411,7 +412,7 @@ static void SocPageChats(float W, float H)
         if(convs.empty())
         {
             ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(kVDim));
-            ImGui::TextWrapped("No chats yet. Open Friends and tap Chat on a friend.");
+            ImGui::TextWrapped("No chats yet. Open Friends and tap Chat on a friend. Chats from a linked Moquil show here after a few seconds online.");
             ImGui::PopStyleColor();
         }
         ImDrawList* dl = ImGui::GetWindowDrawList();

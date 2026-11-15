@@ -183,6 +183,9 @@ namespace Game
     void  ReleaseMirroredAnims(int ped);   // 2.19.5: fade the copied full-body anims out (game walk task takes over)
     // 4.13.58: call sync - phone_in / phone_talk / phone_out, the game's phone task, the cellphone in the hand
     bool  IsPhoneAnim(uint32_t hash);
+    bool  IsDriveByPose(int ped);                                   // 4.13.61: leaning out of the window (drive-by anims)
+    void  TaskDriveBy(int ped, const Vec3& at, bool rhs, int fireRate); // 4.13.61: game drive-by task (CTaskSimpleGangDriveBy)
+    void  StopDriveBy(int ped);
     void  TaskUsePhone(int ped, bool on);
     bool  SetPhoneProp(int ped, bool on);     // false = model 330 still streaming (try again)
     void  MirrorPedAnims(int ped, const PedAnim* in, int n, AppliedAnims& state, float dt, float moveSpeed = 0.0f, float stick = -1.0f, int gait = 0);
