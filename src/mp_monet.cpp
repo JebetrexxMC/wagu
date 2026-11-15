@@ -6,6 +6,7 @@
 #include <mod/amlmod.h>
 #include <mod/logger.h>
 #include <mod/config.h>
+#include "game/game.h"
 #include <dlfcn.h>
 #include <errno.h>
 #include <stdio.h>
@@ -21,6 +22,29 @@ extern "C" const unsigned char mp_monetloader_blob_end[];
 namespace MonetEmbed
 {
 static void* s_hLib = nullptr;
+static std::string s_Path;
+
+// 4.13.62: mimgui (lib/mimgui/imgui.lua), lib/imgui.lua, monethook.lua and other mods call ffi.load("monetloader")
+// = dlopen("libmonetloader.so"). MP's built-in copy is libMP_monetloader.so in the game's private folder, which a bare
+// name never finds on Android, so every mimgui mod (HG menu...) died with "undefined symbol: luaJIT_BC_mimgui_cdefs"
+// (a stale dlerror). The built-in copy's own dlopen import now hands those names its own handle.
+static void* (*s_RealDlopen)(const char*, int) = nullptr;
+static bool IsMonetName(const char* name)
+{
+    if(!name) return false;
+    const char* b = strrchr(name, '/'); b = b ? b + 1 : name;
+    return !strcmp(b, "libmonetloader.so") || !strcmp(b, "monetloader") || !strcmp(b, "libmonetloader") ||
+           !strcmp(b, "monetloader.so") || !strcmp(b, "libMP_monetloader.so");
+}
+static void* MlDlopen(const char* name, int flags)
+{
+    if(s_hLib && IsMonetName(name))
+    {
+        void* h = s_RealDlopen ? s_RealDlopen(s_Path.c_str(), RTLD_NOW | RTLD_NOLOAD) : nullptr;   // + one reference, same handle
+        return h ? h : s_hLib;
+    }
+    return s_RealDlopen ? s_RealDlopen(name, flags) : dlopen(name, flags);
+}
 
 static bool SameFile(const char* path, const unsigned char* data, size_t n)
 {
@@ -82,6 +106,13 @@ void Start()
     typedef void (*EntryFn)();
     EntryFn entry = (EntryFn)dlsym(s_hLib, "OnModLoad");
     if(!entry) { logger->Error("MonetLoader: the built-in copy has no OnModLoad"); return; }
+    s_Path = path;
+    {
+        void** slot = Game::FindPltSlot((void*)entry, "dlopen");
+        if(slot && *slot && aml->HookPLT((void*)slot, (void*)&MlDlopen, (void**)&s_RealDlopen))
+            logger->Info("MonetLoader: ffi.load(\"monetloader\") -> the built-in copy (mimgui mods)");
+        else logger->Error("MonetLoader: no dlopen slot - ffi.load(\"monetloader\") may fail in mimgui mods");
+    }
     logger->Info("MonetLoader for MP: starting (built into MP). Scripts: files/TYFMC/MP/moonloader, log: moonloader/moonloader.log");
     entry();
     logger->Info("MonetLoader for MP: started");

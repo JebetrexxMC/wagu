@@ -35,7 +35,7 @@ uint64_t MP_NowMs();   // 3.21 (net/server.cpp)
 DEFOPCODE(023C, LOAD_SPECIAL_CHARACTER, is);
 DEFOPCODE(023D, HAS_SPECIAL_CHARACTER_LOADED, i);
 DEFOPCODE(0665, GET_CHAR_MODEL, iv);
-DEFOPCODE(0652, GET_FLOAT_STAT, iv);
+DEFOPCODE(0653, GET_FLOAT_STAT, iv);   // 4.13.62: was 0652 GET_INT_STAT -> fat / muscle (float stats) read as 0
 
 struct SpecialChar { int skin; const char* name; const char* label; };
 static const SpecialChar kSpecials[] =

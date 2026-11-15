@@ -53,7 +53,8 @@ DEFOPCODE(0431, IS_CAR_PASSENGER_SEAT_FREE, ii);
 DEFOPCODE(0430, WARP_CHAR_INTO_CAR_AS_PASSENGER, iii);
 DEFOPCODE(05CA, TASK_ENTER_CAR_AS_PASSENGER, iiii);
 DEFOPCODE(05CB, TASK_ENTER_CAR_AS_DRIVER, iii);   // 2.35
-DEFOPCODE(0622, TASK_LEAVE_CAR, ii);              // 2.35
+DEFOPCODE(0622, TASK_LEAVE_CAR_IMMEDIATELY, ii);  // 2.35 (4.13.62: was used for every exit = jump out)
+DEFOPCODE(05CD, TASK_LEAVE_CAR, ii);              // 4.13.62: the normal exit (open the door, climb out, shut it)
 DEFOPCODE(09DE, IS_CHAR_GETTING_IN_TO_A_CAR, i);
 DEFOPCODE(0811, GET_CAR_CHAR_IS_USING, iv);
 DEFOPCODE(00DB, IS_CHAR_IN_CAR, ii);
@@ -836,7 +837,15 @@ int  Game::FreePassengerSeat(int car, int prefer)
 }
 void Game::WarpIntoCarAsPassenger(int ped, int car, int seat) { if(ped > 0 && car > 0 && seat >= 0) CALLSCM(WARP_CHAR_INTO_CAR_AS_PASSENGER, ped, car, seat); }
 void Game::TaskEnterCarAsDriver(int ped, int car, int ms) { if(ped > 0 && car > 0) CALLSCM(TASK_ENTER_CAR_AS_DRIVER, ped, car, ms); }
-void Game::TaskLeaveCar(int ped, int car) { if(ped > 0 && car > 0) CALLSCM(TASK_LEAVE_CAR, ped, car); }
+void Game::TaskLeaveCar(int ped, int car)
+{
+    if(ped <= 0 || car <= 0) return;
+    // 4.13.62 (Sanny Builder sa_mobile): 0622 is TASK_LEAVE_CAR_IMMEDIATELY = jump out of a moving car; 05CD is the
+    // real exit with the door anims. Jump out only when the car really moves.
+    Vec3 v = { 0, 0, 0 };
+    const bool fast = Game::GetMoveSpeed(car, true, v) && v.x * v.x + v.y * v.y > 4.0f * 4.0f;
+    if(fast) CALLSCM(TASK_LEAVE_CAR_IMMEDIATELY, ped, car); else CALLSCM(TASK_LEAVE_CAR, ped, car);
+}
 void Game::TaskEnterCarAsPassenger(int ped, int car, int seat) { if(ped > 0 && car > 0 && seat >= 0) CALLSCM(TASK_ENTER_CAR_AS_PASSENGER, ped, car, 8000, seat); }
 bool Game::IsCharGettingInToACar(int ped) { return ped > 0 && CALLSCM(IS_CHAR_GETTING_IN_TO_A_CAR, ped) != 0; }
 int  Game::GetCarCharIsUsing(int ped) { if(ped <= 0) return 0; uint32_t c = 0; CALLSCM(GET_CAR_CHAR_IS_USING, ped, &c); return (int)c; }
