@@ -18,9 +18,18 @@
 -- The sound gets quieter as you walk away and stops after StopDistance metres.
 script_name('TV Player')
 script_author('ThirtyFoxMCx00E1 (MP port), tvplayer mod')
-script_version('1.8.0-mp')
+script_version('1.8.1-mp')
 
-local DIR = getWorkingDirectory() .. '/tvplayer'
+-- 1.8.1 (MP 4.13.56): the script lives in moonloader/mods/ now, its files in mods/tvplayer/. An old copy in
+-- moonloader/tvplayer/ still works (used when mods/tvplayer/ isn't there).
+local DIR
+do
+  local okd, me = pcall(thisScript)
+  local here = (okd and me and me.directory) or getWorkingDirectory()
+  DIR = here .. '/tvplayer'
+  local f = io.open(DIR .. '/screens.lua', 'r')
+  if f then f:close() else DIR = getWorkingDirectory() .. '/tvplayer' end
+end
 local cfg = { Volume = 80, PromptDistance = 2.5, StopDistance = 20, FullVolumeDistance = 4, SeekSeconds = 10,
   VolumeStep = 10, Loop = 0, AutoNext = 1, Stretch = 0, Brightness = 100, DepthTest = 1, DepthOffset = 0.01, OsdSeconds = 4, Debug = 0,
   Fps = 30, Render3D = 1, Render3DMethod = 1, Preview = 0, Surface = 1 }

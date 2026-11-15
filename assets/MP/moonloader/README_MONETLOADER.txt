@@ -7,6 +7,19 @@ Where things go
   Libraries:  .../files/TYFMC/MP/moonloader/lib/
   Configs:    .../files/TYFMC/MP/moonloader/config/
   Log:        .../files/TYFMC/MP/moonloader/moonloader.log
+  Mods:       .../files/TYFMC/MP/moonloader/mods/*.lua (MP 4.13.56+, started by mods_loader.lua)
+
+The mods folder (MP 4.13.56)
+  moonloader/mods_loader.lua starts every .lua file directly in moonloader/mods/. A mod keeps its files in its
+  own folder next to it (that folder's .lua files are NOT started - they are the mod's data):
+    mods/tvplayer.lua   + mods/tvplayer/   (screens.lua, config/tvplayer.ini, videos/)
+    mods/hitmarker.lua  + mods/hitmarker/  (hitmarker.png, hitmarker_head.png, *.mp3)
+  An old tvplayer.lua / hitmarker.lua left in moonloader/ is stopped and renamed to .lua.old (no double mod).
+  Old data folders (moonloader/tvplayer/, moonloader/resources/hitmarker/) still work if mods/ has none.
+  Hitmarker 1.1-mp: hits on other players and street NPCs show now. MP sends a hit and puts the avatar's
+  health back in the same game tick, so the old health check never saw it; MP now queues each hit for scripts:
+    int MP_PopHit(int* ped, int* target, float* amount, int* weapon, int* flags)   (libMP32.so / libMP64.so, ffi)
+    flags: 1 kill, 2 instant kill (headshot / explosion), 4 target had armour, 8 armour broke, 16 street NPC.
 
 What works on MP servers (MP 4.13.29+)
   samp.events: onServerMessage, onChatMessage, onShowDialog, onPlayerJoin, onPlayerQuit,
@@ -38,10 +51,10 @@ Libraries added from samp-essentials (pure Lua)
   fAwesome5, faIcons, fa-icons, tabler_icons, imspinner, mimgui_hotkeys, mimhotkey, mimtoasts, ADDONS
 
 TV Player (MP 4.13.34, MonetLoader 3.8.2-mp)
-  moonloader/tvplayer.lua               the script
-  moonloader/tvplayer/screens.lua       TV screen shapes (from the tvplayer mod)
-  moonloader/tvplayer/config/tvplayer.ini
-  moonloader/tvplayer/videos/*.mp4      your videos (H.264 mp4 plays on every phone)
+  moonloader/mods/tvplayer.lua          the script (moonloader/tvplayer.lua before 4.13.56)
+  moonloader/mods/tvplayer/screens.lua       TV screen shapes (from the tvplayer mod)
+  moonloader/mods/tvplayer/config/tvplayer.ini
+  moonloader/mods/tvplayer/videos/*.mp4      your videos (H.264 mp4 plays on every phone)
   Walk to a TV, tap [TV]. Buttons: |< << || >> >| V- V+ X. Works offline and on MP servers.
   Lua API added for it: videoOpen / videoPlay / videoPause / videoSeek / videoGetPosition /
   videoGetDuration / videoSetVolume / videoSetLoop / videoGetTexture / videoGetSize / videoIsEnded /
@@ -80,7 +93,7 @@ TV Player (MP 4.13.34, MonetLoader 3.8.2-mp)
   GPU copy of the mesh is freed so the new uv are used, and the screen material is found from the screen's own points:
   setEntityScreenTexture takes an 8th argument, the points of the screen from tvplayer/screens.lua {x,y,z,...}.
   If no material matches, the TV uses the 3D mesh in front of the glass; moonloader.log lists every material.
-  Hitmarker (MP 4.13.44): hitmarker.lua + resources/hitmarker/ - "Dynamic Hitmarker" by fausto200
+  Hitmarker (MP 4.13.44): mods/hitmarker.lua + mods/hitmarker/ (resources/hitmarker/ before 4.13.56) - "Dynamic Hitmarker" by fausto200
   (https://ko-fi.com/fausto200), ported from PC MoonLoader. White cross on a hit, gold + skull on a
   headshot, red on a kill, blue + broken shield when armour breaks, damage numbers, xN combo and sounds.
   The PC package's MoonLoader.asi, bass.dll, lua51.dll and lib/*.dll are Windows files: not needed here.

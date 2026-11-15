@@ -1805,6 +1805,55 @@ static void PlayHitSound()
     Sound::PlayHit(snd, 1.0f);
 }
 
+// ---- 4.13.56: hit events for MonetLoader scripts (hitmarker.lua) ------------------------------------------------
+// MP reads "damaged by me" on another player's avatar (or a street NPC copy) in the same game tick, sends the hit,
+// clears the flag and puts the avatar's health back to 1000 - before any Lua script runs. So a script that polls
+// getCharHealth / hasCharBeenDamagedByChar never saw a hit on MP. MP queues every hit it sends; scripts read them
+// through ffi with MP_PopHit (libMP32.so / libMP64.so).
+enum { HITF_KILL = 1, HITF_INSTANT = 2, HITF_ARMOUR = 4, HITF_ARMOUR_BROKE = 8, HITF_NPC = 16 };
+struct HitEv { int ped; int target; float amount; int weapon; int flags; };
+static std::mutex s_HitMx;
+static HitEv s_HitQ[32];
+static int   s_nHitHead = 0, s_nHitCount = 0;
+static void HitEvPush(int ped, int target, float amount, int weapon, int flags)
+{
+    std::lock_guard<std::mutex> lk(s_HitMx);
+    if(s_nHitCount == 32) { s_nHitHead = (s_nHitHead + 1) % 32; --s_nHitCount; }   // oldest one goes
+    s_HitQ[(s_nHitHead + s_nHitCount) % 32] = { ped, target, amount, weapon, flags };
+    ++s_nHitCount;
+}
+static bool HitEvPop(HitEv& e)
+{
+    std::lock_guard<std::mutex> lk(s_HitMx);
+    if(!s_nHitCount) return false;
+    e = s_HitQ[s_nHitHead]; s_nHitHead = (s_nHitHead + 1) % 32; --s_nHitCount;
+    return true;
+}
+static void HitEvPlayer(int ped, int target, float amount, int weapon)
+{
+    int flags = 0; float real = amount;
+    if(target >= 0 && target < MP_MAX_PLAYERS)
+    {
+        const RemotePlayer& t = players[target];
+        const float hp = (float)t.sync.health, ar = (float)t.sync.armour;
+        if(amount >= 999.5f) { flags |= HITF_INSTANT; real = hp + ar; }   // headshot / explosion: the rest of the health
+        if(ar > 0.0f) { flags |= HITF_ARMOUR; if(real >= ar) flags |= HITF_ARMOUR_BROKE; }
+        if(real >= hp + ar - 0.5f) flags |= HITF_KILL;
+    }
+    HitEvPush(ped, target, real, weapon, flags);
+}
+extern "C" __attribute__((visibility("default"))) int MP_PopHit(int* ped, int* target, float* amount, int* weapon, int* flags)
+{
+    HitEv e;
+    if(!HitEvPop(e)) return 0;
+    if(ped) *ped = e.ped;
+    if(target) *target = e.target;
+    if(amount) *amount = e.amount;
+    if(weapon) *weapon = e.weapon;
+    if(flags) *flags = e.flags;
+    return 1;
+}
+
 static void PredictKill(int target, float amount, uint8_t weapon)
 {
     if(target < 0 || target >= MP_MAX_PLAYERS || myId >= MP_MAX_PLAYERS) return;
@@ -1923,7 +1972,7 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
         {
             PktDamage d; d.type = PKT_DAMAGE; d.from = myId; d.target = (uint8_t)id;
             d.weapon = (uint8_t)Game::GetCharWeapon(localPed); d.amount = 1000.0f;
-            if(!SafeBlocksHit(id) && RamDamage(localPed, p, d)) { client.Send(&d, sizeof(d)); PredictKill(id, d.amount, d.weapon); PlayHitSound(); DmgIndAdd(id, d.amount, d.weapon); }   // 3.21: safe zones
+            if(!SafeBlocksHit(id) && RamDamage(localPed, p, d)) { client.Send(&d, sizeof(d)); HitEvPlayer(p.ped, id, d.amount, d.weapon); PredictKill(id, d.amount, d.weapon); PlayHitSound(); DmgIndAdd(id, d.amount, d.weapon); }   // 3.21: safe zones
         }
         DestroyAvatar(p);
     }
@@ -1981,7 +2030,7 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
             {
                 PktDamage d; d.type = PKT_DAMAGE; d.from = myId; d.target = (uint8_t)id;
                 d.weapon = (uint8_t)Game::GetCharWeapon(localPed); d.amount = dmg;
-                if(!SafeBlocksHit(id) && RamDamage(localPed, p, d)) { client.Send(&d, sizeof(d)); PredictKill(id, d.amount, d.weapon); PlayHitSound(); DmgIndAdd(id, d.amount, d.weapon); }   // 3.21: safe zones
+                if(!SafeBlocksHit(id) && RamDamage(localPed, p, d)) { client.Send(&d, sizeof(d)); HitEvPlayer(p.ped, id, d.amount, d.weapon); PredictKill(id, d.amount, d.weapon); PlayHitSound(); DmgIndAdd(id, d.amount, d.weapon); }   // 3.21: safe zones
             }
             else PlayHitSound();   // 3.00: a punch that landed but took (almost) no HP still sounds like a hit
             if(instantKill)
@@ -4188,7 +4237,7 @@ static void NpcUpdateCopies(int lp, uint64_t now)
         int hp = Game::GetCharHealth(c.ped);
         if(hp < 998)
         {
-            if(Game::NpcDamagedByMe(c.ped, false, lp, myCar)) NpcSendHit(c.owner, 0, c.uid, 1000 - hp);
+            if(Game::NpcDamagedByMe(c.ped, false, lp, myCar)) { NpcSendHit(c.owner, 0, c.uid, 1000 - hp); HitEvPush(c.ped, -1, (float)(1000 - hp), Game::GetCharWeapon(lp), HITF_NPC | (hp <= 0 ? HITF_INSTANT | HITF_KILL : 0)); }   // 4.13.56
             Game::SetCharHealth(c.ped, 1000);
         }
         if(c.weapon != c.weaponApplied) { if(c.weapon > 0 && c.weapon < 47 && !Game::GiveAndSelectWeapon(c.ped, c.weapon)) {} else c.weaponApplied = c.weapon; }

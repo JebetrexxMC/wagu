@@ -1,6 +1,6 @@
 script_name("Dynamic Hitmarker Dual Asset")
 script_author("fausto200")
-script_version("1.0-mp")
+script_version("1.1-mp")
 script_description("Dynamic hitmarker by fausto200 (https://ko-fi.com/fausto200), ported to MonetLoader for MP (Android) by ThirtyFoxMC")
 
 -- Port notes (1.0-mp, MP 4.13.44):
@@ -13,7 +13,11 @@ script_description("Dynamic hitmarker by fausto200 (https://ko-fi.com/fausto200)
 --    default 3rd person spot (0.53, 0.40), or the screen centre with a sniper, rocket launcher or camera.
 --  * getBonePosition is CPed::GetBonePosition from libGTASA through ffi (fallback: ped position + 0.55 m).
 --  * Times use the game timer (os.clock is CPU time on Android). Paths use "/".
---  * Files: moonloader/hitmarker.lua and moonloader/resources/hitmarker/ (png + mp3).
+--  * Files: moonloader/mods/hitmarker.lua and moonloader/mods/hitmarker/ (png + mp3). The old place
+--    (moonloader/resources/hitmarker/) still works.
+--  * 1.1-mp (MP 4.13.56): hits on other players and street NPCs now show. MP reads the hit, sends it to the server
+--    and puts the avatar's health back in the same game tick, so the health polling below never saw anything on a
+--    server. MP now queues every hit it sends and this script reads them with MP_PopHit (libMP32/64.so, ffi).
 
 -- ==================== CONFIGURACION ====================
 local TAMANO_X          = 24     -- tamano del aspa en pixeles a 1080p (se escala con la resolucion)
@@ -132,6 +136,8 @@ end
 local function findResourceFile(filenames)
     -- Primero la carpeta propia del mod (resource/hitmarker), luego las generales como respaldo
     local folders = {
+        "/mods/hitmarker/",
+        "/hitmarker/",
         "/resources/hitmarker/",
         "/resource/hitmarker/",
         "/resources/",
@@ -139,6 +145,13 @@ local function findResourceFile(filenames)
         "/",
     }
     local base = getWorkingDirectory()
+    local okd, me = pcall(thisScript)   -- 1.1: next to the script first (moonloader/mods/hitmarker/)
+    if okd and me and me.directory then
+        for _, name in ipairs(filenames) do
+            local fullPath = me.directory .. "/hitmarker/" .. name
+            if doesFileExist(fullPath) then return fullPath end
+        end
+    end
     for _, folder in ipairs(folders) do
         for _, name in ipairs(filenames) do
             local fullPath = base .. folder .. name
@@ -538,11 +551,85 @@ local function impactoEnCabeza(ped, previa)
     return pasa
 end
 
+-- ==================== MP: HITS ON PLAYERS / NPCS ====================
+-- MP_PopHit(ped, target, amount, weapon, flags): 1 while there are hits. flags: 1 kill, 2 instant kill (headshot /
+-- explosion), 4 the target had armour, 8 the armour broke, 16 street NPC.
+local mpPopHit
+do
+    local okf, ffi = pcall(require, "ffi")
+    if okf and ffi then
+        pcall(ffi.cdef, "int MP_PopHit(int* ped, int* target, float* amount, int* weapon, int* flags);")
+        local so = ffi.abi("64bit") and "libMP64.so" or "libMP32.so"
+        local names = { so:sub(4, -4), so }
+        local maps = io.open("/proc/self/maps", "r")
+        if maps then
+            for l in maps:lines() do local p = l:match("(/%S*/" .. so:gsub("%.", "%%.") .. ")$") if p then names[#names + 1] = p break end end
+            maps:close()
+        end
+        for _, n in ipairs(names) do
+            local okl, lib = pcall(ffi.load, n)
+            if okl and lib then
+                local oks = pcall(function() return lib.MP_PopHit end)
+                if oks then
+                    local a, b, c, d, e = ffi.new("int[1]"), ffi.new("int[1]"), ffi.new("float[1]"), ffi.new("int[1]"), ffi.new("int[1]")
+                    mpPopHit = function()
+                        if lib.MP_PopHit(a, b, c, d, e) ~= 0 then return a[0], b[0], c[0], d[0], e[0] end
+                        return nil
+                    end
+                    break
+                end
+            end
+        end
+    end
+end
+
+local function mostrarImpacto(ahora, isDead, head, chaleco, rotura, dano)
+    if (ahora - ultimoImpacto) < COMBO_VENTANA then evCombo = evCombo + 1 else evCombo = 1 end
+    ultimoImpacto = ahora
+    evInicio = ahora
+    evMuerte = isDead
+    evHead = head
+    evChaleco = chaleco
+    evRotura = rotura
+    evDano = math.max(0, math.floor(dano + 0.5))
+    if SONIDOS_ACTIVOS and (ahora - ultimoSonido) >= INTERVALO_SONIDO then
+        ultimoSonido = ahora
+        if head then
+            reproducir(sndHead, VOL_HEADSHOT)
+        elseif rotura then
+            reproducir(sndArmor, VOL_CHALECO)
+        else
+            reproducir(sndBody, VOL_CUERPO)
+        end
+    end
+end
+
+local function hasFlag(f, m) return math.floor(f / m) % 2 == 1 end
+
+local function leerImpactosMP(ahora)
+    if not mpPopHit then return end
+    for _ = 1, 32 do
+        local ped, target, dano, arma, flags = mpPopHit()
+        if not ped then break end
+        local kill = hasFlag(flags, 1)
+        local instant = hasFlag(flags, 2)
+        local bala = (arma >= 22 and arma <= 34) or arma == 38
+        local head = false
+        if bala then
+            local okH, h = pcall(impactoEnCabeza, ped, cabezaCache[ped])
+            head = (okH and h) or (instant and not (arma == 16 or arma == 35 or arma == 36 or arma == 39))
+        end
+        local chaleco = DETECTAR_CHALECO and hasFlag(flags, 4) and not head
+        local rotura = chaleco and hasFlag(flags, 8)
+        mostrarImpacto(ahora, kill, head, chaleco, rotura, dano)
+    end
+end
+
 function main()
     while not isPlayerPlaying(playerHandle) do wait(100) end
 
     loadTextures()
-    print(string.format('[Hitmarker] 1.0-mp ready (textures: %s / %s, bones: %s)', tostring(texNormal ~= nil), tostring(texHeadshot ~= nil), tostring(boneFn ~= nil)))
+    print(string.format('[Hitmarker] 1.1-mp ready (textures: %s / %s, bones: %s, MP hits: %s)', tostring(texNormal ~= nil), tostring(texHeadshot ~= nil), tostring(boneFn ~= nil), tostring(mpPopHit ~= nil)))
 
     if SONIDOS_ACTIVOS then
         sndHead = cargarSonido(SONIDO_HEADSHOT)
@@ -553,6 +640,7 @@ function main()
     while true do
         wait(0)
         local ahora = now()
+        leerImpactosMP(ahora)
         drawFrame(ahora)
 
         if isCharShooting(playerPed) then ultimoDisparo = ahora end
@@ -603,36 +691,15 @@ function main()
                             headshotDetected = isCharPlayingAnim(ped, "KO_shot_face")
                         end
 
-                        -- Combo: impactos seguidos dentro de la ventana
-                        if (ahora - ultimoImpacto) < COMBO_VENTANA then evCombo = evCombo + 1 else evCombo = 1 end
-                        ultimoImpacto = ahora
-
                         -- Chaleco: la cabeza lo ignora; si no, azul mientras absorbe y escudo roto al llegar a 0
                         local chaleco, rotura = false, false
                         if armorDrop and not headshotDetected then
                             chaleco = true
                             rotura = lastArmor > 0 and currentArmor <= 0
                         end
-
-                        evInicio = ahora
-                        evMuerte = isDead
-                        evHead = headshotDetected
-                        evChaleco = chaleco
-                        evRotura = rotura
                         local perdidaVida = math.max(0, lastHealth - math.max(currentHealth, 0))
                         local perdidaChaleco = armorDrop and (lastArmor - currentArmor) or 0
-                        evDano = math.max(0, math.floor(perdidaVida + perdidaChaleco + 0.5))
-
-                        if SONIDOS_ACTIVOS and (ahora - ultimoSonido) >= INTERVALO_SONIDO then
-                            ultimoSonido = ahora
-                            if headshotDetected then
-                                reproducir(sndHead, VOL_HEADSHOT)
-                            elseif rotura then
-                                reproducir(sndArmor, VOL_CHALECO)
-                            else
-                                reproducir(sndBody, VOL_CUERPO)
-                            end
-                        end
+                        mostrarImpacto(ahora, isDead, headshotDetected, chaleco, rotura, perdidaVida + perdidaChaleco)
                     end
                 end
 

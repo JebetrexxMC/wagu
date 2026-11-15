@@ -765,9 +765,14 @@ static bool GuiInit(float sw, float sh)
     return true;
 }
 
+// 4.13.56: the ImGui overlay never showed on Vice City phones (4.13.54 / 4.13.55), so it's off and Vice City uses the
+// CFont text buttons + text menus again ([ Chat ] [ Players ] [ MP ] [ Class ]). Set to true to try ImGui again.
+static constexpr bool kVcImGui = false;
+
 // one ImGui frame, from CHud::Draw. false = no ImGui (the CFont buttons are drawn instead)
 static bool GuiFrame(float sw, float sh, bool online)
 {
+    if(!kVcImGui) { s_bGuiOk = false; return false; }
     if(!s_bGuiTried) s_bGuiOk = GuiInit(sw, sh);
     if(!s_bGuiOk) return false;
     ImGuiIO& io = ImGui::GetIO();
