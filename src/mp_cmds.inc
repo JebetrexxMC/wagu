@@ -419,7 +419,7 @@ static void UpdateTagOcclusion(int id, uint64_t now)
     p.losAt = now;
     Vec3 cp, cl;
     Vec3 from = Game::GetCameraPos(cp, cl) ? cp : myDrawPos;
-    p.tagBlocked = !Game::LineOfSightClear(from, p.drawPos) || CgMasked(id);   // 4.09: CGRP /amask
+    p.tagBlocked = !Game::LineOfSightClear(from, p.drawPos) || CgMasked(id) || SampSrvTagHidden(id);   // 4.09: CGRP /amask, 4.13.53: SA-MP ShowNameTags
 }
 
 // ---- carjacking players ------------------------------------------------------------------

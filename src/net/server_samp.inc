@@ -62,8 +62,13 @@ struct SampPl
     struct Spawn { int team = 255, skin = 0; float x = 0, y = 0, z = 3, a = 0; int w[3] = {0}, am[3] = {0}; bool set = false; } spawn;
     uint64_t lastUpdate = 0, spawnAt = 0;
     std::vector<std::array<float, 5>> removed;   // RemoveBuildingForPlayer (model, x, y, z, r)
+    int menu = -1; std::vector<int> menuRows;     // 4.13.53: the menu shown (as a list dialog)
+    float vel[3] = {0}, lpos[3] = {0}; uint64_t lposAt = 0;
 };
-struct SampVeh { bool used = false; int model = 0; float x = 0, y = 0, z = 0, a = 0; int c1 = -1, c2 = -1, world = 0, interior = 0; float hp = 1000; };
+struct SampVeh { bool used = false; int model = 0; float x = 0, y = 0, z = 0, a = 0; int c1 = -1, c2 = -1, world = 0, interior = 0; float hp = 1000; int par[7] = { -1, -1, -1, -1, -1, -1, -1 }; };
+struct SampZone { bool used = false; float r[4] = {0}; bool allOn = false; uint32_t allCol = 0, flashCol = 0; };   // 4.13.53
+struct SampActor { int model = 0; float p[4] = {0}; bool invul = true; float hp = 100; int world = 0; std::string anim; };
+struct SampMenu { bool used = false; std::string title, head[2]; int cols = 1; std::vector<std::string> items[2]; std::vector<bool> rowOff; bool off = false; };
 struct SampObj { uint32_t row = 0; int model = 0; float p[3] = {0}, r[3] = {0}; int world = -1, interior = -1; };
 struct SampLabel { bool used = false; std::string text; uint32_t color = 0xFFFFFFFF; float p[3] = {0}, dist = 30; int world = -1; };
 
@@ -85,6 +90,10 @@ struct SampState
     std::vector<SampVeh> veh = std::vector<SampVeh>(2001);
     std::map<int, SampObj> obj; int nextObj = 1;
     std::vector<SampLabel> labels = std::vector<SampLabel>(1025);
+    std::vector<SampZone> zones = std::vector<SampZone>(1024);   // 4.13.53
+    std::map<int, SampActor> actors;
+    std::vector<SampMenu> menus = std::vector<SampMenu>(128);
+    bool tags = true; float tagDist = 70.0f;
     std::map<std::string, int> unknown;                  // missing native -> calls
     std::map<std::string, std::string> pcAlias;          // Pawn.CMD alias -> command
     std::map<std::string, int> pcFlags;
@@ -622,7 +631,6 @@ N(InterpolateCameraPos) { if(!PlOk(params[1])) return 0; float f[4] = { PF(param
 N(InterpolateCameraLookAt) { if(!PlOk(params[1])) return 0; float f[4] = { PF(params, 5), PF(params, 6), PF(params, 7) }; S_->SampOp((int)params[1], SPO_CAMERA, 2, 0, 0, f); return 1; }
 N(GetPlayerCameraPos) { if(!PlOk(params[1])) return 0; float p[3]; S_->SampGetPos((int)params[1], p); SetRefF(amx, params[2], p[0]); SetRefF(amx, params[3], p[1]); SetRefF(amx, params[4], p[2] + 1.0f); return 1; }
 N(GetPlayerCameraFrontVector) { if(!PlOk(params[1])) return 0; float a = g_SampPl[params[1]].a * 0.0174533f; SetRefF(amx, params[2], -sinf(a)); SetRefF(amx, params[3], cosf(a)); SetRefF(amx, params[4], 0); return 1; }
-N(GetPlayerVelocity) { if(!PlOk(params[1])) return 0; SetRefF(amx, params[2], 0); SetRefF(amx, params[3], 0); SetRefF(amx, params[4], 0); return 1; }
 N(GetPlayerKeys) { if(!PlOk(params[1])) return 0; SetRef(amx, params[2], g_SampPl[params[1]].keys); SetRef(amx, params[3], 0); SetRef(amx, params[4], 0); return 1; }
 N(IsPlayerInAnyVehicle) { return PlOk(params[1]) && (g_SampPl[params[1]].state == 2 || g_SampPl[params[1]].state == 3); }
 N(GetPlayerVehicleID) { return PlOk(params[1]) ? g_SampPl[params[1]].vehicle : 0; }
@@ -636,7 +644,6 @@ N(PutPlayerInVehicle)
     S_->SampTele((int)params[1], p, v.a); S_->SampAct((int)params[1], CGA_SPAWNCAR, 0, 0, v.model);
     g_SampPl[params[1]].vehicle = (int)params[2]; return 1;
 }
-N(SetPlayerChatBubble) { UNUSED_AMX; return 1; }
 N(SetPlayerAttachedObject)
 {
     if(!PlOk(params[1])) return 0; float f[4] = { NArgs(params) >= 5 ? PF(params, 5) : 0, NArgs(params) >= 6 ? PF(params, 6) : 0, NArgs(params) >= 7 ? PF(params, 7) : 0, 0 };
@@ -672,12 +679,9 @@ N(SetVehiclePos) { SampVeh* v = VH(params[1]); if(!v) return 0; v->x = PF(params
 N(GetVehicleZAngle) { SampVeh* v = VH(params[1]); if(!v) return 0; SetRefF(amx, params[2], v->a); return 1; }
 N(SetVehicleZAngle) { SampVeh* v = VH(params[1]); if(!v) return 0; v->a = PF(params, 2); return 1; }
 N(GetVehicleHealth) { SampVeh* v = VH(params[1]); if(!v) return 0; SetRefF(amx, params[2], v->hp); return 1; }
-N(SetVehicleHealth) { SampVeh* v = VH(params[1]); if(!v) return 0; v->hp = PF(params, 2); return 1; }
 N(GetVehicleVirtualWorld) { SampVeh* v = VH(params[1]); return v ? v->world : 0; }
 N(SetVehicleVirtualWorld) { SampVeh* v = VH(params[1]); if(!v) return 0; v->world = params[2]; return 1; }
 N(GetVehicleDistanceFromPoint) { SampVeh* v = VH(params[1]); if(!v) return RF(0); float dx = v->x - PF(params, 2), dy = v->y - PF(params, 3), dz = v->z - PF(params, 4); return RF(sqrtf(dx * dx + dy * dy + dz * dz)); }
-N(GetVehicleParamsEx) { for(int i = 2; i <= NArgs(params); ++i) SetRef(amx, params[i], 0); return VH(params[1]) != nullptr; }
-N(GetVehicleVelocity) { for(int i = 2; i <= 4; ++i) SetRefF(amx, params[i], 0); return VH(params[1]) != nullptr; }
 
 // ---- objects -> MP dynamic mapping (the PKT_DZ_MAP rows every phone streams) ----------------------
 N(CreateObject) { return S_->SampObjNew((int)params[1], PF(params, 2), PF(params, 3), PF(params, 4), PF(params, 5), PF(params, 6), PF(params, 7), -1, -1); }
@@ -847,6 +851,7 @@ N(PC_RegAlias)
 N(PC_SetFlags) { g_Samp->pcFlags[Lower(Str(amx, params[1]))] = params[2]; return 1; }
 N(PC_GetFlags) { auto it = g_Samp->pcFlags.find(Lower(Str(amx, params[1]))); return it == g_Samp->pcFlags.end() ? 0 : it->second; }
 N(PC_EmulateCommand) { if(!PlOk(params[1])) return 0; S_->SampCommand((int)params[1], Str(amx, params[2]).c_str()); return 1; }
+#include "server_samp_more.inc"   // 4.13.53
 N(PC_CommandExists) { std::string c = Lower(Str(amx, params[1])); for(auto& sc : g_Samp->scripts) if(FindPub(sc.get(), ("pc_cmd_" + c).c_str()) >= 0) return 1; return g_Samp->pcAlias.count(c) != 0; }
 
 } // namespace
@@ -892,8 +897,7 @@ static const AMX_NATIVE_INFO g_SampNatives[] =
     R(UpdateDynamic3DTextLabelText), R(DestroyDynamic3DTextLabel), R(IsValidDynamic3DTextLabel), R(CreateDynamicMapIcon),
     RA("CreateDynamicPickup", NewId), RA("CreatePickup", NewId), RA("AddStaticPickup", NewId), RA("CreateDynamicCP", NewId), RA("CreateDynamicRaceCP", NewId),
     RA("CreateDynamicCircle", NewId), RA("CreateDynamicSphere", NewId), RA("CreateDynamicRectangle", NewId), RA("CreateDynamicCube", NewId), RA("CreateDynamicCylinder", NewId),
-    RA("CreateDynamicPolygon", NewId), RA("CreateActor", NewId), RA("CreateDynamicActor", NewId), RA("GangZoneCreate", NewId), RA("CreateMenu", NewId),
-    R(TextDrawCreate), R(CreatePlayerTextDraw), R(TextDrawLetterSize), R(TextDrawTextSize), R(TextDrawAlignment), R(TextDrawColor), R(TextDrawUseBox), R(TextDrawBoxColor),
+    RA("CreateDynamicPolygon", NewId),     R(TextDrawCreate), R(CreatePlayerTextDraw), R(TextDrawLetterSize), R(TextDrawTextSize), R(TextDrawAlignment), R(TextDrawColor), R(TextDrawUseBox), R(TextDrawBoxColor),
     R(TextDrawSetShadow), R(TextDrawSetOutline), R(TextDrawBackgroundColor), R(TextDrawFont), R(TextDrawSetProportional), R(TextDrawSetSelectable), R(TextDrawSetString),
     R(TextDrawSetPreviewModel), R(PlayerTextDrawLetterSize), R(PlayerTextDrawTextSize), R(PlayerTextDrawAlignment), R(PlayerTextDrawColor), R(PlayerTextDrawUseBox),
     R(PlayerTextDrawBoxColor), R(PlayerTextDrawSetShadow), R(PlayerTextDrawSetOutline), R(PlayerTextDrawBackgroundColor), R(PlayerTextDrawFont), R(PlayerTextDrawSetProportional),
@@ -923,33 +927,30 @@ static const AMX_NATIVE_INFO g_SampNatives[] =
     RA("IsValidDynamicMapIcon", Ret1), RA("CountDynamicObjects", CountObjects), RA("AttachObjectToObject", Ret1), RA("AttachDynamicObjectToObject", Ret1), RA("BlockIpAddress", Ret1),
     RA("UnBlockIpAddress", Ret1), RA("EnableTirePopping", Ret1), RA("EnableZoneNames", Ret1), RA("EnableVehicleFriendlyFire", Ret1), RA("NetStats_MessagesRecvPerSecond", Ret0),
     RA("NetStats_GetIpPort", GetPlayerIp), RA("SvGetVersion", Ret0),
+    // 4.13.53
+    R(CreateActor), R(CreateDynamicActor), R(GangZoneCreate), R(CreateMenu), R(SetVehicleParamsEx), R(ChangeVehicleColor), R(RepairVehicle), R(SetVehicleVelocity), R(GangZoneShowForPlayer), R(GangZoneShowForAll), R(GangZoneHideForPlayer), R(GangZoneHideForAll), R(GangZoneFlashForPlayer), R(GangZoneFlashForAll), R(GangZoneStopFlashForPlayer), R(GangZoneStopFlashForAll), R(GangZoneDestroy), R(DestroyActor), R(SetActorPos), R(SetActorFacingAngle), R(ApplyActorAnimation), R(SetActorInvulnerable), R(SetActorVirtualWorld), R(PlayAudioStreamForPlayer), R(StopAudioStreamForPlayer), R(PlayerSpectatePlayer), R(PlayerSpectateVehicle), R(SetPlayerVelocity), R(SetPlayerArmedWeapon), R(SetPlayerAmmo), R(IsValidActor), R(ShowMenuForPlayer), R(HideMenuForPlayer), R(AddMenuItem), R(SetMenuColumnHeader), R(DestroyMenu), R(GetPlayerMenu), R(ShowNameTags), R(SetNameTagDrawDistance), R(ShowPlayerNameTagForPlayer), R(GetActorPos), R(GetActorFacingAngle), R(IsActorInvulnerable), R(SetActorHealth), R(GetActorHealth), R(GetActorVirtualWorld), R(ClearActorAnimations), R(GetActorPoolSize), R(IsValidMenu), R(DisableMenu), R(DisableMenuRow), R(SetVehicleAngularVelocity), RA("IsValidDynamicActor", IsValidActor), RA("DestroyDynamicActor", DestroyActor), RA("SetDynamicActorPos", SetActorPos), RA("GetDynamicActorPos", GetActorPos), RA("SetDynamicActorFacingAngle", SetActorFacingAngle), RA("ApplyDynamicActorAnimation", ApplyActorAnimation), RA("ClearDynamicActorAnimations", ClearActorAnimations), RA("SetDynamicActorInvulnerable", SetActorInvulnerable), RA("SetDynamicActorVirtualWorld", SetActorVirtualWorld),
     R(PC_Init), R(PC_RegAlias), R(PC_SetFlags), R(PC_GetFlags), R(PC_EmulateCommand), R(PC_CommandExists),
     // plugin natives a SA-MP server answers with "ok" (the plugin's work isn't needed on MP)
     RA("Streamer_Update", Ret1), RA("Streamer_UpdateEx", Ret1), RA("Streamer_ToggleIdleUpdate", Ret1), RA("Streamer_SetVisibleItems", Ret1), RA("Streamer_TickRate", Ret1),
     RA("Streamer_SetTickRate", Ret1), RA("Streamer_MaxItems", Ret1), RA("Streamer_SetMaxItems", Ret1), RA("Streamer_ToggleErrorCallback", Ret1),
     RA("SetDynamicObjectMaterial", Ret1), RA("SetDynamicObjectMaterialText", Ret1), RA("SetObjectMaterial", Ret1), RA("SetObjectMaterialText", Ret1),
-    RA("ShowPlayerNameTagForPlayer", Ret1), RA("ShowNameTags", Ret1), RA("ShowPlayerMarkers", Ret1), RA("UsePlayerPedAnims", Ret1), RA("DisableInteriorEnterExits", Ret1),
-    RA("EnableStuntBonusForAll", Ret1), RA("EnableStuntBonusForPlayer", Ret1), RA("SetNameTagDrawDistance", Ret1), RA("LimitGlobalChatRadius", Ret1), RA("LimitPlayerMarkerRadius", Ret1),
+    RA("ShowPlayerMarkers", Ret1), RA("UsePlayerPedAnims", Ret1), RA("DisableInteriorEnterExits", Ret1),
+    RA("EnableStuntBonusForAll", Ret1), RA("EnableStuntBonusForPlayer", Ret1), RA("LimitGlobalChatRadius", Ret1), RA("LimitPlayerMarkerRadius", Ret1),
     RA("ManualVehicleEngineAndLights", Ret1), RA("AllowInteriorWeapons", Ret1), RA("SetGravity", Ret1), RA("AddPlayerClass", Ret0), RA("AddPlayerClassEx", Ret0), RA("SetTeamCount", Ret1),
-    RA("SetVehicleParamsEx", Ret1), RA("SetVehicleParamsForPlayer", Ret1), RA("ChangeVehicleColor", Ret1), RA("ChangeVehiclePaintjob", Ret1), RA("AddVehicleComponent", Ret1),
-    RA("SetVehicleNumberPlate", Ret1), RA("RepairVehicle", Ret1), RA("LinkVehicleToInterior", Ret1), RA("SetVehicleToRespawn", Ret1), RA("SetVehicleVelocity", Ret1),
-    RA("UpdateVehicleDamageStatus", Ret1), RA("GangZoneShowForPlayer", Ret1), RA("GangZoneShowForAll", Ret1), RA("GangZoneHideForPlayer", Ret1), RA("GangZoneHideForAll", Ret1),
-    RA("GangZoneFlashForPlayer", Ret1), RA("GangZoneFlashForAll", Ret1), RA("GangZoneStopFlashForPlayer", Ret1), RA("GangZoneStopFlashForAll", Ret1), RA("GangZoneDestroy", Ret1),
-    RA("DestroyPickup", Ret1), RA("DestroyDynamicPickup", Ret1), RA("DestroyDynamicCP", Ret1), RA("DestroyDynamicRaceCP", Ret1), RA("DestroyDynamicArea", Ret1), RA("DestroyDynamicMapIcon", Ret1),
-    RA("DestroyActor", Ret1), RA("DestroyDynamicActor", Ret1), RA("SetActorPos", Ret1), RA("SetActorFacingAngle", Ret1), RA("ApplyActorAnimation", Ret1), RA("SetActorInvulnerable", Ret1),
-    RA("SetActorVirtualWorld", Ret1), RA("TogglePlayerClock", Ret1), RA("PlayAudioStreamForPlayer", Ret1), RA("StopAudioStreamForPlayer", Ret1), RA("SetPlayerShopName", Ret1),
+    RA("SetVehicleParamsForPlayer", Ret1), RA("ChangeVehiclePaintjob", Ret1), RA("AddVehicleComponent", Ret1),
+    RA("SetVehicleNumberPlate", Ret1), RA("LinkVehicleToInterior", Ret1), RA("SetVehicleToRespawn", Ret1),     RA("UpdateVehicleDamageStatus", Ret1),         RA("DestroyPickup", Ret1), RA("DestroyDynamicPickup", Ret1), RA("DestroyDynamicCP", Ret1), RA("DestroyDynamicRaceCP", Ret1), RA("DestroyDynamicArea", Ret1), RA("DestroyDynamicMapIcon", Ret1),
+    RA("TogglePlayerClock", Ret1), RA("SetPlayerShopName", Ret1),
     RA("AttachObjectToVehicle", Ret1), RA("AttachObjectToPlayer", Ret1), RA("AttachDynamicObjectToVehicle", Ret1), RA("AttachDynamicObjectToPlayer", Ret1), RA("Attach3DTextLabelToPlayer", Ret1),
     RA("Attach3DTextLabelToVehicle", Ret1), RA("EditObject", Ret1), RA("EditDynamicObject", Ret1), RA("EditAttachedObject", Ret1), RA("CancelEdit", Ret1), RA("SelectObject", Ret1),
-    RA("PlayerSpectatePlayer", Ret1), RA("PlayerSpectateVehicle", Ret1), RA("ForceClassSelection", Ret1), RA("AllowAdminTeleport", Ret1), RA("AllowPlayerTeleport", Ret1),
-    RA("SetPlayerVelocity", Ret1), RA("SetPlayerArmedWeapon", Ret1), RA("SetPlayerAmmo", Ret1), RA("TogglePlayerDynamicCP", Ret1), RA("TogglePlayerAllDynamicCPs", Ret1),
+    RA("ForceClassSelection", Ret1), RA("AllowAdminTeleport", Ret1), RA("AllowPlayerTeleport", Ret1),
+    RA("TogglePlayerDynamicCP", Ret1), RA("TogglePlayerAllDynamicCPs", Ret1),
     RA("IsPlayerInDynamicArea", Ret0), RA("IsPlayerInAnyDynamicArea", Ret0), RA("IsPlayerInDynamicCP", Ret0), RA("IsValidDynamicArea", Ret1), RA("IsValidDynamicPickup", Ret1),
-    RA("IsValidDynamicCP", Ret1), RA("IsValidActor", Ret0), RA("IsValidDynamicActor", Ret0), RA("SetPlayerObjectMaterial", Ret1), RA("SetPlayerObjectMaterialText", Ret1),
+    RA("IsValidDynamicCP", Ret1), RA("SetPlayerObjectMaterial", Ret1), RA("SetPlayerObjectMaterialText", Ret1),
     RA("Streamer_SetIntData", Ret1), RA("Streamer_SetFloatData", Ret1), RA("Streamer_SetArrayData", Ret1), RA("Streamer_AppendArrayData", Ret1), RA("Streamer_RemoveArrayData", Ret1),
     RA("Streamer_GetIntData", Ret0), RA("Streamer_GetArrayData", Ret0), RA("Streamer_IsInArrayData", Ret0), RA("Streamer_GetUpperBound", Ret0), RA("Streamer_ToggleItemStatic", Ret1),
     RA("GetPlayerNetworkStats", Ret0), RA("NetStats_PacketLossPercent", RetF0), RA("GetPlayerCameraMode", Ret0), RA("GetPlayerCameraTargetVehicle", RetInvalid),
     RA("GetPlayerCameraTargetPlayer", RetInvalid), RA("GetPlayerCameraTargetObject", RetInvalid), RA("SetDeathDropAmount", Ret1), RA("ConnectNPC", Ret0), RA("SendClientCheck", Ret1),
-    RA("SetPlayerMarkerForPlayer", Ret1), RA("ShowMenuForPlayer", Ret1), RA("HideMenuForPlayer", Ret1), RA("AddMenuItem", Ret0), RA("SetMenuColumnHeader", Ret1), RA("DestroyMenu", Ret1),
-    RA("GetPlayerMenu", RetInvalid), RA("crashdetect_set_error_handler", Ret1), RA("GetAmxBaseAddress", Ret0), RA("sampvoice_init", Ret1),
+    RA("SetPlayerMarkerForPlayer", Ret1),     RA("crashdetect_set_error_handler", Ret1), RA("GetAmxBaseAddress", Ret0), RA("sampvoice_init", Ret1),
 };
 } // namespace
 
@@ -1282,6 +1283,7 @@ void MPServer::SampOnJoin(int slot)
     SampOp(slot, SPO_HELLO, g_Samp->pawnCmd ? 1 : 0, 0, 0, nullptr, g_Samp->modeText.c_str());
     if(!g_Samp->test) DzMapSend(slot);   // the gamemode's objects (+ the server's own mapping)
     for(size_t i = 1; i < g_Samp->labels.size(); ++i) if(g_Samp->labels[i].used) SampLabelSend(slot, (int)i);
+    SampMoreJoin(slot);   // 4.13.53: gang zones, actors, name tags
     // SA-MP order: OnIncomingConnection -> OnPlayerConnect -> class selection (OnPlayerRequestClass)
     CallAll("OnIncomingConnection", { AI(slot), AS(SampIp(slot)), AI(7777) });
     CallAll("OnPlayerConnect", { AI(slot) });
@@ -1348,6 +1350,7 @@ void MPServer::SampOnDialog(int slot, const PktDialogResp& r)
     SampPl& p = g_SampPl[slot];
     if(p.dialog < 0 || p.dialog != r.dialogId) return;   // SA-MP: an answer to a dialog that isn't shown is dropped
     p.dialog = -1;
+    if(MenuOnDialog(slot, r)) return;   // 4.13.53: menus
     char in[65]; MP_CopyStr(in, r.input, sizeof(in));
     CallAll("OnDialogResponse", { AI(slot), AI(r.dialogId), AI(r.response ? 1 : 0), AI(r.listItem), AS(in) }, 1, 0);
     if(!p.spawned && !p.spectating && p.dialog < 0 && !p.spawnAt) {}   // the gamemode spawns them itself
@@ -1359,6 +1362,7 @@ void MPServer::SampOnSync(int slot, const SyncData& d)
     memcpy(p.pos, (d.flags & SYNC_IN_CAR) ? d.carPos : d.pos, sizeof(p.pos));
     p.a = (d.flags & SYNC_IN_CAR) ? d.carHeading : d.heading;
     p.hp = d.health; p.ar = d.armour; p.weapon = d.weapon; p.skin = d.skin;
+    SampMoreSync(p, p.pos);   // 4.13.53: GetPlayerVelocity
     int st = (d.flags & SYNC_DEAD) ? 7 : (d.flags & SYNC_IN_CAR) ? ((d.flags & SYNC_DRIVER) ? 2 : 3) : (p.spawned ? 1 : p.state);
     if(st != p.state)
     {

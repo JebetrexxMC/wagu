@@ -6,6 +6,8 @@
 
 struct SsLabel { Vec3 p; float dist; uint32_t color; std::string text; };
 struct SsAttach { int obj = 0; int model = -1; Vec3 off{ 0, 0, 0 }, rot{ 0, 0, 0 }; uint64_t tryAt = 0; };
+struct SsZone { float r[4] = { 0, 0, 0, 0 }; uint32_t col = 0, flash = 0; };   // 4.13.53: gang zones
+struct SsActor { int model = 0; Vec3 p{ 0, 0, 0 }; float h = 0; bool invul = true; int ped = 0; std::string anim; bool animDone = false; uint64_t tryAt = 0; };
 static struct SampSrvState
 {
     bool on = false, pawnCmd = false;
@@ -18,6 +20,11 @@ static struct SampSrvState
     bool cam = false; Vec3 camPos{ 0, 0, 0 }, camLook{ 0, 0, 0 }; bool haveLook = false;
     bool frozen = false;
     int keys = 0;
+    // 4.13.53
+    std::map<int, SsZone> zones;
+    std::map<int, SsActor> actors;
+    bool audio = false, audioPos = false; Vec3 audioAt{ 0, 0, 0 }; float audioDist = 50.0f;
+    bool tags = true; float tagDist = 0.0f; bool tagOff[MP_MAX_PLAYERS] = {};
 } s_SS;
 
 static bool SampSrvOn() { return s_SS.on && client.GetState() == NET_CONNECTED; }
@@ -35,6 +42,8 @@ static void SampSrvReset()
     for(auto& a : s_SS.att) { if(a.obj > 0) Game::DeleteWorldObject(a.obj); a = SsAttach(); }
     if(s_SS.cam) Game::RestoreCamera();
     if(s_SS.frozen) Game::SetPlayerControl(true);
+    for(auto& kv : s_SS.actors) if(kv.second.ped > 0) Game::DeleteChar(kv.second.ped);
+    if(s_SS.audio) Sound::StreamStop();
     s_SS = SampSrvState();
 }
 
@@ -98,7 +107,144 @@ static void SampSrvOnPacket(const uint8_t* d, int len)
             s_SS.labels[p.val] = l;
             break;
         }
+        // ---- 4.13.53 ----
+        case SPO_BUBBLE:
+            if(p.val < 0 || p.val >= MP_MAX_PLAYERS) break;
+            MP_CopyStr(s_Bubble[p.val].text, p.text, sizeof(s_Bubble[p.val].text));
+            s_Bubble[p.val].until = MP_NowMs() + (uint64_t)std::max(500.0f, std::min(p.f[1], 600000.0f));
+            break;
+        case SPO_ZONE:
+        {
+            const int id = p.a | (p.b << 8); SsZone& z = s_SS.zones[id];
+            memcpy(z.r, p.f, sizeof(z.r));
+            switch(p.text[0])
+            {
+                case 1: z.col = (uint32_t)p.val; break;
+                case 2: z.flash = (uint32_t)p.val; break;
+                case 3: z.flash = 0; break;
+                default: s_SS.zones.erase(id); break;
+            }
+            break;
+        }
+        case SPO_ACTOR:
+        {
+            auto it = s_SS.actors.find(p.val);
+            if(p.a == 0) { if(it != s_SS.actors.end()) { if(it->second.ped > 0) Game::DeleteChar(it->second.ped); s_SS.actors.erase(it); } break; }
+            SsActor& a = s_SS.actors[p.val];
+            if(p.a == 1)
+            {
+                const int model = atoi(p.text);
+                if(a.ped > 0 && model != a.model) { Game::DeleteChar(a.ped); a.ped = 0; }
+                a.model = model; a.p = f; a.h = p.f[3]; a.invul = p.b != 0;
+                if(a.ped > 0) { Game::SetCharPos(a.ped, a.p, 0.0f); Game::SetCharHeading(a.ped, a.h); Game::SetCharProofs(a.ped, a.invul, a.invul, a.invul, a.invul, a.invul); }
+            }
+            else if(p.a == 2) { a.anim = p.text; a.animDone = false; }
+            else { a.anim.clear(); a.animDone = true; if(a.ped > 0) Game::ClearTasksNow(a.ped); }
+            break;
+        }
+        case SPO_AUDIO:
+            if(s_SS.audio) Sound::StreamStop();
+            s_SS.audio = false;
+            if(p.a && p.text[0])
+            {
+                s_SS.audioPos = p.b != 0; s_SS.audioAt = f; s_SS.audioDist = p.f[3] > 1.0f ? p.f[3] : 50.0f;
+                s_SS.audio = Sound::StreamPlayUrl(p.text, s_SS.audioPos ? 0.0f : 1.0f);
+                if(!s_SS.audio) SysMsg(COL_SYSTEM, "Could not play the server's audio stream.");
+            }
+            break;
+        case SPO_VELOCITY:
+        {
+            if(!ped) break;
+            const Vec3 v = { p.f[0] * 50.0f, p.f[1] * 50.0f, p.f[2] * 50.0f };   // SA-MP: metres per 1/50 s
+            if(p.b) { const int car = Game::GetCarCharIsIn(ped); if(car > 0) Game::SetMoveSpeed(car, true, v); }
+            else Game::SetMoveSpeed(ped, false, v);
+            break;
+        }
+        case SPO_WEAPON:
+            if(!ped) break;
+            if(p.a == 0) Game::SetCurrentWeapon(ped, p.val);
+            else Game::SetAmmo(ped, p.b, p.val);
+            break;
+        case SPO_TAGS:
+            if(p.a == 0) { s_SS.tags = p.b != 0; s_SS.tagDist = p.f[0]; }
+            else if(p.val >= 0 && p.val < MP_MAX_PLAYERS) s_SS.tagOff[p.val] = p.b == 0;
+            break;
+        case SPO_VEHPARAMS:
+        {
+            const int car = ped ? Game::GetCarCharIsIn(ped) : 0; if(car <= 0) break;
+            if(p.a) Game::SetCarEngineOn(car, p.a == 2);
+            if(p.b) Game::LockCar(car, p.b == 2);
+            break;
+        }
         default: break;   // SPO_SOUND / SPO_REMOVEBLD: not on MP yet
+    }
+}
+
+// 4.13.53: gang zones of the gamemode on the radar + map (mp_world.inc TurfZoneProvider asks)
+static int SampSrvZones(Game::RadarZone* out, int maxOut)
+{
+    if(!SampSrvOn()) return -1;
+    const bool flash = (MP_NowMs() / 500) % 2 == 0;
+    int n = 0;
+    for(auto& kv : s_SS.zones)
+    {
+        if(n >= maxOut) break;
+        const SsZone& z = kv.second;
+        uint32_t c = (z.flash && flash) ? z.flash : z.col;
+        if(!c) continue;
+        out[n++] = { z.r[0], z.r[1], z.r[2], z.r[3], c };
+    }
+    return n;
+}
+// 4.13.53: ShowNameTags / SetNameTagDrawDistance / ShowPlayerNameTagForPlayer
+static bool SampSrvTagHidden(int id)
+{
+    if(!SampSrvOn() || id < 0 || id >= MP_MAX_PLAYERS) return false;
+    if(!s_SS.tags || s_SS.tagOff[id]) return true;
+    if(s_SS.tagDist > 1.0f && players[id].drawValid && myDrawValid)
+    {
+        const Vec3& a = players[id].drawPos; const float dx = a.x - myDrawPos.x, dy = a.y - myDrawPos.y, dz = a.z - myDrawPos.z;
+        if(dx * dx + dy * dy + dz * dz > s_SS.tagDist * s_SS.tagDist) return true;
+    }
+    return false;
+}
+// 4.13.53: actors (streamed in near me) and the audio stream volume
+static void SampSrvActorsAudio(const Vec3& me, uint64_t now)
+{
+    for(auto& kv : s_SS.actors)
+    {
+        SsActor& a = kv.second;
+        const float dx = a.p.x - me.x, dy = a.p.y - me.y, d2 = dx * dx + dy * dy;
+        if(d2 > 200.0f * 200.0f) { if(a.ped > 0) { Game::DeleteChar(a.ped); a.ped = 0; a.animDone = false; } continue; }
+        if(a.ped <= 0)
+        {
+            if(now < a.tryAt) continue;
+            a.tryAt = now + 500;
+            if(!Game::IsSafePedModel(a.model) || !Game::ModelReady(a.model)) continue;
+            a.ped = Game::CreateNpcPed(a.model, { a.p.x, a.p.y, a.p.z + 1.0f }, a.h);
+            if(a.ped <= 0) { a.ped = 0; continue; }
+            Game::SetCharProofs(a.ped, a.invul, a.invul, a.invul, a.invul, a.invul);
+            Game::FreezeChar(a.ped, true);
+            a.animDone = a.anim.empty();
+        }
+        if(!a.animDone && now >= a.tryAt)
+        {
+            a.tryAt = now + 300;
+            char lib[40] = "", anim[48] = ""; int loop = 0;
+            if(sscanf(a.anim.c_str(), "%39s %47s %d", lib, anim, &loop) < 2) { a.animDone = true; continue; }
+            a.animDone = loop ? Game::PlayAnimLoop(a.ped, anim, lib) : Game::PlayAnimOnce(a.ped, anim, lib);
+        }
+    }
+    if(s_SS.audio)
+    {
+        Sound::StreamUpdate();
+        if(s_SS.audioPos)
+        {
+            const float dx = s_SS.audioAt.x - me.x, dy = s_SS.audioAt.y - me.y, dz = s_SS.audioAt.z - me.z;
+            const float d = sqrtf(dx * dx + dy * dy + dz * dz);
+            Sound::StreamSetVolume(d >= s_SS.audioDist ? 0.0f : 1.0f - d / s_SS.audioDist);
+        }
+        if(Sound::StreamEnded()) s_SS.audio = false;
     }
 }
 
@@ -123,6 +269,7 @@ static void SampSrvProcess(int ped, uint64_t now)
         int o = Game::CreateWorldObject(a.model, me);
         if(o > 0) { a.obj = o; Game::SetObjectCollision(o, false); Game::AttachObjectToCharRot(o, ped, a.off, a.rot); }
     }
+    SampSrvActorsAudio(me, now);   // 4.13.53
     if(!DzOnServer()) DzMapTick(me, now);   // CreateObject / CreateDynamicObject of the gamemode (PKT_DZ_MAP)
     if(s_SS.cam && now % 1000 < 40) Game::SetFixedCamera(s_SS.camPos, s_SS.camLook);
 }

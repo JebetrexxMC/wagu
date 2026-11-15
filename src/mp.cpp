@@ -2510,6 +2510,7 @@ static bool RpIsInfoPed(int h);   // mp_rp_life.inc
 static void ProcessSamp(int ped, uint64_t now);
 static void SampSrvReset(); static void SampSrvRender(ImDrawList* dl); static bool SampSrvCommand(const char* text);   // 4.11: mp_sampsrv.inc
 static void SampSrvOnPacket(const uint8_t* d, int len); static void DzMapTick(const Vec3& me, uint64_t now); static void SampSrvProcess(int ped, uint64_t now);
+static int SampSrvZones(Game::RadarZone* out, int maxOut); static bool SampSrvTagHidden(int id);   // 4.13.53: mp_sampsrv.inc
 class Events : public INetEvents
 {
 public:

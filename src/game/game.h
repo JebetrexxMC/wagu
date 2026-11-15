@@ -211,6 +211,7 @@ namespace Game
     bool  PickupCollected(int pickup);
     void  RemovePickup(int pickup);
     int   GetAmmo(int ped, int weapon);
+    void  SetAmmo(int ped, int weapon, int ammo);   // 4.13.53
     bool  GetWeaponInSlot(int ped, int slot, int& weapon, int& ammo);   // 3.39.1: slot 1..13
     bool  GiveWeaponAmmo(int ped, int weapon, int ammo);             // 3.39.1
     void  SetInterior(int ped, int area);                            // 3.39.1

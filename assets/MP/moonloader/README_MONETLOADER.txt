@@ -91,3 +91,10 @@ TV Player (MP 4.13.34, MonetLoader 3.8.2-mp)
   game's model pipeline in RenderEffects with the scene's depth buffer, so CJ in front of the TV hides it.
   setRender3DMethod(1 = model, default / 2 = the old RwIm3D mesh); Render3DMethod in tvplayer.ini. getRender3DStats()
   returns a 4th value: "ok" or why the model could not be made (moonloader.log: "TV model: ...").
+  txAdmin (MP 4.13.53): txadmin.lua + lib/webviews/ + lib/android/ - "txAdmin Open Source" 4.6.0-webview by
+  4trays LazyCat Studios (MIT, https://github.com/ThirtyFoxMCx00E1/MonetLoader-txAdmin). An admin panel in an
+  Android WebView: player list, duty, goto / gethere / spec / freeze / slap / sethp, kick / ban / warn / mute /
+  jail with reasons, vehicles. Open it with /tx or /txadmin (/txlock, /txlogout). The buttons send the usual
+  admin commands: on SA-MP gamemode servers the gamemode gets them, on MP servers MP's own admin commands.
+  lib/webviews/init.lua finds the game's package from Android/data/<pkg>/ too (MP's moonloader folder), so the
+  WebViews.jar is copied to the app's private code_cache (read-only) before DexClassLoader loads it.

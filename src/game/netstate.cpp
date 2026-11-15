@@ -43,6 +43,7 @@ DEFOPCODE(0215, REMOVE_PICKUP, i);
 DEFOPCODE(04ED, REQUEST_ANIMATION, s);
 DEFOPCODE(04EE, HAS_ANIMATION_LOADED, s);
 DEFOPCODE(041A, GET_AMMO_IN_CHAR_WEAPON, iiv);
+DEFOPCODE(017B, SET_CHAR_AMMO, iii);   // 4.13.53: SA-MP SetPlayerAmmo
 DEFOPCODE(04B8, GET_CHAR_WEAPON_IN_SLOT, iivvv);   // 3.39.1
 // 2.15 passengers
 DEFOPCODE(046C, GET_DRIVER_OF_CAR, iv);
@@ -830,6 +831,11 @@ int Game::GetAmmo(int ped, int weapon)
     uint32_t a = 0;
     CALLSCM(GET_AMMO_IN_CHAR_WEAPON, ped, weapon, &a);
     return (int)a;
+}
+void Game::SetAmmo(int ped, int weapon, int ammo)
+{
+    if(ped <= 0 || !PedPtr(ped) || weapon <= 0 || weapon > 46) return;
+    CALLSCM(SET_CHAR_AMMO, ped, weapon, ammo < 0 ? 0 : ammo);
 }
 
 #include <time.h>

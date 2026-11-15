@@ -26,5 +26,14 @@ enum eSampOp : uint8_t
     SPO_ATTACH,       // S->C  a = slot (0..9), b = bone, val = model (-1 = remove), f = x y z, text = "rx ry rz sx sy sz"
     SPO_LABEL,        // S->C  val = label id, a = 1 add / 0 del, f = x y z dist, b = colour index, text = text
     SPO_KEYS,         // C->S  val = SA-MP key bits (for OnPlayerKeyStateChange)
+    // 4.13.53 (old phones ignore them)
+    SPO_BUBBLE,       // S->C  val = player id, a = 1, f = draw distance, ms; text = "{RRGGBB}text"
+    SPO_ZONE,         // S->C  gang zone id = a | b << 8, f = min x y max x y, val = colour, text[0] = 1 show / 2 flash / 3 stop flash / 4 hide
+    SPO_ACTOR,        // S->C  val = actor id, a = 0 remove / 1 set (b = invulnerable, f = x y z angle, text = model) / 2 anim (text = "lib anim loop") / 3 clear anim
+    SPO_AUDIO,        // S->C  a = 1 play (text = url, b = 1 at f = x y z distance) / 0 stop
+    SPO_VELOCITY,     // S->C  b = 0 me / 1 my car, f = x y z (SA-MP units: metres per 1/50 s)
+    SPO_WEAPON,       // S->C  a = 0 armed weapon (val) / 1 ammo (b = weapon, val = ammo)
+    SPO_TAGS,         // S->C  a = 0 every tag (b = show, f[0] = distance) / 1 one player's tag (val = player id, b = show)
+    SPO_VEHPARAMS,    // S->C  my car: a = engine + 1, b = doors locked + 1 (0 = unset), val = lights (-1 unset)
 };
 struct PktSamp { uint8_t type, op, a, b; int32_t val; float f[4]; char text[200]; };

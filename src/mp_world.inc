@@ -184,6 +184,7 @@ static int TurfZoneProvider(Game::RadarZone* out, int maxOut)
 {
     if(Mw3OnServer()) return Mw3RadarZones(out, maxOut);   // 3.23
     if(RpOnServer()) return RpRadarZones(out, maxOut);     // 3.25: greenzones
+    { const int sz = SampSrvZones(out, maxOut); if(sz >= 0) return sz; }   // 4.13.53: SA-MP gamemode gang zones
     if(!settings.gangZones || client.GetState() != NET_CONNECTED || JoinFlowActive() || !MP::ModeOn(GM_TURF)) return 0;
     if(!s_bTurfInit) TurfInit();
     const bool flash = (MP_NowMs() / 500) % 2 == 0;
