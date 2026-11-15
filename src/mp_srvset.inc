@@ -27,7 +27,7 @@ struct SrvPermRow { uint8_t bit; const char* name; };
 static const SrvPermRow kSrvPerms[] = {
     { PERM_MISSION_PAIR, "Mission sync" },
     { PERM_NO_CHEATS,    "Block menu cheats" },
-    { PERM_CHEAT_MENU,   "Allow CheatMenu" },
+    { PERM_CHEAT_MENU,   "Allow CheatMenu + MonetLoader cheats" },
     { PERM_AFK,          "AFK tag" },
     { PERM_DMG_IND,      "Damage indicator" },
     { PERM_SHOW_IDS,     "Show player ids" },

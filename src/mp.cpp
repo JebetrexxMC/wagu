@@ -1854,6 +1854,12 @@ extern "C" __attribute__((visibility("default"))) int MP_PopHit(int* ped, int* t
     return 1;
 }
 
+// 4.13.56: MonetLoader cheat mods (HG menu ...) follow the same rule as CheatMenu: allowed offline and on a custom
+// server whose owner has "Allow CheatMenu + MonetLoader cheats" on (Server Management), never on the default /
+// LAN server or the featured servers, never with "Block menu cheats". mods_loader.lua asks every second.
+static std::atomic<bool> s_bLuaCheatsOk{false};
+extern "C" __attribute__((visibility("default"))) int MP_LuaCheatsAllowed() { return s_bLuaCheatsOk.load() ? 1 : 0; }
+
 static void PredictKill(int target, float amount, uint8_t weapon)
 {
     if(target < 0 || target >= MP_MAX_PLAYERS || myId >= MP_MAX_PLAYERS) return;
@@ -4432,6 +4438,7 @@ void MP::Process()
         // 4.02: offline (not on a server, not hosting) the menus are yours: CheatMenu / CLEO menu buttons and
         // windows are no longer hidden in single player. On a server only its Cheat Menu permission allows them.
         ModScan::SetAllowed(offline || MP::CheatMenuAllowed());   // its button / window come back there
+        s_bLuaCheatsOk.store(offline || MP::CheatMenuAllowed());   // 4.13.56: MonetLoader cheat mods (mods_loader.lua)
         // connected: decided as soon as the server's permissions arrive (right after the welcome; an
         // old server never sends the bit -> not allowed after 4 s). Allowed = you just play, no
         // message. Not allowed = leave at once + "This server doesn't allow cheat menus".
@@ -6355,14 +6362,14 @@ static void PermissionSwitches(const char* where)
     ImGui::TextDisabled(settings.allowMissionPair ? "On: two players can sync up: they see each other on missions and share their mission markers."
                                                   : "Off: everyone is alone on missions; running mission syncs end.");
     // 3.00: Cheat Menu permission (libCheatMenu.so / libCheatMenu64.so)
-    if(FloatMenu::ToggleSwitch("Cheat Menu", &settings.allowCheatMenu))
+    if(FloatMenu::ToggleSwitch("Cheat Menu + MonetLoader cheats", &settings.allowCheatMenu))
     {
         if(s_Server.IsRunning() && !IsHostingDefault() && !s_Server.IsBcwServer())   // 3.10: the server you host now keeps it
         { s_bRunCheatMenu = settings.allowCheatMenu; SrvCmPut(s_Server.GetName(), s_Server.GetPort(), s_bRunCheatMenu); }
         ApplyServerPerms(); SaveConfig();
     }
-    ImGui::TextDisabled(settings.allowCheatMenu ? "On: players may use Cheat Menu (libCheatMenu.so / libCheatMenu64.so) on your server."
-                                                : "Off: players with Cheat Menu (libCheatMenu.so / libCheatMenu64.so) can't join.");
+    ImGui::TextDisabled(settings.allowCheatMenu ? "On: players may use Cheat Menu (libCheatMenu.so / libCheatMenu64.so) and MonetLoader cheat mods (HG menu) on your server."
+                                                : "Off: players with Cheat Menu can't join, MonetLoader cheat mods (HG menu) stop.");
     ImGui::TextDisabled("Never on the default server. \"Disable cheats\" (Settings > Cheats) switches it off too.");
     // 3.34: AFK / damage indicator / player ids (always on on the 4 featured servers)
     ImGui::Separator();

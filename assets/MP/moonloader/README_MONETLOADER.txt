@@ -14,7 +14,17 @@ The mods folder (MP 4.13.56)
   own folder next to it (that folder's .lua files are NOT started - they are the mod's data):
     mods/tvplayer.lua   + mods/tvplayer/   (screens.lua, config/tvplayer.ini, videos/)
     mods/hitmarker.lua  + mods/hitmarker/  (hitmarker.png, hitmarker_head.png, *.mp3)
+    mods/hg.lua         TROPA DO HG MENU V2 (/hg) - a CHEAT mod, see below. Its files: lib/samp/0_3_7-R1/hg/,
+                        config/HG MENU.json, lib/mimgui (+ hgfont.ttf), lib/SAMemory, resource/hit sounds/
   An old tvplayer.lua / hitmarker.lua left in moonloader/ is stopped and renamed to .lua.old (no double mod).
+  Cheat mods (a "MP_CHEAT_MOD" line at the top, or the HG menu wherever it is) follow the CheatMenu rule:
+    - offline (single player): allowed
+    - the default / LAN server and the featured servers (Brief Case War, MW3, Mega Vil, DayZ, League): never
+    - a custom server: only while its owner has "Allow CheatMenu + MonetLoader cheats" on (Server Management,
+      or MP Launcher > host settings > Cheat Menu), and "Block menu cheats" off. Off by default.
+  mods_loader.lua checks every second (MP_LuaCheatsAllowed() in libMP): when the owner turns it off, or you join a
+  server that doesn't allow it, the cheat mod stops at once and starts again where it is allowed.
+  HG features that send SA-MP RakNet packets (raknet* / sampSend* sync) do nothing on MP servers (no RakNet).
   Old data folders (moonloader/tvplayer/, moonloader/resources/hitmarker/) still work if mods/ has none.
   Hitmarker 1.1-mp: hits on other players and street NPCs show now. MP sends a hit and puts the avatar's
   health back in the same game tick, so the old health check never saw it; MP now queues each hit for scripts:
