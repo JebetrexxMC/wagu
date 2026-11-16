@@ -421,10 +421,12 @@ static bool ValidVcWeapon(int w) { return w >= 0 && w <= 33; }
 
 struct ChatLine { std::string text; uint32_t color; uint64_t at; };
 static std::vector<ChatLine> s_Chat;
+static void OverlayChat(uint32_t color, const char* text);   // 4.13.63: VICE Loader overlay (vc_overlay.inc)
 static void Chat(uint32_t color, const char* fmt, ...)
 {
     char buf[256]; va_list ap; va_start(ap, fmt); vsnprintf(buf, sizeof(buf), fmt, ap); va_end(ap);
     s_Chat.push_back({ buf, color, MP_NowMs() });
+    OverlayChat(color, buf);
     if(s_Chat.size() > 10) s_Chat.erase(s_Chat.begin());
     logger->Info("Vice City chat: %s", buf);
 }
@@ -1349,6 +1351,8 @@ static void UpdatePickupsAndFires(uint64_t now)
     }
 }
 
+#include "vc_overlay.inc"   // 4.13.63: VICE Loader overlay bridge + VICE City LAN server
+
 // ---- chat typing, dialog answers, the MP menu (phone keyboard) ----------------------------------------------------
 static void SendChatText(const char* text)
 {
@@ -1376,6 +1380,7 @@ static void ShowMenu()
     Chat(0xFFFFE080, "[MP Vice City] %s:%d %s", cfg.host[0] ? cfg.host : "(no server)", cfg.port, Online() ? "online" : "offline");
     Chat(0xFFFFFFFF, "1. Players   2. Server   3. Name (%s)   4. Reconnect", cfg.name);
     Chat(0xFFFFFFFF, "5. Map markers %s   6. Name tags %s   7. Disconnect%s", cfg.blips ? "on" : "off", cfg.nameTags ? "on" : "off", s_VcClasses.empty() ? "" : "   8. Class");
+    Chat(0xFFFFFFFF, "9. VICE City LAN server %s", s_VcLan.IsRunning() ? "(stop)" : "(host on this phone)");   // 4.13.63
     Ask(ASK_MENU, "MP menu - type the number", "", 2, true);
 }
 static void MenuPick(int n)
@@ -1389,6 +1394,7 @@ static void MenuPick(int n)
     case 5: cfg.blips = !cfg.blips; SaveSettings(); Chat(0xFF80FF80, "Map markers %s", cfg.blips ? "on" : "off"); break;
     case 6: cfg.nameTags = !cfg.nameTags; SaveSettings(); Chat(0xFF80FF80, "Name tags %s", cfg.nameTags ? "on" : "off"); break;
     case 8: ShowClasses(); break;   // 4.13.40
+    case 9: if(s_VcLan.IsRunning()) StopVcLan(); else StartVcLan(VC_LAN_DEFAULT_NAME, VC_LAN_DEFAULT_PORT, 50); break;   // 4.13.63
     case 7: if(s_Client.GetState() != NET_DISCONNECTED) s_Client.Disconnect(true); DropAll(); s_bManualOff = true; Chat(0xFFC0C0C0, "Disconnected (MP menu, 4 joins again)"); break;
     default: break;
     }
@@ -1592,6 +1598,7 @@ static void Process()
     const uint64_t now = MP_NowMs();
     const float dt = s_nLastFrame ? (float)(now - s_nLastFrame) / 1000.0f : 0.0f;
     s_nLastFrame = now;
+    OverlayProcess();   // 4.13.63: VICE Loader (also in the menus, so the overlay can host / pick a server early)
     if(!FindPlayerPed || !FindPlayerPed()) return;   // menu / loading
     s_nMyChar = MyChar();
     VoiceProcess();   // 4.13.54

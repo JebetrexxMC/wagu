@@ -229,7 +229,7 @@ static ImVec4 Rgba(uint32_t c) { return ImVec4(((c >> 24) & 255) / 255.f, ((c >>
 static ImVec4 Abgr(uint32_t c) { return ImVec4((c & 255) / 255.f, ((c >> 8) & 255) / 255.f, ((c >> 16) & 255) / 255.f, 1.f); }
 
 // ---- the launcher (⋮ -> Server) --------------------------------------------------------------------------------------
-enum { VT_SERVERS = 0, VT_ADD, VT_SETTINGS, VT_ABOUT };
+enum { VT_SERVERS = 0, VT_ADD, VT_SETTINGS, VT_ABOUT, VT_LAN };   // 4.13.63: + VICE City LAN server
 static int  s_nVTab = VT_SERVERS;
 static int  s_nVSel = -1;
 static char s_szAddHost[64] = "", s_szAddName[32] = "", s_szAddPass[MP_PASSWORD_LEN + 1] = "";
@@ -309,6 +309,22 @@ static void LServers(float W, float H)
     }
     if(!n) ImGui::TextDisabled("No Vice City servers yet. Add one in + Add server (mp_server --game vc).");
     ImGui::EndChild();
+}
+// 4.13.63: VICE City LAN server - a separate Vice City server hosted by this phone (vc_overlay.inc)
+static void LLan(float W)
+{
+    MPKit::GroupLabel("VICE CITY LAN SERVER");
+    ImGui::TextWrapped("Hosts a Vice City server on this phone for friends on the same Wi-Fi or hotspot. It is a different "
+                       "server from the San Andreas LAN server: Vice City phones only, port %d, its own players and files.", VC_LAN_DEFAULT_PORT);
+    const float bh = UI::S(70);
+    char l[160];
+    if(s_VcLan.IsRunning())
+    {
+        snprintf(l, sizeof(l), "%s  -  port %d  -  %d / %d players", s_VcLan.GetName(), (int)s_VcLan.GetPort(), s_VcLan.GetPlayerCount(), s_VcLan.GetMaxPlayers());
+        MPKit::Btn("lst", l, W, bh, 4);
+        if(MPKit::Btn("lstop", "STOP THE VICE CITY LAN SERVER", W, bh, 3, true, MPKit::IC_STOP)) StopVcLan();
+    }
+    else if(MPKit::Btn("lgo", "START VICE CITY LAN SERVER", W, bh, 1, true, MPKit::IC_PLAY)) StartVcLan(VC_LAN_DEFAULT_NAME, VC_LAN_DEFAULT_PORT, 50);
 }
 static void LAdd(float W)
 {
@@ -423,6 +439,7 @@ static void RenderVcLauncher(void* openPtr)
         MPKit::GroupLabel("SERVERS");
         if(MPKit::SideItem("srv", MPKit::IC_GLOBE, "Internet", s_nVTab == VT_SERVERS, iw, ih)) s_nVTab = VT_SERVERS;
         if(MPKit::SideItem("add", MPKit::IC_PLUS, "Add server", s_nVTab == VT_ADD, iw, ih)) s_nVTab = VT_ADD;
+        if(MPKit::SideItem("lan", MPKit::IC_BOX, "VICE City LAN", s_nVTab == VT_LAN, iw, ih)) s_nVTab = VT_LAN;
         MPKit::GroupLabel("PLAYERS");
         if(MPKit::SideItem("pl", MPKit::IC_USERS, "Player list", false, iw, ih)) FloatMenu::OpenPage(FloatMenu::PAGE_PLAYERS);
         MPKit::GroupLabel("SETTINGS");
@@ -437,6 +454,7 @@ static void RenderVcLauncher(void* openPtr)
     {
     case VT_SERVERS:  LServers(contentW - UI::S(4), bodyH - UI::S(16)); break;
     case VT_ADD:      LAdd(contentW - UI::S(24)); break;
+    case VT_LAN:      LLan(contentW - UI::S(24)); break;
     case VT_SETTINGS: LSettings(contentW - UI::S(24)); break;
     default:          MPKit::AboutPage(contentW - UI::S(32)); break;
     }
