@@ -30,6 +30,7 @@ done
 B=build/assets/bundle
 cp $ROOT/assets/MP/ui_bg.jpg build/assets/ui_bg.jpg
 cp $ROOT/assets/MP/chat_icon.png build/assets/chat_icon.png     # floating bar chat pill (same as San Andreas)
+cp $ROOT/assets/MP/flags.png build/assets/flags.png             # 4.13.64: server list Location flags (San Andreas server_style.h)
 cp assets/global_click.wav build/assets/global_click.wav        # global_click like the San Andreas MP UI
 for A in $ABIS; do
   [ -f prebuilt/$A/libAML.so ] || continue   # x86_64 (emulator test build): no AML for it

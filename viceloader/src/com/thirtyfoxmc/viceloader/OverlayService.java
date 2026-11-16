@@ -180,7 +180,7 @@ public class OverlayService extends Service {
             mGlLp.alpha = big ? 1f : 0f;
             try { mWm.updateViewLayout(mGl, mGlLp); } catch (Exception ignored) {}
         }
-        if (mBubble != null) mBubble.setVisibility(mBarShown && (m == Native.MODE_BUBBLE || m == Native.MODE_MENU) ? View.VISIBLE : View.GONE);   // the bar stays over the ⋮ dropdown, like San Andreas
+        if (mBubble != null) mBubble.setVisibility(mBarShown && (m == Native.MODE_BUBBLE || m == Native.MODE_MENU || m == Native.MODE_PAGE) ? View.VISIBLE : View.GONE);   // the bar stays over the ⋮ dropdown, like San Andreas
     }
 
     private volatile int mPendingMode;
@@ -196,7 +196,7 @@ public class OverlayService extends Service {
     void openFromBubble(final int mode) {
         if (mGl == null) return;
         mGl.queueEvent(() -> Native.open(mode));
-        setMode(mode >= 100 ? Native.MODE_PANEL : mode);
+        setMode(mode >= 200 ? Native.MODE_PAGE : mode >= 100 ? Native.MODE_PANEL : mode);   // 200 / 201 = Player list / Help window
         mGl.requestRender();
     }
 
@@ -210,8 +210,11 @@ public class OverlayService extends Service {
     private volatile int mMic = 0;            // MIC <0 off-server, 1 off, 2 on, 3 talking> from the game
     private SoundPool mSounds; private int mClickId = 0; private float mClickVol = 0.8f;
 
-    private int pillPx() { return (int) (44 * getResources().getDisplayMetrics().density * mBarSize); }
-    private int gapPx() { return (int) (8 * getResources().getDisplayMetrics().density * mBarSize); }
+    // 4.13.64: the San Andreas bar size (src/ui/floatmenu.cpp PillH = UI::S(64), BarGap = UI::S(12), UI::S = px * shortSide / 1080),
+    // not 44 dp - the dp size came out about twice as big as the San Andreas bar on a 1080p phone
+    private float shortSide() { android.util.DisplayMetrics m = getResources().getDisplayMetrics(); return Math.min(m.widthPixels, m.heightPixels); }
+    private int pillPx() { return Math.max(1, Math.round(64f * shortSide() / 1080f * mBarSize)); }
+    private int gapPx() { return Math.round(12f * shortSide() / 1080f * mBarSize); }
 
     private int statusBarPx() {
         int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
@@ -375,7 +378,7 @@ public class OverlayService extends Service {
                 mBubble.invalidate(); sendBarRect();
             }
             mBarShown = show;
-            mBubble.setVisibility(show && (mMode == Native.MODE_BUBBLE || mMode == Native.MODE_MENU) ? View.VISIBLE : View.GONE);
+            mBubble.setVisibility(show && (mMode == Native.MODE_BUBBLE || mMode == Native.MODE_MENU || mMode == Native.MODE_PAGE) ? View.VISIBLE : View.GONE);
         } catch (Exception ignored) {}
     }
     private boolean mBarShown = true;

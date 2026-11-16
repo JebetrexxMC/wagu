@@ -166,6 +166,14 @@ static void PublishHits()
 
 // ---- voice chat (same engine as San Andreas) ------------------------------------------------------------------------
 static void VcVoiceSend(const void* pkt, int len) { if(s_Client.GetState() == NET_CONNECTED) s_Client.Send(pkt, len); }   // audio thread
+// 4.13.64: VICE Loader's Player list window (vc_overlay.inc PLAYERS2 / MUTE)
+static int  VoicePlayerFlags(int id) { if(id < 0 || id >= 256) return 0; return (s_bVoiceInit && Voice::IsSpeaking(id) ? 2 : 0) | (s_bVoiceMuted[id] ? 4 : 0); }
+static void VoiceMuteToggle(int id)
+{
+    if(id < 0 || id >= 256 || id == s_nMyId) return;
+    s_bVoiceMuted[id] = !s_bVoiceMuted[id];
+    if(s_bVoiceInit && s_bVoiceMuted[id]) Voice::ResetSpeaker(id);
+}
 static void VoiceEnsure() { if(!s_bVoiceInit) { s_bVoiceInit = true; Voice::Init(VcVoiceSend); } }
 static void VcVoicePacket(int id, uint16_t seq, uint8_t flags, const uint8_t* opus, int len)
 {

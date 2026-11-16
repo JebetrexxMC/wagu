@@ -7,7 +7,7 @@
 //   overlay -> game  (port VC_OVERLAY_PORT)          game -> overlay (the address the last HELLO came from)
 //     HELLO  (first packet: the chat so far is sent back once)  STATE <online 0/1> <port> <myid> <host> \t <name> \t <server name>
 //     CHAT <text>       (/commands too)                 CHAT <colour hex, ABGR like Chat()> <text>
-//     JOIN <port> <host> \t <password>                  PLAYERS <id>,<score>,<ping>,<name>\n...   (every second)
+//     JOIN <port> <host> \t <password>                  PLAYERS2 <id>,<score>,<ping>,<col>,<hp>,<arm>,<flags>,<name>\n... (every second)
 //     NAME <name>                                       LAN <0/1> <port> <players>/<max> <name>
 //     LEAVE                                             BYE
 //     LANSTART <port> <maxPlayers> <name>  (the VICE City LAN server on this phone)
@@ -117,16 +117,26 @@ static void OvState()
     OvSend("STATE %d %d %d %s\t%s\t%s", (s_Client.GetState() == NET_CONNECTED && s_nMyId >= 0) ? 1 : 0, cfg.port, s_nMyId,
            cfg.host, cfg.name, s_Client.GetServerName());
 }
+static int  VoicePlayerFlags(int id);   // vc_gui.inc: 2 = talking, 4 = muted (4.13.64)
+static void VoiceMuteToggle(int id);    // vc_gui.inc
+static int  VoiceMicState();            // vc_gui.inc
+// 4.13.64: PLAYERS2 <id>,<score>,<ping>,<colour ABGR hex>,<health>,<armour>,<flags>,<name> - the San Andreas Player list
+// window of VICE Loader (flags 1 = paused, 2 = talking, 4 = muted by us, 8 = in a car, 16 = that is you)
 static void OvPlayers()
 {
-    std::string out = "PLAYERS ";
-    char b[96];
-    snprintf(b, sizeof(b), "%d,0,0,%s\n", s_nMyId, cfg.name); out += b;
+    std::string out = "PLAYERS2 ";
+    char b[128];
+    if(s_nMyId >= 0)
+    {
+        snprintf(b, sizeof(b), "%d,%d,%d,FFFFFFFF,100,0,%d,%s\n", s_nMyId, s_nKills, s_Client.GetPing(), 16 | (VoiceMicState() == 3 ? 2 : 0), cfg.name);
+        out += b;
+    }
     for(int i = 0; i < 256; ++i)
     {
         const Remote& r = s_Players[i];
         if(!r.used || i == s_nMyId) continue;
-        snprintf(b, sizeof(b), "%d,%d,%d,%s\n", i, r.score, r.ping, r.name);
+        const int fl = (r.paused ? 1 : 0) | VoicePlayerFlags(i) | (r.inCar ? 8 : 0);
+        snprintf(b, sizeof(b), "%d,%d,%d,%08X,%d,%d,%d,%s\n", i, r.score, r.ping, (unsigned)r.color, (int)r.health, (int)r.armour, fl, r.name);
         if(out.size() + strlen(b) > 1300) break;
         out += b;
     }
@@ -187,6 +197,7 @@ static void OvHandle(char* m, bool fresh)
         if(sscanf(m + 9, "%d %d %n", &port, &maxp, &off) >= 2) StartVcLan(m + 9 + off, port, maxp);
     }
     else if(!strncmp(m, "LANSTOP", 7)) StopVcLan();
+    else if(!strncmp(m, "MUTE ", 5)) { VoiceMuteToggle(atoi(m + 5)); OvPlayers(); }   // 4.13.64: Player list > Mute voice
     else if(!strncmp(m, "MIC", 3)) { VoiceMicToggle(); OvSend("MIC %d", VoiceMicState()); }   // 4.13.64: VICE Loader mic pill
     OvState();
 }

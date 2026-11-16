@@ -5,7 +5,7 @@ import android.content.res.AssetManager;
 /** libviceloader.so: Dear ImGui (the San Andreas MP launcher look), the MP keyboard, the server list + online lobby (24/7 VICE City LAN server). */
 public final class Native {
     static { System.loadLibrary("viceloader"); }
-    public static final int MODE_BUBBLE = 0, MODE_PANEL = 1, MODE_CHAT = 2, MODE_MENU = 3;   // 3 = the ⋮ dropdown; open(100 + tab) = a launcher page
+    public static final int MODE_BUBBLE = 0, MODE_PANEL = 1, MODE_CHAT = 2, MODE_MENU = 3, MODE_PAGE = 4;   // 3 = the ⋮ dropdown, 4 = a San Andreas page window (Player list); open(100 + tab) = a launcher page
 
     static native void init(AssetManager assets, String filesDir);
     static native void surfaceCreated();

@@ -106,6 +106,7 @@ static void  (*FontSetDropShadow)(short) = nullptr;
 static void  (*FontSetStyle)(short) = nullptr;
 static void  (*FontSetJustifyOn)() = nullptr;
 static void  (*FontPrint)(float, float, uint16_t*) = nullptr;
+static float (*FontGetStringWidth)(uint16_t*, bool, bool) = nullptr;   // 4.13.64: chat / name tag boxes (optional)
 static bool  (*CalcScreenCoors)(const RwV3d& in, RwV3d* out, float* w, float* h, bool farClip) = nullptr;
 static int   (*ScreenW)() = nullptr;
 static int   (*ScreenH)() = nullptr;
@@ -1641,6 +1642,34 @@ static void Box(float l, float t, float r, float b, CRGBA c)
     CRect rc = { l, b, r, t };
     DrawRect(rc, c);
 }
+// 4.13.64: width of a CFont line in pixels at the current scale (the game's GetStringWidth, else an estimate)
+static float TextW(const char* s, float sc)
+{
+    const size_t n = strlen(s);
+    float est = n * 11.0f * sc;
+    if(FontGetStringWidth)
+    {
+        static uint16_t w[256]; size_t i = 0;
+        for(; s[i] && i < 255; ++i) w[i] = (uint8_t)s[i];
+        w[i] = 0;
+        const float g = FontGetStringWidth(w, true, false);
+        if(g > 0 && g < est * 3.0f + 50.0f) return g;
+    }
+    return est;
+}
+// 4.13.64: one chat line like the reference (Screenshots/image-6.png): a square dark box as wide as the text and a thin
+// colour bar on its left (the line's colour; white lines get the light blue bar), white text
+static float ChatRow(float x, float y, const char* text, uint32_t abgr, float sc, uint8_t alpha = 160)
+{
+    const float h = 28.0f * sc, bar = 3.0f * sc, padL = 8.0f * sc, padR = 8.0f * sc;
+    const float w = TextW(text, sc);
+    uint8_t r = (uint8_t)abgr, g = (uint8_t)(abgr >> 8), b = (uint8_t)(abgr >> 16);
+    if(r > 225 && g > 225 && b > 225) { r = 120; g = 190; b = 250; }   // white text: the light blue bar
+    Box(x, y, x + bar + padL + w + padR, y + h, CRGBA{ 0, 0, 0, alpha });
+    Box(x, y, x + bar, y + h, CRGBA{ r, g, b, 255 });
+    Text(x + bar + padL, y + 3.0f * sc, text, 0xFFFFFFFF);
+    return h;
+}
 static void DrawTextDraws(float sw, float sh)
 {   // SA-MP textdraws from the server's gamemodes (640 x 448 canvas)
     const float kx = sw / 640.f, ky = sh / 448.f;
@@ -1809,15 +1838,23 @@ static void Draw()
             x += (bw[i] + 14.f) * sc;
         }
     }
-    float y = sh * 0.30f;
-    for(auto& l : s_Chat)
-    {
-        if(now - l.at > 15000) continue;
-        Text(sh * 0.03f, y, l.text.c_str(), l.color);
-        y += 26.0f * sc;
+    {   // 4.13.64: chat - square translucent boxes with the colour bar (image-6.png), the "how to talk" hint on top
+        const float cx = sh * 0.03f, gap = 4.0f * sc; float y = sh * 0.30f;
+        bool any = false; for(auto& l : s_Chat) if(now - l.at <= 15000) { any = true; break; }
+        if(online && (any || s_bTyping))
+        {
+            const bool loader = s_bOvPeer && MP_NowMs() - s_nOvLastHello < 15000;
+            y += ChatRow(cx, y, loader ? "Tap the chat icon to talk" : "Tap [ Chat ] to talk", 0xFFFFFFFF, sc, 150) + gap + 14.0f * sc;
+        }
+        for(auto& l : s_Chat)
+        {
+            if(now - l.at > 15000) continue;
+            y += ChatRow(cx, y, l.text.c_str(), l.color ? l.color : 0xFFFFFFFF, sc) + gap;
+        }
     }
     if(online && CalcScreenCoors && cfg.nameTags)
-    {   // name tags + health / armour bars over the avatars
+    {   // 4.13.64: name tags like image-6.png - a square dark box with the name, a green status chip (AFK when paused),
+        // a thin pink health bar under it (+ a grey armour bar); smaller with distance
         for(auto& r : s_Players)
         {
             if(!r.used || !r.hasSync || r.pedRef < 0) continue;
@@ -1826,22 +1863,35 @@ static void Draw()
             const float* p = MatPos(ped);
             RwV3d in = { p[0], p[1], p[2] + 1.15f }, out; float w, h;
             if(!CalcScreenCoors(in, &out, &w, &h, true) || out.z <= 0.5f || out.z > 80.0f) continue;
-            char tag[MP_NAME_LEN + 16]; snprintf(tag, sizeof(tag), "%s%s", r.name, r.paused ? " (paused)" : "");
-            Text(out.x - strlen(tag) * 6.0f * sc, out.y, tag, r.color ? r.color : 0xFFFFFFFF);
-            if(DrawRect)
+            const float k = sc * fminf(fmaxf(1.25f - out.z / 60.0f, 0.55f), 1.0f);
+            if(FontSetScale) FontSetScale(0.8f * k, 1.0f * k);
+            const char* chip = r.paused ? "AFK" : nullptr;
+            const float bh = 28.0f * k, pad = 8.0f * k, nw = TextW(r.name, k), cw = chip ? TextW(chip, k) + 12.0f * k : 0.0f;
+            const float tw = pad + nw + pad + (chip ? cw + 4.0f * k : 0.0f);
+            const float l = out.x - tw * 0.5f, t = out.y;
+            Box(l, t, l + tw, t + bh, CRGBA{ 0, 0, 0, 150 });
+            Text(l + pad, t + 3.0f * k, r.name, 0xFFFFFFFF);
+            if(chip)
             {
-                const float bw = 80.f * sc, bh = 7.f * sc, bl = out.x - bw * 0.5f; float bt = out.y + 26.f * sc;
+                const float ca = l + pad + nw + pad;
+                Box(ca, t + 3.0f * k, ca + cw, t + bh - 3.0f * k, CRGBA{ 40, 200, 90, 235 });
+                Text(ca + 6.0f * k, t + 3.0f * k, chip, 0xFF000000);
+            }
+            if(DrawRect)
+            {   // health (pink) / armour (grey) under the box, 60% of its width, centred
+                const float barW = fmaxf(tw * 0.6f, 50.0f * k), barH = 4.0f * k, bl = out.x - barW * 0.5f; float bt = t + bh + 3.0f * k;
                 const float hp = r.health > 100 ? 1.f : r.health / 100.f;
-                Box(bl - 1, bt - 1, bl + bw + 1, bt + bh + 1, CRGBA{ 0, 0, 0, 200 });
-                Box(bl, bt, bl + bw * hp, bt + bh, CRGBA{ 190, 30, 30, 230 });
+                Box(bl, bt, bl + barW, bt + barH, CRGBA{ 0, 0, 0, 170 });
+                Box(bl, bt, bl + barW * hp, bt + barH, CRGBA{ 240, 110, 200, 240 });
                 if(r.armour)
                 {
-                    bt += bh + 3.f * sc; const float ar = r.armour > 100 ? 1.f : r.armour / 100.f;
-                    Box(bl - 1, bt - 1, bl + bw + 1, bt + bh + 1, CRGBA{ 0, 0, 0, 200 });
-                    Box(bl, bt, bl + bw * ar, bt + bh, CRGBA{ 220, 220, 220, 230 });
+                    bt += barH + 2.0f * k; const float ar = r.armour > 100 ? 1.f : r.armour / 100.f;
+                    Box(bl, bt, bl + barW, bt + barH, CRGBA{ 0, 0, 0, 170 });
+                    Box(bl, bt, bl + barW * ar, bt + barH, CRGBA{ 225, 225, 225, 240 });
                 }
             }
         }
+        if(FontSetScale) FontSetScale(0.8f * sc, 1.0f * sc);
     }
     if(online && s_bScoreboard && !gui) DrawScoreboard(sw, sh, sc);
     if(online && !s_KillFeed.empty() && FontSetRightOn)
@@ -1912,6 +1962,10 @@ bool Start()
     Sym(FontSetCentreSize, "_ZN5CFont13SetCentreSizeEf", missing);
     Sym(FontSetBgOff, "_ZN5CFont15SetBackgroundOffEv", missing);
     Sym(FontPrint, "_ZN5CFont11PrintStringEffPt", missing);
+    {   // 4.13.64: optional (chat / name tag box widths) - not counted as missing
+        static const char* const kW[] = { "_ZN5CFont14GetStringWidthEPtbb", "_ZN5CFont14GetStringWidthEPtb", "_ZN5CFont14GetStringWidthEPth", "_ZN5CFont14GetStringWidthEPt" };
+        for(const char* n : kW) if(!FontGetStringWidth) FontGetStringWidth = (float (*)(uint16_t*, bool, bool))aml->GetSym(s_hGame, n);
+    }
     Sym(CalcScreenCoors, "_ZN7CSprite15CalcScreenCoorsERK5RwV3dPS0_PfS4_b", missing);
     Sym(ScreenW, "_Z17OS_ScreenGetWidthv", missing);
     Sym(ScreenH, "_Z18OS_ScreenGetHeightv", missing);

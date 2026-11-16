@@ -18,8 +18,9 @@ const char* VL_FilesDir();
 void VL_SetFont(ImFont* f);
 void VL_PasteArrived(const char* text);
 void VL_ForgetTextures();
+void* VL_TextureMem(const char* key, const std::string& bytes);   // 4.13.64: server preview pictures
 // vl_panel.cpp
-enum { VL_MODE_BUBBLE = 0, VL_MODE_PANEL = 1, VL_MODE_CHAT = 2, VL_MODE_MENU = 3 };   // 3 = the ⋮ dropdown under the bar
+enum { VL_MODE_BUBBLE = 0, VL_MODE_PANEL = 1, VL_MODE_CHAT = 2, VL_MODE_MENU = 3, VL_MODE_PAGE = 4 };   // 3 = the ⋮ dropdown under the bar, 4 = a San Andreas page window (Player list / Help) over the game
 // VL_Open(100 + tab): tabs of vl_panel.cpp (6 Players, 7 Voice chat, 8 MonetLoader, 9 Help) - OverlayService.java uses these
 void VL_PanelInit();
 void VL_PanelFrame(float w, float h);   // inside an ImGui frame

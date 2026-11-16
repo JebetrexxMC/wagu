@@ -77,7 +77,7 @@ public class MainActivity extends Activity {
 
     /**
      * 4.13.64: adb / emulator test hook, e.g.
-     *   am start -n com.thirtyfoxmc.viceloader/.MainActivity --es open panel     (bar | panel | chat | menu | page:N | stop | savelog)
+     *   am start -n com.thirtyfoxmc.viceloader/.MainActivity --es open panel     (bar | panel | chat | menu | players | help | page:N | stop | savelog)
      *   am start -n com.thirtyfoxmc.viceloader/.MainActivity --es crashtest native   (java | native: checks the crash log)
      */
     private void handleOpen(Intent in) {
@@ -93,6 +93,8 @@ public class MainActivity extends Activity {
         else if ("panel".equals(o)) m = Native.MODE_PANEL;
         else if ("chat".equals(o)) m = Native.MODE_CHAT;
         else if ("menu".equals(o)) m = Native.MODE_MENU;
+        else if ("players".equals(o)) m = 200;   // 4.13.64: the San Andreas Player list window
+        else if ("help".equals(o)) m = 201;
         else if (o != null && o.startsWith("page:")) { try { m = 100 + Integer.parseInt(o.substring(5).trim()); } catch (Exception ignored) {} }
         if (m >= 0) s.putExtra("mode", m);
         if (ct != null) s.putExtra("crashtest", ct);

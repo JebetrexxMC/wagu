@@ -59,6 +59,31 @@ void* HUD::Texture(const char* file, ImVec2* uv)
     if(uv) *uv = ImVec2(1, 1);
     return (void*)(intptr_t)t.id;
 }
+// 4.13.64: a server's preview picture from the online lobby (p/<token>, JPG / PNG bytes) - key = token + crc
+void* VL_TextureMem(const char* key, const std::string& bytes)
+{
+    VlTex& t = s_Tex[key ? key : ""];
+    if(!t.tried)
+    {
+        t.tried = true;
+        int w = 0, h = 0, n = 0;
+        unsigned char* px = stbi_load_from_memory((const unsigned char*)bytes.data(), (int)bytes.size(), &w, &h, &n, 4);
+        if(px)
+        {
+            glGenTextures(1, &t.id);
+            glBindTexture(GL_TEXTURE_2D, t.id);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, px);
+            stbi_image_free(px);
+            t.w = w; t.h = h;
+        }
+    }
+    return t.id ? (void*)(intptr_t)t.id : nullptr;
+}
 void VL_ForgetTextures() { s_Tex.clear(); }   // the GL context was lost (the overlay surface was re-created)
 void* HUD::GifFrame(int, ImVec2*, ImVec2*, float*) { return nullptr; }
 
