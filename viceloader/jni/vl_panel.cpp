@@ -718,11 +718,14 @@ static int s_nSetSec = 0;
 static void PageSettings(float w)
 {
     static const char* secs[] = { "Player", "Display", "Chat", "Sound", "Connection" };
-    float x0 = ImGui::GetCursorPosX();
+    float x0 = ImGui::GetCursorPosX(), used = 0;
     for(int i = 0; i < 5; ++i)
     {
-        if(i) ImGui::SameLine(0, UI::S(8));
-        if(VBtn(secs[i], secs[i], ImMax(UI::S(150), SocTextW(secs[i], 1.0f) + UI::S(40)), UI::S(56), s_nSetSec == i ? 1 : 0)) s_nSetSec = i;
+        float bw = ImMax(UI::S(150), SocTextW(secs[i], 1.0f) + UI::S(40));
+        if(i && used + UI::S(8) + bw <= w) { ImGui::SameLine(0, UI::S(8)); used += UI::S(8); }   // 4.13.64: wraps on a narrow screen
+        else if(i) { ImGui::SetCursorPosX(x0); used = 0; }
+        if(VBtn(secs[i], secs[i], bw, UI::S(56), s_nSetSec == i ? 1 : 0)) s_nSetSec = i;
+        used += bw;
     }
     ImGui::SetCursorPosX(x0);
     ImGui::Dummy(ImVec2(1, UI::S(8)));
@@ -954,6 +957,7 @@ static void Launcher(float dw, float dh)
     const float sideW = ImMax(UI::S(300), ws.x * 0.17f);
     {
         float y = wp.y + titleH + (tbH - btnH) * 0.5f, x = wp.x + UI::S(10) + sideW + UI::S(18);
+        static const char* const kTitleMax = "MonetLoader";   // the longest page title
         if(!listTab)
         {
             static const char* const kNames[VT_COUNT] = { "", "", "", "", "Add server", "Chat", "Players", "Voice chat", "MonetLoader", "Help", "Mods", "Settings", "About" };
@@ -976,10 +980,18 @@ static void Launcher(float dw, float dh)
                 x += tw + UI::S(6);
             }
         }
-        float searchW = ImMax(UI::S(260), ws.x * 0.16f);
-        float rx = wp.x + ws.x - pad - btnH * 3 - UI::S(6) * 3 - searchW;
-        ImGui::SetCursorScreenPos(ImVec2(rx, y));
-        if(LInputBox("search", s_szSearch, "Search", searchW, btnH, IC_SEARCH)) VKeyboard::Open("Search server", s_szSearch, 31, OnSearch);
+        // 4.13.64: the search box takes only the room left after the tabs (portrait / small screens: it shrinks,
+        // then hides) - it was drawn over "Featured" / "Favorites" in the emulator test
+        if(!listTab) x += ImGui::CalcTextSize(kTitleMax).x;
+        float right = wp.x + ws.x - pad - btnH * 3 - UI::S(6) * 3;
+        float searchW = ImMin(ImMax(UI::S(260), ws.x * 0.16f), right - UI::S(12) - x);
+        if(searchW >= UI::S(150))
+        {
+            ImGui::SetCursorScreenPos(ImVec2(right - searchW, y));
+            if(LInputBox("search", s_szSearch, "Search", searchW, btnH, IC_SEARCH)) VKeyboard::Open("Search server", s_szSearch, 31, OnSearch);
+        }
+        ImGui::SetCursorScreenPos(ImVec2(right, y));
+        ImGui::Dummy(ImVec2(0, btnH));
         ImGui::SameLine(0, UI::S(6));
         if(LToolButton("refresh", IC_REFRESH, nullptr, btnH)) { ServerList::Refresh(); ScanLan(); }
         ImGui::SameLine(0, UI::S(6));
@@ -1094,7 +1106,9 @@ void VL_PanelInit()
 }
 void VL_Open(int mode)
 {
+    if(mode != VL_MODE_CHAT && VKeyboard::IsOpen()) VKeyboard::Close();   // 4.13.64: a bar button / page closes the chat keyboard first
     if(mode == VL_MODE_CHAT) { s_nMode = VL_MODE_CHAT; OpenChatKeyboard(); }
+    else if(mode == VL_MODE_BUBBLE) s_nMode = VL_MODE_BUBBLE;   // back to the game (only the floating bar)
     else if(mode == VL_MODE_MENU) { s_nMode = s_nMode == VL_MODE_MENU ? VL_MODE_BUBBLE : VL_MODE_MENU; s_nMenuFrame = ImGui::GetFrameCount(); }
     else if(mode >= 100) { s_nTab = ImClamp(mode - 100, 0, VT_COUNT - 1); s_nMode = VL_MODE_PANEL; }   // a page straight from the bar (100 + tab)
     else s_nMode = VL_MODE_PANEL;

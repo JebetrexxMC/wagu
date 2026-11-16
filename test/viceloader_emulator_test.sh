@@ -38,7 +38,7 @@ alive && log "ok    touch / scroll in the launcher" || { log "CRASH touch / scro
 open_ bar 3
 open_ savelog 4
 adb logcat -d -v threadtime > $OUT/logs/logcat_ui_test.txt
-grep -E "FATAL EXCEPTION|Fatal signal|AndroidRuntime: |DEBUG   :|libviceloader" $OUT/logs/logcat_ui_test.txt > $OUT/logs/crash_lines_ui_test.txt
+grep -E "FATAL EXCEPTION|Fatal signal| E AndroidRuntime| F DEBUG" $OUT/logs/logcat_ui_test.txt > $OUT/logs/crash_lines_ui_test.txt
 [ -s $OUT/logs/crash_lines_ui_test.txt ] && { log "crash lines in logcat during the UI test:"; head -40 $OUT/logs/crash_lines_ui_test.txt | tee -a $OUT/summary.txt; fails=$((fails+1)); } || log "ok    no FATAL EXCEPTION / Fatal signal in logcat during the UI test"
 
 # crash log test (deliberate crashes, after the UI test)

@@ -13,7 +13,7 @@ SDK=${ANDROID_HOME:-${SDK:-$HOME/android-sdk}}; BT=$SDK/build-tools/34.0.0; JAR=
 NDK=${NDK_HOME:-$ANDROID_NDK_HOME}
 export PATH=${JAVA_HOME:-$HOME/jdk}/bin:$PATH
 STRIP=$(ls $NDK/toolchains/llvm/prebuilt/*/bin/llvm-strip | head -1)
-ABIS=${ABIS:-"armeabi-v7a arm64-v8a"}
+ABIS=${ABIS:-"armeabi-v7a arm64-v8a x86_64"}
 rm -rf build/res build/classes build/dex build/apk build/assets build/gen build/*.apk; mkdir -p build/gen build/res build/classes build/dex build/apk/lib build/assets/bundle
 
 # native: libviceloader.so (ImGui + MP launcher UI + VICE City LAN server)
