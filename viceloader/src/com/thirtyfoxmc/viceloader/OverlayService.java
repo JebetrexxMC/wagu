@@ -95,8 +95,12 @@ public class OverlayService extends Service {
     @Override public void onDestroy() {
         mMain.removeCallbacks(mTick);
         if (mSounds != null) mSounds.release();
-        try { if (mBubble != null) mWm.removeView(mBubble); } catch (Exception ignored) {}
-        try { if (mGl != null) mWm.removeView(mGl); } catch (Exception ignored) {}
+        // 4.13.64: removeViewImmediate - removeView() cleared the GL view's parent but left its first layout pass
+        // queued, so a service stopped right after start (Android "app idle" stop after a restart) crashed in
+        // SurfaceView.onAttachedToWindow (NullPointerException, requestTransparentRegion). Found in the emulator test.
+        try { if (mBubble != null) mWm.removeViewImmediate(mBubble); } catch (Exception ignored) {}
+        try { if (mGl != null) { mGl.onPause(); mWm.removeViewImmediate(mGl); } } catch (Exception ignored) {}
+        mBubble = null; mGl = null;
         sInstance = null;
         super.onDestroy();
     }
@@ -209,6 +213,11 @@ public class OverlayService extends Service {
     private int pillPx() { return (int) (44 * getResources().getDisplayMetrics().density * mBarSize); }
     private int gapPx() { return (int) (8 * getResources().getDisplayMetrics().density * mBarSize); }
 
+    private int statusBarPx() {
+        int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        return id > 0 ? getResources().getDimensionPixelSize(id) : (int) (24 * getResources().getDisplayMetrics().density);
+    }
+
     private void addBubble() {
         mBubble = new BarView(this);
         mBubbleLp = new WindowManager.LayoutParams(barW(), pillPx(), overlayType(),
@@ -216,7 +225,7 @@ public class OverlayService extends Service {
         mBubbleLp.gravity = Gravity.TOP | Gravity.LEFT;
         int sw = getResources().getDisplayMetrics().widthPixels;
         mBubbleLp.x = getSharedPreferences("vl", 0).getInt("bx", (sw - barW()) / 2);
-        mBubbleLp.y = getSharedPreferences("vl", 0).getInt("by", (int) (8 * getResources().getDisplayMetrics().density));
+        mBubbleLp.y = getSharedPreferences("vl", 0).getInt("by", statusBarPx() + (int) (8 * getResources().getDisplayMetrics().density));   // below the status bar
         mWm.addView(mBubble, mBubbleLp);
         sendBarRect();
         try {

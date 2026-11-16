@@ -4,6 +4,7 @@
 #   bash viceloader/build_apk.sh            -> viceloader/ViceLoader.apk
 # Steps: CMake (NDK) for armeabi-v7a + arm64-v8a -> assets/bundle (AML, libMP with MonetLoader built in, moonloader/lib)
 #        -> aapt2 -> javac -> d8 -> zip lib/ -> zipalign -> apksigner.
+# ABIS="x86_64" OUT_APK=ViceLoader-x86_64-test.apk: emulator test build (test/viceloader_emulator_test.sh).
 # KEYSTORE/KEYPASS sign with your key; otherwise a local debug key (build/debug.keystore) is made.
 set -e
 cd "$(dirname "$0")"
@@ -31,6 +32,7 @@ cp $ROOT/assets/MP/ui_bg.jpg build/assets/ui_bg.jpg
 cp $ROOT/assets/MP/chat_icon.png build/assets/chat_icon.png     # floating bar chat pill (same as San Andreas)
 cp assets/global_click.wav build/assets/global_click.wav        # global_click like the San Andreas MP UI
 for A in $ABIS; do
+  [ -f prebuilt/$A/libAML.so ] || continue   # x86_64 (emulator test build): no AML for it
   mkdir -p $B/AML/$A
   cp prebuilt/$A/libAML.so $B/AML/$A/
 done
@@ -56,5 +58,5 @@ if [ -z "$KEYSTORE" ]; then
   [ -f $KEYSTORE ] || keytool -genkeypair -keystore $KEYSTORE -storepass android -keypass android -alias viceloader \
           -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=VICE Loader, O=ThirtyFoxMCx00E1" >/dev/null 2>&1
 fi
-$BT/apksigner sign --ks "$KEYSTORE" --ks-pass env:KEYPASS --out ViceLoader.apk build/aligned.apk
-$BT/apksigner verify ViceLoader.apk && ls -la ViceLoader.apk
+$BT/apksigner sign --ks "$KEYSTORE" --ks-pass env:KEYPASS --out ${OUT_APK:-ViceLoader.apk} build/aligned.apk
+$BT/apksigner verify ${OUT_APK:-ViceLoader.apk} && ls -la ${OUT_APK:-ViceLoader.apk}

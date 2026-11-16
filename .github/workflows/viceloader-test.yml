@@ -1,4 +1,7 @@
-# 4.13.64: VICE Loader overlay test on an Android emulator (x86_64 Android 11 with ARM translation).
+# 4.13.64: VICE Loader overlay test on an Android emulator (x86_64 Android 11).
+#  1. x86_64 build of VICE Loader made from this commit: runs natively, so every crash it shows is real.
+#  2. the release ViceLoader.apk (ARM) through the emulator's ARM translation (informational: the translator
+#     can stop on ARM instructions a real phone runs fine).
 # Screenshots of every page, logcat and the crash logs are uploaded as the "viceloader-test" artifact.
 name: VICE Loader emulator test
 
@@ -6,22 +9,31 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag with ViceLoader.apk'
+        description: 'Release tag with ViceLoader.apk for the ARM pass (empty = skip)'
         required: false
         default: 'v4.13.64'
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          sparse-checkout: test
-      - name: Download ViceLoader.apk
+          distribution: temurin
+          java-version: '21'
+      - name: Build the x86_64 test APK
+        run: |
+          sudo apt-get install -y -qq ninja-build > /dev/null
+          export ANDROID_HOME=$ANDROID_SDK_ROOT NDK_HOME=$ANDROID_NDK_LATEST_HOME
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0" "platforms;android-34" > /dev/null
+          ABIS=x86_64 OUT_APK=$PWD/ViceLoader-x86_64-test.apk bash viceloader/build_apk.sh
+      - name: Download the release ViceLoader.apk (ARM)
+        if: inputs.tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release download "${{ inputs.tag }}" -R "$GITHUB_REPOSITORY" -p ViceLoader.apk && ls -l ViceLoader.apk
+        run: gh release download "${{ inputs.tag }}" -R "$GITHUB_REPOSITORY" -p ViceLoader.apk || true
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -35,7 +47,7 @@ jobs:
           profile: pixel_4
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
-          script: bash test/viceloader_emulator_test.sh ViceLoader.apk
+          script: bash test/viceloader_emulator_test.sh ViceLoader-x86_64-test.apk x86_64 ; r=$? ; [ -f ViceLoader.apk ] && (bash test/viceloader_emulator_test.sh ViceLoader.apk arm_translated || true) ; exit $r
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
