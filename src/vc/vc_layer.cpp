@@ -1794,12 +1794,15 @@ static void Draw()
     if(gui) for(auto& b : s_Btn) b[2] = 0;   // 4.13.54: the top bar replaces the CFont buttons
     else
     {   // buttons: Chat / Players (online), MP (always: server, name, reconnect...)
-        const char* label[BTN_COUNT] = { s_bTyping ? "[ typing... ]" : "[ Chat ]", "[ Players ]", "[ MP ]", "[ Class ]" };
+        // 4.13.64: no [ MP ] text button any more - the VICE Loader app (floating bar + launcher overlay) is the MP
+        // menu in Vice City. While VICE Loader is attached its bar also has Chat / Players, so only [ Class ] stays.
+        const char* label[BTN_COUNT] = { s_bTyping ? "[ typing... ]" : "[ Chat ]", "[ Players ]", "", "[ Class ]" };
         const float bw[BTN_COUNT] = { 120.f, 140.f, 80.f, 120.f };
         float x = sh * 0.03f; const float y = sh * 0.22f;
         for(int i = 0; i < BTN_COUNT; ++i)
         {
-            const bool show = i == BTN_MP || (online && (i != BTN_CLASS || !s_VcClasses.empty()));
+            const bool loader = s_bOvPeer && MP_NowMs() - s_nOvLastHello < 15000;
+            const bool show = i != BTN_MP && online && (i != BTN_CLASS || !s_VcClasses.empty()) && !(loader && (i == BTN_CHAT || i == BTN_PLAYERS));
             s_Btn[i][0] = (int)x; s_Btn[i][1] = (int)y; s_Btn[i][2] = show ? (int)(bw[i] * sc) : 0; s_Btn[i][3] = (int)(40 * sc);
             if(!show) continue;
             Text(x, y + 8 * sc, label[i], 0xFF80E0FF);

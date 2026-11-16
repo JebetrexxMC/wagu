@@ -35,7 +35,7 @@
 #include "net/server.h"
 
 // 4.12.7: the config is files/TYFMC/TYFMC.MP.ini (the old configs/net.thirtyfox.mp.ini is moved there)
-TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 4.13.63, ThirtyFoxMCx00E1, MP, net.thirtyfox.mp)
+TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 4.13.64, ThirtyFoxMCx00E1, MP, net.thirtyfox.mp)
 // 4.13.36: no NEEDGAME(com.rockstargames.gtasa) - AML would refuse libMP in GTA Vice City. OnModLoad starts the
 // San Andreas code only when libGTASA.so is there, and the Vice City layer (src/vc/) when libGTAVC.so is.
 
@@ -987,7 +987,7 @@ static void JPatchGuardSetup()
 #endif
 }
 
-namespace MonetEmbed { void Start(); }   // 4.13.32 (src/mp_monet.cpp)
+namespace MonetEmbed { void Start(); bool SeparateMoved(); }   // 4.13.32 (src/mp_monet.cpp)
 namespace VC { bool Start(); }           // 4.13.36 (src/vc/vc_layer.cpp)
 extern "C" void OnModLoad()
 {
@@ -1071,6 +1071,8 @@ extern "C" void OnModLoad()
     MP::SetMenuApiReady();   // 4.13.11: PCMenu's MULTIPLAYER works from here on (no need to wait for OnAllModsLoaded)
     logger->Info("MP %s loaded. Data folder: %s", BYBIT("32-bit", "64-bit"), dir);
     MonetEmbed::Start();   // 4.13.32: MonetLoader for MP, built in (src/mp_monet.cpp)
+    if(MonetEmbed::SeparateMoved())   // 4.13.64: an old separate libmonetloader.so was moved away - no duplicate next start
+        MP::AddSystemMessage(0xFFDD33FF, "An old separate libmonetloader.so was moved out of the mods folder: MonetLoader for MP 3.9.1-mp is built into MP. Restart the game once.");
 }
 
 // 2.37: every AML mod is loaded now, so aml->HasMod() sees all of them.

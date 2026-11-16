@@ -78,6 +78,59 @@ static bool WriteFile(const char* path, const unsigned char* data, size_t n)
     return true;
 }
 
+// 4.13.64: every separate libmonetloader.so (path from /proc/self/maps = the copy AML loaded, + AML's mods folders) -> .old
+static bool s_bSeparateMoved = false;
+static bool MoveOne(const std::string& p)
+{
+    if(p.empty() || access(p.c_str(), F_OK) != 0) return false;
+    std::string to = p + ".old";
+    unlink(to.c_str());
+    if(rename(p.c_str(), to.c_str()) == 0) { logger->Info("MonetLoader: %s -> %s", p.c_str(), to.c_str()); return true; }
+    if(unlink(p.c_str()) == 0) { logger->Info("MonetLoader: %s deleted", p.c_str()); return true; }
+    logger->Error("MonetLoader: can't move %s (errno %d)", p.c_str(), errno);
+    return false;
+}
+static int MoveSeparateAway()
+{
+    std::vector<std::string> paths;
+    if(FILE* m = fopen("/proc/self/maps", "r"))
+    {
+        char l[1024];
+        while(fgets(l, sizeof(l), m))
+        {
+            char* q = strchr(l, '/'); if(!q) continue;
+            q[strcspn(q, "\r\n")] = 0;
+            const char* b = strrchr(q, '/'); b = b ? b + 1 : q;
+            if(strcmp(b, "libmonetloader.so")) continue;
+            bool have = false; for(auto& x : paths) if(x == q) have = true;
+            if(!have) paths.push_back(q);
+        }
+        fclose(m);
+    }
+    if(const char* dp = aml->GetDataPath())   // the game's folders: <data>/mods, Android/data/<pkg>/mods, AMLMods/<pkg>
+    {
+        std::string s = dp; if(!s.empty() && s.back() == '/') s.pop_back();
+        paths.push_back(s + "/libmonetloader.so");
+        paths.push_back(s + "/mods/libmonetloader.so");
+        size_t at = s.rfind("/files");
+        std::string base = at != std::string::npos ? s.substr(0, at) : s;
+        paths.push_back(base + "/mods/libmonetloader.so");
+        const char* pk = strrchr(base.c_str(), '/');
+        if(pk && pk[1])
+        {
+            std::string pkg = pk + 1;
+            paths.push_back("/storage/emulated/0/Android/data/" + pkg + "/mods/libmonetloader.so");
+            paths.push_back("/sdcard/Android/data/" + pkg + "/mods/libmonetloader.so");
+            paths.push_back("/storage/emulated/0/AMLMods/" + pkg + "/libmonetloader.so");
+            paths.push_back("/sdcard/AMLMods/" + pkg + "/libmonetloader.so");
+        }
+    }
+    int n = 0;
+    for(auto& p : paths) if(MoveOne(p)) ++n;
+    return n;
+}
+bool SeparateMoved() { return s_bSeparateMoved; }
+
 void Start()
 {
     if(s_hLib) return;
@@ -86,7 +139,14 @@ void Start()
     if(!on) { logger->Info("MonetLoader: off (MonetLoader = 0 in TYFMC.MP.ini)"); return; }
     if(aml->HasMod("com.monetloader.aml") || dlopen("libmonetloader.so", RTLD_NOW | RTLD_NOLOAD))
     {
-        logger->Info("MonetLoader: a separate libmonetloader.so is in the mods folder - that one runs, MP's built-in copy is not started. Delete it from the mods folder to use the built-in MonetLoader for MP.");
+        // 4.13.64: no separate MonetLoader any more - MonetLoader for MP 3.9.1-mp (mimgui fix) is built into libMP.
+        // An old separate libmonetloader.so (the one that gave "undefined symbol: luaJIT_BC_mimgui_cdefs") is already
+        // running for this start (two MonetLoaders can't run), so it is moved out of the mods folder now: from the
+        // next start only the built-in copy runs, and there is never a duplicate.
+        const int moved = MoveSeparateAway();
+        if(moved > 0) logger->Info("MonetLoader: an old separate libmonetloader.so was found and moved to *.old (%d file%s). It runs one last time now - restart the game once and the built-in MonetLoader for MP 3.9.1-mp is used.", moved, moved == 1 ? "" : "s");
+        else logger->Info("MonetLoader: a separate libmonetloader.so is running and could not be moved - delete it from the mods folder, MonetLoader for MP 3.9.1-mp is built into libMP.");
+        s_bSeparateMoved = moved > 0;
         return;
     }
     const size_t n = (size_t)(mp_monetloader_blob_end - mp_monetloader_blob);
