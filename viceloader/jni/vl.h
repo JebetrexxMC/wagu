@@ -5,7 +5,7 @@
 #include <stdint.h>
 struct ImFont;
 
-#define VL_VERSION      "5.00.01"
+#define VL_VERSION      "5.00.02"
 #define VL_BRIDGE_PORT  47790          // src/vc/vc_overlay.inc VC_OVERLAY_PORT (the game side, 127.0.0.1 only)
 #define VL_LAN_PORT     7777           // VICE City LAN server default port
 #define VL_LAN_NAME     "VICE City LAN server"

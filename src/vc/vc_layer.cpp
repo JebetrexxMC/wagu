@@ -42,6 +42,7 @@
 #include "../net/vcmp.h"      // 4.13.40: VC:MP-style gamemode (classes, teams, server cars)
 #include "vc_data.h"
 #include "vc_puppet.h"   // 4.13.64
+#include "vc_save.h"     // 5.00.02: save guard (CheckDataNotCorrupt crash)
 #include "../ui/filepick.h"   // the phone keyboard dialog (game independent)
 #include "../../imgui/stb_image.h"   // 4.13.38: title2.png / title_logo_connected2.png (implementation in hud.cpp)
 
@@ -2073,6 +2074,45 @@ static void Draw()
     GuiFrame(sw, sh, online);   // 4.13.54: ImGui on top of the game's HUD
 }
 
+// ---- 5.00.02: save guard -----------------------------------------------------------------------------------------
+// CheckDataNotCorrupt(slot) reads GTA3sf<slot+1>.b block by block into one fixed buffer with the sizes written in the
+// file: a damaged save (or one from another version / PC) overflows it and the game aborts in OS_FileClose (Scudo
+// "invalid chunk state"). MP checks the file first (vc_save.h) and reports a broken slot as corrupt instead.
+static bool ReadWhole(const char* path, std::vector<uint8_t>& out)
+{
+    FILE* f = fopen(path, "rb");
+    if(!f) return false;
+    fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET);
+    if(n < 0 || n > 16 * 1024 * 1024) { fclose(f); out.clear(); return true; }   // not a save (empty vector = damaged)
+    out.resize((size_t)n);
+    const size_t got = n ? fread(out.data(), 1, (size_t)n, f) : 0;
+    fclose(f);
+    out.resize(got);
+    return true;
+}
+DECL_HOOK(bool, VC_CheckDataNotCorrupt, int slot, char* buf)
+{
+    static const char* const kDirs[] = { nullptr, "/storage/emulated/0/Android_unprotected/data/com.rockstargames.gtavc/files",
+                                         "/storage/emulated/0/Android/data/com.rockstargames.gtavc/files" };
+    std::vector<uint8_t> d; char path[700]; bool found = false;
+    for(const char* dir : kDirs)
+    {
+        if(!dir) dir = aml->GetAndroidDataPath();
+        if(!dir || !dir[0]) continue;
+        snprintf(path, sizeof(path), "%s/GTA3sf%d.b", dir, slot + 1);
+        if(ReadWhole(path, d)) { found = true; break; }
+    }
+    if(found && !VcSaveScan(d.data(), d.size()))
+    {
+        static uint32_t s_nWarned = 0;
+        if(!(s_nWarned & (1u << (slot & 31)))) { s_nWarned |= 1u << (slot & 31);
+            logger->Error("Vice City: save %s is damaged (a block runs past the end of the file) - shown as corrupt so the game does not crash. "
+                          "Delete or replace that file.", path); }
+        return false;
+    }
+    return VC_CheckDataNotCorrupt(slot, buf);
+}
+
 // ---- hooks --------------------------------------------------------------------------------------------------------
 DECL_HOOKv(VC_CGame_Process)
 {
@@ -2089,6 +2129,9 @@ bool Start()
 {
     s_hGame = aml->GetLibHandle("libGTAVC.so");
     if(!s_hGame) { logger->Error("Vice City: libGTAVC.so handle not found - MP stays off"); return false; }
+    if(aml->GetSym(s_hGame, "_Z19CheckDataNotCorruptiPc"))   // 5.00.02: first, so it is on even when MP itself stays off
+    { HOOKSYM(VC_CheckDataNotCorrupt, s_hGame, "_Z19CheckDataNotCorruptiPc"); logger->Info("Vice City: save guard on (CheckDataNotCorrupt)"); }
+    else logger->Info("Vice City: CheckDataNotCorrupt not found - save guard off");
     int missing = 0;
     if(!Sym(FindPlayerPed, "_Z13FindPlayerPedv", missing)) { logger->Error("Vice City: FindPlayerPed not found - this libGTAVC.so is not supported, MP stays off"); return false; }
     Sym(FindPlayerVehicle, "_Z17FindPlayerVehiclev", missing);
