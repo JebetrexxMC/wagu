@@ -1385,9 +1385,14 @@ static void Launcher(float dw, float dh)
         else
         {
             struct { const char* t; int tab; } tabs[4] = { { "Internet", VT_INTERNET }, { "Featured", VT_FEATURED }, { "Favorites", VT_FAV }, { "Lan", VT_LAN } };
+            // 4.13.64: the tab padding shrinks on a narrow (portrait) panel so "Lan" never runs under the
+            // refresh / region pin / gear / about buttons
+            const float toolsX = wp.x + ws.x - pad - btnH * 4 - UI::S(6) * 4 - UI::S(8);
+            float textW = 0; for(int i = 0; i < 4; ++i) textW += ImGui::CalcTextSize(tabs[i].t).x + UI::S(6);
+            const float tpad = ImClamp((toolsX - x - textW) / 4.0f, UI::S(10), UI::S(44));
             for(int i = 0; i < 4; ++i)
             {
-                ImVec2 ts = ImGui::CalcTextSize(tabs[i].t); float tw = ts.x + UI::S(44);
+                ImVec2 ts = ImGui::CalcTextSize(tabs[i].t); float tw = ts.x + tpad;
                 ImVec2 ta(x, y), tb(x + tw, y + btnH);
                 ImGui::SetCursorScreenPos(ta); ImGui::PushID(950 + i);
                 bool on = s_nTab == tabs[i].tab;
