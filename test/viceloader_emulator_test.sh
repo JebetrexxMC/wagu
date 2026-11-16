@@ -25,7 +25,7 @@ adb shell am start -n $PKG/.MainActivity > /dev/null; sleep 5; shot 00_start_scr
 PID0=$(adb shell pidof $PKG | tr -d '\r'); log "process $PID0"
 
 # UI test: bar, launcher, every page, dropdown, chat keyboard
-steps="bar:01_floating_bar panel:02_launcher_internet page:1:03_featured page:2:04_favorites page:4:05_add_server page:5:06_chat page:6:07_players page:7:08_voice page:8:09_monetloader page:9:10_help page:10:11_mods page:11:12_settings page:12:13_about menu:14_dropdown chat:15_chat_keyboard bar:16_back_to_bar"
+steps="bar:01_floating_bar panel:02_launcher_internet page:1:03_featured page:2:04_favorites page:4:05_add_server page:5:06_chat page:6:07_players page:7:08_voice page:8:09_monetloader page:9:10_help page:10:11_mods page:11:12_settings page:12:13_about menu:14_dropdown chat:15_chat_keyboard bar:16_back_to_bar players:17_player_list_window help:18_help_window detail:19_server_details region:20_region_pin bar:21_bar_again"
 for s in $steps; do
   name=${s##*:}; what=${s%:*}
   open_ "$what" 5
@@ -33,7 +33,7 @@ for s in $steps; do
   if alive; then log "ok    $what ($name)"; else log "CRASH $what ($name): overlay process died"; fails=$((fails+1)); adb shell am start -n $PKG/.MainActivity > /dev/null; sleep 5; PID0=$(adb shell pidof $PKG | tr -d '\r'); fi
 done
 # touch test: drag the bar and tap the middle of the screen with the launcher open
-open_ panel 3; adb shell input tap 540 1200; sleep 1; adb shell input swipe 300 1200 300 600 300; sleep 2; shot 17_touch_scroll
+open_ panel 3; adb shell input tap 540 1200; sleep 1; adb shell input swipe 300 1200 300 600 300; sleep 2; shot 22_touch_scroll
 alive && log "ok    touch / scroll in the launcher" || { log "CRASH touch / scroll"; fails=$((fails+1)); PID0=$(adb shell pidof $PKG | tr -d '\r'); }
 open_ bar 3
 open_ savelog 4
@@ -47,7 +47,7 @@ for kind in java native; do
   adb shell am start -n $PKG/.MainActivity --es crashtest $kind > /dev/null; sleep 6
   alive && adb shell am force-stop $PKG
   adb shell am start -n $PKG/.MainActivity > /dev/null; sleep 6   # exportPending -> Download/ViceLoader/crash_*.txt
-  shot "20_after_${kind}_crash"
+  shot "30_after_${kind}_crash"
 done
 adb logcat -d -v threadtime > $OUT/logs/logcat_crash_test.txt
 adb shell ls -l /sdcard/Download/ViceLoader/ 2>&1 | tail -n +1 > /dev/null; adb shell ls -l /sdcard/Download/ViceLoader/ 2>&1 | tee -a $OUT/summary.txt

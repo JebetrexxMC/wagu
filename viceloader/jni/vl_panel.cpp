@@ -480,6 +480,7 @@ static ImU32 PlayerColor(int id)
 // strip under the row: Server Description + IP + Favorite, gamemode + tags, All players, preview picture,
 // Server location + Ping stability graph (src/mp_launcher.inc LTable)
 static std::map<std::string, std::vector<int>> s_PingHist;   // row key -> last 40 pings (1 a second)
+static bool s_bTestSelFirst = false;   // emulator test hook (--es open detail): open the first row's detail strip
 static ImU32 VlModeColor(const VlRow& r)
 {
     if(r.modeCol > 0 && r.modeCol < kModeColCount) return kModeCols[r.modeCol].col;
@@ -578,6 +579,7 @@ static void Table(std::vector<VlRow>& rows, float w, float h)
         }
     }
     const float W = ImGui::GetContentRegionAvail().x;
+    if(s_bTestSelFirst && !rows.empty()) { s_bTestSelFirst = false; RowKey(rows[0], s_szSel, sizeof(s_szSel)); }
     for(size_t i = 0; i < rows.size(); ++i)
     {
         VlRow& r = rows[i]; RowKey(r, key, sizeof(key));
@@ -1543,6 +1545,12 @@ void VL_SetPref(const char* key, const char* value)
 {
     if(!strcmp(key, "bundle")) s_Bundle = value ? value : "";
     else if(!strcmp(key, "tab") && value) { s_nTab = ImClamp(atoi(value), 0, VT_COUNT - 1); s_nMode = VL_MODE_PANEL; }
+    else if(!strcmp(key, "test") && value)
+    {   // emulator test hooks (MainActivity --es open region | detail)
+        s_nMode = VL_MODE_PANEL; s_nTab = VT_INTERNET;
+        if(!strcmp(value, "region")) { s_bRegionPick = true; s_nRegionToggleMs = MP_NowMs(); }
+        else if(!strcmp(value, "detail")) s_bTestSelFirst = true;
+    }
     else if(!strcmp(key, "crashtest")) { logger->Info("crash test (native)"); volatile int* p = nullptr; *p = 1; }   // checks vl_crash.cpp
     else if(!strcmp(key, "mic")) { if(GameLinked()) BrSend("MIC"); else AddChat(0xFF6060FF, "Voice chat: start GTA Vice City with MP and join a server first."); }
     else if(!strcmp(key, "bar") && value) sscanf(value, "%f %f %f %f", &s_BarX, &s_BarY, &s_BarW, &s_BarH);

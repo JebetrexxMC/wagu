@@ -83,6 +83,8 @@ public class OverlayService extends Service {
             int m = intent.getIntExtra("mode", Native.MODE_PANEL);
             if (m == Native.MODE_BUBBLE) { if (mGl != null) mGl.queueEvent(() -> Native.open(Native.MODE_BUBBLE)); setMode(Native.MODE_BUBBLE); }
             else openFromBubble(m);
+            final String t = intent.getStringExtra("test");
+            if (t != null && mGl != null) mGl.queueEvent(() -> Native.setPref("test", t));
         }
         if (intent != null && intent.hasExtra("crashtest") && mGl != null) {   // checks the crash log (vl_crash.cpp / CrashLog.java)
             String k = intent.getStringExtra("crashtest");
