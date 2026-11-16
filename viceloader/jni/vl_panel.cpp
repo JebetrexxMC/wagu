@@ -693,7 +693,7 @@ static void PageHelp(float w)
     Label("Type /help in the chat for the server's own commands (they come from the server's gamemode).", kVText, 0.88f);
     Heading("NOTHING SHOWS?");
     Label("Allow 'Display over other apps' for VICE Loader (Android settings). The game link turns green in Settings > Connection "
-          "when GTA Vice City runs MP 4.13.63 or newer.", kVText, 0.88f);
+          "when GTA Vice City runs MP 4.13.64 or newer.", kVText, 0.88f);
 }
 static void PageMods(float w)
 {
@@ -771,7 +771,7 @@ static void PageSettings(float w)
         char t[200];
         snprintf(t, sizeof(t), "Online lobby: %s %s", Online::IsConnected() ? "connected -" : "connecting...", Online::BrokerName());
         Label(t, Online::IsConnected() ? IM_COL32(95, 211, 95, 255) : kVDim, 0.85f);
-        snprintf(t, sizeof(t), "Game link: %s", GameLinked() ? "connected (127.0.0.1:47790)" : "waiting for GTA Vice City with MP 4.13.63+");
+        snprintf(t, sizeof(t), "Game link: %s", GameLinked() ? "connected (127.0.0.1:47790)" : "waiting for GTA Vice City with MP 4.13.64+");
         Label(t, GameLinked() ? IM_COL32(95, 211, 95, 255) : kVDim, 0.85f);
         ImGui::Dummy(ImVec2(1, UI::S(8)));
         if(VBtn("lgame", "LAUNCH GTA VICE CITY", UI::S(460), UI::S(66), 1, true, IC_PLAY)) VL_JavaCall("launch", "");
