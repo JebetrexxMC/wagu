@@ -41,6 +41,7 @@
 #include "../net/safezone.h"
 #include "../net/vcmp.h"      // 4.13.40: VC:MP-style gamemode (classes, teams, server cars)
 #include "vc_data.h"
+#include "vc_puppet.h"   // 4.13.64
 #include "../ui/filepick.h"   // the phone keyboard dialog (game independent)
 #include "../../imgui/stb_image.h"   // 4.13.38: title2.png / title_logo_connected2.png (implementation in hud.cpp)
 
@@ -347,6 +348,8 @@ struct Remote
     int     vsCol[2] = {-1, -1}, vsAppliedCol[2] = {-1, -1}; int vsHealth = -1; uint16_t vsModel = 0;
     float   lastGoto[2] = {0, 0}; uint64_t nextGoto = 0; int gotoMode = -1;
     uint64_t lastShot = 0, jackedUntil = 0; float shotDir[2] = {0, 0};
+    // 4.13.64: San Andreas puppet control (vc_puppet.h)
+    float   interval = 0; uint64_t gotoAt = 0, nextCalm = 0; float aim[3] = {0, 0, 0};
 };
 static Remote s_Players[256];
 static void* s_AvPed[256];   // this frame's avatar entities (hooks: "was this explosion / fire made by an avatar")
@@ -420,15 +423,28 @@ static int MapWeather(int sa)
 static bool IsBlastWeapon(int w) { return (w >= 12 && w <= 16) || w == 30 || w == 31; }
 static bool ValidVcWeapon(int w) { return w >= 0 && w <= 33; }
 
-struct ChatLine { std::string text; uint32_t color; uint64_t at; };
+// 4.13.64: like San Andreas MP chat lines: a player line keeps the name apart (drawn in the player's colour, then ": ",
+// then the message in white); text = the whole line (VICE Loader overlay, log)
+struct ChatLine { std::string text; uint32_t color; uint64_t at; std::string prefix; uint32_t prefixColor = 0xFFFFFFFF; std::string body; };
 static std::vector<ChatLine> s_Chat;
+static uint32_t s_nMyColor = 0xFFFFFFFF;   // ABGR, my own colour from the server (name tag + my chat name)
+static int s_nMyHp = 100, s_nMyArmour = 0;  // my own name tag
 static void OverlayChat(uint32_t color, const char* text);   // 4.13.63: VICE Loader overlay (vc_overlay.inc)
 static void Chat(uint32_t color, const char* fmt, ...)
 {
     char buf[256]; va_list ap; va_start(ap, fmt); vsnprintf(buf, sizeof(buf), fmt, ap); va_end(ap);
     s_Chat.push_back({ buf, color, MP_NowMs() });
     OverlayChat(color, buf);
-    if(s_Chat.size() > 10) s_Chat.erase(s_Chat.begin());
+    if(s_Chat.size() > 30) s_Chat.erase(s_Chat.begin());
+    logger->Info("Vice City chat: %s", buf);
+}
+static void ChatPlayer(const char* name, uint32_t nameColor, const char* text)
+{   // "Name: text" - the name in the player's colour, the text white (San Andreas MP)
+    char buf[256]; snprintf(buf, sizeof(buf), "%s: %s", name, text);
+    ChatLine l; l.text = buf; l.color = 0xFFFFFFFF; l.at = MP_NowMs(); l.prefix = name; l.prefixColor = nameColor ? (nameColor | 0xFF000000) : 0xFFFFFFFF; l.body = text;
+    s_Chat.push_back(l);
+    OverlayChat(0xFFFFFFFF, buf);
+    if(s_Chat.size() > 30) s_Chat.erase(s_Chat.begin());
     logger->Info("Vice City chat: %s", buf);
 }
 static void Help(const char* text)
@@ -573,6 +589,9 @@ public:
         memcpy(r.target, at, 12);
         r.heading = r.inCar ? p.d.carHeading : p.d.heading;
         r.health = p.d.health; r.armour = p.d.armour; r.weapon = p.d.weapon; r.flags = p.d.flags; r.skin = p.d.skin; r.speed = p.d.speed;
+        if(r.hasSync && r.at && now > r.at && now - r.at < 2000)   // their send interval (stale = 2.5 x this, like SA)
+            r.interval = r.interval > 0 ? r.interval * 0.8f + (float)(now - r.at) * 0.2f : (float)(now - r.at);
+        memcpy(r.aim, p.d.aim, 12);
         r.at = now;
         if(ext)
         {
@@ -595,7 +614,7 @@ public:
     {
         char t[MP_CHAT_LEN + 1]; memcpy(t, p.text, MP_CHAT_LEN); t[MP_CHAT_LEN] = 0;
         const char* n = p.id == s_nMyId ? cfg.name : (s_Players[p.id].used ? s_Players[p.id].name : "?");
-        Chat(0xFFFFFFFF, "%s: %s", n, t);
+        ChatPlayer(n, p.id == s_nMyId ? s_nMyColor : (s_Players[p.id].used ? s_Players[p.id].color : 0xFFFFFFFF), t);
     }
     void OnDeath(const PktDeath& p) override
     {
@@ -745,6 +764,7 @@ public:
     }
     void OnSetColor(const PktSetColor& c) override
     {
+        if(c.id == s_nMyId) { s_nMyColor = RgbaToAbgr(c.color); return; }
         Remote& r = s_Players[c.id];
         if(!r.used) return;
         r.color = RgbaToAbgr(c.color); r.rgba = c.color;
@@ -1149,33 +1169,48 @@ static void UpdateRemotes(uint64_t now, float dt)
         // crouch
         const bool duck = (r.flags & SYNC_DUCKING) != 0;
         if(duck != r.ducking) { Cmd(OP_SET_CHAR_CROUCH, "iii", r.pedRef, duck ? 1 : 0, duck ? 0x7FFFFFFF : 0); r.ducking = duck; }
-        // on foot: the game walks / runs / sprints them (real animations); far off = teleport
+        // 4.13.64: on foot like San Andreas MP (vc_puppet.h): the avatar is a puppet of the player's sync, not a street
+        // ped walking to a point by itself. Gait from their speed, a goal 4 m ahead, catch-up gait, smooth correction,
+        // stand still when the sync is late, face the aim while shooting, snap only when 4 m off.
+        if(now >= r.nextCalm)
+        {   // no own reactions (fleeing, fighting back, looking for threats) - like SA's empty decision maker
+            Cmd(OP_CLEAR_CHAR_THREAT_SEARCH, "i", r.pedRef);
+            Cmd(OP_SET_CHAR_STAY_IN_SAME_PLACE, "ii", r.pedRef, 1);
+            r.nextCalm = now + 2000;
+        }
+        VcPuppet::In pin; memset(&pin, 0, sizeof(pin));
         const float* pp = MatPos(ped);
-        const float d = Dist3(pp, tgt);
-        const float spd = sqrtf(r.vel[0] * r.vel[0] + r.vel[1] * r.vel[1]);
-        if(d > 8.f)
+        memcpy(pin.cur, pp, 12); memcpy(pin.tgt, tgt, 12); memcpy(pin.vel, r.vel, 12);
+        pin.heading = r.heading;
+        { const float* fw = MatFwd(ped); float h = atan2f(-fw[0], fw[1]) * 57.2957795f; pin.pedHeading = h < 0 ? h + 360.0f : h; }
+        pin.staleMs = (float)(now - r.at); pin.intervalMs = r.interval;
+        pin.shooting = (r.flags & SYNC_SHOOTING) || now - r.lastShot < 600;
+        if(now - r.lastShot < 600) { pin.aimDir[0] = r.shotDir[0]; pin.aimDir[1] = r.shotDir[1]; }
+        else if(r.aim[0] != 0 || r.aim[1] != 0) { pin.aimDir[0] = r.aim[0] - tgt[0]; pin.aimDir[1] = r.aim[1] - tgt[1]; }
+        pin.dt = dt; pin.lastGait = r.gotoMode; memcpy(pin.lastGoal, r.lastGoto, 8);
+        pin.msSinceGoal = (float)(now - r.gotoAt);
+        const VcPuppet::Out po = VcPuppet::Step(pin);
+        if(po.snap)
         {
             CVector at = { tgt[0], tgt[1], tgt[2] };
             if(PedTeleport) PedTeleport(ped, at); else { float* p = MatPos(ped); p[0] = at.x; p[1] = at.y; p[2] = at.z; }
             Cmd(OP_SET_CHAR_OBJ_NO_OBJ, "i", r.pedRef); r.gotoMode = 0;
-        }
-        else if(spd > 0.4f || d > 1.2f)
-        {
-            const float aim[2] = { tgt[0] + r.vel[0] * 0.5f, tgt[1] + r.vel[1] * 0.5f };
-            const int mode = spd > 5.5f ? 3 : (spd > 2.5f || d > 4.f) ? 2 : 1;
-            if(mode != r.gotoMode || Dist2D(aim, r.lastGoto) > 0.75f || now >= r.nextGoto)
-            {
-                const uint16_t op = mode == 3 ? OP_SET_CHAR_OBJ_SPRINT_TO_COORD : mode == 2 ? OP_SET_CHAR_OBJ_RUN_TO_COORD : OP_SET_CHAR_OBJ_GOTO_COORD_ON_FOOT;
-                Cmd(op, "iff", r.pedRef, aim[0], aim[1]);
-                r.gotoMode = mode; r.lastGoto[0] = aim[0]; r.lastGoto[1] = aim[1]; r.nextGoto = now + 1000;
-            }
-        }
-        else
-        {
-            if(r.gotoMode != 0) { Cmd(OP_SET_CHAR_OBJ_NO_OBJ, "i", r.pedRef); r.gotoMode = 0; }
             if(SetHeading) SetHeading(ped, rad);
+            continue;
         }
-        if(now - r.lastShot < 600 && SetHeading && (r.shotDir[0] != 0 || r.shotDir[1] != 0)) SetHeading(ped, atan2f(-r.shotDir[0], r.shotDir[1]));
+        if(po.stop) { Cmd(OP_SET_CHAR_OBJ_NO_OBJ, "i", r.pedRef); r.gotoMode = 0; }
+        if(po.issue)
+        {
+            const uint16_t op = po.gait == VcPuppet::GAIT_SPRINT ? OP_SET_CHAR_OBJ_SPRINT_TO_COORD
+                              : po.gait == VcPuppet::GAIT_RUN ? OP_SET_CHAR_OBJ_RUN_TO_COORD : OP_SET_CHAR_OBJ_GOTO_COORD_ON_FOOT;
+            Cmd(op, "iff", r.pedRef, po.goal[0], po.goal[1]);
+            r.gotoMode = po.gait; r.lastGoto[0] = po.goal[0]; r.lastGoto[1] = po.goal[1]; r.gotoAt = now;
+        }
+        if(po.step[0] != 0 || po.step[1] != 0 || po.step[2] != 0)
+        {   // nudge, keep the physics (SA NudgeEntity)
+            float* q = MatPos(ped); q[0] += po.step[0]; q[1] += po.step[1]; q[2] += po.step[2];
+        }
+        if(po.turn && SetHeading) SetHeading(ped, po.newHeading * 3.14159265f / 180.0f);
     }
 }
 
@@ -1238,6 +1273,7 @@ static void SendMySync(uint64_t now)
     if(s_nMyChar >= 0) Cmd(OP_GET_CHAR_ARMOUR, "iv", s_nMyChar, &ar);
     s_nMyWeapon = ValidVcWeapon((int)wp) ? (int)wp : 0;
     p.d.health = (uint8_t)(hp > 255 ? 255 : hp); p.d.armour = (uint8_t)(ar > 255 ? 255 : ar); p.d.weapon = (uint8_t)s_nMyWeapon;
+    s_nMyHp = p.d.health; s_nMyArmour = p.d.armour;
     const int skin = *(int16_t*)((uint8_t*)ped + ENT_MODEL);   // CEntity::m_modelIndex
     p.d.skin = (uint16_t)(skin >= 0 && skin < 200 ? skin : 0);
     memcpy(p.d.aim, s_LastAim, 12);
@@ -1362,7 +1398,7 @@ static void SendChatText(const char* text)
     c.type = PKT_CHAT; c.id = (uint8_t)s_nMyId;
     MP_CopyStr(c.text, text, MP_CHAT_LEN);
     s_Client.Send(&c, sizeof(c));
-    if(text[0] != '/') Chat(0xFFFFFFFF, "%s: %s", cfg.name, text);   // the server sends chat to the others only
+    if(text[0] != '/') ChatPlayer(cfg.name, s_nMyColor, text);   // the server sends chat to the others only
 }
 static void Ask(int what, const char* title, const char* init, int maxLen, bool numeric)
 {
@@ -1790,6 +1826,165 @@ static void DrawTitles(float sw, float sh, bool online, uint64_t now)
 }
 
 #include "vc_gui.inc"   // 4.13.54: the San Andreas MP interface (top bar, launcher, pages, voice, dialogs); leaves namespace VC open
+
+// ---- 4.13.64: chat + name tags exactly like San Andreas MP (src/ui/hud.cpp DrawChat / DrawNameTag) ------------------
+// Same place, sizes (UI::S = px * screen height / 1080), colours, fade, outline (UI::OutlinedText: black 4-way copy,
+// 6 % of the size), wrapping and {RRGGBB} colour codes. The letters are Vice City's CFont (in-game ImGui is off on VC).
+static float SaS(float px, float sh) { return px * sh / 1080.0f; }
+static float s_fFontY = 1.0f;   // the CFont y scale of FontPx()
+static void FontPx(float px)
+{   // CFont line ~22 px at y scale 1 (the HUD calibration of the old tags / chat): px tall letters
+    s_fFontY = px / 22.0f;
+    if(FontSetScale) FontSetScale(0.8f * s_fFontY, 1.0f * s_fFontY);
+}
+static uint32_t WithAlpha(uint32_t abgr, float a) { const unsigned A = (unsigned)((abgr >> 24) * (a < 0 ? 0 : a > 1 ? 1 : a)); return (abgr & 0x00FFFFFF) | (A << 24); }
+static void OutlinedText(float x, float y, const char* t, uint32_t abgr, float px, float alpha = 1.0f)
+{
+    if(FontSetDropShadow) FontSetDropShadow(0);
+    const float o = fmaxf(1.0f, px * 0.06f);
+    const uint32_t k = WithAlpha(0xFF000000, alpha);
+    Text(x - o, y, t, k); Text(x + o, y, t, k); Text(x, y - o, t, k); Text(x, y + o, t, k);
+    Text(x, y, t, WithAlpha(abgr, alpha));
+}
+static bool ColCode(const char* p, const char* e, uint32_t& abgr)
+{   // SA-MP "{RRGGBB}"
+    if(e - p < 8 || p[0] != '{' || p[7] != '}') return false;
+    unsigned v = 0;
+    for(int i = 1; i <= 6; ++i) { char c = p[i]; int d = c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1; if(d < 0) return false; v = v * 16 + d; }
+    abgr = 0xFF000000 | ((v & 255) << 16) | (v & 0xFF00) | ((v >> 16) & 255);
+    return true;
+}
+static std::string StripCodes(const std::string& t)
+{
+    std::string o; uint32_t c; const char* p = t.c_str(); const char* e = p + t.size();
+    while(p < e) { if(*p == '{' && ColCode(p, e, c)) { p += 8; continue; } o += *p++; }
+    return o;
+}
+static void ColText(float x, float y, const std::string& t, uint32_t col, float px, float alpha)
+{   // a row with colour codes: each part in its colour
+    const char* p = t.c_str(); const char* e = p + t.size(); const char* seg = p; uint32_t c = col, nc;
+    while(p < e)
+    {
+        if(*p == '{' && ColCode(p, e, nc))
+        {
+            if(p > seg) { std::string part(seg, p); OutlinedText(x, y, part.c_str(), c, px, alpha); x += TextW(part.c_str(), s_fFontY); }
+            c = nc; p += 8; seg = p; continue;
+        }
+        ++p;
+    }
+    if(p > seg) { std::string part(seg, p); OutlinedText(x, y, part.c_str(), c, px, alpha); }
+}
+static float CodeTextW(const std::string& t) { return TextW(StripCodes(t).c_str(), s_fFontY); }
+static void DrawChatSA(float sw, float sh, uint64_t now)
+{
+    const float ts = cfg.textScale > 0.3f ? cfg.textScale : 1.0f;   // Settings > Chat text size (SA chat scale)
+    const float fs = SaS(27.0f, sh) * 0.80f * ts, rowH = fs + SaS(3.0f, sh) * 0.80f * ts;
+    const float x = sw * 0.22f, y0 = sh * 0.02f;
+    const float W = fmaxf(SaS(120, sh), fminf(sw * 0.42f, sw - x - SaS(8, sh)));
+    const bool open = s_bTyping;
+    const int maxRows = open ? 10 : 6;   // SA: 6 lines (/pagesize), 10 while the chat box is open
+    FontPx(fs);
+    struct Row { const ChatLine* l; bool first; std::string text; float alpha; uint32_t col; };
+    std::vector<Row> rows;
+    for(int i = (int)s_Chat.size() - 1; i >= 0 && (int)rows.size() < maxRows; --i)
+    {
+        const ChatLine& l = s_Chat[i];
+        float alpha = 1.0f;
+        if(!open)
+        {   // 25 s, the last 1.5 s fade out
+            const float age = (float)(now - l.at) / 1000.0f, life = 25.0f;
+            if(age >= life) break;
+            if(age > life - 1.5f) alpha = (life - age) / 1.5f;
+        }
+        const std::string pre = l.prefix.empty() ? "" : l.prefix + ": ";
+        const std::string t = l.prefix.empty() ? l.text : l.body;
+        const float preW = pre.empty() ? 0 : TextW(pre.c_str(), s_fFontY);
+        std::vector<Row> mine;
+        size_t s = 0; bool first = true;
+        do
+        {   // word wrap at the chat width
+            const float avail = first ? fmaxf(W - preW, SaS(40, sh)) : W - SaS(14, sh) * 0.8f * ts;
+            size_t cut = t.size(), lastSp = std::string::npos;
+            for(size_t j = s; j < t.size(); ++j)
+            {
+                if(t[j] == ' ') lastSp = j;
+                if(CodeTextW(t.substr(s, j + 1 - s)) > avail) { cut = (lastSp != std::string::npos && lastSp > s) ? lastSp : (j > s ? j : s + 1); break; }
+            }
+            uint32_t rc = l.color, nc;   // the colour in effect where this row starts
+            for(size_t q = 0; q < s; ++q) if(t[q] == '{' && ColCode(t.c_str() + q, t.c_str() + t.size(), nc)) { rc = nc; q += 7; }
+            mine.push_back({ &l, first, t.substr(s, cut - s), alpha, rc });
+            s = cut; while(s < t.size() && t[s] == ' ') ++s;
+            first = false;
+        } while(s < t.size() && mine.size() < 6);
+        for(int k = (int)mine.size() - 1; k >= 0 && (int)rows.size() < maxRows; --k) rows.push_back(mine[k]);
+    }
+    if(rows.empty()) return;
+    const float h = rows.size() * rowH;
+    float bgA = 0; for(auto& r : rows) bgA = fmaxf(bgA, r.alpha);
+    Box(x - SaS(6, sh), y0 - SaS(4, sh), x + W + SaS(6, sh), y0 + h + SaS(4, sh), CRGBA{ 0, 0, 0, (uint8_t)(85 * bgA) });   // SA chatBg strip
+    float y = y0 + h;
+    for(auto& r : rows)   // newest at the bottom
+    {
+        y -= rowH;
+        float cx = x;
+        if(r.first && !r.l->prefix.empty())
+        {
+            const std::string pre = r.l->prefix + ": ";
+            OutlinedText(cx, y, pre.c_str(), r.l->prefixColor, fs, r.alpha);
+            cx += TextW(pre.c_str(), s_fFontY);
+        }
+        else if(!r.first) cx += SaS(14, sh) * 0.8f * ts;   // wrapped rest: small indent
+        ColText(cx, y, r.text, r.col, fs, r.alpha);
+    }
+}
+static void DrawSpeakerBoxes(float cx, float cy, float r, CRGBA c)
+{   // UI::DrawSpeaker from boxes: the magnet, the cone, two sound waves
+    Box(cx - r * 0.85f, cy - r * 0.30f, cx - r * 0.45f, cy + r * 0.30f, c);
+    for(int i = 0; i < 4; ++i) { const float a = cx - r * 0.45f + i * r * 0.15f, hh = r * (0.32f + i * 0.13f); Box(a, cy - hh, a + r * 0.16f, cy + hh, c); }
+    Box(cx + r * 0.35f, cy - r * 0.35f, cx + r * 0.47f, cy + r * 0.35f, c);
+    Box(cx + r * 0.65f, cy - r * 0.62f, cx + r * 0.77f, cy + r * 0.62f, c);
+}
+static void DrawNameTagSA(float sh, const float* pedPos, const float* camRef, const char* name, uint32_t abgr, int health, int armour, int paused, bool talking)
+{
+    const float dx = pedPos[0] - camRef[0], dy = pedPos[1] - camRef[1], dz = pedPos[2] - camRef[2];
+    if(sqrtf(dx * dx + dy * dy + dz * dz) > 60.0f) return;   // SA nametagDistance
+    RwV3d in = { pedPos[0], pedPos[1], pedPos[2] + 1.0f + 0.30f }, out; float w, h;   // drawPos (+1 m) + 0.30, like SA
+    if(!CalcScreenCoors(in, &out, &w, &h, true) || out.z <= 0.5f) return;
+    const float sx = out.x, sy = out.y;
+    const float fs = SaS(26.0f, sh);
+    FontPx(fs);
+    float y = sy - fs - SaS(4, sh);
+    const float nameY = y;
+    if(paused)
+    {
+        const float pfs = fs * 0.8f; FontPx(pfs);
+        const char* pl = paused == 2 ? "AFK" : "PAUSED";
+        OutlinedText(sx - TextW(pl, s_fFontY) * 0.5f, y - pfs - SaS(2, sh), pl, paused == 2 ? 0xFF3C96FF : 0xFF3CD2FF, pfs);   // (255,150,60) / (255,210,60)
+        FontPx(fs);
+    }
+    if(talking)
+    {   // white speaker over the head (voice chat), black shadow
+        const float r = SaS(15, sh);
+        const float cy = y - (paused ? fs * 0.8f + SaS(4, sh) : 0) - r - SaS(4, sh);
+        DrawSpeakerBoxes(sx + SaS(1.5f, sh), cy + SaS(1.5f, sh), r, CRGBA{ 0, 0, 0, 200 });
+        DrawSpeakerBoxes(sx, cy, r, CRGBA{ 255, 255, 255, 255 });
+    }
+    OutlinedText(sx - TextW(name, s_fFontY) * 0.5f, nameY, name, abgr ? (abgr | 0xFF000000) : 0xFFFFFFFF, fs);
+    y = nameY + fs + SaS(3, sh);
+    const float bw = SaS(68, sh), bh = SaS(9, sh), b = fmaxf(1.0f, SaS(2, sh));
+    auto Bar = [&](float frac, CRGBA bg, CRGBA fg)
+    {
+        if(frac < 0) frac = 0;
+        if(frac > 1) frac = 1;
+        const float l = sx - bw * 0.5f;
+        Box(l - b, y - b, l + bw + b, y + bh + b, CRGBA{ 0, 0, 0, 255 });
+        Box(l, y, l + bw, y + bh, bg);
+        Box(l, y, l + bw * frac, y + bh, fg);
+        y += bh + b * 2 + SaS(2, sh);
+    };
+    if(armour > 0) Bar(armour / 100.0f, CRGBA{ 40, 40, 40, 255 }, CRGBA{ 200, 200, 200, 255 });
+    Bar(health / 100.0f, CRGBA{ 75, 11, 20, 255 }, CRGBA{ 185, 34, 30, 255 });
+}
 static void Draw()
 {
     if(!FontPrint || !ScreenH || !FindPlayerPed || !FindPlayerPed()) return;
@@ -1825,51 +2020,29 @@ static void Draw()
             x += (bw[i] + 14.f) * sc;
         }
     }
-    float y = sh * 0.30f;
-    for(auto& l : s_Chat)
-    {
-        if(now - l.at > 15000) continue;
-        Text(sh * 0.03f, y, l.text.c_str(), l.color);
-        y += 26.0f * sc;
-    }
+    // 4.13.64: chat + name tags exactly like San Andreas MP
+    if(DrawRect || FontPrint) DrawChatSA(sw, sh, now);
     if(online && CalcScreenCoors && cfg.nameTags)
-    {   // 4.13.64: name tags like San Andreas MP (src/ui/hud.cpp DrawNameTag): "name (id)" in the player's colour,
-        // PAUSED (yellow) over it, then the armour bar (grey) and the health bar (red) with a black edge under it
+    {
+        void* meP = FindPlayerPed();
+        const float* ref = MatPos(meP);
         for(int i = 0; i < 256; ++i)
         {
             Remote& r = s_Players[i];
-            if(!r.used || !r.hasSync || r.pedRef < 0) continue;
+            if(!r.used || !r.hasSync || r.pedRef < 0 || (r.flags & SYNC_DEAD)) continue;
             void* ped = RemotePed(r);
             if(!ped) continue;
-            const float* p = MatPos(ped);
-            RwV3d in = { p[0], p[1], p[2] + 1.15f }, out; float w, h;
-            if(!CalcScreenCoors(in, &out, &w, &h, true) || out.z <= 0.5f || out.z > 80.0f) continue;
             char tag[MP_NAME_LEN + 16]; snprintf(tag, sizeof(tag), "%s (%d)", r.name, i);
-            const float fh = 22.0f * sc;   // CFont line height at the HUD scale
-            float y = out.y - fh;
-            if(r.paused)
-            {
-                const char* pl = "PAUSED";
-                Text(out.x - TextW(pl, sc) * 0.5f, y - fh, pl, 0xFF3CD2FF);   // ABGR: (255, 210, 60) yellow like San Andreas
-            }
-            Text(out.x - TextW(tag, sc) * 0.5f, y, tag, r.color ? (r.color | 0xFF000000) : 0xFFFFFFFF);
-            y += fh + 3.0f * sc;
-            if(DrawRect)
-            {
-                const float bw = 68.0f * sc, bh = 9.0f * sc, e = fmaxf(1.0f, 2.0f * sc), bl = out.x - bw * 0.5f;
-                auto Bar = [&](float frac, CRGBA bg, CRGBA fg)
-                {
-                    if(frac < 0) frac = 0; if(frac > 1) frac = 1;
-                    Box(bl - e, y - e, bl + bw + e, y + bh + e, CRGBA{ 0, 0, 0, 255 });
-                    Box(bl, y, bl + bw, y + bh, bg);
-                    Box(bl, y, bl + bw * frac, y + bh, fg);
-                    y += bh + e * 2 + 2.0f * sc;
-                };
-                if(r.armour > 0) Bar(r.armour / 100.0f, CRGBA{ 40, 40, 40, 255 }, CRGBA{ 200, 200, 200, 255 });
-                Bar(r.health / 100.0f, CRGBA{ 75, 11, 20, 255 }, CRGBA{ 185, 34, 30, 255 });
-            }
+            DrawNameTagSA(sh, MatPos(ped), ref, tag, r.color, r.health, r.armour, r.paused ? 1 : 0, s_bVoiceInit && Voice::IsSpeaking(i));
+        }
+        if(s_nMyId >= 0 && !s_bDead)
+        {   // SA shows your own tag too (Settings > own tag)
+            char tag[MP_NAME_LEN + 16]; snprintf(tag, sizeof(tag), "%s (%d)", cfg.name, s_nMyId);
+            DrawNameTagSA(sh, ref, ref, tag, s_nMyColor, s_nMyHp, s_nMyArmour, 0, s_bVoiceInit && Voice::MicTalking());
         }
     }
+    if(FontSetScale) FontSetScale(0.8f * sc, 1.0f * sc);
+    if(FontSetDropShadow) FontSetDropShadow(1);
     if(online && s_bScoreboard && !gui) DrawScoreboard(sw, sh, sc);
     if(online && !s_KillFeed.empty() && FontSetRightOn)
     {   // 4.13.40: kill feed, top right (VC:MP death window)
