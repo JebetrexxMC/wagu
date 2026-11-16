@@ -2090,6 +2090,38 @@ static bool ReadWhole(const char* path, std::vector<uint8_t>& out)
     out.resize(got);
     return true;
 }
+// The real crash (realme RE6054, Android 16): when a read fails inside CheckDataNotCorrupt (a save that is shorter than
+// this game version expects), ReadDataFromFile already closes the file and CheckDataNotCorrupt closes it AGAIN. Old
+// Android ignored that double free, Android 15/16 (Scudo) aborts: "invalid chunk state when deallocating" in
+// OS_FileClose. While the save check runs, MP lets each file handle close only once.
+static bool  s_bInSaveCheck = false;
+static void* s_aClosed[8]; static int s_nClosed = 0;
+static int   s_nDoubleClose = 0;
+DECL_HOOK(int, VC_OS_FileClose, void* h)
+{
+    if(s_bInSaveCheck && h)
+    {
+        for(int i = 0; i < s_nClosed; ++i) if(s_aClosed[i] == h) { ++s_nDoubleClose; return 0; }   // already closed: skip
+        if(s_nClosed < 8) s_aClosed[s_nClosed++] = h;
+    }
+    return VC_OS_FileClose(h);
+}
+static bool s_bCloseGuard = false;   // OS_FileClose hooked
+static bool CheckSaveOriginal(int slot, char* buf)
+{
+    s_bInSaveCheck = s_bCloseGuard; s_nClosed = 0; s_nDoubleClose = 0;
+    const bool ok = VC_CheckDataNotCorrupt(slot, buf);
+    s_bInSaveCheck = false; s_nClosed = 0;
+    if(s_nDoubleClose)
+    {
+        static uint32_t s_nTold = 0;
+        if(!(s_nTold & (1u << (slot & 31)))) { s_nTold |= 1u << (slot & 31);
+            logger->Error("Vice City: save slot %d (GTA3sf%d.b) is incomplete or from another game version - the game closed it twice, "
+                          "MP blocked the second close so the game does not crash. The slot shows as corrupt.", slot + 1, slot + 1); }
+        return false;
+    }
+    return ok;
+}
 DECL_HOOK(bool, VC_CheckDataNotCorrupt, int slot, char* buf)
 {
     static const char* const kDirs[] = { nullptr, "/storage/emulated/0/Android_unprotected/data/com.rockstargames.gtavc/files",
@@ -2110,7 +2142,7 @@ DECL_HOOK(bool, VC_CheckDataNotCorrupt, int slot, char* buf)
                           "Delete or replace that file.", path); }
         return false;
     }
-    return VC_CheckDataNotCorrupt(slot, buf);
+    return CheckSaveOriginal(slot, buf);
 }
 
 // ---- hooks --------------------------------------------------------------------------------------------------------
@@ -2130,7 +2162,11 @@ bool Start()
     s_hGame = aml->GetLibHandle("libGTAVC.so");
     if(!s_hGame) { logger->Error("Vice City: libGTAVC.so handle not found - MP stays off"); return false; }
     if(aml->GetSym(s_hGame, "_Z19CheckDataNotCorruptiPc"))   // 5.00.02: first, so it is on even when MP itself stays off
-    { HOOKSYM(VC_CheckDataNotCorrupt, s_hGame, "_Z19CheckDataNotCorruptiPc"); logger->Info("Vice City: save guard on (CheckDataNotCorrupt)"); }
+    {
+        if(aml->GetSym(s_hGame, "_Z12OS_FileClosePv")) { HOOKSYM(VC_OS_FileClose, s_hGame, "_Z12OS_FileClosePv"); s_bCloseGuard = true; }
+        HOOKSYM(VC_CheckDataNotCorrupt, s_hGame, "_Z19CheckDataNotCorruptiPc");
+        logger->Info("Vice City: save guard on (CheckDataNotCorrupt, double close guard %s)", s_bCloseGuard ? "on" : "OFF - OS_FileClose not found");
+    }
     else logger->Info("Vice City: CheckDataNotCorrupt not found - save guard off");
     int missing = 0;
     if(!Sym(FindPlayerPed, "_Z13FindPlayerPedv", missing)) { logger->Error("Vice City: FindPlayerPed not found - this libGTAVC.so is not supported, MP stays off"); return false; }

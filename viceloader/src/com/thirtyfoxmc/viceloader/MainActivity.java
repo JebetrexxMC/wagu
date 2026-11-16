@@ -39,7 +39,7 @@ public class MainActivity extends Activity {
         t.setTextColor(Color.WHITE); t.setTextSize(28); t.setTypeface(Typeface.DEFAULT_BOLD);
         col.addView(t);
         TextView s = new TextView(this);
-        s.setText("MP Launcher v5.00.02 for GTA Vice City - the San Andreas MP floating bar (menu, chat, voice, MonetLoader), Internet server list with the 24/7 VICE City LAN server, chat, virtual keyboard, settings and about pages as a display-over-apps overlay. MP with MonetLoader built in. No login.");
+        s.setText("MP Launcher v5.00.03 for GTA Vice City - the San Andreas MP floating bar (menu, chat, voice, MonetLoader), Internet server list with the 24/7 VICE City LAN server, chat, virtual keyboard, settings and about pages as a display-over-apps overlay. MP with MonetLoader built in. No login.");
         s.setTextColor(Color.rgb(150, 157, 166)); s.setTextSize(14); s.setPadding(0, (int) (8 * d), 0, (int) (16 * d));
         col.addView(s);
         mStatus = new TextView(this);
