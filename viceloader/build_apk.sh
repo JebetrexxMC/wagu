@@ -2,7 +2,7 @@
 # 4.13.63: builds ViceLoader.apk (VICE Loader for GTA Vice City) without Gradle.
 #   source ~/env.sh   (JAVA_HOME, NDK_HOME, ANDROID_HOME)
 #   bash viceloader/build_apk.sh            -> viceloader/ViceLoader.apk
-# Steps: CMake (NDK) for armeabi-v7a + arm64-v8a -> assets/bundle (AML, libMP, MonetLoader, moonloader/lib)
+# Steps: CMake (NDK) for armeabi-v7a + arm64-v8a -> assets/bundle (AML, libMP with MonetLoader built in, moonloader/lib)
 #        -> aapt2 -> javac -> d8 -> zip lib/ -> zipalign -> apksigner.
 # KEYSTORE/KEYPASS sign with your key; otherwise a local debug key (build/debug.keystore) is made.
 set -e
@@ -28,10 +28,11 @@ done
 # assets: UI background + the bundle exported to Download/ViceLoader by the app
 B=build/assets/bundle
 cp $ROOT/assets/MP/ui_bg.jpg build/assets/ui_bg.jpg
+cp $ROOT/assets/MP/chat_icon.png build/assets/chat_icon.png     # floating bar chat pill (same as San Andreas)
+cp assets/global_click.wav build/assets/global_click.wav        # global_click like the San Andreas MP UI
 for A in $ABIS; do
-  mkdir -p $B/AML/$A $B/monetloader/$A
+  mkdir -p $B/AML/$A
   cp prebuilt/$A/libAML.so $B/AML/$A/
-  cp $ROOT/src/embed/monetloader/$A/libmonetloader.so $B/monetloader/$A/
 done
 mkdir -p $B/mods
 cp $ROOT/bin/libMP32.so $ROOT/bin/libMP64.so $B/mods/
@@ -40,7 +41,7 @@ cp bundle_README.txt $B/README.txt
 
 $BT/aapt2 compile --dir res -o build/res/res.zip
 $BT/aapt2 link -I $JAR --manifest AndroidManifest.xml -o build/base.apk -A build/assets build/res/res.zip \
-     --min-sdk-version 24 --target-sdk-version 34 -0 so -0 jpg --java build/gen
+     --min-sdk-version 24 --target-sdk-version 34 -0 so -0 jpg -0 wav --java build/gen
 javac --release 8 -Xlint:-options -cp $JAR -d build/classes $(find src build/gen -name '*.java')
 # build-tools 34 d8 (R8 8.2.2) crashes on JDK 21 anonymous classes -> newer D8 from Google Maven
 R8_JAR=${R8_JAR:-$HOME/.cache/r8-8.5.35.jar}

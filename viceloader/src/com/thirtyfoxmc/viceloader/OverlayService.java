@@ -10,11 +10,18 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.media.AudioAttributes;
+import android.media.SoundPool;
+import android.net.Uri;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Handler;
@@ -31,8 +38,8 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 /**
- * The "display over other apps" part of VICE Loader: a small floating bubble (the San Andreas MP floating menu
- * button) and, while the launcher or the chat keyboard is open, a full screen translucent GLES3 window with the
+ * The "display over other apps" part of VICE Loader: the San Andreas MP floating bar ([⋮] [chat] [mic] [MonetLoader])
+ * and, while the launcher, the ⋮ dropdown or the chat keyboard is open, a full screen translucent GLES3 window with the
  * ImGui launcher over GTA Vice City. While only the bubble shows, the big window is invisible and lets every touch
  * through to the game.
  */
@@ -45,7 +52,7 @@ public class OverlayService extends Service {
     private WindowManager mWm;
     private GLSurfaceView mGl;
     private WindowManager.LayoutParams mGlLp, mBubbleLp;
-    private BubbleView mBubble;
+    private BarView mBubble;
     private volatile int mMode = -1;
     private boolean mGlTouchable = true;
 
@@ -76,6 +83,7 @@ public class OverlayService extends Service {
 
     @Override public void onDestroy() {
         mMain.removeCallbacks(mTick);
+        if (mSounds != null) mSounds.release();
         try { if (mBubble != null) mWm.removeView(mBubble); } catch (Exception ignored) {}
         try { if (mGl != null) mWm.removeView(mGl); } catch (Exception ignored) {}
         sInstance = null;
@@ -94,7 +102,7 @@ public class OverlayService extends Service {
         PendingIntent chat = PendingIntent.getService(this, 2, new Intent(this, OverlayService.class).setAction(ACT_CHAT), pf);
         PendingIntent stop = PendingIntent.getService(this, 3, new Intent(this, OverlayService.class).setAction(ACT_STOP), pf);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, CH) : new Notification.Builder(this);
-        b.setSmallIcon(R.drawable.icon).setContentTitle("VICE Loader").setContentText("MP launcher over GTA Vice City - tap the bubble")
+        b.setSmallIcon(R.drawable.icon).setContentTitle("VICE Loader").setContentText("MP launcher over GTA Vice City - use the floating bar")
          .setContentIntent(open).setOngoing(true)
          .addAction(0, "Launcher", open).addAction(0, "Chat", chat).addAction(0, "Stop", stop);
         Notification n = b.build();
@@ -157,7 +165,7 @@ public class OverlayService extends Service {
             mGlLp.alpha = big ? 1f : 0f;
             try { mWm.updateViewLayout(mGl, mGlLp); } catch (Exception ignored) {}
         }
-        if (mBubble != null) mBubble.setVisibility(big ? View.GONE : View.VISIBLE);
+        if (mBubble != null) mBubble.setVisibility(mBarShown && (m == Native.MODE_BUBBLE || m == Native.MODE_MENU) ? View.VISIBLE : View.GONE);   // the bar stays over the ⋮ dropdown, like San Andreas
     }
 
     private volatile int mPendingMode;
@@ -173,67 +181,184 @@ public class OverlayService extends Service {
     void openFromBubble(final int mode) {
         if (mGl == null) return;
         mGl.queueEvent(() -> Native.open(mode));
-        setMode(mode);
+        setMode(mode >= 100 ? Native.MODE_PANEL : mode);
         mGl.requestRender();
     }
 
-    // ---------------------------------------------------------------- the floating bubble
+    // ---------------------------------------------------------------- the floating bar (San Andreas MP TopbarPlus)
+    // 4.13.64: the same bar as San Andreas MP (src/ui/floatmenu.cpp): four square see-through pills
+    //   [⋮] menu (Help / Server / Player list dropdown)  [chat] chat keyboard  [mic] voice chat  [moon] MonetLoader
+    // drag any pill = move the whole bar (saved); a long press on the mic opens the Voice chat page.
+    static final int PILL_DOTS = 0, PILL_CHAT = 1, PILL_MIC = 2, PILL_MONET = 3, PILLS = 4;
+    static final int TAB_PLAYERS = 6, TAB_VOICE = 7, TAB_MONET = 8;   // vl_panel.cpp VT_*
+    private float mBarSize = 1f;
+    private volatile int mMic = 0;            // MIC <0 off-server, 1 off, 2 on, 3 talking> from the game
+    private SoundPool mSounds; private int mClickId = 0; private float mClickVol = 0.8f;
+
+    private int pillPx() { return (int) (44 * getResources().getDisplayMetrics().density * mBarSize); }
+    private int gapPx() { return (int) (8 * getResources().getDisplayMetrics().density * mBarSize); }
+
     private void addBubble() {
-        mBubble = new BubbleView(this);
-        int sz = (int) (56 * getResources().getDisplayMetrics().density);
-        mBubbleLp = new WindowManager.LayoutParams(sz, sz, overlayType(),
+        mBubble = new BarView(this);
+        mBubbleLp = new WindowManager.LayoutParams(barW(), pillPx(), overlayType(),
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN, PixelFormat.TRANSLUCENT);
         mBubbleLp.gravity = Gravity.TOP | Gravity.LEFT;
-        mBubbleLp.x = getSharedPreferences("vl", 0).getInt("bx", 24);
-        mBubbleLp.y = getSharedPreferences("vl", 0).getInt("by", 160);
+        int sw = getResources().getDisplayMetrics().widthPixels;
+        mBubbleLp.x = getSharedPreferences("vl", 0).getInt("bx", (sw - barW()) / 2);
+        mBubbleLp.y = getSharedPreferences("vl", 0).getInt("by", (int) (8 * getResources().getDisplayMetrics().density));
         mWm.addView(mBubble, mBubbleLp);
+        sendBarRect();
+        try {
+            mSounds = new SoundPool.Builder().setMaxStreams(3).setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()).build();
+            mClickId = mSounds.load(getAssets().openFd("global_click.wav"), 1);
+        } catch (Exception e) { mSounds = null; }
     }
+    private int barW() { return pillPx() * PILLS + gapPx() * (PILLS - 1); }
+    private void sendBarRect() {
+        if (mGl == null || mBubbleLp == null) return;
+        final String r = mBubbleLp.x + " " + mBubbleLp.y + " " + mBubbleLp.width + " " + mBubbleLp.height;
+        mGl.queueEvent(() -> Native.setPref("bar", r));
+    }
+    void click() { if (mSounds != null && mClickId != 0 && mClickVol > 0) mSounds.play(mClickId, mClickVol, mClickVol, 1, 0, 1f); }
 
-    final class BubbleView extends View {
-        private final Paint mFill = new Paint(Paint.ANTI_ALIAS_FLAG), mLine = new Paint(Paint.ANTI_ALIAS_FLAG), mText = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private float mDownX, mDownY; private int mStartX, mStartY; private boolean mMoved, mLong;
-        private final Runnable mLongPress = () -> { mLong = true; performHapticFeedback(0); openFromBubble(Native.MODE_CHAT); };
-        BubbleView(Context c) {
+    final class BarView extends View {
+        private final Paint mFill = new Paint(Paint.ANTI_ALIAS_FLAG), mFg = new Paint(Paint.ANTI_ALIAS_FLAG), mRing = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private Bitmap mChat;
+        private float mDownX, mDownY; private int mStartX, mStartY; private boolean mMoved, mLong; private int mHeld = -1;
+        private final Runnable mLongPress = () -> {
+            if (mHeld != PILL_MIC) return;
+            mLong = true; performHapticFeedback(0); click(); openFromBubble(100 + TAB_VOICE);
+        };
+        BarView(Context c) {
             super(c);
-            mFill.setColor(0x87000000);
-            mLine.setColor(0xF0FFFFFF); mLine.setStyle(Paint.Style.STROKE);
-            mText.setColor(0xFFFFFFFF); mText.setTextAlign(Paint.Align.CENTER); mText.setTypeface(Typeface.DEFAULT_BOLD);
+            mRing.setStyle(Paint.Style.STROKE); mRing.setColor(0xFF3CDC5A);
+            try { mChat = BitmapFactory.decodeStream(c.getAssets().open("chat_icon.png")); } catch (Exception e) { mChat = null; }
+        }
+        private RectF pill(int i) {
+            float p = pillPx(), g = gapPx(), x = i * (p + g);
+            return new RectF(x, 0, x + p, p);
         }
         @Override protected void onDraw(Canvas c) {
-            float w = getWidth(), h = getHeight(), d = getResources().getDisplayMetrics().density;
-            RectF r = new RectF(d * 2, d * 2, w - d * 2, h - d * 2);
-            c.drawRoundRect(r, d * 12, d * 12, mFill);   // the TopbarPlus pill of San Andreas MP
-            mLine.setStrokeWidth(d * 1.5f);
-            c.drawRoundRect(r, d * 12, d * 12, mLine);
-            mText.setTextSize(h * 0.30f);
-            c.drawText("VL", w / 2, h / 2 + h * 0.03f, mText);
-            mText.setTextSize(h * 0.15f);
-            c.drawText("MP", w / 2, h / 2 + h * 0.26f, mText);
+            for (int i = 0; i < PILLS; ++i) {
+                RectF r = pill(i);
+                boolean on = i == PILL_MIC && mMic >= 2;
+                int bg = on ? 0xEBEBEBEB : 0x87000000;   // UI::kPill / kPillActive
+                if (i == mHeld && !mMoved) bg = on ? 0xEBDCDCDC : 0xAA282828;
+                mFill.setColor(bg);
+                c.drawRoundRect(r, r.height() * 0.26f, r.height() * 0.26f, mFill);
+                int fg = on ? 0xFF0A0A0A : 0xFFFFFFFF;
+                mFg.setColor(fg); mFg.setStyle(Paint.Style.FILL); mFg.setColorFilter(null);
+                float cx = r.centerX(), cy = r.centerY(), h = r.height();
+                switch (i) {
+                    case PILL_DOTS: {
+                        float rr = h * 0.066f, gap = h * 0.17f;
+                        for (int k = -1; k <= 1; ++k) c.drawCircle(cx, cy + k * gap, rr, mFg);
+                        break;
+                    }
+                    case PILL_CHAT: {
+                        float s = h * 0.62f;
+                        if (mChat != null) {
+                            mFg.setColorFilter(new PorterDuffColorFilter(fg, PorterDuff.Mode.SRC_IN));
+                            c.drawBitmap(mChat, null, new RectF(cx - s / 2, cy - s / 2, cx + s / 2, cy + s / 2), mFg);
+                            mFg.setColorFilter(null);
+                        } else {
+                            RectF b = new RectF(cx - s * 0.5f, cy - s * 0.42f, cx + s * 0.5f, cy + s * 0.26f);
+                            c.drawRoundRect(b, s * 0.22f, s * 0.22f, mFg);
+                            Path t = new Path(); t.moveTo(cx - s * 0.30f, b.bottom - 1); t.lineTo(cx - s * 0.02f, b.bottom - 1); t.lineTo(cx - s * 0.36f, cy + s * 0.48f); t.close();
+                            c.drawPath(t, mFg);
+                        }
+                        break;
+                    }
+                    case PILL_MIC: {
+                        float rr = h * 0.30f;
+                        int col = mMic == 0 ? 0x6EFFFFFF : fg;
+                        drawMic(c, cx, cy, rr, col, mMic <= 1);
+                        if (mMic == 3) { mRing.setStrokeWidth(h * 0.06f); RectF o = new RectF(r); o.inset(-h * 0.03f, -h * 0.03f); c.drawRoundRect(o, h * 0.28f, h * 0.28f, mRing); }
+                        break;
+                    }
+                    default: {   // MonetLoader: crescent moon + a small star
+                        float s = h * 0.62f, R = s * 0.46f;
+                        Path moon = new Path(); moon.addCircle(cx - s * 0.06f, cy + s * 0.02f, R, Path.Direction.CW);
+                        Path cut = new Path(); cut.addCircle(cx - s * 0.06f + R * 0.52f, cy + s * 0.02f - R * 0.24f, R * 0.86f, Path.Direction.CW);
+                        moon.op(cut, Path.Op.DIFFERENCE);
+                        c.drawPath(moon, mFg);
+                        float sx = cx + s * 0.30f, sy = cy - s * 0.26f, k = s * 0.13f, w = s * 0.035f;
+                        Path st = new Path();
+                        st.moveTo(sx, sy - k); st.lineTo(sx + w, sy); st.lineTo(sx, sy + k); st.lineTo(sx - w, sy); st.close();
+                        st.moveTo(sx - k, sy); st.lineTo(sx, sy - w); st.lineTo(sx + k, sy); st.lineTo(sx, sy + w); st.close();
+                        c.drawPath(st, mFg);
+                        break;
+                    }
+                }
+            }
+        }
+        private void drawMic(Canvas c, float cx, float cy, float r, int col, boolean slash) {
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG); p.setColor(col);
+            float w = r * 0.42f, h = r * 0.62f;
+            c.drawRoundRect(new RectF(cx - w, cy - r * 0.95f, cx + w, cy - r * 0.95f + h * 1.55f), w, w, p);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(r * 0.13f); p.setStrokeCap(Paint.Cap.ROUND);
+            float ar = r * 0.66f;
+            c.drawArc(new RectF(cx - ar, cy - r * 0.1f - ar, cx + ar, cy - r * 0.1f + ar), 8, 164, false, p);
+            c.drawLine(cx, cy + r * 0.56f, cx, cy + r * 0.86f, p);
+            c.drawLine(cx - r * 0.34f, cy + r * 0.88f, cx + r * 0.34f, cy + r * 0.88f, p);
+            if (slash) c.drawLine(cx - r * 0.8f, cy - r * 0.85f, cx + r * 0.8f, cy + r * 0.85f, p);
+        }
+        private int hit(float x) {
+            for (int i = 0; i < PILLS; ++i) { RectF r = pill(i); if (x >= r.left - gapPx() / 2f && x <= r.right + gapPx() / 2f) return i; }
+            return -1;
         }
         @Override public boolean onTouchEvent(MotionEvent e) {
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     mDownX = e.getRawX(); mDownY = e.getRawY(); mStartX = mBubbleLp.x; mStartY = mBubbleLp.y; mMoved = false; mLong = false;
+                    mHeld = hit(e.getX());
                     postDelayed(mLongPress, 550);
+                    invalidate();
                     return true;
                 case MotionEvent.ACTION_MOVE: {
                     float dx = e.getRawX() - mDownX, dy = e.getRawY() - mDownY;
-                    if (!mMoved && dx * dx + dy * dy > 144) { mMoved = true; removeCallbacks(mLongPress); }
+                    if (!mMoved && dx * dx + dy * dy > 144) { mMoved = true; removeCallbacks(mLongPress); invalidate(); }
                     if (mMoved) { mBubbleLp.x = mStartX + (int) dx; mBubbleLp.y = mStartY + (int) dy; try { mWm.updateViewLayout(this, mBubbleLp); } catch (Exception ignored) {} }
                     return true;
                 }
-                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_UP: {
                     removeCallbacks(mLongPress);
-                    if (mMoved) getSharedPreferences("vl", 0).edit().putInt("bx", mBubbleLp.x).putInt("by", mBubbleLp.y).apply();
-                    else if (!mLong) openFromBubble(Native.MODE_PANEL);
+                    int p = mHeld; mHeld = -1; invalidate();
+                    if (mMoved) { getSharedPreferences("vl", 0).edit().putInt("bx", mBubbleLp.x).putInt("by", mBubbleLp.y).apply(); sendBarRect(); return true; }
+                    if (mLong || p < 0) return true;
+                    click();
+                    switch (p) {
+                        case PILL_DOTS: openFromBubble(Native.MODE_MENU); break;
+                        case PILL_CHAT: openFromBubble(Native.MODE_CHAT); break;
+                        case PILL_MIC: if (mGl != null) mGl.queueEvent(() -> Native.setPref("mic", "")); break;
+                        default: openFromBubble(100 + TAB_MONET); break;
+                    }
                     return true;
+                }
                 case MotionEvent.ACTION_CANCEL:
-                    removeCallbacks(mLongPress);
+                    removeCallbacks(mLongPress); mHeld = -1; invalidate();
                     return true;
             }
             return false;
         }
     }
+    private void applyBarPrefs(String arg) {
+        String[] f = arg.trim().split(" ");
+        try {
+            boolean show = !"0".equals(f[0]);
+            float size = Float.parseFloat(f[1]); mClickVol = Float.parseFloat(f[2]);
+            if (mBubble == null) return;
+            if (size != mBarSize) {
+                mBarSize = size; mBubbleLp.width = barW(); mBubbleLp.height = pillPx();
+                try { mWm.updateViewLayout(mBubble, mBubbleLp); } catch (Exception ignored) {}
+                mBubble.invalidate(); sendBarRect();
+            }
+            mBarShown = show;
+            mBubble.setVisibility(show && (mMode == Native.MODE_BUBBLE || mMode == Native.MODE_MENU) ? View.VISIBLE : View.GONE);
+        } catch (Exception ignored) {}
+    }
+    private boolean mBarShown = true;
 
     // ---------------------------------------------------------------- calls from the native side (GL thread)
     void onNative(final String what, final String arg) {
@@ -250,6 +375,19 @@ public class OverlayService extends Service {
                 case "launch": MainActivity.launchGame(this); break;
                 case "export": Bundle.exportAsync(this); break;
                 case "toast": Toast.makeText(this, arg, Toast.LENGTH_SHORT).show(); break;
+                case "click": click(); break;   // global_click (a launcher button was pressed)
+                case "url":
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(arg)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) {}
+                    break;
+                case "mic": try { mMic = Integer.parseInt(arg.trim()); } catch (Exception ignored) {} if (mBubble != null) mBubble.invalidate(); break;
+                case "prefs": applyBarPrefs(arg); break;
+                case "barreset":
+                    if (mBubble != null) {
+                        mBubbleLp.x = (getResources().getDisplayMetrics().widthPixels - barW()) / 2; mBubbleLp.y = (int) (8 * getResources().getDisplayMetrics().density);
+                        try { mWm.updateViewLayout(mBubble, mBubbleLp); } catch (Exception ignored) {}
+                        getSharedPreferences("vl", 0).edit().putInt("bx", mBubbleLp.x).putInt("by", mBubbleLp.y).apply(); sendBarRect();
+                    }
+                    break;
             }
         });
     }

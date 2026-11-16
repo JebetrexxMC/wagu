@@ -6,12 +6,13 @@
 //
 //   overlay -> game  (port VC_OVERLAY_PORT)          game -> overlay (the address the last HELLO came from)
 //     HELLO  (first packet: the chat so far is sent back once)  STATE <online 0/1> <port> <myid> <host> \t <name> \t <server name>
-//     CHAT <text>       (/commands too)                 CHAT <ARGB hex> <text>
+//     CHAT <text>       (/commands too)                 CHAT <colour hex, ABGR like Chat()> <text>
 //     JOIN <port> <host> \t <password>                  PLAYERS <id>,<score>,<ping>,<name>\n...   (every second)
 //     NAME <name>                                       LAN <0/1> <port> <players>/<max> <name>
 //     LEAVE                                             BYE
 //     LANSTART <port> <maxPlayers> <name>  (the VICE City LAN server on this phone)
 //     LANSTOP
+//     MIC    (4.13.64: the mic pill - voice chat on / off)  MIC <0 off-server, 1 off, 2 on, 3 talking>  (every second)
 //     PING   (keep-alive every 3 s; the game stops sending 15 s after the last packet)
 //
 // The VICE City LAN server is MP's own server (net/server.cpp) in Vice City mode (SetGame(MP_GAME_VC)): only
@@ -133,6 +134,8 @@ static void OvPlayers()
 }
 
 static void SendChatText(const char* text);
+static int  VoiceMicState();    // vc_gui.inc (4.13.64: the mic pill of VICE Loader's floating bar)
+static void VoiceMicToggle();   // vc_gui.inc
 static void OvHandle(char* m, bool fresh)
 {
     if(!strncmp(m, "PING", 4)) { if(!fresh) return; }   // keep-alive (a new overlay gets the state below)
@@ -184,6 +187,7 @@ static void OvHandle(char* m, bool fresh)
         if(sscanf(m + 9, "%d %d %n", &port, &maxp, &off) >= 2) StartVcLan(m + 9 + off, port, maxp);
     }
     else if(!strncmp(m, "LANSTOP", 7)) StopVcLan();
+    else if(!strncmp(m, "MIC", 3)) { VoiceMicToggle(); OvSend("MIC %d", VoiceMicState()); }   // 4.13.64: VICE Loader mic pill
     OvState();
 }
 
@@ -204,5 +208,5 @@ static void OverlayProcess()
         OvHandle(buf, fresh);
     }
     const uint64_t now = MP_NowMs();
-    if(s_bOvPeer && now >= s_nOvNextState) { s_nOvNextState = now + 1000; OvState(); OvPlayers(); VcLanState(); }
+    if(s_bOvPeer && now >= s_nOvNextState) { s_nOvNextState = now + 1000; OvState(); OvPlayers(); VcLanState(); OvSend("MIC %d", VoiceMicState()); }
 }
