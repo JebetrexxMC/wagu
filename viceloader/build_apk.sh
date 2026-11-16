@@ -2,7 +2,7 @@
 # 4.13.63: builds ViceLoader.apk (VICE Loader for GTA Vice City) without Gradle.
 #   source ~/env.sh   (JAVA_HOME, NDK_HOME, ANDROID_HOME)
 #   bash viceloader/build_apk.sh            -> viceloader/ViceLoader.apk
-# Steps: CMake (NDK) for armeabi-v7a + arm64-v8a -> assets/bundle (AML, libMP with MonetLoader built in, moonloader/lib)
+# Steps: CMake (NDK) for armeabi-v7a + arm64-v8a -> assets/bundle (libMP with MonetLoader built in, moonloader/lib)
 #        -> aapt2 -> javac -> d8 -> zip lib/ -> zipalign -> apksigner.
 # ABIS="x86_64" OUT_APK=ViceLoader-x86_64-test.apk: emulator test build (test/viceloader_emulator_test.sh).
 # KEYSTORE/KEYPASS sign with your key; otherwise a local debug key (build/debug.keystore) is made.
@@ -32,11 +32,7 @@ cp $ROOT/assets/MP/ui_bg.jpg build/assets/ui_bg.jpg
 cp $ROOT/assets/MP/chat_icon.png build/assets/chat_icon.png     # floating bar chat pill (same as San Andreas)
 cp $ROOT/assets/MP/flags.png build/assets/flags.png             # 4.13.64: server list Location flags (San Andreas server_style.h)
 cp assets/global_click.wav build/assets/global_click.wav        # global_click like the San Andreas MP UI
-for A in $ABIS; do
-  [ -f prebuilt/$A/libAML.so ] || continue   # x86_64 (emulator test build): no AML for it
-  mkdir -p $B/AML/$A
-  cp prebuilt/$A/libAML.so $B/AML/$A/
-done
+# 5.00.01: no libAML.so any more - AML is the mod-loader build tool, not part of MP. Only MP (MonetLoader inside) ships.
 mkdir -p $B/mods
 cp $ROOT/bin/libMP32.so $ROOT/bin/libMP64.so $B/mods/
 mkdir -p $B/moonloader && cp -r $ROOT/assets/MP/moonloader/lib $B/moonloader/lib

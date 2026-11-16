@@ -916,20 +916,18 @@ static void PageHelp(float w)
     Label("[chat]  the MP chat text field + virtual keyboard over the game (Vice City already shows the chat text itself).", kVText, 0.88f);
     Label("[mic]  voice chat on / off.      [moon]  MonetLoader.      Drag the bar to move it (saved).", kVText, 0.88f);
     Heading("PLAYING");
-    Label("1. Open GTA Vice City with MP installed (AML mods folder).  2. Tap [ : ] > Server.  3. Pick a server (the VICE City "
+    Label("1. Open GTA Vice City with MP installed (the game's mods folder).  2. Tap [ : ] > Server.  3. Pick a server (the VICE City "
           "LAN server runs 24/7 and is always on top of Internet) and tap CONNECT. No login - you join straight away.", kVText, 0.88f);
     Label("Type /help in the chat for the server's own commands (they come from the server's gamemode).", kVText, 0.88f);
     Heading("NOTHING SHOWS?");
     Label("Allow 'Display over other apps' for VICE Loader (Android settings). The game link turns green in Settings > Connection "
-          "when GTA Vice City runs MP 4.13.64 or newer.", kVText, 0.88f);
+          "when GTA Vice City runs MP 5.00.01 or newer.", kVText, 0.88f);
 }
 static void PageMods(float w)
 {
-    Label("Inside VICE Loader (the same mod set as San Andreas MP):", IM_COL32_WHITE, 1.0f);
+    Label("Inside VICE Loader (5.00.01: only MP, no separate mods):", IM_COL32_WHITE, 1.0f);
     ImGui::Dummy(ImVec2(1, UI::S(6)));
     const char* names[][2] = {
-        { "AML (AndroidModLoader)", "libAML.so - loads the mods into the game" },
-        { "SAUtils / VCUtils", "libSAUtils.so - menus, settings and helpers for the mods" },
         { "MP (libMP)", "libMP32.so / libMP64.so - multiplayer, voice chat, VICE Loader bridge, built-in MonetLoader for MP 3.9.1-mp" },
         { "Dear ImGui 1.89.7", "the launcher / overlay UI (this window)" },
         { "Online lobby (HiveMQ)", "the Internet list and the relay to the 24/7 VICE City LAN server" } };
@@ -939,7 +937,7 @@ static void PageMods(float w)
     Label(s_Bundle.empty() ? "-" : s_Bundle.c_str(), kVDim, 0.75f);
     ImGui::Dummy(ImVec2(1, UI::S(10)));
     if(VBtn("exp", "EXPORT TO DOWNLOADS", UI::S(460), UI::S(66), 1, true, IC_BOX)) VL_JavaCall("export", "");
-    Label("Copies everything to Download/ViceLoader: put the .so files in the GTA Vice City AML mods folder "
+    Label("Copies everything to Download/ViceLoader: put libMP32.so / libMP64.so in the GTA Vice City mods folder "
           "(Android/data/com.rockstargames.gtavc/mods).", kVDim, 0.78f);
 }
 static int s_nSetSec = 0;
@@ -1002,7 +1000,7 @@ static void PageSettings(float w)
         char t[200];
         snprintf(t, sizeof(t), "Online lobby: %s %s", Online::IsConnected() ? "connected -" : "connecting...", Online::BrokerName());
         Label(t, Online::IsConnected() ? IM_COL32(95, 211, 95, 255) : kVDim, 0.85f);
-        snprintf(t, sizeof(t), "Game link: %s", GameLinked() ? "connected (127.0.0.1:47790)" : "waiting for GTA Vice City with MP 4.13.64+");
+        snprintf(t, sizeof(t), "Game link: %s", GameLinked() ? "connected (127.0.0.1:47790)" : "waiting for GTA Vice City with MP 5.00.01+");
         Label(t, GameLinked() ? IM_COL32(95, 211, 95, 255) : kVDim, 0.85f);
         ImGui::Dummy(ImVec2(1, UI::S(8)));
         if(VBtn("lgame", "LAUNCH GTA VICE CITY", UI::S(460), UI::S(66), 1, true, IC_PLAY)) VL_JavaCall("launch", "");

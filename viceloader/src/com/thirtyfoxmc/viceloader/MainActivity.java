@@ -39,7 +39,7 @@ public class MainActivity extends Activity {
         t.setTextColor(Color.WHITE); t.setTextSize(28); t.setTypeface(Typeface.DEFAULT_BOLD);
         col.addView(t);
         TextView s = new TextView(this);
-        s.setText("MP Launcher v4.13.64 for GTA Vice City - the San Andreas MP floating bar (menu, chat, voice, MonetLoader), Internet server list with the 24/7 VICE City LAN server, chat, virtual keyboard, settings and about pages as a display-over-apps overlay. AML, SAUtils and MP with MonetLoader built in. No login.");
+        s.setText("MP Launcher v5.00.01 for GTA Vice City - the San Andreas MP floating bar (menu, chat, voice, MonetLoader), Internet server list with the 24/7 VICE City LAN server, chat, virtual keyboard, settings and about pages as a display-over-apps overlay. MP with MonetLoader built in. No login.");
         s.setTextColor(Color.rgb(150, 157, 166)); s.setTextSize(14); s.setPadding(0, (int) (8 * d), 0, (int) (16 * d));
         col.addView(s);
         mStatus = new TextView(this);
@@ -54,11 +54,11 @@ public class MainActivity extends Activity {
             startOverlay();
             startService(new Intent(this, OverlayService.class).setAction(OverlayService.ACT_PANEL));
         }, false));
-        col.addView(button("Export AML / SAUtils / MP / MonetLoader to Downloads", v -> com.thirtyfoxmc.viceloader.Bundle.exportAsync(this), false));
+        col.addView(button("Export MP (MonetLoader inside) to Downloads", v -> com.thirtyfoxmc.viceloader.Bundle.exportAsync(this), false));
         col.addView(button("Save log to Downloads (for a bug report)", v -> CrashLog.saveNow(this), false));
         col.addView(button("Stop the overlay", v -> startService(new Intent(this, OverlayService.class).setAction(OverlayService.ACT_STOP)), false));
         TextView h = new TextView(this);
-        h.setText("\nFloating bar: \u22ee = menu, chat = chat keyboard, mic = voice chat (hold = voice page), moon = MonetLoader, drag = move.\nThe game needs MP 4.13.64+ (libMP in the AML mods folder) for the bridge on 127.0.0.1:47790.\n\nInside the app:\n" + com.thirtyfoxmc.viceloader.Bundle.describe(this));
+        h.setText("\nFloating bar: \u22ee = menu, chat = chat keyboard, mic = voice chat (hold = voice page), moon = MonetLoader, drag = move.\nThe game needs MP 5.00.01+ (libMP in the game's mods folder) for the bridge on 127.0.0.1:47790.\n\nInside the app:\n" + com.thirtyfoxmc.viceloader.Bundle.describe(this));
         h.setTextColor(Color.rgb(150, 157, 166)); h.setTextSize(12);
         col.addView(h);
         ScrollView sv = new ScrollView(this);

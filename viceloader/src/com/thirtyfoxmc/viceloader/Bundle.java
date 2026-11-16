@@ -19,7 +19,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-/** assets/bundle: AML, SAUtils, libMP, MonetLoader for MP and moonloader/ - exported to Download/ViceLoader. */
+/** assets/bundle: libMP (MonetLoader built in) and moonloader/ - exported to Download/ViceLoader. */
 final class Bundle {
     private Bundle() {}
 
