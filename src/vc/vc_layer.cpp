@@ -2107,10 +2107,10 @@ DECL_HOOK(int, VC_OS_FileClose, void* h)
     return VC_OS_FileClose(h);
 }
 static bool s_bCloseGuard = false;   // OS_FileClose hooked
-static bool CheckSaveOriginal(int slot, char* buf)
+static bool CheckSaveOriginal(bool (*orig)(int, char*), int slot, char* buf)
 {
     s_bInSaveCheck = s_bCloseGuard; s_nClosed = 0; s_nDoubleClose = 0;
-    const bool ok = VC_CheckDataNotCorrupt(slot, buf);
+    const bool ok = orig(slot, buf);
     s_bInSaveCheck = false; s_nClosed = 0;
     if(s_nDoubleClose)
     {
@@ -2142,7 +2142,7 @@ DECL_HOOK(bool, VC_CheckDataNotCorrupt, int slot, char* buf)
                           "Delete or replace that file.", path); }
         return false;
     }
-    return CheckSaveOriginal(slot, buf);
+    return CheckSaveOriginal(VC_CheckDataNotCorrupt, slot, buf);
 }
 
 // ---- hooks --------------------------------------------------------------------------------------------------------
