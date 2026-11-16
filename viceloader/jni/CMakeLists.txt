@@ -28,7 +28,7 @@ target_compile_definitions(vl_unrar PRIVATE RARDLL _FILE_OFFSET_BITS=64 _LARGEFI
 set_target_properties(vl_unrar PROPERTIES CXX_STANDARD 11)
 
 add_library(viceloader SHARED
-    vl_main.cpp vl_panel.cpp vl_shims.cpp
+    vl_main.cpp vl_panel.cpp vl_shims.cpp vl_crash.cpp
     backends/imgui_impl_opengl3.cpp
     ${W}/imgui/imgui.cpp ${W}/imgui/imgui_draw.cpp ${W}/imgui/imgui_tables.cpp ${W}/imgui/imgui_widgets.cpp
     ${W}/src/ui/vkeyboard.cpp ${W}/src/ui/emoji.cpp

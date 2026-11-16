@@ -87,6 +87,8 @@ static void ApplyScale()
 }
 
 extern "C" {
+void VL_CrashInstall(const std::string& filesDir);   // vl_crash.cpp
+
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void*) { s_pVM = vm; return JNI_VERSION_1_6; }
 
 JNIEXPORT void JNICALL Java_com_thirtyfoxmc_viceloader_Native_init(JNIEnv* env, jclass cls, jobject assets, jstring files)
@@ -95,6 +97,7 @@ JNIEXPORT void JNICALL Java_com_thirtyfoxmc_viceloader_Native_init(JNIEnv* env, 
     s_pAssets = AAssetManager_fromJava(env, env->NewGlobalRef(assets));
     const char* f = env->GetStringUTFChars(files, nullptr); s_FilesDir = f; env->ReleaseStringUTFChars(files, f);
     logger->SetTag("VICE Loader");
+    VL_CrashInstall(s_FilesDir);   // 4.13.64: files/crash_native.txt on a native crash
     if(!s_bImGui)
     {
         IMGUI_CHECKVERSION();

@@ -1104,6 +1104,7 @@ void VL_SetPref(const char* key, const char* value)
 {
     if(!strcmp(key, "bundle")) s_Bundle = value ? value : "";
     else if(!strcmp(key, "tab") && value) { s_nTab = ImClamp(atoi(value), 0, VT_COUNT - 1); s_nMode = VL_MODE_PANEL; }
+    else if(!strcmp(key, "crashtest")) { logger->Info("crash test (native)"); volatile int* p = nullptr; *p = 1; }   // checks vl_crash.cpp
     else if(!strcmp(key, "mic")) { if(GameLinked()) BrSend("MIC"); else AddChat(0xFF6060FF, "Voice chat: start GTA Vice City with MP and join a server first."); }
     else if(!strcmp(key, "bar") && value) sscanf(value, "%f %f %f %f", &s_BarX, &s_BarY, &s_BarW, &s_BarH);
 }

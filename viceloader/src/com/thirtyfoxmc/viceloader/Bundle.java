@@ -83,12 +83,14 @@ final class Bundle {
         return n;
     }
 
-    private static OutputStream open(Context c, String sub, String name) throws Exception {
+    private static OutputStream open(Context c, String sub, String name) throws Exception { return open(c, sub, name, "application/octet-stream"); }
+
+    static OutputStream open(Context c, String sub, String name, String mime) throws Exception {
         if (Build.VERSION.SDK_INT >= 29) {
             ContentResolver cr = c.getContentResolver();
             ContentValues v = new ContentValues();
             v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-            v.put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream");
+            v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
             v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/ViceLoader" + (sub.isEmpty() ? "" : "/" + sub));
             Uri u = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
             if (u == null) throw new Exception("no Downloads access");

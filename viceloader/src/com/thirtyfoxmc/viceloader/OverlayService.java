@@ -46,7 +46,7 @@ import javax.microedition.khronos.opengles.GL10;
 public class OverlayService extends Service {
     static volatile OverlayService sInstance;
     static final String CH = "viceloader";
-    static final String ACT_STOP = "com.thirtyfoxmc.viceloader.STOP", ACT_PANEL = "com.thirtyfoxmc.viceloader.PANEL", ACT_CHAT = "com.thirtyfoxmc.viceloader.CHAT";
+    static final String ACT_STOP = "com.thirtyfoxmc.viceloader.STOP", ACT_PANEL = "com.thirtyfoxmc.viceloader.PANEL", ACT_CHAT = "com.thirtyfoxmc.viceloader.CHAT", ACT_OPEN = "com.thirtyfoxmc.viceloader.OPEN";
 
     private final Handler mMain = new Handler(Looper.getMainLooper());
     private WindowManager mWm;
@@ -62,6 +62,7 @@ public class OverlayService extends Service {
     @Override public void onCreate() {
         super.onCreate();
         sInstance = this;
+        CrashLog.install(this);   // 4.13.64: overlay crash log
         Native.init(getAssets(), getFilesDir().getAbsolutePath());
         Native.setPref("bundle", Bundle.describe(this));
         startForegroundNote();
@@ -78,6 +79,16 @@ public class OverlayService extends Service {
         if (ACT_STOP.equals(a)) { stopSelf(); return START_NOT_STICKY; }
         if (ACT_PANEL.equals(a)) openFromBubble(Native.MODE_PANEL);
         if (ACT_CHAT.equals(a)) openFromBubble(Native.MODE_CHAT);
+        if (ACT_OPEN.equals(a)) {   // 4.13.64: MainActivity "open" extra (adb / emulator test): any mode or 100 + page
+            int m = intent.getIntExtra("mode", Native.MODE_PANEL);
+            if (m == Native.MODE_BUBBLE) { if (mGl != null) mGl.queueEvent(() -> Native.open(Native.MODE_BUBBLE)); setMode(Native.MODE_BUBBLE); }
+            else openFromBubble(m);
+        }
+        if (intent != null && intent.hasExtra("crashtest") && mGl != null) {   // checks the crash log (vl_crash.cpp / CrashLog.java)
+            String k = intent.getStringExtra("crashtest");
+            if ("native".equals(k)) mGl.queueEvent(() -> Native.setPref("crashtest", "1"));
+            else mMain.post(() -> { throw new RuntimeException("VICE Loader crash test"); });
+        }
         return START_STICKY;
     }
 
