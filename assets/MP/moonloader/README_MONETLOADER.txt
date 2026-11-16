@@ -26,6 +26,8 @@ The mods folder (MP 4.13.56)
   server that doesn't allow it, the cheat mod stops at once and starts again where it is allowed.
   HG features that send SA-MP RakNet packets (raknet* / sampSend* sync) do nothing on MP servers (no RakNet).
   Old data folders (moonloader/tvplayer/, moonloader/resources/hitmarker/) still work if mods/ has none.
+  Hitmarker (5.00.02): no custom crosshair and no skull on hits / kills (MOSTRAR_MIRA / MOSTRAR_CALAVERA = true
+  at the top of mods/hitmarker.lua bring them back). The damage number, combo, armour shield and sounds stay.
   Hitmarker 1.1-mp: hits on other players and street NPCs show now. MP sends a hit and puts the avatar's
   health back in the same game tick, so the old health check never saw it; MP now queues each hit for scripts:
     int MP_PopHit(int* ped, int* target, float* amount, int* weapon, int* flags)   (libMP32.so / libMP64.so, ffi)

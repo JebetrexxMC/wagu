@@ -29,6 +29,8 @@ local DUR_IMPACTO       = 0.24   -- segundos en pantalla: impacto normal
 local DUR_MUERTE        = 0.60   -- segundos en pantalla: muerte
 local DUR_CALAVERA      = 0.50   -- segundos minimos cuando es headshot
 local SOMBRA            = true   -- sombra negra suave para que se lea sobre cualquier fondo
+local MOSTRAR_MIRA      = false  -- 5.00.02: false = sin aspa / mira propia (ni anillo ni chispas) al impactar o matar
+local MOSTRAR_CALAVERA  = false  -- 5.00.02: false = sin calavera en headshot / muerte
 
 -- Zona de cabeza (metros, relativos al hueso de la cabeza)
 local HEAD_RADIO        = 0.10   -- radio base de la zona de cabeza
@@ -392,7 +394,7 @@ function drawFrame(ahora)
     if evHead then r, g, b = COLOR_HEADSHOT[1], COLOR_HEADSHOT[2], COLOR_HEADSHOT[3] end
     if evMuerte then r, g, b = 1.0, 0.18, 0.18 end
 
-    if EFECTO_ANILLO and (evHead or evMuerte or evRotura) then
+    if MOSTRAR_MIRA and EFECTO_ANILLO and (evHead or evMuerte or evRotura) then
         local p = c01(t / 0.28)
         if p < 1 then
             local radio = mitad * (0.5 + 1.6 * easeOutCubic(p))
@@ -402,7 +404,7 @@ function drawFrame(ahora)
         end
     end
 
-    if EFECTO_CHISPAS and (evHead or evMuerte or evRotura) then
+    if EFECTO_CHISPAS and MOSTRAR_MIRA and (evHead or evMuerte or evRotura) then
         local p = c01(t / 0.35)
         if p < 1 then
             local e = easeOutCubic(p)
@@ -418,13 +420,16 @@ function drawFrame(ahora)
     end
 
     local pasadas = SOMBRA and { true, false } or { false }
+    if not MOSTRAR_MIRA and not MOSTRAR_CALAVERA then pasadas = {} end
     for _, sombra in ipairs(pasadas) do
         local col = sombra and argb(0, 0, 0, alpha * 0.45) or argb(r, g, b, alpha)
         local lineas = USAR_LINEAS or not texNormal or not hasTris
         local ox = (sombra and not lineas) and 1.2 * ui or 0
         local oy = ox
 
-        if lineas then
+        if not MOSTRAR_MIRA then
+            -- 5.00.02: no custom crosshair
+        elseif lineas then
             local grosor = GROSOR_LINEA * ui + (sombra and 1.8 * ui or 0)
             dibujarLineas(cx, cy, mitad, spread, col, grosor, 0, 0)
         else
@@ -433,7 +438,7 @@ function drawFrame(ahora)
             end
         end
 
-        if evHead and texHeadshot then
+        if MOSTRAR_CALAVERA and evHead and texHeadshot then
             local sc = s * ESCALA_CALAVERA * (0.4 + 0.6 * easeOutBack(t / 0.14))
             local sx = cx + mitad + 6 * ui + (CAL[3] - CAL[1]) * sc * 0.5
             local sy = cy - 7 * ui * easeOutCubic(t / D)
