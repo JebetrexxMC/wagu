@@ -29,8 +29,7 @@ import android.widget.Toast;
 
 // Moquil 1.0: a WebView with the Moquil app in assets/www (the same files as the website).
 // The page does all networking itself (MQTT over WebSocket to broker.hivemq.com, WebRTC voice);
-// this class gives it Android permissions (with an Allow / Don't allow / Never ask popup drawn by
-// the page), downloads to Download/Moquil, notifications, links and the back button.
+// this class gives it Android permissions (4.13.63: only the real system pop-up, no page pop-up), downloads to Download/Moquil, notifications, links and the back button.
 public class MainActivity extends Activity {
     static final int PICK = 7, PERM = 9;
     WebView web;
@@ -79,7 +78,7 @@ public class MainActivity extends Activity {
                     for (String x : r.getResources()) if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(x)) wantsMic = true;
                     if (!wantsMic) { r.deny(); return; }
                     if (has(Manifest.permission.RECORD_AUDIO)) r.grant(new String[] { PermissionRequest.RESOURCE_AUDIO_CAPTURE });
-                    else if (Build.VERSION.SDK_INT >= 23 && !prefs.getBoolean("never_mic", false)) { webPerm = r; permAsked = "mic"; requestPermissions(new String[] { Manifest.permission.RECORD_AUDIO }, PERM); }
+                    else if (Build.VERSION.SDK_INT >= 23) { webPerm = r; permAsked = "mic"; requestPermissions(new String[] { Manifest.permission.RECORD_AUDIO }, PERM); }
                     else r.deny();
                 }});
             }
@@ -139,7 +138,6 @@ public class MainActivity extends Activity {
         @JavascriptInterface public String permState(String p) {
             String a = androidPerm(p);
             if (a == null || has(a)) return "granted";
-            if (prefs.getBoolean("never_" + p, false)) return "denied";
             return prefs.getBoolean("asked_" + p, false) && Build.VERSION.SDK_INT >= 23 && !shouldShowRequestPermissionRationale(a) ? "denied" : "ask";
         }
         @JavascriptInterface public void requestPerm(final String p) {
@@ -151,7 +149,6 @@ public class MainActivity extends Activity {
                 if (Build.VERSION.SDK_INT >= 23) requestPermissions(new String[] { a }, PERM);
             }});
         }
-        @JavascriptInterface public void neverAsk(String p) { prefs.edit().putBoolean("never_" + p, true).apply(); }
         @JavascriptInterface public void openUrl(final String u) { runOnUiThread(new Runnable() { public void run() { openLink(u); } }); }
         @JavascriptInterface public void openAppSettings() {
             runOnUiThread(new Runnable() { public void run() {

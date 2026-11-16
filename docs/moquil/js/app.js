@@ -63,9 +63,7 @@
     audio: { name: 'Audio', icon: 'vol', why: 'Play voice chat and sounds, and change the audio route (speaker / headset) while you talk.' }
   };
   function permState(p) {
-    var nv = ls('moq_never') || {};
-    if (B && B.permState) { var s = B.permState(p); if (s !== 'granted' && nv[p]) return 'never'; return s; }
-    if (nv[p]) return 'never';
+    if (B && B.permState) return B.permState(p);
     if (p === 'notif') return !G.Notification ? 'granted' : Notification.permission === 'granted' ? 'granted' : Notification.permission === 'denied' ? 'denied' : 'ask';
     if (p === 'mic') return ls('moq_web_mic') || 'ask';
     return 'granted';
@@ -73,25 +71,17 @@
   var permCb = {};
   G.MOQ_perm = function (p, granted) { var f = permCb[p]; delete permCb[p]; if (f) f(!!granted); if (CUR.page === 'settings') render(); };
   function requestPerm(p, cb) {
-    var nv = ls('moq_never') || {}; delete nv[p]; ls('moq_never', nv);
     if (B && B.requestPerm) { permCb[p] = cb || function () {}; B.requestPerm(p); return; }
     if (p === 'notif' && G.Notification) { Notification.requestPermission().then(function (r) { cb && cb(r === 'granted'); render(); }); return; }
     if (p === 'mic' && navigator.mediaDevices) { navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) { s.getTracks().forEach(function (t) { t.stop(); }); ls('moq_web_mic', 'granted'); cb && cb(true); render(); }, function () { ls('moq_web_mic', 'denied'); cb && cb(false); render(); }); return; }
     cb && cb(true);
   }
-  // the pop-up: Allow / Don't allow / Never ask again
+  // 4.13.63: only the real system permission pop-up (Android / the browser), no Moquil pop-up before it.
+  // Turned off for good in Android ("Don't ask again"): the phone settings for Moquil open instead.
   function askPerm(p, cb) {
     var st = permState(p); if (st === 'granted') { cb && cb(true); return; }
-    var P = PERMS[p];
-    dialog({
-      title: 'Allow ' + P.name + '?', icon: P.icon,
-      body: '<div class="perm-ic">' + ic(P.icon, 'l') + '</div><p style="text-align:center;margin:0 0 6px"><b>Moquil</b> wants to use your ' + P.name.toLowerCase() + '.</p><p class="dim small" style="text-align:center;margin:0">' + esc(P.why) + '</p>' + (st === 'never' ? '<p class="small" style="text-align:center;color:#ffb36b">You picked "Never ask" before. Allow it here, or in the phone settings.</p>' : ''),
-      buttons: [
-        { t: 'Never ask', cls: 'ghost', fn: function () { var nv = ls('moq_never') || {}; nv[p] = 1; ls('moq_never', nv); if (B && B.neverAsk) B.neverAsk(p); cb && cb(false); } },
-        { t: "Don't allow", fn: function () { cb && cb(false); } },
-        { t: 'Allow', cls: 'go', fn: function () { requestPerm(p, cb); } }
-      ]
-    });
+    if (st === 'denied' && B && B.openAppSettings) { toast(PERMS[p].name + ' is off for Moquil: turn it on in Permissions'); B.openAppSettings(); cb && cb(false); return; }
+    requestPerm(p, cb);
   }
 
   // ---------- UI helpers ----------
@@ -407,7 +397,7 @@
     MOQ_MODS.forEach(function (m) { Soc.watchRatings(m.id); });
     if (G.MoqVoice) MoqVoice.onChange(soon);
     setInterval(checkStatusClear, 30000); checkStatusClear();
-    // first start: the permission pop-ups (each only once; "Never ask" is kept)
+    // first start: the system permission pop-ups (each only once)
     var asked = ls('moq_asked') || {};
     var queue = ['notif', 'mic'].filter(function (p) { return !asked[p] && permState(p) === 'ask'; });
     (function next() { var p = queue.shift(); if (!p) return; asked[p] = 1; ls('moq_asked', asked); setTimeout(function () { askPerm(p, next); }, 900); })();
@@ -1305,9 +1295,9 @@
     notifications: function () { return { t: 'Notifications', b: '<div class="card list">' + sw('notif', 'Push notifications', 'Messages, friend requests and party invites') + sw('sounds', 'Click sounds', 'The MP click on every tap') + '<div class="li" data-set="permissions">' + ic('lock') + '<div class="grow">Notification permission: <b>' + permState('notif') + '</b></div>' + ic('chev', 's') + '</div></div>' }; },
     permissions: function () {
       var list = IS_WEB ? ['mic', 'notif'] : ['mic', 'audio', 'notif', 'storage'];
-      return { t: 'Permissions', b: '<div class="card pad small dim" style="margin-bottom:12px">Moquil asks before it uses these. Allow, Don\'t allow, or Never ask again.</div><div class="card list">' + list.map(function (p) {
+      return { t: 'Permissions', b: '<div class="card pad small dim" style="margin-bottom:12px">Your phone asks you before Moquil uses these (the system pop-up).</div><div class="card list">' + list.map(function (p) {
         var s = permState(p), P = PERMS[p];
-        return '<div class="li">' + ic(P.icon) + '<div class="grow"><div class="b">' + P.name + '</div><div class="tiny dim">' + esc(P.why) + '</div></div>' + (s === 'granted' ? '<span class="chip green">Allowed</span>' : '<button class="btn sm go" data-perm="' + p + '">' + (s === 'never' ? 'Never ask (change)' : s === 'denied' ? 'Not allowed (ask)' : 'Ask') + '</button>') + '</div>';
+        return '<div class="li">' + ic(P.icon) + '<div class="grow"><div class="b">' + P.name + '</div><div class="tiny dim">' + esc(P.why) + '</div></div>' + (s === 'granted' ? '<span class="chip green">Allowed</span>' : '<button class="btn sm go" data-perm="' + p + '">' + (s === 'denied' ? 'Off (open settings)' : 'Allow') + '</button>') + '</div>';
       }).join('') + '</div>' + (B && B.openAppSettings ? '<button class="btn wide" style="margin-top:12px" data-act="appset">Open the phone settings for Moquil</button>' : '') };
     },
     shop: function () { setTimeout(function () { go('store', '', 'shop'); }, 0); return { t: 'Shop', b: '' }; },
@@ -1338,7 +1328,7 @@
     if ((el = t.closest('[data-auth]'))) { e.preventDefault(); showAuth(el.dataset.auth); return; }
     if (!SESSION) return;
     if ((el = t.closest('[data-rate]'))) { var mv = +el.dataset.v; Soc.rate(el.dataset.rate, mv); quest('rate'); award('critic'); toast('Thanks for rating ' + mv + ' stars'); return; }
-    if ((el = t.closest('[data-dl]'))) { e.stopPropagation(); var m = MOQ_MODS.filter(function (x) { return x.id === el.dataset.dl; })[0]; if (!m) return; var go2 = function () { download(m.file, m.fileName); var d = ls('moq_dl') || {}; d[m.id] = Date.now(); ls('moq_dl', d); quest('dl'); }; if (!IS_WEB && permState('storage') !== 'granted' && permState('storage') !== 'never') askPerm('storage', function () { go2(); }); else go2(); return; }
+    if ((el = t.closest('[data-dl]'))) { e.stopPropagation(); var m = MOQ_MODS.filter(function (x) { return x.id === el.dataset.dl; })[0]; if (!m) return; var go2 = function () { download(m.file, m.fileName); var d = ls('moq_dl') || {}; d[m.id] = Date.now(); ls('moq_dl', d); quest('dl'); }; if (!IS_WEB && permState('storage') === 'ask') askPerm('storage', function () { go2(); }); else go2(); return; }
     if ((el = t.closest('[data-info]'))) { if (t.closest('.sheet')) return; modSheet(el.dataset.info); return; }
     if ((el = t.closest('[data-mod]'))) { modSheet(el.dataset.mod); return; }
     if ((el = t.closest('[data-rsvp]'))) { SV().rsvp(el.dataset.cid, el.dataset.rsvp); closeDialogs(); eventsDialog(el.dataset.cid); return; }
