@@ -106,7 +106,7 @@ static void  (*FontSetDropShadow)(short) = nullptr;
 static void  (*FontSetStyle)(short) = nullptr;
 static void  (*FontSetJustifyOn)() = nullptr;
 static void  (*FontPrint)(float, float, uint16_t*) = nullptr;
-static float (*FontGetStringWidth)(uint16_t*, bool, bool) = nullptr;   // 4.13.64: chat / name tag boxes (optional)
+static float (*FontGetStringWidth)(uint16_t*, bool, bool) = nullptr;   // 4.13.64: centres the name tags (optional)
 static bool  (*CalcScreenCoors)(const RwV3d& in, RwV3d* out, float* w, float* h, bool farClip) = nullptr;
 static int   (*ScreenW)() = nullptr;
 static int   (*ScreenH)() = nullptr;
@@ -1657,19 +1657,6 @@ static float TextW(const char* s, float sc)
     }
     return est;
 }
-// 4.13.64: one chat line like the reference (Screenshots/image-6.png): a square dark box as wide as the text and a thin
-// colour bar on its left (the line's colour; white lines get the light blue bar), white text
-static float ChatRow(float x, float y, const char* text, uint32_t abgr, float sc, uint8_t alpha = 160)
-{
-    const float h = 28.0f * sc, bar = 3.0f * sc, padL = 8.0f * sc, padR = 8.0f * sc;
-    const float w = TextW(text, sc);
-    uint8_t r = (uint8_t)abgr, g = (uint8_t)(abgr >> 8), b = (uint8_t)(abgr >> 16);
-    if(r > 225 && g > 225 && b > 225) { r = 120; g = 190; b = 250; }   // white text: the light blue bar
-    Box(x, y, x + bar + padL + w + padR, y + h, CRGBA{ 0, 0, 0, alpha });
-    Box(x, y, x + bar, y + h, CRGBA{ r, g, b, 255 });
-    Text(x + bar + padL, y + 3.0f * sc, text, 0xFFFFFFFF);
-    return h;
-}
 static void DrawTextDraws(float sw, float sh)
 {   // SA-MP textdraws from the server's gamemodes (640 x 448 canvas)
     const float kx = sw / 640.f, ky = sh / 448.f;
@@ -1838,60 +1825,50 @@ static void Draw()
             x += (bw[i] + 14.f) * sc;
         }
     }
-    {   // 4.13.64: chat - square translucent boxes with the colour bar (image-6.png), the "how to talk" hint on top
-        const float cx = sh * 0.03f, gap = 4.0f * sc; float y = sh * 0.30f;
-        bool any = false; for(auto& l : s_Chat) if(now - l.at <= 15000) { any = true; break; }
-        if(online && (any || s_bTyping))
-        {
-            const bool loader = s_bOvPeer && MP_NowMs() - s_nOvLastHello < 15000;
-            y += ChatRow(cx, y, loader ? "Tap the chat icon to talk" : "Tap [ Chat ] to talk", 0xFFFFFFFF, sc, 150) + gap + 14.0f * sc;
-        }
-        for(auto& l : s_Chat)
-        {
-            if(now - l.at > 15000) continue;
-            y += ChatRow(cx, y, l.text.c_str(), l.color ? l.color : 0xFFFFFFFF, sc) + gap;
-        }
+    float y = sh * 0.30f;
+    for(auto& l : s_Chat)
+    {
+        if(now - l.at > 15000) continue;
+        Text(sh * 0.03f, y, l.text.c_str(), l.color);
+        y += 26.0f * sc;
     }
     if(online && CalcScreenCoors && cfg.nameTags)
-    {   // 4.13.64: name tags like image-6.png - a square dark box with the name, a green status chip (AFK when paused),
-        // a thin pink health bar under it (+ a grey armour bar); smaller with distance
-        for(auto& r : s_Players)
+    {   // 4.13.64: name tags like San Andreas MP (src/ui/hud.cpp DrawNameTag): "name (id)" in the player's colour,
+        // PAUSED (yellow) over it, then the armour bar (grey) and the health bar (red) with a black edge under it
+        for(int i = 0; i < 256; ++i)
         {
+            Remote& r = s_Players[i];
             if(!r.used || !r.hasSync || r.pedRef < 0) continue;
             void* ped = RemotePed(r);
             if(!ped) continue;
             const float* p = MatPos(ped);
             RwV3d in = { p[0], p[1], p[2] + 1.15f }, out; float w, h;
             if(!CalcScreenCoors(in, &out, &w, &h, true) || out.z <= 0.5f || out.z > 80.0f) continue;
-            const float k = sc * fminf(fmaxf(1.25f - out.z / 60.0f, 0.55f), 1.0f);
-            if(FontSetScale) FontSetScale(0.8f * k, 1.0f * k);
-            const char* chip = r.paused ? "AFK" : nullptr;
-            const float bh = 28.0f * k, pad = 8.0f * k, nw = TextW(r.name, k), cw = chip ? TextW(chip, k) + 12.0f * k : 0.0f;
-            const float tw = pad + nw + pad + (chip ? cw + 4.0f * k : 0.0f);
-            const float l = out.x - tw * 0.5f, t = out.y;
-            Box(l, t, l + tw, t + bh, CRGBA{ 0, 0, 0, 150 });
-            Text(l + pad, t + 3.0f * k, r.name, 0xFFFFFFFF);
-            if(chip)
+            char tag[MP_NAME_LEN + 16]; snprintf(tag, sizeof(tag), "%s (%d)", r.name, i);
+            const float fh = 22.0f * sc;   // CFont line height at the HUD scale
+            float y = out.y - fh;
+            if(r.paused)
             {
-                const float ca = l + pad + nw + pad;
-                Box(ca, t + 3.0f * k, ca + cw, t + bh - 3.0f * k, CRGBA{ 40, 200, 90, 235 });
-                Text(ca + 6.0f * k, t + 3.0f * k, chip, 0xFF000000);
+                const char* pl = "PAUSED";
+                Text(out.x - TextW(pl, sc) * 0.5f, y - fh, pl, 0xFF3CD2FF);   // ABGR: (255, 210, 60) yellow like San Andreas
             }
+            Text(out.x - TextW(tag, sc) * 0.5f, y, tag, r.color ? (r.color | 0xFF000000) : 0xFFFFFFFF);
+            y += fh + 3.0f * sc;
             if(DrawRect)
-            {   // health (pink) / armour (grey) under the box, 60% of its width, centred
-                const float barW = fmaxf(tw * 0.6f, 50.0f * k), barH = 4.0f * k, bl = out.x - barW * 0.5f; float bt = t + bh + 3.0f * k;
-                const float hp = r.health > 100 ? 1.f : r.health / 100.f;
-                Box(bl, bt, bl + barW, bt + barH, CRGBA{ 0, 0, 0, 170 });
-                Box(bl, bt, bl + barW * hp, bt + barH, CRGBA{ 240, 110, 200, 240 });
-                if(r.armour)
+            {
+                const float bw = 68.0f * sc, bh = 9.0f * sc, e = fmaxf(1.0f, 2.0f * sc), bl = out.x - bw * 0.5f;
+                auto Bar = [&](float frac, CRGBA bg, CRGBA fg)
                 {
-                    bt += barH + 2.0f * k; const float ar = r.armour > 100 ? 1.f : r.armour / 100.f;
-                    Box(bl, bt, bl + barW, bt + barH, CRGBA{ 0, 0, 0, 170 });
-                    Box(bl, bt, bl + barW * ar, bt + barH, CRGBA{ 225, 225, 225, 240 });
-                }
+                    if(frac < 0) frac = 0; if(frac > 1) frac = 1;
+                    Box(bl - e, y - e, bl + bw + e, y + bh + e, CRGBA{ 0, 0, 0, 255 });
+                    Box(bl, y, bl + bw, y + bh, bg);
+                    Box(bl, y, bl + bw * frac, y + bh, fg);
+                    y += bh + e * 2 + 2.0f * sc;
+                };
+                if(r.armour > 0) Bar(r.armour / 100.0f, CRGBA{ 40, 40, 40, 255 }, CRGBA{ 200, 200, 200, 255 });
+                Bar(r.health / 100.0f, CRGBA{ 75, 11, 20, 255 }, CRGBA{ 185, 34, 30, 255 });
             }
         }
-        if(FontSetScale) FontSetScale(0.8f * sc, 1.0f * sc);
     }
     if(online && s_bScoreboard && !gui) DrawScoreboard(sw, sh, sc);
     if(online && !s_KillFeed.empty() && FontSetRightOn)
