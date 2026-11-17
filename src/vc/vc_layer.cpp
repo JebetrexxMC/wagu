@@ -126,6 +126,8 @@ static void* (*GetWeaponInfo)(int type) = nullptr;                           // 
 static void  (*AddTrace)(CVector* a, CVector* b, int weapon, void* shooter) = nullptr;   // CBulletTraces::AddTrace
 static int   (*SetEntityBlip)(int type, int handle, unsigned int color, int display) = nullptr;
 static void  (*ChangeBlipScale)(int idx, int scale) = nullptr;
+static void  (*ChangeBlipColour)(int idx, unsigned int color) = nullptr;   // 5.00.04: Set*Blip ignore the colour argument in VC
+static void  (*ChangeBlipBrightness)(int idx, int bright) = nullptr;
 static void  (*DrawRect)(const CRect& r, const CRGBA& c) = nullptr;
 static void  (*FontSetCentreOn)() = nullptr;
 static void  (*FontSetCentreOff)() = nullptr;
@@ -175,7 +177,7 @@ static bool InitScripts()
     memset(s_Thread, 0, sizeof(s_Thread));
     return true;
 }
-// fmt: i = int, f = float, v = int* / float* out (local var)
+// fmt: i = int, f = float, v = int* / float* out (local var), s = 8-byte text label (VC: raw, no type byte)
 static bool Cmd(uint16_t op, const char* fmt, ...)
 {
     if(!s_pCmd) return false;
@@ -188,6 +190,7 @@ static bool Cmd(uint16_t op, const char* fmt, ...)
     {
         if(*f == 'i') { int32_t v = va_arg(ap, int); b[n++] = 1; memcpy(b + n, &v, 4); n += 4; }
         else if(*f == 'f') { float v = (float)va_arg(ap, double); b[n++] = 6; memcpy(b + n, &v, 4); n += 4; }
+        else if(*f == 's') { const char* t = va_arg(ap, const char*); char k[8] = {}; strncpy(k, t ? t : "", 7); memcpy(b + n, k, 8); n += 8; }   // 5.00.04
         else if(*f == 'v' && nv < 16) { outs[nv] = va_arg(ap, uint32_t*); locals[nv] = (int32_t)*outs[nv]; b[n++] = 3; b[n++] = (uint8_t)nv; b[n++] = 0; ++nv; }
     }
     va_end(ap);
@@ -220,6 +223,7 @@ enum : uint16_t
     OP_CREATE_PICKUP_WITH_AMMO = 0x032B, OP_HAS_PICKUP_BEEN_COLLECTED = 0x0214, OP_REMOVE_PICKUP = 0x0215,
     OP_GET_CAR_COLOURS = 0x03F3, OP_SET_CAR_HEALTH = 0x0224, OP_GET_AMMO_IN_PLAYER_WEAPON = 0x0419,
     OP_REMOVE_ALL_CHAR_WEAPONS = 0x048F,   // 4.13.40: class spawn weapons
+    OP_LOAD_ANIMATION = 0x04ED, OP_HAS_ANIMATION_LOADED = 0x04EE,   // 5.00.04: streamed IFP blocks (weapon / skater anims)
 };
 static bool IsVcCarModel(int m) { return m >= 130 && m <= 236; }
 
@@ -479,6 +483,48 @@ static bool LoadModel(int m)
     if(Cmd(OP_HAS_MODEL_LOADED, "i", m)) return true;
     Cmd(OP_REQUEST_MODEL, "i", m); Cmd(OP_LOAD_ALL_MODELS_NOW, "");
     return Cmd(OP_HAS_MODEL_LOADED, "i", m);
+}
+// 5.00.04: VC streams weapon and some ped animations as their own IFP blocks (default.ide "weap" / ped anim file:
+// the M4 and Ruger use "rifle"). The player's own weapon has its block loaded by the game, an avatar's did not: when an
+// avatar near you held / aimed an M4 the game blended from a group whose animations were not in memory and crashed in
+// CAnimManager::BlendAnimation (a read just above address 0, crash log 5.00.03). The block is loaded first (script owned,
+// so the game keeps it), and an avatar stays unarmed until it is in memory.
+static const char* VcWeaponAnimBlock(int w)
+{
+    switch(w)
+    {
+    case 3: case 4: case 6: case 7: return "baseball";
+    case 5: case 8: case 9: case 10: return "knife";
+    case 11: return "chainsaw";
+    case 12: case 13: case 14: case 15: return "grenade";
+    case 17: case 22: case 24: return "colt45";
+    case 18: return "python";
+    case 19: return "shotgun";
+    case 20: case 21: return "buddy";
+    case 23: case 25: return "uzi";
+    case 26: case 27: return "rifle";
+    case 31: case 33: return "flame";
+    case 32: return "m60";
+    default: return nullptr;
+    }
+}
+static const char* VcSkinAnimBlock(int skin)
+{
+    switch(skin)
+    {
+    case 5: return "medic";
+    case 7: return "man";
+    case 17: case 18: case 19: case 20: case 38: case 39: case 40: case 41: case 57: case 58: case 59: case 60: return "sunbathe";
+    case 77: case 78: return "skate";   // skaters move with the skate group only
+    default: return nullptr;
+    }
+}
+static bool LoadAnimBlock(const char* name)
+{
+    if(!name) return true;
+    if(Cmd(OP_HAS_ANIMATION_LOADED, "s", name)) return true;
+    Cmd(OP_LOAD_ANIMATION, "s", name); Cmd(OP_LOAD_ALL_MODELS_NOW, "");
+    return Cmd(OP_HAS_ANIMATION_LOADED, "s", name);
 }
 static int SkinModel(const Remote& r) { return (r.skin >= 1 && r.skin <= 106) ? r.skin : cfg.remoteSkin; }
 static int MyChar()
@@ -1064,7 +1110,7 @@ static void UpdateRemotes(uint64_t now, float dt)
             if(!ped || r.passCar != passCar || r.pedModel != model)
             {
                 DestroyAvatar(r);
-                if(!LoadModel(model)) continue;
+                if(!LoadModel(model) || !LoadAnimBlock(VcSkinAnimBlock(model))) continue;   // 5.00.04: skater / beach anims
                 int seat = -1;
                 const int want0 = r.vehSeat >= 0 && r.vehSeat <= 2 ? r.vehSeat : 0;
                 if(Cmd(OP_IS_CAR_PASSENGER_SEAT_FREE, "ii", passCar, want0)) seat = want0;
@@ -1084,7 +1130,7 @@ static void UpdateRemotes(uint64_t now, float dt)
         if(ped && r.pedModel != model && !RemoteCar(r)) { DestroyAvatar(r); ped = nullptr; }
         if(!ped)
         {
-            if(!LoadModel(model)) continue;
+            if(!LoadModel(model) || !LoadAnimBlock(VcSkinAnimBlock(model))) continue;   // 5.00.04: skater / beach anims
             uint32_t ref = 0;
             Cmd(OP_CREATE_CHAR, "iifffv", PEDTYPE_CIVMALE, model, tgt[0], tgt[1], tgt[2] - 1.0f, &ref);
             if(!GetPed((int)ref)) continue;
@@ -1098,7 +1144,17 @@ static void UpdateRemotes(uint64_t now, float dt)
         if(CheckAvatarHit(r, id) || Cmd(OP_IS_CHAR_DEAD, "i", r.pedRef)) { DestroyCar(r); DestroyAvatar(r); continue; }
         Cmd(OP_SET_CHAR_HEALTH, "ii", r.pedRef, 1000);
         // the weapon in their hands
-        const int w = ValidVcWeapon(r.weapon) ? r.weapon : 0;
+        int w = ValidVcWeapon(r.weapon) ? r.weapon : 0;
+        {   // 5.00.04: no weapon in the avatar's hands before its animations are in memory (M4 / Ruger crash)
+            static uint64_t s_nAnimCheck[256]; static bool s_bAnimOk[256]; static int s_nAnimW[256];
+            if(w && (w != s_nAnimW[id] || now >= s_nAnimCheck[id]))
+            {   // new weapon: check now; not loaded yet: retry twice a second; loaded: re-check once a second
+                s_nAnimW[id] = w;
+                s_bAnimOk[id] = LoadAnimBlock(VcWeaponAnimBlock(w));
+                s_nAnimCheck[id] = now + (s_bAnimOk[id] ? 1000 : 500);
+            }
+            if(w && !s_bAnimOk[id]) w = 0;
+        }
         if(w != r.appliedWeapon)
         {
             if(w == 0 || LoadModel(WeaponModel(w)))
@@ -1228,7 +1284,9 @@ static void UpdateBlips()
         {
             if(r.blip >= 0 && r.blipRef == r.pedRef) continue;
             ClearRemoteBlip(r);
-            r.blip = SetEntityBlip(3 /*BLIP_CHAR*/, r.pedRef, col, 3 /*BLIP_DISPLAY_BOTH*/);
+            // 5.00.04: VC eBlipType is NONE 0, CAR 1, CHAR 2, OBJECT 3, COORD 4. It was 3 (OBJECT): the radar looked the
+            // ped handle up in the object pool, so no player was ever on the radar / map (and a stale object could be read)
+            r.blip = SetEntityBlip(2 /*BLIP_CHAR*/, r.pedRef, col, 3 /*BLIP_DISPLAY_BOTH*/);
             r.blipRef = r.pedRef;
         }
         else if(SetCoordBlip)
@@ -1239,6 +1297,10 @@ static void UpdateBlips()
             r.blip = SetCoordBlip(4 /*BLIP_COORD*/, at, col, 3 /*BLIP_DISPLAY_BOTH*/);
         }
         if(r.blip >= 0 && ChangeBlipScale) ChangeBlipScale(r.blip, 2);
+        // 5.00.04: VC's SetEntityBlip / SetCoordBlip set yellow / magenta and dim whatever colour is passed;
+        // CRadar::GetRadarTraceColour takes any value > 6 as 0xRRGGBBAA, so give the player's colour after making it
+        if(r.blip >= 0 && ChangeBlipColour) { unsigned c = col | 0xFF; if(c <= 6) c = 0xFFFFFFFF; ChangeBlipColour(r.blip, c); }
+        if(r.blip >= 0 && ChangeBlipBrightness) ChangeBlipBrightness(r.blip, 1);
     }
 }
 
@@ -1553,7 +1615,7 @@ static void SpawnClass(int idx)
     Cmd(OP_SET_PLAYER_HEADING, "if", 0, k.angle);
     // the skin: default.ide peds 1..106 (VC:MP: CPlayerPed::SetModel; 8 is not a valid one)
     const int cur = *(int16_t*)((uint8_t*)ped + ENT_MODEL);
-    if(PedSetModelIndex && k.skin >= 0 && k.skin <= 106 && k.skin != 8 && k.skin != cur && LoadModel(k.skin)) PedSetModelIndex(ped, (unsigned)k.skin);
+    if(PedSetModelIndex && k.skin >= 0 && k.skin <= 106 && k.skin != 8 && k.skin != cur && LoadModel(k.skin) && LoadAnimBlock(VcSkinAnimBlock(k.skin))) PedSetModelIndex(ped, (unsigned)k.skin);
     Cmd(OP_REMOVE_ALL_CHAR_WEAPONS, "i", s_nMyChar);
     int first = 0;
     for(int i = 0; i < 3; ++i)
@@ -1561,6 +1623,7 @@ static void SpawnClass(int idx)
         const int w = k.weapon[i];
         if(w <= 0 || w > 33) continue;
         const int m = WeaponModel(w); if(m > 0) LoadModel(m);
+        if(!LoadAnimBlock(VcWeaponAnimBlock(w))) continue;   // 5.00.04: class M4 / Ruger etc. need their anims first
         Cmd(OP_GIVE_WEAPON_TO_CHAR, "iii", s_nMyChar, w, k.ammo[i] ? k.ammo[i] : 1);
         if(!first) first = w;
     }
@@ -2202,6 +2265,7 @@ bool Start()
     Sym(SetEntityBlip, "_ZN6CRadar13SetEntityBlipE9eBlipTypeij12eBlipDisplay", missing);
     Sym(ChangeBlipScale, "_ZN6CRadar15ChangeBlipScaleEii", missing);
     Sym(ClearBlip, "_ZN6CRadar9ClearBlipEi", missing);
+    { int opt = 0; Sym(ChangeBlipColour, "_ZN6CRadar16ChangeBlipColourEij", opt); Sym(ChangeBlipBrightness, "_ZN6CRadar20ChangeBlipBrightnessEii", opt); }   // 5.00.04 (optional)
     Sym(DrawRect, "_ZN9CSprite2d8DrawRectERK5CRectRK5CRGBA", missing);
     Sym(SpriteDraw, "_ZN9CSprite2d4DrawERK5CRectRK5CRGBA", missing);
     Sym(RwImageCreate, "_Z13RwImageCreateiii", missing);
