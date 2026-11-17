@@ -17,6 +17,7 @@
 #include "floatmenu.h"
 #include "vkeyboard.h"
 #include "../mp.h"
+#include "airicons.h"   // 5.00.04
 #include "../net/server.h"
 #include "../../imgui/rw_glue.h"
 #include "../../imgui/arial.h"
@@ -1220,7 +1221,9 @@ static void DrawChat(ImDrawList* dl)
 static void DrawKillFeed(ImDrawList* dl)
 {
     const ImVec2 ds = ImGui::GetIO().DisplaySize;
-    const float fs0 = UI::S(26.0f), icon0 = UI::S(36.0f), gap = UI::S(8.0f);
+    const float fs0 = UI::S(28.0f), icon0 = UI::S(46.0f), gap = UI::S(8.0f);   // 5.00.04: bigger icons (were 36 px)
+    ImVec2 wuv(1, 1);
+    void* wtex = HUD::Texture("weapon_icons.png", &wuv);   // 5.00.04: the real GTA SA weapon icons, 8 x 6 cells (id 0..46)
     const float cx = ds.x * 0.80f;
     float y = ds.y * 0.30f;
     for(const KillEntry& k : MP::kills)
@@ -1229,7 +1232,17 @@ static void DrawKillFeed(ImDrawList* dl)
         const float fs = fs0, icon = icon0;
         ImVec2 ic(cx, y + icon * 0.5f);
         dl->AddRectFilled(ImVec2(ic.x - icon * 0.5f, y), ImVec2(ic.x + icon * 0.5f, y + icon), IM_COL32(0, 0, 0, 200), UI::S(4));
-        DrawWeaponIcon(dl, ic, icon * 0.9f, k.weapon);
+        if(k.airModel && MP_AirKind(k.airModel))   // 5.00.04: died in a heli / jet / plane - crash / shot / blast / fire
+            MP_DrawAirKillIcon(dl, ic, icon, MP_AirKind(k.airModel), k.weapon);
+        else if(wtex && k.weapon <= 46 && (k.weapon < 19 || k.weapon > 21))
+        {
+            const int col = k.weapon % 8, row = k.weapon / 8;
+            const float e = 0.004f;   // keep the neighbour cell out of the filtering
+            ImVec2 a(wuv.x * (col / 8.0f + e), wuv.y * (row / 6.0f + e)), b(wuv.x * ((col + 1) / 8.0f - e), wuv.y * ((row + 1) / 6.0f - e));
+            const float h = icon * 0.5f;
+            dl->AddImage((ImTextureID)wtex, ImVec2(ic.x - h, ic.y - h), ImVec2(ic.x + h, ic.y + h), a, b);
+        }
+        else DrawWeaponIcon(dl, ic, icon * 0.9f, k.weapon);
         float ty = y + (icon - fs) * 0.5f;
         if(!k.killer.empty())
         {

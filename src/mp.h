@@ -243,6 +243,7 @@ struct KillEntry
     uint64_t time = 0;   // when it happened (2.17: lines no longer fade; the newest 5 stay)
     uint8_t victimId = 255;    // 2.37
     bool predicted = false;    // 2.37: my lethal hit, shown at once (confirmed / corrected by PKT_DEATH)
+    uint16_t airModel = 0;     // 5.00.04: victim died in / just after a heli / jet / plane -> aircraft kill icon
 };
 
 struct ImDrawList;

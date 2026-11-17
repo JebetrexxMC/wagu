@@ -37,6 +37,7 @@ extern "C" unsigned long crc32(unsigned long crc, const unsigned char* buf, unsi
 #include <string>
 #include "audio/sound.h"
 #include "audio/voice.h"   // 3.11
+#include "ui/airicons.h"   // 5.00.04: aircraft kill / speedometer icons
 #include <set>
 #include <time.h>
 #include "ui/i18n.h"
@@ -1812,8 +1813,33 @@ static std::string MyFeedName()
     if(const char* mn = MP::LocalModName()) return mn;   // 3.50.1
     return (myId < MP_MAX_PLAYERS && players[myId].active) ? players[myId].name : settings.name;
 }
+// 5.00.04: who is (or was, within 2.5 s - a crash throws you out first) flying a heli / jet / plane
+static uint16_t s_nAirModel[MP_MAX_PLAYERS] = {0};
+static uint64_t s_nAirT[MP_MAX_PLAYERS] = {0};
+static void TrackAircraft(uint64_t now)
+{
+    for(int i = 0; i < MP_MAX_PLAYERS; ++i)
+        if(i != (int)myId && players[i].active && players[i].hasSync && MP_AirKind(players[i].sync.carModel))
+            { s_nAirModel[i] = players[i].sync.carModel; s_nAirT[i] = now; }
+    if(myId < MP_MAX_PLAYERS && Game::IsReady())
+    {
+        int ped = Game::LocalPed();
+        if(ped && Game::IsCharInAnyCar(ped))
+        {
+            int car = Game::GetCarCharIsUsing(ped);
+            int m = car ? Game::GetCarModel(car) : 0;
+            if(MP_AirKind(m)) { s_nAirModel[myId] = (uint16_t)m; s_nAirT[myId] = now; }
+        }
+    }
+}
+static uint16_t AirModelOf(int id)
+{
+    if(id < 0 || id >= MP_MAX_PLAYERS || !s_nAirModel[id]) return 0;
+    return (MP_NowMs() - s_nAirT[id] < 2500) ? s_nAirModel[id] : 0;
+}
 static void PushKillEntry(KillEntry& k)
 {
+    if(!k.airModel) k.airModel = AirModelOf(k.victimId);
     kills.push_back(k);
     while(kills.size() > 5) kills.pop_front();
 }
@@ -4478,6 +4504,7 @@ void MP::Process()
     // and modpack CLEO scripts that use touch zones stopped working there too.
     CleoBlock::Process(!offline && MP::CheatsBlocked());
     ExpireKillPredictions(now);                // 2.37
+    TrackAircraft(now);                        // 5.00.04
     {   // 2.37 / 3.00: CheatMenu installed -> allowed only where the server says so (PERM_CHEAT_MENU)
         static uint64_t s_nCmT = 0, s_nConnT = 0;
         if(client.GetState() != NET_CONNECTED) s_nConnT = 0;

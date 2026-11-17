@@ -259,3 +259,6 @@ bg_default.jpg     featured     Las Vegas (Nevada, USA), The Strip -- 2012 -- 62
 bg_dz.jpg          featured     Detkovo forest and rail track.jpg | by A.Savin | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:Detkovo_forest_and_rail_track.jpg
 bg_mw3.jpg         featured     Peshmerga soldiers prepare to conduct a combined arms live-fire exercise near Erbil, Iraq.jpg | by Sgt. Lisa Soy | Public domain | https://commons.wikimedia.org/wiki/File:Peshmerga_soldiers_prepare_to_conduct_a_combined_arms_live-fire_exercise_near_Erbil,_Iraq.jpg
 bg_rp.jpg          featured     Shanghai, China—the nation's largest city (iss073e0420094).jpg | by NASA Johnson Space Center | Public domain | https://commons.wikimedia.org/wiki/File:Shanghai,_China%E2%80%94the_nation%27s_largest_city_(iss073e0420094).jpg
+
+weapon_icons.png (5.00.04): the GTA San Andreas HUD weapon icons (Rockstar Games), 50x50 each, from the open.mp docs
+  https://www.open.mp/docs/scripting/resources/weaponids - one 8x6 sheet, cell = weapon id (0..46).

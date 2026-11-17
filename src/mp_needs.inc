@@ -253,7 +253,10 @@ static void NeedsRender()
         {
             case 0: NeedsIconFood(dl, c, sz * 0.22f); break;
             case 1: NeedsIconEnergy(dl, c, sz * 0.22f); break;
-            case 2: NeedsIconCar(dl, c, sz * 0.22f); break;
+            case 2:   // 5.00.04: a heli / jet / plane icon when flying one (was always the car)
+                if(const int ak = MP_AirKind(Game::GetCarModel(s_Fuel.car))) MP_DrawAircraft(dl, c, sz * 0.22f, ak, IM_COL32(0, 0, 0, 255), IM_COL32(255, 255, 255, 255));
+                else NeedsIconCar(dl, c, sz * 0.22f);
+                break;
             case 3: NeedsIconEngine(dl, c, sz * 0.22f); break;
             default: NeedsIconFuel(dl, c, sz * 0.22f); break;
         }
