@@ -81,11 +81,6 @@ struct MPSettings
     char  serverLang[MP_LANG_LEN] = "English";      // 2.25: language of the server you host (server list "Language")
     // 4.03: CS:GO style list (+ Add server): Server location, gamemode chip, tags, description
     char  serverCC[MP_CC_LEN] = "";
-    // 5.00.04: Server console > Direct connections (custom servers): 0 off, 1 auto, 2 always public IP
-    int   directMode = 1;
-    char  directHost[48] = "";                        // typed address (port-forwarded router, VPS, tunnel)
-    char  duckName[48] = "";                          // yourname(.duckdns.org) - free, kept on your own IP
-    char  duckToken[48] = "";
     char  serverMode[MP_MODE_LEN] = "";
     int   serverModeCol = 0;
     char  serverTags[MP_TAGS_LEN] = "";

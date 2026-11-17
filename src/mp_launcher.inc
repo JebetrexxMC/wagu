@@ -1183,16 +1183,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
                 if(r.kind == 2 && r.saved >= 0) { ServerEntry* se = ServerList::Get(r.saved); snprintf(ip, sizeof(ip), "IP: %s:%d", se ? se->host : "?", r.port); }
                 else if(r.kind == 1 && !r.internet && r.ip[0]) snprintf(ip, sizeof(ip), "IP: %s:%d (Wi-Fi)", r.ip, r.port);
                 else if(r.kind == 0 || r.kind >= 3) snprintf(ip, sizeof(ip), "IP: 24/7 internet lobby, port %d", r.port);
-                else if(r.internet)
-                {   // 5.00.04: a custom server that gave its own address (router mapping / DuckDNS)
-                    char dh[64]; int drt = -1;
-                    if(r.ip[0] && Online::DirectHostOf(r.ip, dh, sizeof(dh), &drt))
-                    {
-                        if(drt >= 0) snprintf(ip, sizeof(ip), "IP: %s (direct, %d ms)", dh, drt);
-                        else snprintf(ip, sizeof(ip), "IP: %s (not answering - relay)", dh);
-                    }
-                    else snprintf(ip, sizeof(ip), "IP: internet lobby, port %d", r.port);
-                }
+                else if(r.internet) snprintf(ip, sizeof(ip), "IP: internet lobby, port %d", r.port);
                 else snprintf(ip, sizeof(ip), "IP: hidden, port %d", r.port);
                 dl->AddText(ImGui::GetFont(), ImGui::GetFontSize() * 0.86f, ImVec2(c1, e.y - pad - lh), hc, ip);
                 // Favourite toggle (star)

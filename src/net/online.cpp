@@ -158,8 +158,6 @@ struct Listing
     uint32_t startUnix;           // 2.27: "proto:icon@start:language" (old phones: atoi stops at '@')
     int      hostRtt;             // 4.05.1: "@start!d~45:" = the host's own broker round trip (ms), 0 = unknown
     bool     dedicated;           // 2.29: "proto:icon@start!d:language" (old phones: strtoul stops at '!')
-    char     direct[48];          // 5.00.04: "@start~rtt^host/port:" = the host's own address ("" = relay only)
-    uint16_t directPort;
     bool     confirmed;      // got a live update (a retained copy alone may be stale)
     uint64_t lastSeen;
 };
@@ -205,7 +203,6 @@ static std::atomic<int>  s_nPubRtt{-1};
 static std::atomic<bool> s_bPubUp{false};
 static bool              s_bJoinPublic = false;        // guarded: the server we join is only in the public lobby
 static void DirectThread();   // 3.11
-static std::string HaAnnounceNow();   // 5.00.04 (online_hostaddr.inc)
 struct DirectInfo { uint32_t ip = 0; int rtt = -1; uint64_t at = 0; bool ok = false; int fails = 0; uint64_t badUntil = 0; uint16_t port = 0; };
 static std::map<uint32_t, DirectInfo> s_Direct;   // 3.11: token -> direct UDP probe result (guarded by s_M)
 
@@ -952,7 +949,7 @@ static void HandleListingIn(std::map<uint32_t, Listing>& list, uint32_t tok, con
     std::lock_guard<std::mutex> lk(s_M);
     if(payload.empty()) { list.erase(tok); return; }            // host closed it
     // "v1|port|players|max|region|proto|name"
-    char buf[256]; MP_CopyStr(buf, payload.c_str(), sizeof(buf));   // 5.00.04: 160 -> 256 (+ ^host/port)
+    char buf[160]; MP_CopyStr(buf, payload.c_str(), sizeof(buf));
     char* f[7] = { buf };
     for(int i = 1; i < 7; ++i) { f[i] = f[i - 1] ? strchr(f[i - 1], '|') : nullptr; if(f[i]) *f[i]++ = 0; }
     if(!f[6] || strcmp(f[0], "v1")) return;
@@ -965,9 +962,6 @@ static void HandleListingIn(std::map<uint32_t, Listing>& list, uint32_t tok, con
       l.startUnix = (at && (!c2 || at < c2)) ? (uint32_t)strtoul(at + 1, nullptr, 10) : 0;   // 2.27
       { const char* bang = at ? strchr(at, '!') : nullptr; l.dedicated = bang && (!c2 || bang < c2) && bang[1] == 'd'; }   // 2.29
       { const char* td = at ? strchr(at, '~') : nullptr; int hr = (td && (!c2 || td < c2)) ? atoi(td + 1) : 0; l.hostRtt = (hr > 0 && hr < 5000) ? hr : 0; }   // 4.05.1
-      { const char* ca = at ? strchr(at, '^') : nullptr; l.direct[0] = 0; l.directPort = 0;   // 5.00.04
-        if(ca && (!c2 || ca < c2)) { size_t n = 0; while(ca[1 + n] && ca[1 + n] != '/' && ca[1 + n] != ':' && n < sizeof(l.direct) - 1) { l.direct[n] = ca[1 + n]; ++n; } l.direct[n] = 0;
-                                     if(ca[1 + n] == '/') { int dp = atoi(ca + 2 + n); l.directPort = (uint16_t)((dp > 0 && dp < 65536) ? dp : 0); } } }
       const char* lg = c2; MP_CopyStr(l.lang, lg ? lg + 1 : "", sizeof(l.lang)); MP_CleanLang(l.lang); }   // 2.25
     MP_CopyStr(l.name, f[6], sizeof(l.name));
     if(!retained) l.confirmed = true;
@@ -1571,16 +1565,14 @@ static void NetThread()
         if(curHostToken && (now - lastList >= LIST_EVERY_MS || !lastList))
         {
             lastList = now;
-            char p[256];   // 5.00.04: 160 -> 256
+            char p[160];
             int ic = s_nHostIcon.load();   // 2.24: icon rides behind the protocol number ("4:17"), invisible to old phones
             char lg[MP_LANG_LEN]; { std::lock_guard<std::mutex> lk2(s_LangMx); MP_CopyStr(lg, s_szHostLang, sizeof(lg)); }
             uint32_t st = s_nHostStart.load();
             // 4.05.1: + "~rtt" = this host's own broker round trip, so a player's list shows the real
             // phone -> broker -> host -> back time (his ping + ours) instead of guessing ours = his
             char rt[12] = ""; { int r = s_nRtt; if(r > 0 && r < 5000) snprintf(rt, sizeof(rt), "~%d", r); }
-            // 5.00.04: + "^host/port" = where this custom server answers directly (router mapping / DuckDNS / typed)
-            char da[72] = ""; if(!s_bHostDedicated) { std::string a = HaAnnounceNow(); if(!a.empty()) snprintf(da, sizeof(da), "^%s", a.c_str()); }
-            if(st)     snprintf(p, sizeof(p), "v1|%u|%d|%d|%d|%d:%d@%u%s%s%s:%s|%s", hostPort, hp, hm, hr, MP_PROTO_VERSION, ic, st, s_bHostDedicated ? "!d" : "", rt, da, lg, hostName);   // 2.29: + !d = 24/7   // 2.27: + start time
+            if(st)     snprintf(p, sizeof(p), "v1|%u|%d|%d|%d|%d:%d@%u%s%s:%s|%s", hostPort, hp, hm, hr, MP_PROTO_VERSION, ic, st, s_bHostDedicated ? "!d" : "", rt, lg, hostName);   // 2.29: + !d = 24/7   // 2.27: + start time
             else if(lg[0])  snprintf(p, sizeof(p), "v1|%u|%d|%d|%d|%d:%d:%s|%s", hostPort, hp, hm, hr, MP_PROTO_VERSION, ic, lg, hostName);   // 2.25: + language
             else if(ic > 0) snprintf(p, sizeof(p), "v1|%u|%d|%d|%d|%d:%d|%s", hostPort, hp, hm, hr, MP_PROTO_VERSION, ic, hostName);
             else       snprintf(p, sizeof(p), "v1|%u|%d|%d|%d|%d|%s", hostPort, hp, hm, hr, MP_PROTO_VERSION, hostName);
@@ -2582,7 +2574,7 @@ static void DirectThread()
             for(auto& it : s_List)
             {
                 const Listing& l = it.second;
-                if(!l.confirmed || !(l.dedicated || l.direct[0]) || l.region < 0 || now - l.lastSeen > LIST_FRESH_MS) continue;
+                if(!l.confirmed || !l.dedicated || l.region < 0 || now - l.lastSeen > LIST_FRESH_MS) continue;
                 auto d = s_Direct.find(it.first);
                 bool unknown = d == s_Direct.end() || !d->second.at;
                 if(d != s_Direct.end() && d->second.badUntil > now) continue;
@@ -2594,10 +2586,9 @@ static void DirectThread()
         for(const Cand& c : cands)
         {
             if(!round && !c.fresh) continue;   // new servers right away, the rest every 15 s
-            std::string host = c.l.direct[0] ? std::string(c.l.direct) : RegionHostName(c.l.region);   // 5.00.04: custom server's own address
-            uint16_t dport = (c.l.direct[0] && c.l.directPort) ? c.l.directPort : c.l.port;
+            std::string host = RegionHostName(c.l.region);
             uint32_t ip = 0;
-            int rtt = (!host.empty() && ResolveV4(host, &ip)) ? ProbeDirect(ip, dport, c.l.name, c.l.startUnix) : -1;
+            int rtt = (!host.empty() && ResolveV4(host, &ip)) ? ProbeDirect(ip, c.l.port, c.l.name, c.l.startUnix) : -1;
             std::lock_guard<std::mutex> lk(s_M);
             DirectInfo& d = s_Direct[c.token];
             d.at = MP_NowMs(); d.port = c.l.port;
@@ -2982,5 +2973,3 @@ bool Online::HttpsFetch(const std::string& url, std::string& body, int timeoutMs
     t_HttpsProg = nullptr;
     return ok;
 }
-
-#include "online_hostaddr.inc"   // 5.00.04: custom server address + location
