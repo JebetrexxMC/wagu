@@ -62,6 +62,20 @@ namespace Online
     // 3.11: the 24/7 server behind this relay address answers over direct UDP (ipNet, measured rtt)
     bool DirectAddr(const char* relayIp, uint16_t port, uint32_t* ipNet, int* rttMs);
     void DirectFailed(const char* relayIp);   // a direct join / session failed: relay for 10 min
+    // 5.00.04: a custom server's own address + location (see online_hostaddr.inc)
+    struct HostAddrInfo
+    {
+        char publicIp[48] = "", city[48] = "", region[48] = "", cc[8] = "", isp[64] = "";
+        char upnp[128] = "";        // router port mapping result
+        char duck[128] = "";        // DuckDNS update result
+        char announce[64] = "";     // "host/port" put into the listing ("" = relay only)
+        bool upnpOk = false, cgnat = false, hosting = false;
+    };
+    // mode 0 = never announce an address, 1 = auto (router mapping worked / DuckDNS / manual), 2 = always the public IP
+    void SetHostAddrConfig(int mode, const char* manualHost, const char* duckName, const char* duckToken);
+    void HostAddrTick(bool customHosting, uint16_t port);   // every frame is fine
+    void GetHostAddr(HostAddrInfo& out);
+    bool DirectHostOf(const char* relayIp, char* out, size_t n, int* rttMs);   // "host:port", rtt -1 = not answering
     // Must be called before MPClient::Connect(relayIp, port, ..., localPort): the client then
     // sends to 127.0.0.1:localPort (the proxy) while the game logic still sees relayIp:port.
     bool OpenProxy(const char* relayIp, uint16_t port, uint16_t* localPort);

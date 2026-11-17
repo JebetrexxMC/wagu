@@ -5583,6 +5583,12 @@ static void ProcessLan(uint64_t now)
         bool run = s_Server.IsRunning();
         if(run && now - lastCount > 500) { lastCount = now; count = s_Server.GetPlayerCount(); }
         Online::SetHosted(run, run ? s_Server.GetName() : "", run ? s_Server.GetPort() : 0, run ? count : 0, s_Server.GetMaxPlayers(), s_Server.GetRegion());
+        {   // 5.00.04: a custom server finds its own address + location (direct joins, Server console)
+            static uint64_t lastCfg = 0;
+            if(now - lastCfg > 1000) { lastCfg = now; Online::SetHostAddrConfig(settings.directMode, settings.directHost, settings.duckName, settings.duckToken); }
+            bool custom = run && !IsHostingDefault() && !FeaturedName(s_Server.GetName(), s_Server.GetPort());
+            Online::HostAddrTick(custom, run ? s_Server.GetPort() : 0);
+        }
         {   // 2.24: server icon (the default "MP LAN Server" always shows the default icon)
             int ic = IsHostingDefault() ? 0 : settings.serverIcon;
             s_Server.SetIcon(ic); Online::SetHostIcon(ic);
@@ -5609,6 +5615,8 @@ static void ProcessLan(uint64_t now)
                     if(ServerEntry* e = ServerList::Get(k)) if(e->cc[0] || e->mode[0] || e->tags[0] || e->desc[0]) { cc = e->cc; md = e->mode; tg = e->tags; ds = e->desc; mc = e->modeCol; }
                     if(IsHostingDefault() || FeaturedName(s_Server.GetName(), s_Server.GetPort())) { cc = ""; md = ""; tg = ""; ds = ""; mc = 0; }   // built-in text
                 }
+                // 5.00.04: no Server location picked -> the host's own country (from its public IP)
+                static Online::HostAddrInfo hai; if(run && !cc[0] && !IsHostingDefault() && !FeaturedName(s_Server.GetName(), s_Server.GetPort())) { Online::GetHostAddr(hai); if(hai.cc[0] && LCountryIndex(hai.cc) >= 0) cc = hai.cc; }
                 s_Server.SetDetails(cc, mc, md, tg, ds);
                 std::string d;
                 if(run)
@@ -5787,7 +5795,7 @@ void MP::SaveConfig()
     I("ChatFade", settings.chatFade); B("ChatFadeOn", settings.chatFadeOn); B("ChatBackground", settings.chatBg);
     B("ChatBoxBackground", settings.chatBoxBg); B("ChatBoxLabel", settings.chatBoxLabel); B("ChatBoxTap", settings.chatBoxTap);   // 2.22
     F("ChatBoxX", settings.chatBoxX); F("ChatBoxY", settings.chatBoxY); B("RealSkin", settings.realSkin); B("SyncClothes", settings.syncClothes);
-    I("Region", settings.region); B("LobbyAuto", settings.lobbyAuto); B("RegionPicked", settings.regionPicked); I("NameColor", (int)settings.nameColor); I("ServerChatColor", (int)settings.serverChatColor); I("PlayerChatColor", (int)settings.playerChatColor); I("MaxPlayers", settings.maxPlayers); I("HostGamemodes", settings.hostModes); I("ServerIcon", settings.serverIcon); S("ServerLang", settings.serverLang); S("ServerCC", settings.serverCC); S("ServerMode", settings.serverMode); I("ServerModeCol", settings.serverModeCol); S("ServerTags", settings.serverTags); S("ServerDesc", settings.serverDesc); S("ServerPreview", settings.serverPreview); S("ServerLogo", settings.serverLogo); I("HudMode", settings.hudMode); I("HudFlags", settings.hudFlags); I("HudDoor", settings.hudDoor); I("LogoX", settings.logoX); I("LogoY", settings.logoY); I("LogoZ", settings.logoZ); S("DeviceId", settings.deviceId); S("UiLanguage", settings.uiLanguage);   // 3.52
+    I("Region", settings.region); B("LobbyAuto", settings.lobbyAuto); B("RegionPicked", settings.regionPicked); I("NameColor", (int)settings.nameColor); I("ServerChatColor", (int)settings.serverChatColor); I("PlayerChatColor", (int)settings.playerChatColor); I("MaxPlayers", settings.maxPlayers); I("HostGamemodes", settings.hostModes); I("ServerIcon", settings.serverIcon); S("ServerLang", settings.serverLang); S("ServerCC", settings.serverCC); I("DirectMode", settings.directMode); S("DirectHost", settings.directHost); S("DuckName", settings.duckName); S("DuckToken", settings.duckToken); S("ServerMode", settings.serverMode); I("ServerModeCol", settings.serverModeCol); S("ServerTags", settings.serverTags); S("ServerDesc", settings.serverDesc); S("ServerPreview", settings.serverPreview); S("ServerLogo", settings.serverLogo); I("HudMode", settings.hudMode); I("HudFlags", settings.hudFlags); I("HudDoor", settings.hudDoor); I("LogoX", settings.logoX); I("LogoY", settings.logoY); I("LogoZ", settings.logoZ); S("DeviceId", settings.deviceId); S("UiLanguage", settings.uiLanguage);   // 3.52
     B("FullProgressDefault", settings.fullProgressDefault);
     B("UnlockWorld", settings.unlockWorld); B("Girlfriends", settings.girlfriends); B("EventTips", settings.eventTips);   // 2.21
     B("PermAfk", settings.permAfk); B("PermDmgInd", settings.permDmgInd); B("PermShowIds", settings.permShowIds); B("PermNeeds", settings.permNeeds); B("RulesOn", settings.rulesOn); S("RulesTitle", settings.rulesTitle);
@@ -5917,6 +5925,10 @@ static void LoadConfig()
     ::cfg->GetString(settings.uiLanguage, sizeof(settings.uiLanguage), "UiLanguage", "en", "MP");   // 3.52
     MP_CleanLang(settings.serverLang);
     ::cfg->GetString(settings.serverCC, sizeof(settings.serverCC), "ServerCC", "", "MP");   // 4.03
+    settings.directMode = ::cfg->GetInt("DirectMode", 1, "MP"); if(settings.directMode < 0 || settings.directMode > 2) settings.directMode = 1;   // 5.00.04
+    ::cfg->GetString(settings.directHost, sizeof(settings.directHost), "DirectHost", "", "MP");
+    ::cfg->GetString(settings.duckName, sizeof(settings.duckName), "DuckName", "", "MP");
+    ::cfg->GetString(settings.duckToken, sizeof(settings.duckToken), "DuckToken", "", "MP");
     ::cfg->GetString(settings.serverMode, sizeof(settings.serverMode), "ServerMode", "", "MP");
     settings.serverModeCol = ::cfg->GetInt("ServerModeCol", 0, "MP");
     ::cfg->GetString(settings.serverTags, sizeof(settings.serverTags), "ServerTags", "", "MP");
@@ -6878,9 +6890,44 @@ static bool SquareChip(const char* id, const char* txt, bool on, ImU32 col)
     ImGui::SameLine(0, UI::S(6));
     return hit;
 }
+// 5.00.04: Server console - where this custom server is and how players reach it
+static void OnDirectHost(const char* t, void*) { MP_CopyStr(settings.directHost, t ? t : "", sizeof(settings.directHost)); MP_CleanField(settings.directHost); SaveConfig(); }
+static void OnDuckName(const char* t, void*) { MP_CopyStr(settings.duckName, t ? t : "", sizeof(settings.duckName)); MP_CleanField(settings.duckName); SaveConfig(); }
+static void OnDuckToken(const char* t, void*) { MP_CopyStr(settings.duckToken, t ? t : "", sizeof(settings.duckToken)); MP_CleanField(settings.duckToken); SaveConfig(); }
+static void ServerConsole()
+{
+    ImGui::Separator();
+    ImGui::TextUnformatted("Server console (your own location + direct connections)");
+    Online::HostAddrInfo h; Online::GetHostAddr(h);
+    if(!h.hosting && !h.publicIp[0]) ImGui::TextDisabled("Start your custom server to see its address and location.");
+    if(h.publicIp[0])
+    {
+        int ci = LCountryIndex(h.cc);
+        ImGui::Text("Location: %s%s%s%s%s", h.city, h.region[0] ? ", " : "", h.region, ci >= 0 ? ", " : "", ci >= 0 ? LCountryNameAt(ci) : h.cc);
+        ImGui::Text("Public IP: %s%s%s", h.publicIp, h.isp[0] ? "  -  " : "", h.isp);
+        if(!settings.serverCC[0] && ci >= 0) ImGui::TextDisabled("Server location not picked: the list shows %s.", LCountryNameAt(ci));
+    }
+    if(h.upnp[0]) ImGui::TextWrapped("Router: %s", h.upnp);
+    if(h.duck[0]) ImGui::TextWrapped("DuckDNS: %s", h.duck);
+    if(h.announce[0]) ImGui::TextColored(ImVec4(0.55f, 0.9f, 0.55f, 1), "Players connect directly to %s (ping = real distance to you).", h.announce);
+    else if(h.hosting) ImGui::TextColored(ImVec4(0.95f, 0.8f, 0.45f, 1), "Players join through the lobby relay (no direct address%s).", h.cgnat ? ": carrier NAT / mobile data" : "");
+    static const char* kModes[] = { "Off", "Auto", "Always public IP" };
+    ImGui::TextUnformatted("Direct connections");
+    for(int i = 0; i < 3; ++i)
+    {
+        char id[16]; snprintf(id, sizeof(id), "dm%d", i);
+        if(SquareChip(id, kModes[i], settings.directMode == i, IM_COL32(126, 178, 226, 120))) { settings.directMode = i; SaveConfig(); }
+    }
+    ImGui::NewLine();
+    FloatMenu::TextField("Free DuckDNS name (optional)", settings.duckName, "yourname  (from duckdns.org)", (int)sizeof(settings.duckName) - 1, OnDuckName);
+    FloatMenu::TextField("DuckDNS token", settings.duckToken, "token from duckdns.org", (int)sizeof(settings.duckToken) - 1, OnDuckToken);
+    FloatMenu::TextField("Or your own address (optional)", settings.directHost, "port-forwarded IP / VPS / tunnel host", (int)sizeof(settings.directHost) - 1, OnDirectHost);
+    ImGui::TextDisabled("The address is shown to players in the lobby. Off = relay only (your IP stays hidden).");
+}
 static int s_nPickFor = 0;   // 4.07: which "opens Files" button started the picker (0 preview, 1 title logo)
 static void ServerDetailsEditor()
 {
+    ServerConsole();   // 5.00.04
     ImGui::Separator();
     // Server location (country)
     {

@@ -162,3 +162,37 @@ inline void MP_DrawAirKillIcon(ImDrawList* dl, ImVec2 c, float s, int kind, int 
         }
     }
 }
+
+// 5.00.04: motorbikes (Pizzaboy, PCJ-600, Faggio, Freeway, Sanchez, FCR-900, NRG-500, HPV1000, BF-400, Wayfarer)
+// - the speed hexagon shows a motorbike; bicycles (BMX, Bike, Mountain Bike) show no speedometer at all
+inline bool MP_IsMotorbike(int model)
+{
+    switch(model) { case 448: case 461: case 462: case 463: case 468: case 521: case 522: case 523: case 581: case 586: return true; default: return false; }
+}
+inline bool MP_IsBicycle(int model) { return model == 481 || model == 509 || model == 510; }
+// side view, front to the right: two wheels, frame, tank, seat, fork + handlebar (white outline, black fill)
+inline void MP_DrawMotorbike(ImDrawList* dl, ImVec2 c, float r, ImU32 fill, ImU32 line)
+{
+    const float t = fmaxf(1.5f, r * 0.10f);
+    const ImVec2 wb(c.x - r * 0.62f, c.y + r * 0.36f), wf(c.x + r * 0.64f, c.y + r * 0.36f);
+    const float wr = r * 0.30f;
+    for(int i = 0; i < 2; ++i)   // wheels: tyre ring + hub
+    {
+        const ImVec2 w = i ? wf : wb;
+        dl->AddCircleFilled(w, wr, fill, 20); dl->AddCircle(w, wr, line, 20, t); dl->AddCircleFilled(w, wr * 0.22f, line, 10);
+    }
+    // swing arm (back wheel -> engine) and fork (steering head -> front wheel)
+    dl->AddLine(wb, ImVec2(c.x - r * 0.08f, c.y + r * 0.18f), line, t);
+    dl->AddLine(ImVec2(c.x + r * 0.38f, c.y - r * 0.30f), wf, line, t * 1.2f);
+    // engine block under the tank
+    ImVec2 eng[4] = { ImVec2(c.x - r * 0.22f, c.y + r * 0.02f), ImVec2(c.x + r * 0.26f, c.y + r * 0.02f), ImVec2(c.x + r * 0.16f, c.y + r * 0.32f), ImVec2(c.x - r * 0.14f, c.y + r * 0.32f) };
+    dl->AddConvexPolyFilled(eng, 4, fill); dl->AddPolyline(eng, 4, line, ImDrawFlags_Closed, t);
+    // tank (front) + seat (back) as one sloped body
+    ImVec2 tank[5] = { ImVec2(c.x - r * 0.10f, c.y - r * 0.02f), ImVec2(c.x - r * 0.02f, c.y - r * 0.26f), ImVec2(c.x + r * 0.30f, c.y - r * 0.30f), ImVec2(c.x + r * 0.40f, c.y - r * 0.16f), ImVec2(c.x + r * 0.30f, c.y + r * 0.02f) };
+    dl->AddConvexPolyFilled(tank, 5, fill); dl->AddPolyline(tank, 5, line, ImDrawFlags_Closed, t);
+    ImVec2 seat[4] = { ImVec2(c.x - r * 0.74f, c.y - r * 0.10f), ImVec2(c.x - r * 0.06f, c.y - r * 0.14f), ImVec2(c.x - r * 0.06f, c.y - r * 0.02f), ImVec2(c.x - r * 0.70f, c.y + r * 0.02f) };
+    dl->AddConvexPolyFilled(seat, 4, fill); dl->AddPolyline(seat, 4, line, ImDrawFlags_Closed, t);
+    // handlebar
+    dl->AddLine(ImVec2(c.x + r * 0.38f, c.y - r * 0.30f), ImVec2(c.x + r * 0.30f, c.y - r * 0.52f), line, t);
+    dl->AddLine(ImVec2(c.x + r * 0.18f, c.y - r * 0.54f), ImVec2(c.x + r * 0.44f, c.y - r * 0.50f), line, t);
+}

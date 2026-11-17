@@ -228,7 +228,8 @@ static void NeedsRender()
     const float fs = UI::S(pf == UI::Font() ? 21.0f : 25.0f);   // 3.55: fits in the hexagon
     // 3.56: one horizontal row, right to left: energy, hunger, then (in a vehicle) fuel, engine, speed
     struct Hex { int icon; char txt[16]; ImU32 col; } hx[5]; int n = 0;
-    if(s_Fuel.car > 0)
+    // 5.00.04: a bicycle is no speedometer vehicle - no speed / engine / fuel hexagons on it
+    if(s_Fuel.car > 0 && !MP_IsBicycle(Game::GetCarModel(s_Fuel.car)))
     {
         const bool bike = FuelNoEngine(Game::GetCarModel(s_Fuel.car));
         Hex& h0 = hx[n++]; h0.icon = 2; snprintf(h0.txt, sizeof(h0.txt), "%d mph", (int)(s_Fuel.mph + 0.5f)); h0.col = IM_COL32(255, 255, 255, 255);
@@ -255,6 +256,7 @@ static void NeedsRender()
             case 1: NeedsIconEnergy(dl, c, sz * 0.22f); break;
             case 2:   // 5.00.04: a heli / jet / plane icon when flying one (was always the car)
                 if(const int ak = MP_AirKind(Game::GetCarModel(s_Fuel.car))) MP_DrawAircraft(dl, c, sz * 0.22f, ak, IM_COL32(0, 0, 0, 255), IM_COL32(255, 255, 255, 255));
+                else if(MP_IsMotorbike(Game::GetCarModel(s_Fuel.car))) MP_DrawMotorbike(dl, c, sz * 0.22f, IM_COL32(0, 0, 0, 255), IM_COL32(255, 255, 255, 255));   // 5.00.04
                 else NeedsIconCar(dl, c, sz * 0.22f);
                 break;
             case 3: NeedsIconEngine(dl, c, sz * 0.22f); break;
