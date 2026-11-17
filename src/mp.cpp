@@ -7457,6 +7457,16 @@ static void GtaHudSettings()
     if(FloatMenu::ToggleSwitch("Custom GTA HUD", &on)) { HudLayout::SetEnabled(on); dirty = true; }
     ImGui::TextDisabled(on ? (HudLayout::HookCount() ? "On: the game's HUD uses the values below." : "On: change a value to apply it.")
                            : "Off: the game's own HUD (nothing is changed).");
+    {   // 5.00.04: one tap layouts (Compact = clock, money and bars stacked tight next to the weapon icon)
+        ImGui::TextUnformatted("HUD layout");
+        const float pw = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+        for(int pr = 0; pr < HudLayout::PRESET_COUNT; ++pr)
+        {
+            if(pr) ImGui::SameLine();
+            if(ImGui::Button(HudLayout::PresetName(pr), ImVec2(pw, UI::S(52)))) { HudLayout::ApplyPreset(pr); dirty = false; on = HudLayout::Enabled(); }
+        }
+        ImGui::PushTextWrapPos(0.0f); ImGui::TextDisabled("Compact: the clock right above the money, the health and armor bars right under it. Fine-tune below."); ImGui::PopTextWrapPos();
+    }
     if(!on) ImGui::BeginDisabled();
     ImGui::TextUnformatted("HUD part");
     ImGui::SetNextItemWidth(-FLT_MIN);

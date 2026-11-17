@@ -262,6 +262,28 @@ bool HudLayout::Enabled() { return s_bOn; }
 int  HudLayout::HookCount() { return s_bHooked ? s_nHooks : 0; }
 void HudLayout::SetEnabled(bool on) { if(on && AdvancedSettingsLoaded()) { s_bOn = false; return; } s_bOn = on; if(on) { s_bWant = true; InstallHooks(); } }
 bool HudLayout::Conflict() { return AdvancedSettingsLoaded(); }
+
+// 5.00.04: measured from the two HUD screenshots (the mobile layout vs the compact one), in weapon-icon heights:
+// the clock is ~0.27 lower, the bars ~0.19 higher; the weapon icon is ~11.5 % of the screen height.
+const char* HudLayout::PresetName(int preset)
+{
+    static const char* const k[PRESET_COUNT] = { "Game default", "Compact" };
+    return preset >= 0 && preset < PRESET_COUNT ? k[preset] : "";
+}
+void HudLayout::ApplyPreset(int preset)
+{
+    for(int p = 0; p < PART_COUNT; ++p) Defaults(s_Cfg[p]);
+    if(preset == PRESET_COMPACT)
+    {
+        s_Cfg[CLOCK].y      = 3.0f;    // down, right above the money
+        s_Cfg[BAR_HEALTH].y = -2.2f;   // up, right under the money
+        s_Cfg[BAR_ARMOR].y  = -2.2f;   // under the health bar
+        s_Cfg[BAR_BREATH].y = -2.2f;
+        SetEnabled(true);
+    }
+    else SetEnabled(false);
+    Save();
+}
 void HudLayout::SetScreen(float w, float h) { if(w > 16 && h > 16) { s_fW = w; s_fH = h; } }
 void HudLayout::Init(void* gtasa) { s_hGame = gtasa; if(s_bWant) InstallHooks(); }
 

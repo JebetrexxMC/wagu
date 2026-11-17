@@ -25,4 +25,10 @@ namespace HudLayout
     void  Load();                      // from TYFMC.MP.ini [GTAHUD]
     void  Save();
     bool  Conflict();                  // 4.13.34: Advanced Settings is installed (it owns the HUD)
+    // 5.00.04: presets (Settings > Display > GTA HUD). 0 = the game's own HUD (all parts reset),
+    // 1 = Compact: clock right above the money, health / armor / breath bars right under it (the PC-like
+    // stacked look) instead of the mobile layout's big gaps. Turns Custom GTA HUD on (preset 1) and saves.
+    enum Preset { PRESET_GAME = 0, PRESET_COMPACT, PRESET_COUNT };
+    const char* PresetName(int preset);
+    void  ApplyPreset(int preset);
 }
