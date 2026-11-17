@@ -297,7 +297,7 @@
         '<form id="step2" class="hide" autocomplete="off"><div class="chip green" id="dname"></div>' +
         '<label class="lbl">Account name</label><input id="user" class="inp" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_\\[\\].$=@()]+">' +
         '<div class="row"><div class="grow"><label class="lbl">Password</label><input id="pass" type="password" class="inp" required minlength="6"></div><div class="grow"><label class="lbl">Repeat</label><input id="pass2" type="password" class="inp" required></div></div>' +
-        '<div class="row"><div class="grow"><label class="lbl">Gender</label><select id="gender" class="inp"><option value="male">Male</option><option value="female">Female</option></select></div><div class="grow"><label class="lbl">Age</label><input id="age" type="number" class="inp" min="13" max="99" value="18" required></div></div>' +
+        '<div class="row"><div class="grow"><label class="lbl">Gender</label><select id="gender" class="inp"><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div><div class="grow"><label class="lbl">Age</label><input id="age" type="number" class="inp" min="13" max="99" value="18" required></div></div>' +
         '<button type="submit" class="btn go wide dbtn">Continue</button></form>',
         '<a href="#" data-auth="login">Already have an account?</a>');
       var vtoken = '', flow;

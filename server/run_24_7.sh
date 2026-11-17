@@ -32,7 +32,7 @@ keep 1931 "Call Of Duty: Modern Warfare 3" 64 --mw3-file mw3_stats.txt
 keep 1932 "Mega Vil Futuristic" 250 --rp-file rp_citizens.txt
 keep 1933 "Project Day Z Legacy" 250 --dz-file dayz_survivors.txt   # 3.58
 keep 1934 "Rocket League" 16 --lg-file league_stats.txt   # 4.13.4: Rocket Soccer
-keep 7777 "VICE City LAN server" 50 --game vc --vcmp vcmp.ini   # 4.13.64: GTA Vice City (VICE Loader / Internet list)
+keep 7777 "VICE City LAN server" 100 --game vc --vcmp vcmp.ini   # 4.13.64: GTA Vice City (VICE Loader / Internet list), 5.00.04: 100 places + the Broker bot (1/100)
 if [ "${FOREGROUND:-0}" = 1 ]; then   # 3.38: Docker / Railway: stay in the foreground, stop all 6 on exit
     trap 'kill 0' TERM INT
     tail -n 0 -F logs/*.log & wait

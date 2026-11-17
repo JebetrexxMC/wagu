@@ -1432,7 +1432,7 @@ static void MenuPick(int n)
     case 5: cfg.blips = !cfg.blips; SaveSettings(); Chat(0xFF80FF80, "Map markers %s", cfg.blips ? "on" : "off"); break;
     case 6: cfg.nameTags = !cfg.nameTags; SaveSettings(); Chat(0xFF80FF80, "Name tags %s", cfg.nameTags ? "on" : "off"); break;
     case 8: ShowClasses(); break;   // 4.13.40
-    case 9: if(s_VcLan.IsRunning()) StopVcLan(); else StartVcLan(VC_LAN_DEFAULT_NAME, VC_LAN_DEFAULT_PORT, 50); break;   // 4.13.63
+    case 9: if(s_VcLan.IsRunning()) StopVcLan(); else StartVcLan(VC_LAN_DEFAULT_NAME, VC_LAN_DEFAULT_PORT, 100); break;   // 4.13.63
     case 7: if(s_Client.GetState() != NET_DISCONNECTED) s_Client.Disconnect(true); DropAll(); s_bManualOff = true; Chat(0xFFC0C0C0, "Disconnected (MP menu, 4 joins again)"); break;
     default: break;
     }

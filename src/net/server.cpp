@@ -478,6 +478,9 @@ bool MPServer::SafeZoneBlocks(int from, int to) const
 }
 
 bool MPServer::IsDefaultServer() const { return !strcasecmp(m_szName, MP_DEFAULT_SERVER_NAME); }
+// 5.00.04: the VICE City LAN server (mp_server 7777 "VICE City LAN server" --game vc --persistent, or the phone copy
+// from VICE Loader) is a featured 24/7 server like MP LAN Server: the bot "Broker" keeps it online and counts as 1
+bool MPServer::IsVcLanServer() const { return m_nGame.load() == MP_GAME_VC && m_bPersistent && !strcasecmp(m_szName, "VICE City LAN server"); }
 
 void MPServer::SetPermsLocked(uint8_t perms)
 {

@@ -110,7 +110,9 @@ public:
     void BridgeTakeChat(std::vector<std::pair<int, std::string>>& out);   // their chat since last call
     // 3.23.5: the 3 featured servers (default 100, Brief Case War 20, MW3 64) always have the bot
     // "Broker" in them (id MP_BOT_ID): 1/100, 1/20, 1/64 with nobody else, on the VPS or a phone copy
-    bool HasBot() const { return IsDefaultServer() || IsBcwServer() || IsMw3Server() || IsRpServer() || IsDayzServer() || IsLgServer(); }
+    // 5.00.04: + the 24/7 VICE City LAN server (Vice City, port 7777): 1/100 with nobody else, 2/100 with one VICE Loader player
+    bool IsVcLanServer() const;
+    bool HasBot() const { return IsDefaultServer() || IsBcwServer() || IsMw3Server() || IsRpServer() || IsDayzServer() || IsLgServer() || IsVcLanServer(); }
 #ifdef MP_AUTH_OFF_FOR_TESTS   // 3.40.1: unit tests only (they have no login bot)
     bool AuthOn() const { return false; }
 #else

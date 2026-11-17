@@ -75,7 +75,7 @@ static bool StartVcLan(const char* name, int port, int maxPlayers)
 {
     if(!name || !name[0]) name = VC_LAN_DEFAULT_NAME;
     if(port <= 0 || port > 65535) port = VC_LAN_DEFAULT_PORT;
-    if(maxPlayers < 2 || maxPlayers > MP_STD_MAX_PLAYERS) maxPlayers = 50;
+    if(maxPlayers < 2 || maxPlayers > MP_STD_MAX_PLAYERS) maxPlayers = 100;   // 5.00.04: 100 like the 24/7 server
     if(s_VcLan.IsRunning()) s_VcLan.Stop();
     s_VcLan.SetGame(MP_GAME_VC);
     s_VcLan.SetPersistent(true);

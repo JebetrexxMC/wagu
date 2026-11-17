@@ -650,9 +650,13 @@ static void Table(std::vector<VlRow>& rows, float w, float h)
             dl->PopClipRect();
         }
         char t[48];
-        if(r.online && r.players >= 0) snprintf(t, sizeof(t), "%d/%d", r.players, r.maxPlayers); else snprintf(t, sizeof(t), "-");
-        const bool full = r.online && r.maxPlayers > 0 && r.players >= r.maxPlayers;
-        dl->AddText(ImVec2(a.x + cPl, ty), full ? kVRed : (r.players > 0 ? IM_COL32(230, 200, 90, 255) : IM_COL32(200, 204, 210, 255)), t);
+        // 5.00.04: the server you are on shows libMP's live count (PLAYERS2 = you + everyone else + the Broker bot),
+        // not the lobby's last announce - join the 24/7 VICE City LAN server and it says 2/100 at once
+        int np = r.players;
+        if(OnRow(r) && !s_Players.empty() && (int)s_Players.size() > np) np = (int)s_Players.size();
+        if(r.online && np >= 0) snprintf(t, sizeof(t), "%d/%d", np, r.maxPlayers); else snprintf(t, sizeof(t), "-");
+        const bool full = r.online && r.maxPlayers > 0 && np >= r.maxPlayers;
+        dl->AddText(ImVec2(a.x + cPl, ty), full ? kVRed : (np > 0 ? IM_COL32(230, 200, 90, 255) : IM_COL32(200, 204, 210, 255)), t);
         if(r.online && r.ping >= 0) snprintf(t, sizeof(t), "%d", r.ping); else snprintf(t, sizeof(t), r.online ? "-" : "offline");
         const ImU32 pc = !r.online ? kVRed : r.ping < 0 ? IM_COL32(150, 150, 150, 255) : r.ping < 80 ? IM_COL32(110, 200, 90, 255) : r.ping < 150 ? IM_COL32(230, 200, 90, 255) : kVRed;
         dl->AddText(ImVec2(a.x + cPing, ty), pc, t);

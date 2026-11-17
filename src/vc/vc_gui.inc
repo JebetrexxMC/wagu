@@ -332,7 +332,7 @@ static void LLan(float W)
         MPKit::Btn("lst", l, W, bh, 4);
         if(MPKit::Btn("lstop", "STOP THE VICE CITY LAN SERVER", W, bh, 3, true, MPKit::IC_STOP)) StopVcLan();
     }
-    else if(MPKit::Btn("lgo", "START VICE CITY LAN SERVER", W, bh, 1, true, MPKit::IC_PLAY)) StartVcLan(VC_LAN_DEFAULT_NAME, VC_LAN_DEFAULT_PORT, 50);
+    else if(MPKit::Btn("lgo", "START VICE CITY LAN SERVER", W, bh, 1, true, MPKit::IC_PLAY)) StartVcLan(VC_LAN_DEFAULT_NAME, VC_LAN_DEFAULT_PORT, 100);
 }
 static void LAdd(float W)
 {
