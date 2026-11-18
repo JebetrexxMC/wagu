@@ -97,6 +97,10 @@ public:
     uint8_t GetGame() const { return m_nGame.load(); }
     void SetDevStage(bool on) { m_bDevStage = on; }   // 4.13.2: "server in development" notice (off = finished)
     bool DevStageOn() const { return m_bDevStage; }
+    // 5.00.08: custom welcome message (Add server -> Custom welcome message, --welcome "text"). "" = the normal
+    // "Welcome to <server>". {name} / {server} are filled in by the phone, {RRGGBB} colours work.
+    void SetWelcome(const char* text) { std::lock_guard<std::mutex> lk(m_WelcomeMx); m_sWelcome = text ? text : ""; if(m_sWelcome.size() > MP_CHAT_LEN - 1) m_sWelcome.resize(MP_CHAT_LEN - 1); }
+    std::string GetWelcome() const { std::lock_guard<std::mutex> lk(m_WelcomeMx); return m_sWelcome; }
     // 4.12: open.mp cross-play bridge (crossplay/mp_crossplay.cpp, an open.mp server component).
     // Each PC player on the open.mp server is a "ghost" slot here (no address: nothing is sent to it),
     // each phone player here becomes an open.mp NPC there. All calls lock m_Mutex (any thread).
@@ -314,6 +318,8 @@ private:
     void AuthDefaultOff(const char* why);
     std::atomic<bool> m_bCineCam{false};
     std::atomic<bool> m_bDevStage{false};
+    mutable std::mutex m_WelcomeMx;   // 5.00.08
+    std::string m_sWelcome;
     std::atomic<uint8_t> m_nGame{0};   // 4.13.35
     std::atomic<bool> m_bBridge{false};                       // 4.12
     std::vector<std::pair<int, std::string>> m_BridgeChatOut;   // 4.12 (under m_Mutex)

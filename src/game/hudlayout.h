@@ -32,4 +32,16 @@ namespace HudLayout
     const char* PresetName(int preset);
     void  ApplyPreset(int preset);
     int   CurrentPreset();             // 5.00.06: Compact is the default (measured in weapon-icon heights)
+
+    // 5.00.08: with ARM's Advanced Settings installed MP's own HUD hooks stay off (double hooks = spaghetti), so
+    // "Custom GTA HUD" + Compact used to change nothing. Now MP writes the Compact layout (the "correct" HUD photo,
+    // Screenshots/IMG_20261117_172345.jpg) into Advanced Settings' own ini (AML configs/AdvancedSettings.SA.ini,
+    // keys from research/libAdvancedSettings.SA.so 7.3.1). Advanced Settings sees the new file time and reloads
+    // it by itself. The player's own ini is kept once as <ini>.mp_orig; AdvsRestore() puts it back.
+    const char* AdvsIniText();         // the whole Compact AdvancedSettings.SA.ini (docs/hud/AdvancedSettings.SA.ini)
+    bool  AdvsApplyCompact();          // merge the Compact HUD_* keys into the ini (other keys / sections are kept)
+    bool  AdvsRestore();               // the player's own ini back (from .mp_orig)
+    bool  AdvsApplied();               // a .mp_orig backup exists = MP's Compact is in the ini
+    const char* AdvsIniPath();         // the ini MP writes ("" = no AML config folder)
+    void  AdvsAutoApply();             // once: Custom GTA HUD on + Compact + Advanced Settings -> AdvsApplyCompact()
 }

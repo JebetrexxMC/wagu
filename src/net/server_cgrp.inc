@@ -384,7 +384,7 @@ void MPServer::CgTick(uint64_t now)
 }
 void MPServer::CgPayday()
 {
-    CgTell(-1, kCgWhite, "|___ PAYDAY (CGRP) ___|");
+    CgTell(-1, kCgWhite, "|___ PAYDAY ___|");
     for(auto& e : m_Cg)
         if(e.r.kind == CGK_POINT && e.r.group)
             if(CgFamily* f = CgFam(e.r.group)) { f->safe += e.r.price > 0 ? e.r.price : 5000; m_bCgDirty = true; }

@@ -487,11 +487,25 @@ static uint64_t s_nFeedNext = 0;
 #define FEED_RES_MS    58   // 2.21: 125 resources in about the same time as 90 before
 
 static char s_szCurServer[32] = "";   // name of the server we are connected to
+static char s_szCustomWelcome[MP_CHAT_LEN] = "";   // 5.00.08: the server's own welcome message (MP_SRVF_WELCOME)
+// {name} / {server} -> your name / the server name (the rest, {RRGGBB} colours too, as typed)
+static std::string WelcomeFill(const char* t)
+{
+    std::string o;
+    for(const char* p = t; *p; )
+    {
+        if(!strncasecmp(p, "{name}", 6)) { o += settings.name; p += 6; continue; }
+        if(!strncasecmp(p, "{server}", 8)) { o += s_szCurServer[0] ? s_szCurServer : "the server"; p += 8; continue; }
+        o += *p++;
+    }
+    return o;
+}
 // After "Connecting...." and all resources (3.40: 189, in the loading window): message, then teleport + title logo + sound.
 static void FinishJoin()
 {
     SysMsg(COL_GREEN, "Connected successfully!");
-    SysMsg(COL_WHITE, "{FFFFFF}Welcome to {38BDF8}%s", s_szCurServer[0] ? s_szCurServer : "the server");   // 3.40: every server
+    if(s_szCustomWelcome[0]) { const std::string wt = WelcomeFill(s_szCustomWelcome); SysMsg(COL_WHITE, "{FFFFFF}%s", wt.c_str()); s_szCustomWelcome[0] = 0; }   // 5.00.08: the owner's own message
+    else SysMsg(COL_WHITE, "{FFFFFF}Welcome to {38BDF8}%s", s_szCurServer[0] ? s_szCurServer : "the server");   // 3.40: every server
     if(JoinFlowActive()) JoinMarkConnected();   // 2.19: reveal the connection camera, then the spawn picker
     else s_bWantTeleport = true;            // Grove Street, on this game tick
     MP::logoStartMs = MP_NowMs();           // title_logo_connected.png
@@ -2637,6 +2651,7 @@ public:
         HkReset(); HmReset(); CoopReset(true); CgReset(); RulesReset(); Modes2Reset(); NotifyReset(); SrvSettingsReset(); HudReset(); ProgReset();   // 3.39: a new join: houses / rules / modes come again
         myId = w.yourId; myColor = w.color;
         MP_CopyStr(s_szCurServer, w.serverName, sizeof(s_szCurServer));
+        s_szCustomWelcome[0] = 0;   // 5.00.08: the welcome message (if any) comes right after this
         LuaOnConnected(w.yourId, s_szCurServer);   // 4.13.29
         s_bWorldSynced = false;
         s_nWorldNoticed = 0;   // 2.18.2: new connection -> each notice may show once again
@@ -2989,6 +3004,7 @@ public:
     void OnServerMessage(const PktServerMsg& m) override
     {
         if(!settings.globalChat && RpOnServer() && !strncmp(m.text, "(( [OOC]", 8)) return;   // 3.35: player Settings > Global Chat off
+        if(m.color == MP_WELCOME_COLOR) { MP_CopyStr(s_szCustomWelcome, m.text, sizeof(s_szCustomWelcome)); return; }   // 5.00.08: shown by FinishJoin
         uint32_t col = m.color; std::string t = m.text;
         if(!LuaOnClientMessage(col, t)) return;   // 4.13.29: samp.events onServerMessage
         MP::AddSystemMessage(col, t.c_str());
@@ -5092,6 +5108,7 @@ static bool StartLocalServer(const char* name, int port)
     }
     s_Server.SetCineCam(settings.hostCineCam && !bcw && !MP::IsDefaultServer(name, port));   // 4.12
     s_Server.SetDevStage(settings.hostDevStage && !bcw && !MP::IsDefaultServer(name, port));   // 4.13.2
+    s_Server.SetWelcome(settings.hostWelcomeOn && !bcw && !MP::IsDefaultServer(name, port) ? settings.hostWelcome : "");   // 5.00.08
     MP_CopyStr(settings.hostedPassword, MP::IsDefaultServer(name, port) || bcw ? "" : s_szJoinPw, sizeof(settings.hostedPassword));
     ApplyServerPerms();   // 2.16
     ApplyServerRules();   // 3.39
@@ -5784,7 +5801,7 @@ void MP::SaveConfig()
     F("NametagSize", settings.nametagSize); F("NametagDistance", settings.nametagDistance);
     B("ShowOwnNametag", settings.showOwnTag); B("ShowHealthBars", settings.showHealthBars); B("ShowRadarIcons", settings.showRadarIcons);
     B("ShowChat", settings.showChat); B("ShowKillFeed", settings.showKillFeed); B("ShowStatus", settings.showStatus);
-    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
+    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); B("HostWelcomeOn", settings.hostWelcomeOn); S("HostWelcome", settings.hostWelcome); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
     F("ChatX", settings.chatX); F("ChatY", settings.chatY); I("Skin", settings.skin);
     I("ChatLines", settings.chatLines); F("ChatSize", settings.chatSize); F("ChatScale", settings.chatScale); F("ChatWidth", settings.chatWidth);   // 2.19.6
     I("ChatFade", settings.chatFade); B("ChatFadeOn", settings.chatFadeOn); B("ChatBackground", settings.chatBg);
@@ -5844,6 +5861,8 @@ static void LoadConfig()
     settings.hostAuth        = ::cfg->GetBool("HostAuth", false, "MP");   // 3.21.6
     settings.hostCineCam     = ::cfg->GetBool("HostCineCam", true, "MP");   // 4.12
     settings.hostDevStage    = ::cfg->GetBool("HostDevStage", false, "MP");   // 4.13.2
+    settings.hostWelcomeOn   = ::cfg->GetBool("HostWelcomeOn", false, "MP");   // 5.00.08
+    ::cfg->GetString(settings.hostWelcome, sizeof(settings.hostWelcome), "HostWelcome", "Welcome to {server}, {name}!", "MP");
     settings.phoneKeyboard   = ::cfg->GetBool("PhoneKeyboard", false, "MP");   // 4.12.3
     VKeyboard::SetPhoneKeyboard(settings.phoneKeyboard);
     settings.hostAc          = ::cfg->GetBool("HostAntiCheat", false, "MP");   // 3.50
@@ -6836,6 +6855,11 @@ static void RulesSection()
 static bool s_bCountryOpen = false; static char s_szCountryFind[32] = "", s_szNewTag[24] = "";
 static void OnCountryFind(const char* t, void*) { MP_CopyStr(s_szCountryFind, t ? t : "", sizeof(s_szCountryFind)); }
 static void OnSrvMode(const char* t, void*) { MP_CopyStr(settings.serverMode, t ? t : "", sizeof(settings.serverMode)); MP_CleanField(settings.serverMode); SaveConfig(); }
+static void OnHostWelcome(const char* t, void*)   // 5.00.08
+{
+    MP_CopyStr(settings.hostWelcome, t ? t : "", sizeof(settings.hostWelcome)); SaveConfig();
+    if(s_Server.IsRunning() && !MP::IsHostingDefault() && !s_Server.IsBcwServer() && settings.hostWelcomeOn) s_Server.SetWelcome(settings.hostWelcome);
+}
 static void OnSrvDesc(const char* t, void*) { MP_CopyStr(settings.serverDesc, t ? t : "", sizeof(settings.serverDesc)); MP_CleanField(settings.serverDesc); SaveConfig(); }
 static std::vector<std::string> TagList(const char* t)
 {
@@ -7222,6 +7246,24 @@ static void SectionAddServer(void*)
                                                   : "Off: the server is finished, no notice.");
     }
 
+    // 5.00.08: Custom welcome message - instead of "Welcome to <server>" after "Connected successfully!"
+    ImGui::Separator();
+    ImGui::TextUnformatted("Welcome message");
+    {
+        const bool own = s_Server.IsRunning() && !IsHostingDefault() && !s_Server.IsBcwServer();
+        if(FloatMenu::ToggleSwitch("Custom welcome message", &settings.hostWelcomeOn))
+        {
+            SaveConfig();
+            if(own) { s_Server.SetWelcome(settings.hostWelcomeOn ? settings.hostWelcome : ""); SysMsg(COL_GREEN, "Custom welcome message %s on \"%s\" (players who join from now on).", settings.hostWelcomeOn ? "on" : "off", s_Server.GetName()); }
+        }
+        if(settings.hostWelcomeOn)
+            FloatMenu::TextField("Welcome message", settings.hostWelcome, "e.g. Welcome to {server}, {name}!", MP_CHAT_LEN - 1, OnHostWelcome);
+        ImGui::PushTextWrapPos(0.0f);
+        ImGui::TextDisabled(settings.hostWelcomeOn ? "On: players who join your server see this message after \"Connected successfully!\". {name} = their name, {server} = the server name, {FF0000} colours work."
+                                                   : "Off: the normal \"Welcome to <your server>\" message.");
+        ImGui::PopTextWrapPos();
+    }
+
     // 3.21.6: Authentication system - players verify with Discord (/gen code), then sign up / log in
     ImGui::Separator();
     ImGui::TextUnformatted("Authentication system");
@@ -7480,7 +7522,34 @@ static void GtaHudSettings()
     static bool dirty = false;
     if(HudLayout::Conflict())
     {
-        ImGui::TextWrapped("Advanced Settings (libAdvancedSettings.SA.so) is installed: it changes the HUD, so MP's custom HUD is off (both together drew broken \"spaghetti\" lines and froze the game). Use Advanced Settings, or remove it from the mods folder to use these options.");
+        // 5.00.08: MP's own HUD hooks stay off with Advanced Settings (double moves = spaghetti), so the Compact HUD
+        // goes into Advanced Settings' ini instead; it reloads the file by itself (src/game/hudlayout.cpp Advs*).
+        static char s_szAdvsMsg[160] = "";
+        bool applied = HudLayout::AdvsApplied();
+        ImGui::PushTextWrapPos(0.0f);
+        ImGui::TextDisabled("Advanced Settings (libAdvancedSettings.SA.so) is installed, so it draws the HUD. MP puts its Compact HUD (clock right above the money, health and armor bars right under it, next to the weapon icon) into Advanced Settings' own settings file.");
+        ImGui::PopTextWrapPos();
+        if(FloatMenu::ToggleSwitch("Custom GTA HUD (Compact)", &applied))
+        {
+            const bool ok = applied ? HudLayout::AdvsApplyCompact() : HudLayout::AdvsRestore();
+            snprintf(s_szAdvsMsg, sizeof(s_szAdvsMsg), "%s", !ok ? "Could not write the Advanced Settings ini (see the MP log)."
+                     : applied ? "Compact HUD written to Advanced Settings. It changes in a moment (restart the game if it does not)."
+                               : "Your own Advanced Settings ini is back.");
+            if(::cfg) { ConfigEntry* e = ::cfg->Bind("AdvsCompactDone", true, "GTAHUD"); e->SetBool(true); delete e; }
+        }
+        const float hw = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+        if(ImGui::Button("Apply Compact again", ImVec2(hw, UI::S(52))))
+            snprintf(s_szAdvsMsg, sizeof(s_szAdvsMsg), "%s", HudLayout::AdvsApplyCompact() ? "Compact HUD written to Advanced Settings." : "Could not write the Advanced Settings ini.");
+        ImGui::SameLine();
+        const bool noBackup = !HudLayout::AdvsApplied();
+        if(noBackup) ImGui::BeginDisabled();
+        if(ImGui::Button("Restore my ini", ImVec2(hw, UI::S(52))))
+            snprintf(s_szAdvsMsg, sizeof(s_szAdvsMsg), "%s", HudLayout::AdvsRestore() ? "Your own Advanced Settings ini is back." : "No backup to restore.");
+        if(noBackup) ImGui::EndDisabled();
+        ImGui::PushTextWrapPos(0.0f);
+        if(s_szAdvsMsg[0]) ImGui::TextUnformatted(s_szAdvsMsg);
+        ImGui::TextDisabled("File: %s", HudLayout::AdvsIniPath());
+        ImGui::PopTextWrapPos();
         return;
     }
     bool on = HudLayout::Enabled();

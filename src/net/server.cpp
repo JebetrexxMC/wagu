@@ -1104,8 +1104,15 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             w.type = PKT_WELCOME; w.yourId = (uint8_t)slot; w.maxPlayers = (uint8_t)m_nMaxPlayers.load(); w.color = s.color;
             MP_CopyStr(w.serverName, m_szName, sizeof(w.serverName));
             w2.build = MP_BUILD;
-            w3.flags = (m_bCineCam ? MP_SRVF_CINECAM : 0) | (m_bDevStage ? MP_SRVF_DEVSTAGE : 0);   // 4.13.2: + dev stage
+            const std::string welcome = IsDefaultServer() || IsBcwServer() ? std::string() : GetWelcome();   // 5.00.08: custom servers only
+            w3.flags = (m_bCineCam ? MP_SRVF_CINECAM : 0) | (m_bDevStage ? MP_SRVF_DEVSTAGE : 0) | (welcome.empty() ? 0 : MP_SRVF_WELCOME);   // 4.13.2: + dev stage
             SendTo(slot, &w3, sizeof(w3));
+            if(!welcome.empty())
+            {   // 5.00.08: the owner's own welcome message (the phone shows it instead of "Welcome to <server>")
+                PktServerMsg wm; memset(&wm, 0, sizeof(wm)); wm.type = PKT_SERVER_MSG; wm.color = MP_WELCOME_COLOR;
+                MP_CopyStr(wm.text, welcome.c_str(), sizeof(wm.text));
+                SendTo(slot, &wm, sizeof(wm));
+            }
 
             // tell the newcomer about everyone (including itself, so it knows its final name/colour)
             for(int i = 0; i < MP_MAX_PLAYERS; ++i)

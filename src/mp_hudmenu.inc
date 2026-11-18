@@ -96,6 +96,7 @@ static void HudTdDlg(int resp, int item, const char*, int)
     if(item == 0) { HudModeShow(); return; }
     static const uint8_t bits[] = { HUDF_CENTS, HUDF_PLAYER, HUDF_AMMO, HUDF_LOGO };
     if(item == 2) { s_Hud.flags &= ~HUDF_PLAYER; SysMsg(COL_SYSTEM, "HUD Player was removed in 4.12.5 - your name and id are no longer drawn on the HUD."); HudTdShow(); return; }
+    if(item == 3 && MP::IsOnDefault()) { SysMsg(COL_SYSTEM, "Ammo Info is off on the default server."); HudTdShow(); return; }   // 5.00.08
     if(item >= 1 && item <= 4) { s_Hud.flags ^= bits[item - 1]; s_Hud.flags &= ~HUDF_PLAYER; HudMenuSend(); }
     if(item >= 5 && item <= 7) { HudLogoPosAsk(item - 5); return; }
     HudTdShow();
@@ -116,7 +117,7 @@ void HudTdShow()
         "{FFFFFF}Logo Position X\t{FFFFFF}%d%%\n"
         "{FFFFFF}Logo Position Y\t{FFFFFF}%d%%\n"
         "{FFFFFF}Logo Size Z\t{FFFFFF}%d%%\n",
-        mode, HudOnOff(HudFlag(HUDF_CENTS)), "{AAAAAA}Removed", HudOnOff(HudFlag(HUDF_AMMO)), HudOnOff(HudFlag(HUDF_LOGO)), (int)s_Hud.lx, (int)s_Hud.ly, (int)s_Hud.lz);
+        mode, HudOnOff(HudFlag(HUDF_CENTS)), "{AAAAAA}Removed", MP::IsOnDefault() ? "{AAAAAA}Off (default server)" : HudOnOff(HudFlag(HUDF_AMMO)), HudOnOff(HudFlag(HUDF_LOGO)), (int)s_Hud.lx, (int)s_Hud.ly, (int)s_Hud.lz);
     ShowDialog(0, DIALOG_STYLE_TABLIST_HEADERS, "{FFFFFF}Settings Menu >> Textdraw", b, "Select", "Back", HudTdDlg, HUDM_TD);
 }
 

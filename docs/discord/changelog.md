@@ -1,5 +1,13 @@
 @everyone # Changelogs
 
+- Custom GTA HUD now works with Advanced Settings installed: MP writes the Compact HUD (clock above the money, health and armor right under it, next to the weapon icon) into the Advanced Settings ini, with Apply again / Restore my ini buttons in Settings > Display > GTA HUD
+
+- the AMMO number on the right side (Settings > Textdraw > Ammo Info) is off on the default server
+
+- new Add server option: Custom welcome message, shown to players who join your server instead of "Welcome to <server>" ({name} and {server} work)
+
+- the payday chat line no longer says (CGRP)
+
 - new notification system: admins and moderators on the default server (and host owners on custom servers with the new Notification system gamemode) can send pop-up notifications with /notify embed: logo: message: timer: start: end:, pick the logo from the list, set the start and end time with AM / PM, everyone gets a card sliding in from the left with a sound
 
 - the default server HUD now matches the Broker MQQ logo: red and brown hexagons and a red top-right score bar

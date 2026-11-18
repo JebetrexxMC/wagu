@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <dlfcn.h>
+#include <strings.h>
 #include "hudlayout.h"
 
 namespace
@@ -352,7 +353,11 @@ void HudLayout::ApplyPreset(int preset)
     Save();
 }
 int HudLayout::CurrentPreset() { return s_nPreset; }
-void HudLayout::SetScreen(float w, float h) { if(w > 16 && h > 16) { s_fW = w; s_fH = h; } }
+void HudLayout::SetScreen(float w, float h)
+{
+    if(w > 16 && h > 16) { s_fW = w; s_fH = h; }
+    static bool once = false; if(!once) { once = true; AdvsAutoApply(); }   // 5.00.08: every mod is loaded by the first frame
+}
 void HudLayout::Init(void* gtasa) { s_hGame = gtasa; if(s_bWant) InstallHooks(); }
 
 void HudLayout::Load()
@@ -385,6 +390,7 @@ void HudLayout::Load()
     s_nPreset = preset == PRESET_COMPACT ? PRESET_COMPACT : PRESET_GAME;
     SetEnabled(on && (any || s_nPreset == PRESET_COMPACT));   // all default + the game layout = nothing hooked
     s_bOn = on && !AdvancedSettingsLoaded();
+    AdvsAutoApply();   // 5.00.08
 }
 void HudLayout::Save()
 {
@@ -407,4 +413,251 @@ void HudLayout::Save()
         snprintf(k, sizeof(k), "%s_Alpha", kKeys[p]);  F(k, c.alpha);
     }
     ::cfg->EndBatch();
+}
+
+// ---- 5.00.08: Compact HUD through Advanced Settings' own ini ------------------------------------------------
+// Advanced Settings units: Pos / Size = % of the screen. Bars: right edge PosX, grow left by SizeX, top PosY,
+// height SizeY. Weapon icon: centre PosX / PosY, half width SizeX, half height SizeY. Text: PosY = top,
+// Orientation 2 = right aligned at PosX. Clock right above the money, health / armor / breath bars right under,
+// all just left of the weapon icon (Screenshots/IMG_20261117_172345.jpg). Same text as docs/hud/AdvancedSettings.SA.ini.
+static const char kAdvsIni[] = R"MPINI([About]
+PresetBy = MP Compact (correct HUD)
+
+[HUD_PlayerInfo]
+ForceDrawing = 0
+
+[HUD_WeaponIcon]
+DrawBehind = 0
+PosX = 92.000000
+PosY = 11.000000
+SizeX = 3.800000
+SizeY = 8.500000
+
+[HUD_Ammo]
+DisplayAbove9999 = 0
+BGColor = 0 0 0 0
+Color = 172 203 241 255
+CalcWeaponRect = 1
+Proportional = 1
+FontStyle = 6
+Orientation = 0
+FontEdge = 1
+AnimatedMult = 1
+PosX = 92.000000
+PosY = 20.300000
+SizeX = 0.500000
+SizeY = 1.300000
+
+[HUD_Clock]
+Format = %02d:%02d
+BGColor = 0 0 0 0
+Color = 225 225 225 255
+Proportional = 0
+Orientation = 2
+FontStyle = 5
+FontEdge = 1
+PosX = 87.200000
+PosY = 2.600000
+SizeX = 0.550000
+SizeY = 1.500000
+
+[HUD_Money]
+ColorMinus = 180 25 29 255
+ColorPlus = 54 104 44 255
+BGColor = 0 0 0 0
+FontStyle = 5
+Proportional = 0
+Orientation = 2
+FontEdge = 1
+DropShadow = 0
+PosX = 87.200000
+PosY = 9.600000
+SizeX = 0.550000
+SizeY = 1.450000
+
+[HUD_BarHealth]
+BorderMult = 0.200000
+BorderSide = 30
+Color = 180 25 29 255
+ConstWidth = 0
+DrawMode = 0
+FlashItem = 1
+PCBehaviour = 0
+Percent = 0
+PosX = 87.200000
+PosY = 16.600000
+SizeX = 16.000000
+SizeY = 2.200000
+Vertical = 0
+
+[HUD_BarArmor]
+AlwaysShow = 0
+BorderMult = 0.200000
+BorderSide = 30
+Color = 225 225 225 255
+ConstWidth = 0
+DrawMode = 0
+FlashItem = 1
+Percent = 0
+PosX = 87.200000
+PosY = 20.400000
+SizeX = 16.000000
+SizeY = 2.200000
+Vertical = 0
+
+[HUD_BarBreath]
+AlwaysShow = 0
+BorderMult = 0.200000
+BorderSide = 30
+Color = 137 162 192 255
+DrawMode = 0
+FlashItem = 1
+Percent = 0
+PosX = 87.200000
+PosY = 24.200000
+SizeX = 16.000000
+SizeY = 2.200000
+Vertical = 0
+
+[HUD_WantedStar]
+AlwaysShowShadow = 0
+Color = 144 98 16 255
+BGColor = 0 0 0 255
+FontStyle = 4
+FontEdge = 1
+Orientation = 2
+Proportional = 1
+Padding = 0.150000
+PosX = 96.000000
+PosY = 27.800000
+SizeX = 0.500000
+SizeY = 1.500000
+Vertical = 0
+)MPINI";
+#include <string>
+#include <vector>
+#include <sys/stat.h>
+#include <unistd.h>
+namespace
+{
+std::string Trim(const std::string& s)
+{
+    size_t a = 0, b = s.size();
+    while(a < b && (s[a] == ' ' || s[a] == '\t' || s[a] == '\r' || s[a] == '\n')) ++a;
+    while(b > a && (s[b-1] == ' ' || s[b-1] == '\t' || s[b-1] == '\r' || s[b-1] == '\n')) --b;
+    return s.substr(a, b - a);
+}
+bool SameI(const std::string& a, const std::string& b) { return a.size() == b.size() && strncasecmp(a.c_str(), b.c_str(), a.size()) == 0; }
+void SplitLines(const std::string& t, std::vector<std::string>& out)
+{
+    size_t p = 0;
+    while(p < t.size()) { size_t e = t.find('\n', p); if(e == std::string::npos) e = t.size(); std::string l = t.substr(p, e - p); if(!l.empty() && l.back() == '\r') l.pop_back(); out.push_back(l); p = e + 1; }
+}
+bool ReadAll(const char* path, std::string& out)
+{
+    FILE* f = fopen(path, "rb"); if(!f) return false;
+    char buf[4096]; size_t n; out.clear();
+    while((n = fread(buf, 1, sizeof(buf), f)) > 0) out.append(buf, n);
+    fclose(f); return true;
+}
+bool WriteAll(const char* path, const std::string& t)
+{
+    std::string tmp = std::string(path) + ".mp_tmp";
+    FILE* f = fopen(tmp.c_str(), "wb"); if(!f) return false;
+    const bool ok = fwrite(t.data(), 1, t.size(), f) == t.size(); fclose(f);
+    if(!ok || rename(tmp.c_str(), path) != 0) { remove(tmp.c_str()); return false; }
+    return true;
+}
+bool Exists(const char* p) { struct stat st; return stat(p, &st) == 0; }
+struct AdvsKey { std::string sec, key, val; bool done; };
+void ParseIni(const std::string& t, std::vector<AdvsKey>& out)
+{
+    std::vector<std::string> lines; SplitLines(t, lines); std::string sec;
+    for(auto& l0 : lines)
+    {
+        std::string l = Trim(l0); if(l.empty() || l[0] == ';' || l[0] == '#') continue;
+        if(l[0] == '[') { size_t e = l.find(']'); sec = Trim(l.substr(1, e == std::string::npos ? std::string::npos : e - 1)); continue; }
+        size_t eq = l.find('='); if(eq == std::string::npos) continue;
+        out.push_back({ sec, Trim(l.substr(0, eq)), Trim(l.substr(eq + 1)), false });
+    }
+}
+}   // namespace
+
+const char* HudLayout::AdvsIniText() { return kAdvsIni; }
+const char* HudLayout::AdvsIniPath()
+{
+    static char path[512];
+    const char* dir = aml ? aml->GetConfigPath() : NULL;
+    if(!dir || !*dir) { path[0] = 0; return path; }
+    const size_t n = strlen(dir); const char* sep = (n && dir[n-1] == '/') ? "" : "/";
+    // the 64-bit build's ini, if that is the one on this phone; else the 32-bit name (ARM's mod id)
+    snprintf(path, sizeof(path), "%s%sAdvancedSettings.SA64.ini", dir, sep);
+    if(Exists(path)) return path;
+    snprintf(path, sizeof(path), "%s%sAdvancedSettings.SA.ini", dir, sep);
+    return path;
+}
+bool HudLayout::AdvsApplied()
+{
+    const char* ini = AdvsIniPath(); if(!*ini) return false;
+    return Exists((std::string(ini) + ".mp_orig").c_str());
+}
+bool HudLayout::AdvsApplyCompact()
+{
+    const char* ini = AdvsIniPath(); if(!*ini) return false;
+    std::string cur; const bool had = ReadAll(ini, cur);
+    const std::string orig = std::string(ini) + ".mp_orig";
+    if(!Exists(orig.c_str()) && !WriteAll(orig.c_str(), had ? cur : std::string())) { logger->Info("GTA HUD: cannot back up %s", ini); return false; }
+    std::vector<AdvsKey> want; ParseIni(kAdvsIni, want);
+    std::vector<std::string> lines; SplitLines(cur, lines);
+    while(!lines.empty() && Trim(lines.back()).empty()) lines.pop_back();
+    // 1) replace the keys that are there already (in their section)
+    std::string sec;
+    for(auto& l0 : lines)
+    {
+        std::string l = Trim(l0); if(l.empty() || l[0] == ';' || l[0] == '#') continue;
+        if(l[0] == '[') { size_t e = l.find(']'); sec = Trim(l.substr(1, e == std::string::npos ? std::string::npos : e - 1)); continue; }
+        size_t eq = l.find('='); if(eq == std::string::npos) continue;
+        const std::string k = Trim(l.substr(0, eq));
+        for(auto& w : want) if(!w.done && SameI(w.sec, sec) && SameI(w.key, k)) { l0 = w.key + " = " + w.val; w.done = true; break; }
+    }
+    // 2) the missing keys at the end of their section (or a new section at the end)
+    for(auto& w : want)
+    {
+        if(w.done) continue;
+        int secLine = -1, last = -1; std::string s2;
+        for(int i = 0; i < (int)lines.size(); ++i)
+        {
+            std::string l = Trim(lines[i]);
+            if(!l.empty() && l[0] == '[') { size_t e = l.find(']'); s2 = Trim(l.substr(1, e == std::string::npos ? std::string::npos : e - 1)); if(SameI(s2, w.sec)) { secLine = i; last = i; } continue; }
+            if(secLine >= 0 && SameI(s2, w.sec) && !l.empty()) last = i;
+        }
+        const std::string kv = w.key + " = " + w.val;
+        if(secLine < 0) { if(!lines.empty()) lines.push_back(""); lines.push_back("[" + w.sec + "]"); lines.push_back(kv); }
+        else lines.insert(lines.begin() + last + 1, kv);
+        w.done = true;
+    }
+    std::string out; for(auto& l : lines) { out += l; out += '\n'; }
+    if(!WriteAll(ini, out)) { logger->Info("GTA HUD: cannot write %s", ini); return false; }
+    logger->Info("GTA HUD: Compact HUD written to Advanced Settings (%s, your own ini kept as .mp_orig)", ini);
+    return true;
+}
+bool HudLayout::AdvsRestore()
+{
+    const char* ini = AdvsIniPath(); if(!*ini) return false;
+    const std::string orig = std::string(ini) + ".mp_orig";
+    std::string t; if(!ReadAll(orig.c_str(), t)) return false;
+    if(t.empty()) remove(ini);   // there was no ini before MP: Advanced Settings makes its default one again
+    else if(!WriteAll(ini, t)) return false;
+    remove(orig.c_str());
+    logger->Info("GTA HUD: your own Advanced Settings ini is back (%s)", ini);
+    return true;
+}
+void HudLayout::AdvsAutoApply()
+{
+    if(!::cfg || !AdvancedSettingsLoaded() || s_nPreset != PRESET_COMPACT) return;
+    if(::cfg->GetBool("AdvsCompactDone", false, "GTAHUD")) return;   // once; after that only the GTA HUD buttons
+    if(AdvsApplied() || AdvsApplyCompact())
+    {
+        ConfigEntry* e = ::cfg->Bind("AdvsCompactDone", true, "GTAHUD"); e->SetBool(true); delete e;
+    }
 }
