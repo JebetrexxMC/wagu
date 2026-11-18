@@ -31,6 +31,8 @@ B=build/assets/bundle
 cp $ROOT/assets/MP/ui_bg.jpg build/assets/ui_bg.jpg
 cp $ROOT/assets/MP/chat_icon.png build/assets/chat_icon.png     # floating bar chat pill (same as San Andreas)
 cp $ROOT/assets/MP/flags.png build/assets/flags.png             # 4.13.64: server list Location flags (San Andreas server_style.h)
+# 5.01.02: server row / preview pictures (the MP LAN Server one for the VICE City LAN server, the SA 24/7 ones)
+for f in bg_default bg_bcw bg_mw3 bg_rp bg_dz bg_lg; do unzip -p $ROOT/assets/MP/bg_server.jar $f.jpg > build/assets/$f.jpg; done
 cp assets/global_click.wav build/assets/global_click.wav        # global_click like the San Andreas MP UI
 # 5.00.01: no libAML.so any more - AML is the mod-loader build tool, not part of MP. Only MP (MonetLoader inside) ships.
 mkdir -p $B/mods

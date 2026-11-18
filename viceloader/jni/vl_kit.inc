@@ -363,3 +363,36 @@ static void LImageCover(ImDrawList* dl, void* tex, ImVec2 uv, ImVec2 a, ImVec2 b
     else          { float k = box / img; u0.x = uv.x * (1 - k) * 0.5f; u1.x = uv.x - u0.x; }
     dl->AddImage((ImTextureID)tex, a, b, u0, u1, tint);
 }
+// 5.01.02 (from the San Andreas launcher): the row background picture fades out to the right (alpha -> 0 over the last part) instead of
+// stopping with a hard cut at 46 % of the row
+static void LImageCoverFade(ImDrawList* dl, void* tex, ImVec2 uv, ImVec2 a, ImVec2 b, int alpha, float solid)
+{
+    float bw = b.x - a.x, bh = b.y - a.y; if(bw <= 0 || bh <= 0) return;
+    float img = 2.0f, box = bw / bh;
+    ImVec2 u0(0, 0), u1(uv.x, uv.y);
+    if(box > img) { float k = img / box; u0.y = uv.y * (1 - k) * 0.5f; u1.y = uv.y - u0.y; }
+    else          { float k = box / img; u0.x = uv.x * (1 - k) * 0.5f; u1.x = uv.x - u0.x; }
+    const int N = 8;   // the fade part in 8 steps (smooth alpha, easing out)
+    float xs = a.x + bw * solid, us = u0.x + (u1.x - u0.x) * solid;
+    dl->PushTextureID((ImTextureID)tex);
+    auto quad = [&](float x0, float x1, float ua, float ub, int al0, int al1)
+    {
+        ImU32 c0 = IM_COL32(255, 255, 255, al0), c1 = IM_COL32(255, 255, 255, al1);
+        dl->PrimReserve(6, 4);
+        ImDrawIdx i = (ImDrawIdx)dl->_VtxCurrentIdx;
+        dl->PrimWriteIdx(i); dl->PrimWriteIdx(i + 1); dl->PrimWriteIdx(i + 2);
+        dl->PrimWriteIdx(i); dl->PrimWriteIdx(i + 2); dl->PrimWriteIdx(i + 3);
+        dl->PrimWriteVtx(ImVec2(x0, a.y), ImVec2(ua, u0.y), c0);
+        dl->PrimWriteVtx(ImVec2(x1, a.y), ImVec2(ub, u0.y), c1);
+        dl->PrimWriteVtx(ImVec2(x1, b.y), ImVec2(ub, u1.y), c1);
+        dl->PrimWriteVtx(ImVec2(x0, b.y), ImVec2(ua, u1.y), c0);
+    };
+    if(solid > 0) quad(a.x, xs, u0.x, us, alpha, alpha);
+    for(int k = 0; k < N; ++k)
+    {
+        float f0 = (float)k / N, f1 = (float)(k + 1) / N;
+        float e0 = 1 - f0, e1 = 1 - f1; e0 *= e0; e1 *= e1;   // ease out
+        quad(xs + (b.x - xs) * f0, xs + (b.x - xs) * f1, us + (u1.x - us) * f0, us + (u1.x - us) * f1, (int)(alpha * e0), (int)(alpha * e1));
+    }
+    dl->PopTextureID();
+}

@@ -500,7 +500,39 @@ static void VlWrap(ImDrawList* dl, ImVec2 p, float w, float maxY, ImU32 col, con
     dl->AddText(ImGui::GetFont(), ImGui::GetFontSize() * sc, p, col, txt, nullptr, w);
     dl->PopClipRect();
 }
-// the host's preview picture (p/<token> in the lobby); the VICE City LAN server / no picture: the Vice City backdrop
+// 5.01.02: the row / preview background like the San Andreas server list (bg_server.jar pictures, shipped in the
+// APK assets): the VICE City LAN server and Vice City Wi-Fi servers use the MP LAN Server picture (bg_default.jpg),
+// the San Andreas 24/7 servers their own (bg_bcw / bg_mw3 / bg_rp / bg_dz / bg_lg) - no more blurred ui_bg.jpg
+static bool VlTagIs(const char* t, const char* k)
+{
+    size_t n = strlen(k);
+    for(const char* p = t; p && *p; )
+    {
+        const char* e = strchr(p, ','); size_t l = e ? (size_t)(e - p) : strlen(p);
+        if(l == n && !strncasecmp(p, k, n)) return true;
+        p = e ? e + 1 : nullptr;
+    }
+    return false;
+}
+static const char* VlRowBgFile(const VlRow& r)
+{
+    if(!r.vc)
+    {
+        if(VlTagIs(r.tags, "bcw")) return "bg_bcw.jpg";
+        if(VlTagIs(r.tags, "mw3")) return "bg_mw3.jpg";
+        if(VlTagIs(r.tags, "rp")) return "bg_rp.jpg";
+        if(VlTagIs(r.tags, "dayz")) return "bg_dz.jpg";
+        if(VlTagIs(r.tags, "rocketleague")) return "bg_lg.jpg";
+    }
+    if(r.dedicated || r.vc || r.kind == 1) return "bg_default.jpg";
+    return nullptr;
+}
+static void* VlRowBg(const VlRow& r, ImVec2* uv)
+{
+    const char* f = VlRowBgFile(r);
+    return f ? HUD::Texture(f, uv) : nullptr;
+}
+// the host's preview picture (p/<token> in the lobby); else the row background (the MP LAN Server picture)
 static void* VlPreview(const VlRow& r, ImVec2* uv)
 {
     *uv = ImVec2(1, 1);
@@ -523,7 +555,8 @@ static void* VlPreview(const VlRow& r, ImVec2* uv)
         }
         if(!c.second.empty()) if(void* t = VL_TextureMem(c.second.c_str(), std::string())) return t;
     }
-    return HUD::Texture("ui_bg.jpg", uv);
+    if(void* t = VlRowBg(r, uv)) return t;
+    return HUD::Texture("bg_default.jpg", uv);
 }
 // who is inside: live from the game when we are on it, else what the host publishes (d/<token> field 6)
 static void VlDetailPlayers(const VlRow& r, bool on, std::vector<std::string>& out)
@@ -598,6 +631,10 @@ static void Table(std::vector<VlRow>& rows, float w, float h)
         const ImU32 mc = VlModeColor(r);
         // row: slate base, the gamemode colour stripe, 24/7 rows with the gamemode highlight (San Andreas featured rows)
         dl->AddRectFilled(a, b, (i & 1) ? IM_COL32(30, 34, 40, 110) : IM_COL32(44, 49, 56, 110));
+        {   // 5.01.02: the server picture on the left of the row, fading out (San Andreas LImageCoverFade)
+            ImVec2 uv(1, 1);
+            if(void* bt = VlRowBg(r, &uv)) LImageCoverFade(dl, bt, uv, a, ImVec2(a.x + (b.x - a.x) * 0.46f, b.y), 150, 0.45f);
+        }
         if(r.dedicated) dl->AddRectFilledMultiColor(a, b, VAlpha(mc, 0.30f), VAlpha(mc, 0.04f), VAlpha(mc, 0.04f), VAlpha(mc, 0.30f));
         dl->AddRectFilled(a, ImVec2(a.x + UI::S(4), b.y), mc);
         if(sel) dl->AddRectFilled(a, b, IM_COL32(255, 255, 255, 26));

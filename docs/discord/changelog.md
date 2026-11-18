@@ -1,5 +1,9 @@
 @everyone # Changelogs
 
+- Rocket League now has its own background picture and preview in the server list, like the other 24/7 servers
+
+- VICE Loader: the VICE City LAN server preview now shows the MP LAN Server picture instead of the blurred background, and the server rows have pictures like San Andreas
+
 - fixed players getting a second slot when they reconnect: no more "try to reconnecting" for someone who is still playing, and no more "left the server" + "joined the server" for a player who never left
 
 - the 24/7 server handover and host takeovers no longer flood the chat with "joined the server" for players who were already there

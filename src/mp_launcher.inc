@@ -411,7 +411,7 @@ static void LFeaturedDetails(LRow& r)
             ds = "Mega Vil Futuristic roleplay: jobs, houses, cars and a city that never sleeps."; break;
     case 6: md = "Day Z"; tg = "dayz,zombies,survival,loot,pvp,24/7"; bg = "bg_dz.jpg";
             ds = "Project Day Z Legacy: survive the zombies, find loot, build a camp, trust nobody."; break;
-    case 7: md = "Rocket Soccer"; tg = "rocketleague,soccar,cars,ranked,mmr,24/7";
+    case 7: md = "Rocket Soccer"; tg = "rocketleague,soccar,cars,ranked,mmr,24/7"; bg = "bg_lg.jpg";   // 5.01.02
             ds = "Rocket League: car soccer in San Andreas on a floating pitch high above the Los Santos skyscrapers. Pick a car at Grove Street, boost, jump and score - ranked MMR from Bronze to Supersonic Legend."; break;
     default: return;
     }
@@ -1153,7 +1153,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
             if(r.players >= 0) snprintf(b, sizeof(b), "%d/%d", r.players, r.maxp); else snprintf(b, sizeof(b), "-");
             bool full = r.players >= 0 && r.maxp > 0 && r.players >= r.maxp;
             dl->AddText(ImVec2(a.x + cPl, ty), full ? IM_COL32(222, 74, 60, 255) : (r.players > 0 ? IM_COL32(230, 200, 90, 255) : IM_COL32(200, 204, 210, 255)), b);
-            const char* map = r.kind == 3 ? "Bone County" : r.kind == 5 ? "Mega Vil" : r.kind == 6 ? "SA Wasteland" : r.kind == 7 ? "LV Airport Arena" : r.kind == 4 ? "SA Warzone" : "San Andreas";
+            const char* map = r.kind == 3 ? "Bone County" : r.kind == 5 ? "Mega Vil" : r.kind == 6 ? "SA Wasteland" : r.kind == 7 ? "LS Sky Pitch" : r.kind == 4 ? "SA Warzone" : "San Andreas";
             dl->PushClipRect(ImVec2(a.x + cMap, a.y), ImVec2(a.x + cPing - UI::S(8), a.y + rowH), true);
             dl->AddText(ImVec2(a.x + cMap, ty), IM_COL32(200, 204, 210, 255), map);
             dl->PopClipRect();
