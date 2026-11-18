@@ -7490,9 +7490,12 @@ static void GtaHudSettings()
         for(int pr = 0; pr < HudLayout::PRESET_COUNT; ++pr)
         {
             if(pr) ImGui::SameLine();
+            const bool cur = HudLayout::CurrentPreset() == pr && (pr == HudLayout::PRESET_GAME ? !on : on);   // 5.00.06: the active one is lit
+            if(cur) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
             if(ImGui::Button(HudLayout::PresetName(pr), ImVec2(pw, UI::S(52)))) { HudLayout::ApplyPreset(pr); dirty = false; on = HudLayout::Enabled(); }
+            if(cur) ImGui::PopStyleColor();
         }
-        ImGui::PushTextWrapPos(0.0f); ImGui::TextDisabled("Compact: the clock right above the money, the health and armor bars right under it. Fine-tune below."); ImGui::PopTextWrapPos();
+        ImGui::PushTextWrapPos(0.0f); ImGui::TextDisabled("Compact (default): the clock right above the money, the health and armor bars right under it, next to the weapon icon - the same sizes, no Advanced Settings needed. Fine-tune below."); ImGui::PopTextWrapPos();
     }
     if(!on) ImGui::BeginDisabled();
     ImGui::TextUnformatted("HUD part");

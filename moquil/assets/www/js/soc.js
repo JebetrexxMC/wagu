@@ -18,7 +18,7 @@
 (function (G) {
   'use strict';
   var ROOT = 'wagu/soc1/', FS = '\x1f', RS = '\x1e';
-  var BROKERS = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.hivemq.com:8000/mqtt'];
+  var BROKERS = ['wss://test.mosquitto.org:8081/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://broker.hivemq.com:8000/mqtt'];   // 5.00.06: mosquitto first (hivemq went deaf)
   var subtle = G.crypto.subtle, enc = new TextEncoder(), dec = new TextDecoder();
   var PRES_EVERY = 60, PRES_FRESH = 150, CONV_KEEP = 150, PARTY_MAX = 5;
 

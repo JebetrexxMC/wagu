@@ -62,12 +62,14 @@ struct Broker
     int flushMs = 0;          // 0 = default; raise for brokers that limit messages per second
     int region = -1;          // 2.20: regional broker (REGION_*), -1 = private / public
 };
+// 5.00.06: mosquitto first - broker.hivemq.com went deaf (login OK, no messages delivered) and the 24/7
+// servers are listed on mosquitto. A deaf broker is also skipped by the echo check (kEcho).
 static const Broker kPublicBrokers[] = {
+    { "test.mosquitto.org", 1883, false, false, "",      "mosquitto tcp" },
+    { "test.mosquitto.org", 8080, true,  false, "/",     "mosquitto ws" },
     { "broker.hivemq.com",  1883, false, false, "",      "hivemq tcp" },     // no rate limit seen in tests (20 Hz sync, 0 % loss)
     { "broker.hivemq.com",  8000, true,  false, "/mqtt", "hivemq ws"  },
     { "broker.hivemq.com",  8883, false, true,  "",      "hivemq tls" },
-    { "test.mosquitto.org", 1883, false, false, "",      "mosquitto tcp" },
-    { "test.mosquitto.org", 8080, true,  false, "/",     "mosquitto ws" },
     { "broker.emqx.io",     1883, false, false, "",      "emqx tcp" },       // last: throttles fast message streams
     { "broker.emqx.io",     8083, true,  false, "/mqtt", "emqx ws" },
 };
@@ -124,6 +126,18 @@ static void BrokerFailed(const Broker& b, uint64_t now)
     e.second = now + wait;
 }
 static void BrokerOk(const Broker& b) { s_BrokerBackoff.erase(BrokerKey(b)); }
+// 5.00.06: a "deaf" broker accepts the login (CONNACK, pings) but delivers no messages - broker.hivemq.com
+// did that in Nov 2026 and every phone sat on it with an empty server list. The phone sends itself an echo
+// (on its own c/<client id> topic, allowed on every broker); no echo = deaf: skipped for 10 min.
+static const uint8_t kEcho[8] = { 0, 0, 0, 0, 'M', 'P', 'E', 'C' };
+#define ECHO_FIRST_MS  5000    // first echo after connecting must be back within this
+#define ECHO_EVERY_MS  60000   // then once a minute (a broker can go deaf later)
+#define ECHO_LATE_MS   10000
+static void BrokerDeaf(const Broker& b, uint64_t now)
+{
+    auto& e = s_BrokerBackoff[BrokerKey(b)];
+    e.first = 6; e.second = now + 600000;
+}
 // 3.34: regions.txt "branch = 1" in a [region] block: that broker is a branch - MpBridge copies the
 // game traffic between it and every other region's broker over the VPS backbone. A phone then stays
 // on its own (nearest) region when it joins a server hosted in another one: the slow, jittery part
@@ -992,6 +1006,7 @@ static void NetThread()
     uint32_t curHostToken = 0;                   // token our current MQTT session is set up for
     uint16_t curHostPort = 0;
     uint64_t lastList = 0, lastFlush = 0, lastPing = 0, pingSent = 0, lastRx = 0, nextTry = 0;
+    uint64_t echoAt = 0, echoNext = 0; bool echoSeen = false; int curBi = -1;   // 5.00.06: deaf broker check
     std::string lastDet; uint64_t lastDetAt = 0;   // 4.03
     std::string lastPv; uint32_t lastPvTok = 0; uint64_t lastPvAt = 0;   // 4.04
     std::string lastLg; uint32_t lastLgTok = 0; uint64_t lastLgAt = 0;   // 4.07: title logo
@@ -1167,8 +1182,9 @@ static void NetThread()
                 if(opened)
                 {
                     ok = true;
-                    BrokerOk(br);
                     lastGood = bi; stickyFails = 0;
+                    curBi = bi; echoAt = 0; echoSeen = false; echoNext = MP_NowMs() + 200;   // 5.00.06: echo soon
+                    // (BrokerOk only once the echo came back: a deaf broker keeps its back-off)
                     // 3.11: our own regional HiveMQ brokers have no message limit: batch for 10 ms, not 25
                     s_nCurFlush = br.flushMs > 0 ? br.flushMs : (br.region >= 0 ? (s_nFlushMs < 10 ? s_nFlushMs : 10) : s_nFlushMs);
                     s_bOwnBroker = br.flushMs <= 0 && br.region >= 0;   // 3.33
@@ -1260,6 +1276,12 @@ static void NetThread()
             if(topic.compare(0, rootLen, TOPIC_ROOT)) continue;
             const char* t = topic.c_str() + rootLen;
 
+            if(t[0] == 'c' && t[1] == '/' && pn == sizeof(kEcho) && !memcmp(pl, kEcho, sizeof(kEcho)))
+            {   // 5.00.06: our echo is back - this broker delivers
+                if(!echoSeen && curBi >= 0 && curBi < BROKER_COUNT) BrokerOk(s_Brokers[curBi]);
+                echoSeen = true; echoAt = 0; echoNext = now + ECHO_EVERY_MS;
+                continue;
+            }
             if(!strncmp(t, "l/", 2) && strlen(t) == 10)
             {
                 uint32_t tok = ParseHex8(t + 2);
@@ -1611,6 +1633,26 @@ static void NetThread()
             if(now - lastBaseDecay > 10000) { lastBaseDecay = now; if(baseRtt >= 0) baseRtt += 10; }   // routes change
         }
         if(now - lastRx > (uint64_t)KEEPALIVE_S * 1000 + 5000) broken = true;
+        // 5.00.06: deaf broker check (see kEcho)
+        if(!broken && echoNext && now >= echoNext && !echoAt)
+        {
+            echoAt = now; echoNext = 0;
+            if(!mq.Publish(TopicDown(s_szCid), kEcho, sizeof(kEcho), false)) broken = true;
+        }
+        if(!broken && echoAt && now - echoAt > (echoSeen ? ECHO_LATE_MS : ECHO_FIRST_MS))
+        {
+            const bool relaying = !bridges.empty() || proxyTok;
+            if(curBi >= 0 && curBi < BROKER_COUNT)
+            {
+                OLOG("5.00.06: %s:%u delivers nothing (no echo in %d ms) - skipping it for 10 min",
+                     s_Brokers[curBi].host.c_str(), s_Brokers[curBi].port, (int)(now - echoAt));
+                BrokerDeaf(s_Brokers[curBi], now);
+            }
+            echoAt = 0;
+            if(echoSeen && relaying) echoNext = now + 2000;   // was fine a minute ago and a game runs: one more try
+            else { lastGood = -1; broken = true; }            // move to the next broker now
+            echoSeen = false;
+        }
         // 2.21: while relaying we ping every 0.5 s; 7 s of silence = the socket died (mobile NAT,
         // broker restart). Reconnect now instead of after 20 s, well inside the game's timeout
         if((!bridges.empty() || proxyTok) && pingSent && now - lastRx > 7000) broken = true;
@@ -2243,7 +2285,7 @@ static void PubWatchThread()
     Mqtt mq;
     int bi = 0, fails = 0;
     uint64_t lastPing = 0, pingSent = 0, idleSince = 0;
-    const int nPub = 3;   // hivemq tcp / ws / tls - the public lobby the mod falls back to
+    const int nPub = 3;   // 5.00.06: mosquitto tcp / ws, hivemq tcp - the public lobby the mod falls back to
     for(;;)
     {
         uint64_t now = MP_NowMs();
@@ -2729,11 +2771,12 @@ void Online::GetDiagnostics(std::vector<std::string>& out)
 // Everything on it is end-to-end encrypted (authcrypto.h), so plain public brokers are fine.
 // The bot listens on all of these; we use the first one that answers.
 // ---------------------------------------------------------------------------------------------
-static const Broker kAuthBrokers[] = {
-    { "broker.hivemq.com",  1883, false, false, "",      "hivemq tcp" },
-    { "broker.hivemq.com",  8000, true,  false, "/mqtt", "hivemq ws"  },
+static const Broker kAuthBrokers[] = {   // 5.00.06: hivemq last (it went deaf: logins got no answer)
     { "test.mosquitto.org", 1883, false, false, "",      "mosquitto tcp" },
     { "broker.emqx.io",     1883, false, false, "",      "emqx tcp" },
+    { "broker.hivemq.com",  1883, false, false, "",      "hivemq tcp" },
+    { "broker.hivemq.com",  8000, true,  false, "/mqtt", "hivemq ws"  },
+    { "test.mosquitto.org", 8080, true,  false, "/",     "mosquitto ws" },
 };
 static std::mutex              s_AuthM;
 static std::atomic<bool>       s_bAuthRun{false}, s_bAuthUp{false};
@@ -2747,6 +2790,8 @@ static void AuthThread()
     Mqtt mq;
     int bi = 0;
     std::string subbed;
+    std::deque<std::string> inflight;   // 5.00.06: sent, no answer yet - sent again on the next broker
+    uint64_t waitSince = 0;
     while(s_bAuthRun)
     {
         if(mq.fd < 0)
@@ -2778,6 +2823,8 @@ static void AuthThread()
             std::string f;
             { std::lock_guard<std::mutex> lk(s_AuthM); if(s_AuthOut.empty()) break; f = s_AuthOut.front(); s_AuthOut.pop_front(); }
             if(!mq.Publish(MP_AUTH_TOPIC_REQ, f.data(), f.size(), false)) { std::lock_guard<std::mutex> lk(s_AuthM); s_AuthOut.push_front(f); mq.Close(); break; }
+            if(!waitSince) waitSince = MP_NowMs();
+            inflight.push_back(f); while(inflight.size() > 8) inflight.pop_front();
         }
         if(mq.fd < 0) continue;
         mq.FlushOut(50);
@@ -2793,7 +2840,10 @@ static void AuthThread()
                 std::string topic = body.substr(2, tl);
                 std::lock_guard<std::mutex> lk(s_AuthM);
                 if(!subbed.empty() && topic == std::string(MP_AUTH_TOPIC_RES) + subbed && s_AuthIn.size() < 64)
+                {
                     s_AuthIn.push_back(body.substr(off));
+                    inflight.clear(); waitSince = 0;   // the bot hears us on this broker
+                }
             }
         }
         static uint64_t lastPing = 0;
@@ -2801,6 +2851,15 @@ static void AuthThread()
         uint64_t now = MP_NowMs();
         if(NetMovedAway(mq.fd, netSeen)) { OLOG("auth link: network changed - reconnecting"); mq.Close(); continue; }   // 4.05.8
         if(now - lastPing > 20000) { lastPing = now; if(!mq.Ping()) mq.Close(); }
+        // 5.00.06: no answer from the bot in 6 s = this broker swallows messages (deaf) or the bot isn't on
+        // it: send the waiting requests again over the next broker
+        if(waitSince && now - waitSince > 6000 && mq.fd >= 0)
+        {
+            OLOG("auth link: no answer on %s in 6 s - trying the next broker", s_szAuthBroker);
+            { std::lock_guard<std::mutex> lk(s_AuthM); for(auto it = inflight.rbegin(); it != inflight.rend(); ++it) s_AuthOut.push_front(*it); }
+            inflight.clear(); waitSince = 0;
+            mq.Close(); subbed.clear(); ++bi;
+        }
     }
     if(mq.fd >= 0) mq.Disconnect();
     s_bAuthUp = false;
@@ -2841,9 +2900,11 @@ bool Online::AuthLinkRecv(std::string& frame)
 // 3.63: SOCIAL LINK. Same idea as the auth link: one small MQTT connection of its own. Subscriptions are
 // remembered and sent again after a reconnect (retained messages = the mailbox / directory come again).
 // ---------------------------------------------------------------------------------------------
-static const Broker kSocBrokers[] = {
-    { "broker.hivemq.com", 1883, false, false, "",      "HiveMQ" },
-    { "broker.hivemq.com", 8000, true,  false, "/mqtt", "HiveMQ ws" },
+static const Broker kSocBrokers[] = {   // 5.00.06: mosquitto first (broker.hivemq.com went deaf), same order as Moquil soc.js
+    { "test.mosquitto.org", 1883, false, false, "",      "Mosquitto" },
+    { "test.mosquitto.org", 8080, true,  false, "/",     "Mosquitto ws" },
+    { "broker.hivemq.com",  1883, false, false, "",      "HiveMQ" },
+    { "broker.hivemq.com",  8000, true,  false, "/mqtt", "HiveMQ ws" },
 };
 struct SocOut { std::string topic, payload; bool retain; };
 static std::mutex              s_SocM;

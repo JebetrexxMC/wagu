@@ -657,15 +657,20 @@ static void SocPageCommunity(float W, float H)
         {
             Social::ViewCommunity(c->cid);
             // banner
-            ImVec2 a = ImGui::GetCursorScreenPos(); float bh = UI::S(170);
+            // 5.00.06: the banner grows with the font - the title + "by ... members ... followers" line used to
+            // run under the JOIN / Leave / Follow buttons (they sat at a fixed 90 px from the top)
+            ImVec2 a = ImGui::GetCursorScreenPos();
+            const float subY = UI::S(18) + fs * 1.55f, btnY = subY + fs * 0.8f * 1.3f + UI::S(14);
+            float bh = btnY + UI::S(56) + UI::S(14) + UI::S(10); if(bh < UI::S(170)) bh = UI::S(170);
             ImGui::Dummy(ImVec2(R, bh)); ImVec2 next = ImGui::GetCursorScreenPos();
             ImU32 col = SocColor(c->cid);
             dl->AddRectFilledMultiColor(a, ImVec2(a.x + R, a.y + bh - UI::S(10)), VAlpha(col, 0.30f), VAlpha(col, 0.05f), VAlpha(col, 0.02f), VAlpha(col, 0.18f));
             VChamfer(dl, a, ImVec2(a.x + R, a.y + bh - UI::S(10)), UI::S(16), 0, VAlpha(col, 0.6f));
             SocText(dl, ImVec2(a.x + UI::S(22), a.y + UI::S(18)), kVText, c->name.c_str(), 1.4f);
             char sub[128]; snprintf(sub, sizeof(sub), "by %s  #%s   -   %d members   -   %d followers", c->ownerName.c_str(), c->ownerId.c_str(), c->members, c->followers);
-            SocText(dl, ImVec2(a.x + UI::S(22), a.y + UI::S(18) + fs * 1.55f), kVDim, sub, 0.8f);
+            SocText(dl, ImVec2(a.x + UI::S(22), a.y + subY), kVDim, sub, 0.8f);
             float by = a.y + bh - UI::S(10) - UI::S(70), x = a.x + UI::S(22);
+            if(by < a.y + btnY) by = a.y + btnY;
             ImGui::SetCursorScreenPos(ImVec2(x, by));
             if(VBtn("cjoin", c->joined ? "JOINED" : "JOIN", UI::S(170), UI::S(56), c->joined ? 4 : 1, true, c->joined ? IC_CHECK : IC_PLUS) || false) Social::JoinCommunity(c->cid, true);
             if(c->joined && c->ownerId != Social::MyId()) { ImGui::SameLine(0, UI::S(10)); if(VBtn("cleave", "Leave", UI::S(130), UI::S(56), 3)) Social::JoinCommunity(c->cid, false); }

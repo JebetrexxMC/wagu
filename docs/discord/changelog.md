@@ -1,5 +1,15 @@
 @everyone # Changelogs
 
+- fix servers showing offline (Brief Case War, VICE City and sometimes all of them): the HiveMQ public broker stopped delivering messages, now the game and the 24/7 servers detect a broker like that in 5 seconds and move to a working one (Mosquitto first), the server list comes back by itself
+
+- fix login / sign up / Discord account sync hanging on "connecting" in the game, Moquil and MP Textdraw Editor: if the login bot doesn't answer in 6 seconds it tries the next broker
+
+- the GTA HUD is now the compact one by default: clock right above the money, health and armor bars right under it next to the weapon icon, same sizes as the game, no Advanced Settings needed
+
+- fix the custom GTA HUD radar drawing green spaghetti lines and making the pause menu map half size with no icons, the radar now moves as one piece
+
+- fix the JOINED / Leave / Follow buttons covering the community info line in the launcher
+
 - your MP account now stays logged in after a game restart, a rejoin or a mod update (game, Moquil and MP Textdraw Editor), the login is kept in MP/auth_service.txt and comes back by itself if the file is deleted
 
 - new /create user: pass: gender: age: in Discord makes your game account right there, and /delete removes one so you can /create a new one on the same Discord

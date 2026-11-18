@@ -7,7 +7,7 @@
   'use strict';
   var BOT_PUB = '047bfb24d8637c172eb9353130450cca575553ef9cb1d8a9538451fa940eac0d12246f940a367ccc3f5231b61701d19c2a3d56a80eb49215ad71baf7405701e006';
   var TOPIC_REQ = 'wagu/auth1/req', TOPIC_RES = 'wagu/auth1/res/';
-  var BROKERS = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
+  var BROKERS = ['wss://test.mosquitto.org:8081/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'];   // 5.00.06: hivemq last (it went deaf: logins got no answer)
   var subtle = G.crypto.subtle, enc = new TextEncoder(), dec = new TextDecoder();
   function hex2b(h) { var o = new Uint8Array(h.length / 2); for (var i = 0; i < o.length; i++) o[i] = parseInt(h.substr(i * 2, 2), 16); return o; }
   function b2hex(b) { return Array.prototype.map.call(b, function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
@@ -102,8 +102,15 @@
       self.bi++; self.on({ op: 'down', was: was });
       setTimeout(function () { self.start(); }, 1200);
     });
-    clearTimeout(this.slowT);
+    clearTimeout(this.slowT); clearTimeout(this.deafT);
     this.slowT = setTimeout(function () { if (!self.linked && !self.stopped) self.on({ op: 'slow', broker: self.broker, up: self.m && self.m.up }); }, 12000);
+    // 5.00.06: a broker that lets us in but never brings the bot's answer (deaf): the next broker after 7 s
+    var m0 = this.m;
+    this.deafT = setTimeout(function () {
+      if (self.linked || self.stopped || self.m !== m0) return;
+      clearInterval(self.helloT); try { m0.up = false; m0.close(); } catch (e) {}   // up=false: no "down" from onclose (we start the next one here)
+      self.bi++; self.start();
+    }, 7000);
   };
   Client.prototype.raw = function (kv) { var self = this; seal(this.s, kv).then(function (f) { try { self.m.pub(TOPIC_REQ, f); } catch (e) {} }); };
   Client.prototype.flush = function () { while (this.linked && this.queue.length) this.raw(this.queue.shift()); };

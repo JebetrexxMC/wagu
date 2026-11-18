@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var REG = ['Asia', 'Europe', 'NA', 'Oceania'];
-  var PUBLIC = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://test.mosquitto.org:8081/'];
+  var PUBLIC = ['wss://test.mosquitto.org:8081/', 'wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'];   // 5.00.06: mosquitto first (the 24/7 servers list there; hivemq went deaf)
   var TOPIC = 'thirtyfox/mp5/l/+';   // 3.04.6: lobby of MP 3.04.6+ (mp4 = old versions)
   var FRESH = 15000;
   var $ = function (id) { return document.getElementById(id); };

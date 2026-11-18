@@ -31,4 +31,5 @@ namespace HudLayout
     enum Preset { PRESET_GAME = 0, PRESET_COMPACT, PRESET_COUNT };
     const char* PresetName(int preset);
     void  ApplyPreset(int preset);
+    int   CurrentPreset();             // 5.00.06: Compact is the default (measured in weapon-icon heights)
 }

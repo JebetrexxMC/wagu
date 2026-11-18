@@ -31,7 +31,7 @@ float s_fW = 1280, s_fH = 720;
 FontDetails* s_pDetails = nullptr;
 
 // the part stack while a part draws (PlayerInfo > Health bar ...)
-struct Ctx { int part; bool anchored; float ax, ay; };
+struct Ctx { int part; bool anchored; float ax, ay; bool alphaOnly; };   // 5.00.06: alphaOnly = the radar (moved by its widget rect)
 Ctx  s_Stack[4]; int s_nDepth = 0;
 bool s_bInInfo = false;   // inside CWidgetPlayerInfo::Draw (for the text parts: money, clock, ammo)
 
@@ -39,7 +39,28 @@ inline bool Identity(const HudLayout::Cfg& c)
 { return c.show && c.x == 0 && c.y == 0 && c.z == 100 && c.size == 100 && c.w == 100 && c.h == 100 && c.alpha == 100; }
 inline bool Active() { return s_bOn && s_nDepth > 0; }
 
-void Push(int p) { if(s_nDepth < 4) { s_Stack[s_nDepth].part = p; s_Stack[s_nDepth].anchored = false; } ++s_nDepth; }
+void Push(int p, bool alphaOnly = false) { if(s_nDepth < 4) { s_Stack[s_nDepth].part = p; s_Stack[s_nDepth].anchored = false; s_Stack[s_nDepth].alphaOnly = alphaOnly; } ++s_nDepth; }
+
+// 5.00.06: the Compact layout (the default) in weapon-icon heights, measured from the player's "correct" HUD photo
+// against the mobile one: clock 0.22 lower, money 0.02 higher, the bars 0.14 higher. Icon heights, not % of the
+// screen, so it fits every screen shape; the icon size comes from DrawWeaponIcon's rect (last frame).
+int   s_nPreset = HudLayout::PRESET_COMPACT;
+float s_fIconH = 0;
+float CompactDy(int part)
+{
+    if(s_nPreset != HudLayout::PRESET_COMPACT) return 0;
+    float k = 0;
+    switch(part)
+    {
+        case HudLayout::CLOCK:        k =  0.22f; break;
+        case HudLayout::MONEY:        k = -0.02f; break;
+        case HudLayout::MONEY_CHANGE: k = -0.02f; break;
+        case HudLayout::BAR_HEALTH: case HudLayout::BAR_ARMOR: case HudLayout::BAR_BREATH: k = -0.14f; break;
+        default: return 0;
+    }
+    const float ih = (s_fIconH > 4 && s_fIconH < s_fH * 0.5f) ? s_fIconH : s_fH * 0.115f;
+    return k * ih;
+}
 void Pop() { if(s_nDepth > 0) --s_nDepth; }
 
 // one point through the stack: the innermost part first, then its parents
@@ -49,11 +70,12 @@ void Xform(float& x, float& y)
     for(int i = n - 1; i >= 0; --i)
     {
         Ctx& c = s_Stack[i];
+        if(c.alphaOnly) continue;
         const HudLayout::Cfg& g = s_Cfg[c.part];
         if(!c.anchored) { c.anchored = true; c.ax = x; c.ay = y; }
         const float k = g.size * g.z * 0.0001f, sx = k * g.w * 0.01f, sy = k * g.h * 0.01f;
         x = c.ax + (x - c.ax) * sx + g.x * 0.01f * s_fW;
-        y = c.ay + (y - c.ay) * sy + g.y * 0.01f * s_fH;
+        y = c.ay + (y - c.ay) * sy + g.y * 0.01f * s_fH + CompactDy(c.part);
     }
 }
 void Scale(float& sx, float& sy)
@@ -61,6 +83,7 @@ void Scale(float& sx, float& sy)
     const int n = s_nDepth < 4 ? s_nDepth : 4;
     for(int i = 0; i < n; ++i)
     {
+        if(s_Stack[i].alphaOnly) continue;
         const HudLayout::Cfg& g = s_Cfg[s_Stack[i].part];
         const float k = g.size * g.z * 0.0001f; sx *= k * g.w * 0.01f; sy *= k * g.h * 0.01f;
     }
@@ -105,20 +128,70 @@ FnV    oInfoDraw = nullptr, oWanted = nullptr, oRadarW = nullptr, oRadio = nullp
 FnBar  oHealth = nullptr, oArmor = nullptr, oBreath = nullptr;
 FnIcon oIcon = nullptr;
 FnS    oHudRadar = nullptr, oArea = nullptr, oVeh = nullptr, oSubs = nullptr;
+FnV    oRadarUpd = nullptr;
 
 #define PART_WRAP(part, call) do { if(!s_bOn) { call; return; } if(Hidden(part)) return; Push(part); call; Pop(); } while(0)
-void hInfoDraw(void* w) { if(!s_bOn) { s_nDepth = 0; oInfoDraw(w); return; } if(s_nDepth > 4) s_nDepth = 0; if(Hidden(HudLayout::PLAYERINFO)) return; Push(HudLayout::PLAYERINFO); s_bInInfo = true; oInfoDraw(w); s_bInInfo = false; Pop(); }
+// 5.00.06: a top level part (not inside another one) starts and ends with an empty stack - a part left on the
+// stack moved everything drawn after it: the pause menu map (half the screen, the blips gone), camera / mission text
+#define PART_TOP(part, call) do { if(!s_bOn) { s_nDepth = 0; call; return; } s_nDepth = 0; if(Hidden(part)) return; Push(part); call; s_nDepth = 0; } while(0)
+void hInfoDraw(void* w) { if(!s_bOn) { s_nDepth = 0; oInfoDraw(w); return; } s_nDepth = 0; if(Hidden(HudLayout::PLAYERINFO)) return; Push(HudLayout::PLAYERINFO); s_bInInfo = true; oInfoDraw(w); s_bInInfo = false; s_nDepth = 0; }
 void hHealth(void* w, int a, float b) { PART_WRAP(HudLayout::BAR_HEALTH, oHealth(w, a, b)); }
 void hArmor(void* w, int a, float b)  { PART_WRAP(HudLayout::BAR_ARMOR, oArmor(w, a, b)); }
 void hBreath(void* w, int a, float b) { PART_WRAP(HudLayout::BAR_BREATH, oBreath(w, a, b)); }
-void hIcon(void* w, void* ped, CRect r, float f) { PART_WRAP(HudLayout::WEAPON_ICON, oIcon(w, ped, r, f)); }
+void hIcon(void* w, void* ped, CRect r, float f) { const float ih = fabsf(r.top - r.bottom); if(ih == ih) s_fIconH = ih; PART_WRAP(HudLayout::WEAPON_ICON, oIcon(w, ped, r, f)); }
 void hWanted(void* w) { PART_WRAP(HudLayout::WANTED, oWanted(w)); }
-void hRadarW(void* w) { PART_WRAP(HudLayout::RADAR, oRadarW(w)); }
-void hHudRadar() { if(s_nDepth > 0 && s_Stack[(s_nDepth < 4 ? s_nDepth : 4) - 1].part == HudLayout::RADAR) { oHudRadar(); return; } PART_WRAP(HudLayout::RADAR, oHudRadar()); }
-void hArea() { PART_WRAP(HudLayout::AREA_NAME, oArea()); }
-void hVeh()  { PART_WRAP(HudLayout::VEH_NAME, oVeh()); }
-void hSubs() { PART_WRAP(HudLayout::SUBTITLES, oSubs()); }
-void hRadio(void* m) { PART_WRAP(HudLayout::RADIO, oRadio(m)); }
+// 5.00.06: the radar is no longer moved sprite by sprite. Its mask, map pieces, blips and ring don't all go through
+// the same CSprite2d calls, so they came apart: the green "spaghetti" (map texture outside the circle). It moves the
+// way Advanced Settings does it: CWidgetRadar::Update -> the widget's screen rect (everything is drawn from it).
+// While it draws only its alpha / show is applied.
+inline bool RadarAlpha() { return s_Cfg[HudLayout::RADAR].alpha < 100; }
+void hRadarW(void* w)
+{
+    if(!s_bOn) { s_nDepth = 0; oRadarW(w); return; }
+    s_nDepth = 0; if(Hidden(HudLayout::RADAR)) return;
+    if(RadarAlpha()) Push(HudLayout::RADAR, true);
+    oRadarW(w); s_nDepth = 0;
+}
+void hHudRadar()
+{
+    if(!s_bOn || s_nDepth > 0) { oHudRadar(); return; }   // inside CWidgetRadar::Draw (already handled) / off
+    if(Hidden(HudLayout::RADAR)) return;
+    if(RadarAlpha()) Push(HudLayout::RADAR, true);
+    oHudRadar(); s_nDepth = 0;
+}
+// CWidget (aml-psdk game_sa/other/Widgets.h, size 0x90 / 0xA8): m_RectScreen at 0x20 (32 bit) / 0x2C (64 bit), the
+// touch rect m_RectPaddedScreen at 0x34 / 0x40. 0x20 is what Advanced Settings writes on 32 bit.
+const size_t kRectOff = sizeof(void*) == 8 ? 0x2C : 0x20, kPadOff = sizeof(void*) == 8 ? 0x40 : 0x34;
+CRect s_RadarBase, s_RadarBasePad, s_RadarSet, s_RadarSetPad; bool s_bRadarSet = false; void* s_pRadarW = nullptr;
+inline bool SameRect(const CRect& a, const CRect& b) { return a.left == b.left && a.right == b.right && a.top == b.top && a.bottom == b.bottom; }
+CRect MoveRect(const CRect& r, const HudLayout::Cfg& g)
+{
+    const float k = g.size * g.z * 0.0001f, sx = k * g.w * 0.01f, sy = k * g.h * 0.01f;
+    const float cx = (r.left + r.right) * 0.5f + g.x * 0.01f * s_fW, cy = (r.bottom + r.top) * 0.5f + g.y * 0.01f * s_fH;
+    const float hx = (r.right - r.left) * 0.5f * sx, hy = (r.bottom - r.top) * 0.5f * sy;
+    return { cx - hx, cy + hy, cx + hx, cy - hy };
+}
+void hRadarUpd(void* w)
+{
+    oRadarUpd(w);
+    if(!w) return;
+    CRect& rc = *(CRect*)((char*)w + kRectOff);
+    CRect& pd = *(CRect*)((char*)w + kPadOff);
+    // the game may or may not rebuild the rect every frame: what we wrote last time is not the base
+    if(s_bRadarSet && w == s_pRadarW && SameRect(rc, s_RadarSet)) { rc = s_RadarBase; if(SameRect(pd, s_RadarSetPad)) pd = s_RadarBasePad; }
+    s_bRadarSet = false;
+    const HudLayout::Cfg& g = s_Cfg[HudLayout::RADAR];
+    if(!s_bOn || (g.x == 0 && g.y == 0 && g.z == 100 && g.size == 100 && g.w == 100 && g.h == 100)) return;
+    const float wd = rc.right - rc.left, ht = rc.bottom - rc.top;
+    if(!(wd == wd) || !(ht == ht) || fabsf(wd) < 4 || fabsf(ht) < 4 || fabsf(wd) > s_fW || fabsf(ht) > s_fH) return;   // no sane rect: leave it
+    s_RadarBase = rc; s_RadarBasePad = pd; s_pRadarW = w;
+    rc = MoveRect(rc, g); pd = MoveRect(pd, g);
+    s_RadarSet = rc; s_RadarSetPad = pd; s_bRadarSet = true;
+}
+void hArea() { PART_TOP(HudLayout::AREA_NAME, oArea()); }
+void hVeh()  { PART_TOP(HudLayout::VEH_NAME, oVeh()); }
+void hSubs() { PART_TOP(HudLayout::SUBTITLES, oSubs()); }
+void hRadio(void* m) { PART_TOP(HudLayout::RADIO, oRadio(m)); }
 
 // ---- the primitives ----------------------------------------------------------------------------------------
 typedef void (*FnSV2)(const CRect&, const CRGBA&, const CRGBA&, const CRGBA&, const CRGBA&);
@@ -242,6 +315,7 @@ void InstallHooks()
     H("_ZN17CWidgetPlayerInfo14DrawWeaponIconEP4CPed5CRectf", &hIcon, &oIcon);
     H("_ZN17CWidgetPlayerInfo10DrawWantedEv", &hWanted, &oWanted);
     H("_ZN12CWidgetRadar4DrawEv", &hRadarW, &oRadarW);
+    H("_ZN12CWidgetRadar6UpdateEv", &hRadarUpd, &oRadarUpd);   // 5.00.06: radar position / size
     H("_ZN4CHud9DrawRadarEv", &hHudRadar, &oHudRadar);
     H("_ZN4CHud12DrawAreaNameEv", &hArea, &oArea);
     H("_ZN4CHud15DrawVehicleNameEv", &hVeh, &oVeh);
@@ -273,17 +347,11 @@ const char* HudLayout::PresetName(int preset)
 void HudLayout::ApplyPreset(int preset)
 {
     for(int p = 0; p < PART_COUNT; ++p) Defaults(s_Cfg[p]);
-    if(preset == PRESET_COMPACT)
-    {
-        s_Cfg[CLOCK].y      = 3.0f;    // down, right above the money
-        s_Cfg[BAR_HEALTH].y = -2.2f;   // up, right under the money
-        s_Cfg[BAR_ARMOR].y  = -2.2f;   // under the health bar
-        s_Cfg[BAR_BREATH].y = -2.2f;
-        SetEnabled(true);
-    }
-    else SetEnabled(false);
+    s_nPreset = preset == PRESET_COMPACT ? PRESET_COMPACT : PRESET_GAME;   // 5.00.06: Compact = CompactDy(), not % offsets
+    SetEnabled(s_nPreset == PRESET_COMPACT);
     Save();
 }
+int HudLayout::CurrentPreset() { return s_nPreset; }
 void HudLayout::SetScreen(float w, float h) { if(w > 16 && h > 16) { s_fW = w; s_fH = h; } }
 void HudLayout::Init(void* gtasa) { s_hGame = gtasa; if(s_bWant) InstallHooks(); }
 
@@ -302,9 +370,20 @@ void HudLayout::Load()
         snprintf(k, sizeof(k), "%s_Height", kKeys[p]); c.h     = Clamp(::cfg->GetFloat(k, 100, "GTAHUD"), 10, 400);
         snprintf(k, sizeof(k), "%s_Alpha", kKeys[p]);  c.alpha = Clamp(::cfg->GetFloat(k, 100, "GTAHUD"), 0, 100);
     }
-    const bool on = ::cfg->GetBool("CustomHud", false, "GTAHUD");
+    bool on = ::cfg->GetBool("CustomHud", false, "GTAHUD");
     bool any = false; for(auto& c : s_Cfg) if(!Identity(c)) any = true;
-    SetEnabled(on && any);   // all default = nothing hooked
+    // 5.00.06: Compact is the default HUD (the PC-like stack the player asked for). An ini from 5.00.05 or older has
+    // no Preset: 5.00.04's Compact (clock +3 %, bars -2.2 %) becomes the new one; never customized -> Compact too.
+    int preset = ::cfg->GetInt("Preset", -1, "GTAHUD");
+    if(preset < 0)
+    {
+        const bool old54 = s_Cfg[CLOCK].y == 3.0f && s_Cfg[BAR_HEALTH].y == -2.2f;
+        if(old54) { s_Cfg[CLOCK].y = 0; s_Cfg[BAR_HEALTH].y = s_Cfg[BAR_ARMOR].y = s_Cfg[BAR_BREATH].y = 0; any = false; for(auto& c : s_Cfg) if(!Identity(c)) any = true; }
+        if(old54 || !on || !any) { preset = PRESET_COMPACT; on = true; }
+        else preset = PRESET_GAME;   // their own custom HUD stays as it was
+    }
+    s_nPreset = preset == PRESET_COMPACT ? PRESET_COMPACT : PRESET_GAME;
+    SetEnabled(on && (any || s_nPreset == PRESET_COMPACT));   // all default + the game layout = nothing hooked
     s_bOn = on && !AdvancedSettingsLoaded();
 }
 void HudLayout::Save()
@@ -314,6 +393,7 @@ void HudLayout::Save()
     auto B = [](const char* k, bool v) { ConfigEntry* e = ::cfg->Bind(k, v, "GTAHUD"); e->SetBool(v); delete e; };
     auto F = [](const char* k, float v) { ConfigEntry* e = ::cfg->Bind(k, v, "GTAHUD"); e->SetFloat(v); delete e; };
     B("CustomHud", s_bOn);
+    { ConfigEntry* e = ::cfg->Bind("Preset", s_nPreset, "GTAHUD"); e->SetInt(s_nPreset); delete e; }   // 5.00.06
     for(int p = 0; p < PART_COUNT; ++p)
     {
         const Cfg& c = s_Cfg[p]; char k[64];
