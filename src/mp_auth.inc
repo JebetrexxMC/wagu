@@ -7,7 +7,10 @@
 //    same game session (host change, reconnect): nothing to do, the ticket goes by itself
 //  Brief Case War: the same system, its own look (briefcase icon, red + black, moving highlight).
 //  The account (user, Discord) is only known by the MP bot and the server: never in the chat,
-//  never in the player list. This phone keeps only the last user name (account.txt, no password).
+//  never in the player list. This phone keeps the user names (account.txt, accounts.txt, no password) and,
+//  5.00.05, its saved login (auth_service.txt): a game restart, a rejoin, Moquil or MP Textdraw Editor stay
+//  logged in. The files are kept the same in every MP folder of the phone (Android/data and
+//  Android_unprotected/data, GTA SA and GTA VC: .../files/TYFMC/MP) and made again from the bot when deleted.
 
 static AuthClient s_Auth;
 static bool       s_bAuthReq = false;        // this connection's server wants a login
@@ -32,69 +35,162 @@ static int       s_nAfGender = 0;            // 0 Male, 1 Female, 2 Other
 static AuthField* s_pAfEditing = nullptr;
 static const char* kAuthGenders[3] = { "Male", "Female", "Other" };
 
-static void AuthAccountPath(char* out, size_t n) { snprintf(out, n, "%s/account.txt", s_szDataDir); }
-// account.txt: user=NAME (the login screen fills it in). 3.22 also kept a login=TOKEN "remember me" token
-// there so the game logged in by itself after a restart / mod update. Now the login screen always opens
-// after a game restart (you type the password), so no token is kept; an old login= line is removed the next
-// time the game connects. Set AUTH_AUTOLOGIN_AT_START to true to bring the 3.22 auto login back.
-// (A reconnect inside the same game session still needs no screen: its session lives in memory.)
-static const bool AUTH_AUTOLOGIN_AT_START = false;   // 3.35.2: off again - a game restart always shows the login screen (the old login= token is dropped)
-static std::string s_szAuthSavedTok;
-static std::string AuthAccountValue(const char* key)
+// ---- 5.00.05: the login files live in every MP folder of this phone --------------------------------
+// s_szDataDir first; the others are copies: Android/data + Android_unprotected/data, gtasa + gtavc
+// (only where that game's files/ folder exists). A missing file here is taken from a copy, a write goes to all.
+static const char* kAuthFiles[] = { "auth_service.txt", "account.txt", "accounts.txt", "auth_device.txt" };
+static std::vector<std::string> s_AuthDirs;
+static bool AuthIsDir(const std::string& p) { struct stat st; return !stat(p.c_str(), &st) && S_ISDIR(st.st_mode); }
+static const std::vector<std::string>& AuthDirs()
 {
-    char p[512]; AuthAccountPath(p, sizeof(p));
+    if(!s_AuthDirs.empty() || !s_szDataDir[0]) return s_AuthDirs;
+    s_AuthDirs.push_back(s_szDataDir);
+    auto add = [](const std::string& d) {
+        for(auto& x : s_AuthDirs) if(x == d) return;
+        s_AuthDirs.push_back(d);
+    };
+    const char* roots[] = { "/storage/emulated/0/Android/data", "/storage/emulated/0/Android_unprotected/data" };
+    const char* pkgs[]  = { "com.rockstargames.gtasa", "com.rockstargames.gtavc" };
+    for(const char* r : roots) for(const char* k : pkgs)
+    {
+        std::string files = std::string(r) + "/" + k + "/files";
+        if(!AuthIsDir(files)) continue;              // that game is not here (or this app can't see it)
+        std::string t = files + "/TYFMC", mp = t + "/MP";
+        if(!AuthIsDir(mp)) { mkdir(t.c_str(), 0775); mkdir(mp.c_str(), 0775); }
+        if(AuthIsDir(mp)) add(mp);
+    }
+    std::string dd = s_szDataDir;                  // and the same path with Android/ <-> Android_unprotected/
+    auto swap = [&](const char* a, const char* b) { size_t k = dd.find(a); if(k != std::string::npos) { std::string o = dd; o.replace(k, strlen(a), b); if(AuthIsDir(o)) add(o); } };
+    swap("/Android_unprotected/", "/Android/");
+    swap("/Android/", "/Android_unprotected/");
+    return s_AuthDirs;
+}
+static std::string AuthFileRead(const char* dir, const char* name)
+{
+    char p[600]; snprintf(p, sizeof(p), "%s/%s", dir, name);
+    std::string o;
+    if(FILE* f = fopen(p, "r")) { char b[512]; size_t n; while((n = fread(b, 1, sizeof(b), f)) > 0 && o.size() < 8192) o.append(b, n); fclose(f); }
+    return o;
+}
+static void AuthFileWrite(const char* name, const std::string& body)   // here + every copy (errors ignored)
+{
+    for(auto& d : AuthDirs())
+    {
+        char p[600]; snprintf(p, sizeof(p), "%s/%s", d.c_str(), name);
+        if(FILE* f = fopen(p, "w")) { fwrite(body.data(), 1, body.size(), f); fclose(f); }
+    }
+}
+static bool s_bAuthFilesUp = false;
+static void AuthFilesInit()    // once: files missing in this MP folder come back from a copy
+{
+    if(s_bAuthFilesUp || !s_szDataDir[0]) return;
+    s_bAuthFilesUp = true;
+    const auto& dirs = AuthDirs();
+    for(const char* name : kAuthFiles)
+    {
+        if(!AuthFileRead(s_szDataDir, name).empty()) continue;
+        for(size_t i = 1; i < dirs.size(); ++i)
+        {
+            std::string b = AuthFileRead(dirs[i].c_str(), name);
+            if(b.empty()) continue;
+            char p[600]; snprintf(p, sizeof(p), "%s/%s", s_szDataDir, name);
+            if(FILE* f = fopen(p, "w")) { fwrite(b.data(), 1, b.size(), f); fclose(f); }
+            logger->Info("5.00.05: %s restored from %s", name, dirs[i].c_str());
+            break;
+        }
+    }
+    logger->Info("5.00.05: login files kept in %d MP folder(s)", (int)dirs.size());
+}
+static std::string AuthFileValue(const char* name, const char* key)
+{
+    AuthFilesInit();
+    char p[512]; snprintf(p, sizeof(p), "%s/%s", s_szDataDir, name);
     std::string u; const size_t kl = strlen(key);
     if(FILE* f = fopen(p, "r"))
     {
-        char line[160];
+        char line[600];
         while(fgets(line, sizeof(line), f))
             if(!strncmp(line, key, kl) && line[kl] == '=') { u = line + kl + 1; while(!u.empty() && (u.back() == '\n' || u.back() == '\r' || u.back() == ' ')) u.pop_back(); }
         fclose(f);
     }
     return u;
 }
-static std::string AuthLastUser() { return AuthAccountValue("user"); }
-static std::string AuthSavedToken()
+static bool AuthIsHex32(const std::string& t)
 {
-    std::string t = AuthAccountValue("login");
-    if(t.size() != 32) return "";
-    for(char ch : t) if(!((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f'))) return "";
-    return t;
+    if(t.size() != 32) return false;
+    for(char ch : t) if(!((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f'))) return false;
+    return true;
+}
+// auth_service.txt: dev= this phone's id, user= the account, login= its saved login (no password), discord=,
+// users= the accounts of this phone (from the bot), updated= unix time
+static void AuthServiceWrite(const std::string& user, const std::string& tok, const std::string& discord, const std::string& users, const std::string& dev)
+{
+    char head[160]; snprintf(head, sizeof(head), "updated=%lld\n", (long long)time(nullptr));
+    std::string b = "# MP login service (5.00.05): keeps this phone logged in (game, Moquil, MP Textdraw Editor).\n"
+                    "# No password in here. Don't share this file. Deleted? Open the game: it is made again.\n";
+    b += "dev=" + dev + "\nuser=" + user + "\nlogin=" + (AuthIsHex32(tok) ? tok : std::string()) + "\ndiscord=" + discord + "\nusers=" + users + "\n" + head;
+    AuthFileWrite("auth_service.txt", b);
+}
+static void AuthAccountPath(char* out, size_t n) { snprintf(out, n, "%s/account.txt", s_szDataDir); }
+// account.txt: user=NAME (the login screen fills it in). 3.22 also kept a login=TOKEN "remember me" token
+// there so the game logged in by itself after a restart / mod update. 3.35.2 turned that off (the login screen
+// opened after every restart); 5.00.05 keeps the token again, in auth_service.txt + account.txt, so a
+// restart / rejoin / mod update stays logged in. Logout (profile menu) ends it on the phone and at the bot.
+// (A reconnect inside the same game session still needs no screen: its session lives in memory.)
+static const bool AUTH_AUTOLOGIN_AT_START = true;    // 5.00.05: on again - restart / rejoin / mod update stay logged in (auth_service.txt); Logout ends it
+static std::string s_szAuthSavedTok;
+static std::string AuthAccountValue(const char* key) { return AuthFileValue("account.txt", key); }
+static std::string AuthLastUser()
+{
+    std::string u = AuthAccountValue("user");
+    return u.empty() ? AuthFileValue("auth_service.txt", "user") : u;
+}
+static std::string AuthSavedToken()   // 5.00.05: auth_service.txt login= (3.22 account.txt login= too)
+{
+    std::string t = AuthFileValue("auth_service.txt", "login");
+    if(!AuthIsHex32(t)) t = AuthAccountValue("login");
+    return AuthIsHex32(t) ? t : "";
 }
 // 3.21.8: a random id for this phone (no account data in it). The bot remembers a /gen for it for
 // 24 hours, so closing / restarting the game after verifying goes straight to Create your account.
+// 5.00.05: also in auth_service.txt and every MP folder copy, so the bot knows this phone after a reinstall.
+static std::string s_AuthDevId;
 static std::string AuthDeviceId()
 {
-    char p[512]; snprintf(p, sizeof(p), "%s/auth_device.txt", s_szDataDir);
-    std::string id;
-    if(FILE* f = fopen(p, "r"))
+    if(AuthIsHex32(s_AuthDevId)) return s_AuthDevId;
+    std::string id = AuthFileValue("auth_device.txt", "dev");
+    if(!AuthIsHex32(id)) id = AuthFileValue("auth_service.txt", "dev");
+    if(!AuthIsHex32(id))
     {
-        char line[96];
-        while(fgets(line, sizeof(line), f))
-            if(!strncmp(line, "dev=", 4)) { id = line + 4; while(!id.empty() && (id.back() == '\n' || id.back() == '\r' || id.back() == ' ')) id.pop_back(); }
-        fclose(f);
+        uint8_t r[16]; char h[33];
+        if(!AuthCrypto::Random(r, sizeof(r))) return "";
+        AuthCrypto::Hex(r, sizeof(r), h); id = h;
     }
-    bool good = id.size() == 32;
-    for(char ch : id) if(!((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f'))) good = false;
-    if(good) return id;
-    uint8_t r[16]; char h[33];
-    if(!AuthCrypto::Random(r, sizeof(r))) return "";
-    AuthCrypto::Hex(r, sizeof(r), h); id = h;
-    if(FILE* f = fopen(p, "w")) { fprintf(f, "# MP login: random id of this phone (keeps a Discord /gen across a game restart)\ndev=%s\n", h); fclose(f); }
+    s_AuthDevId = id;
+    std::string body = "# MP login: random id of this phone (keeps a Discord /gen across a game restart)\ndev=" + id + "\n";
+    if(AuthFileRead(s_szDataDir, "auth_device.txt") != body) AuthFileWrite("auth_device.txt", body);
     return id;
+}
+static std::vector<std::string> AuthAccounts();
+static std::string AuthAccountsCsv()
+{
+    std::string o; for(auto& x : AuthAccounts()) { if(!o.empty()) o += ","; o += x; }
+    return o;
+}
+static void AuthAccountWrite(const std::string& u, const std::string& tok)
+{
+    std::string b = "# MP login: the account on this phone (no password is kept). Keep this file when you update the mod:\n"
+                    "# the game logs you in by itself. Delete it (or log out) to use another account.\nuser=" + u + "\n";
+    if(AuthIsHex32(tok)) b += "login=" + tok + "\n";
+    AuthFileWrite("account.txt", b);
 }
 static void AuthSaveUser(const std::string& u)
 {
-    char p[512]; AuthAccountPath(p, sizeof(p));
     const std::string& tok = s_Auth.Session();
-    const bool keep = AUTH_AUTOLOGIN_AT_START && tok.size() == 32;
-    if(FILE* f = fopen(p, "w"))
-    {
-        fprintf(f, "# MP login: the account on this phone (no password is kept). Keep this file when you update the mod:\n"
-                   "# the game logs you in by itself. Delete it (or log out) to use another account.\nuser=%s\n", u.c_str());
-        if(keep) fprintf(f, "login=%s\n", tok.c_str());
-        fclose(f);
-    }
+    const bool keep = AUTH_AUTOLOGIN_AT_START && AuthIsHex32(tok);
+    AuthAccountWrite(u, keep ? tok : "");
+    std::string disc = !s_Auth.discordName.empty() ? s_Auth.discordName : AuthFileValue("auth_service.txt", "discord");
+    AuthServiceWrite(u, keep ? tok : "", disc, AuthAccountsCsv(), AuthDeviceId());
     s_szAuthSavedTok = keep ? tok : "";
 }
 
@@ -104,6 +200,7 @@ static const int AUTH_MAX_ACCOUNTS = 3;
 static void AuthAccountsPath(char* out, size_t n) { snprintf(out, n, "%s/accounts.txt", s_szDataDir); }
 static std::vector<std::string> AuthAccounts()
 {
+    AuthFilesInit();
     std::vector<std::string> v; char p[512]; AuthAccountsPath(p, sizeof(p));
     if(FILE* f = fopen(p, "r"))
     {
@@ -121,13 +218,10 @@ static std::vector<std::string> AuthAccounts()
 }
 static void AuthAccountsSave(const std::vector<std::string>& v)
 {
-    char p[512]; AuthAccountsPath(p, sizeof(p));
-    if(FILE* f = fopen(p, "w"))
-    {
-        fprintf(f, "# MP accounts on this phone (max %d, newest first, no passwords)\n", AUTH_MAX_ACCOUNTS);
-        for(int i = 0; i < (int)v.size() && i < AUTH_MAX_ACCOUNTS; ++i) fprintf(f, "%s\n", v[i].c_str());
-        fclose(f);
-    }
+    char h[96]; snprintf(h, sizeof(h), "# MP accounts on this phone (max %d, newest first, no passwords)\n", AUTH_MAX_ACCOUNTS);
+    std::string b = h;
+    for(int i = 0; i < (int)v.size() && i < AUTH_MAX_ACCOUNTS; ++i) b += v[i] + "\n";
+    AuthFileWrite("accounts.txt", b);
 }
 static void AuthAccountsTouch(const std::string& u)   // logged in as u: to the top
 {
@@ -147,17 +241,18 @@ static void AuthReset();
 static void AuthLogout(const char* switchTo, bool addNew)   // switchTo: the login screen fills it in next time
 {
     std::string was = s_AuthUser.empty() ? s_Auth.user : s_AuthUser;
+    {   // 5.00.05: the saved login ends at the bot too (this phone is no longer listed for that account)
+        std::string tok = s_Auth.Session(); if(!AuthIsHex32(tok)) tok = AuthSavedToken();
+        if(s_Auth.device.empty()) s_Auth.device = AuthDeviceId();
+        s_Auth.Logout(tok);
+    }
     AuthReset();
     s_Auth.user.clear(); s_AuthUser.clear(); s_Auth.prefillUser = switchTo ? switchTo : "";
     s_Auth.wantNewAccount = addNew;
     s_AfUser.buf[0] = 0; s_AfPass.buf[0] = 0;
     if(switchTo && switchTo[0]) MP_CopyStr(s_AfUser.buf, switchTo, sizeof(s_AfUser.buf));
-    char p[512]; AuthAccountPath(p, sizeof(p));
-    if(FILE* f = fopen(p, "w"))
-    {
-        fprintf(f, "# MP login: the account on this phone (no password is kept).\nuser=%s\n", switchTo ? switchTo : "");
-        fclose(f);
-    }
+    AuthAccountWrite(switchTo ? switchTo : "", "");
+    AuthServiceWrite(switchTo ? switchTo : "", "", AuthFileValue("auth_service.txt", "discord"), AuthAccountsCsv(), AuthDeviceId());
     if(addNew) SysMsg(COL_GREEN, "Logged out. Join a login server and tap \"New account\" to make another account (max %d per Discord).", AUTH_MAX_ACCOUNTS);
     else if(switchTo && switchTo[0]) SysMsg(COL_GREEN, "Switched to %s. Join a server and log in.", switchTo);
     else SysMsg(COL_GREEN, "Logged out%s%s.", was.empty() ? "" : " of ", was.c_str());
@@ -308,11 +403,66 @@ static void ProfileDrawAvatar(ImDrawList* dl, ImVec2 c, float r)
     dl->AddCircle(c, r, IM_COL32(255, 255, 255, 60), 40, UI::S(2));
 }
 
+// ---- 5.00.05: saved login sync with the bot -----------------------------------------------------------
+// ~8 s after the game starts (and every minute on a login screen) the phone asks the bot which accounts
+// this auth_device id is registered to and for its saved login. The answer (also pushed after Discord
+// /forgotpass, /forgotuser, /create) rewrites auth_service.txt, account.txt and accounts.txt in every MP folder:
+// deleted files come back, a new password keeps the phone logged in.
+static uint64_t s_nAuthSyncAt = 0, s_nAuthStartAt = 0;
+static void AuthSyncFrame(uint64_t now)
+{
+    if(!s_szDataDir[0]) return;
+    if(s_Auth.device.empty())
+    {
+        s_Auth.device = AuthDeviceId();
+        s_Auth.app = strstr(s_szDataDir, "gtavc") ? "game-vc" : (strstr(s_szDataDir, "gtasa") ? "game-sa" : "game");
+    }
+    if(!s_nAuthStartAt) s_nAuthStartAt = now;
+    if((!s_nAuthSyncAt && now - s_nAuthStartAt > 8000) ||
+       (s_nAuthSyncAt && s_Auth.state == AuthClient::LOGIN && !s_Auth.LoggedIn() && now - s_nAuthSyncAt > 60000))
+    { s_nAuthSyncAt = now; s_Auth.Sync(AuthSavedToken()); }
+    if(!s_Auth.syncReady) return;
+    s_Auth.syncReady = false;
+    const std::string su = s_Auth.syncUser, st = s_Auth.syncTok;
+    std::vector<std::string> bot;
+    for(size_t p = 0; p <= s_Auth.syncUsers.size();)
+    {
+        size_t e = s_Auth.syncUsers.find(',', p); if(e == std::string::npos) e = s_Auth.syncUsers.size();
+        if(e > p) bot.push_back(s_Auth.syncUsers.substr(p, e - p));
+        p = e + 1;
+    }
+    // accounts.txt: the synced account first, then the ones already here, then the rest the bot knows
+    std::vector<std::string> m;
+    auto put = [&](const std::string& u) { if(u.empty() || (int)m.size() >= AUTH_MAX_ACCOUNTS) return; for(auto& x : m) if(!strcasecmp(x.c_str(), u.c_str())) return; m.push_back(u); };
+    put(su); for(auto& x : AuthAccounts()) put(x); for(auto& x : bot) put(x);
+    if(!m.empty()) AuthAccountsSave(m);
+    const std::string cur = !s_AuthUser.empty() ? s_AuthUser : AuthLastUser();
+    const bool other = s_Auth.LoggedIn() && !s_AuthUser.empty() && !su.empty() && strcasecmp(s_AuthUser.c_str(), su.c_str());
+    std::string disc = !s_Auth.syncDiscord.empty() ? s_Auth.syncDiscord : AuthFileValue("auth_service.txt", "discord");
+    if(!su.empty() && AuthIsHex32(st) && !other)
+    {   // a saved login for this phone: keep it (and use it now on a login screen)
+        AuthAccountWrite(su, st);
+        AuthServiceWrite(su, st, disc, AuthAccountsCsv(), AuthDeviceId());
+        s_szAuthSavedTok = st;
+        if(s_bAuthReq) s_Auth.UseSession(st);
+        if(!s_AfUser.buf[0] || strcasecmp(s_AfUser.buf, su.c_str())) MP_CopyStr(s_AfUser.buf, su.c_str(), sizeof(s_AfUser.buf));
+        logger->Info("5.00.05: saved login of %s synced from the bot", su.c_str());
+    }
+    else if(su.empty() && !s_Auth.LoggedIn() && !AuthSavedToken().empty())
+    {   // the saved login ended at the bot (password changed with logout, 180 days): keep only the name
+        AuthAccountWrite(cur, "");
+        AuthServiceWrite(cur, "", disc, AuthAccountsCsv(), AuthDeviceId());
+        s_szAuthSavedTok.clear();
+    }
+    else AuthServiceWrite(cur, AuthSavedToken(), disc, AuthAccountsCsv(), AuthDeviceId());   // files back / up to date
+}
+
 // every game frame
 static void AuthFrame(uint64_t now)
 {
     if(client.GetState() == NET_DISCONNECTED) { if(s_bAuthReq) AuthReset(); }
-    if(s_Auth.state != AuthClient::IDLE || s_Auth.statsPending || s_Auth.avatarPending) s_Auth.Tick(now);
+    s_Auth.Tick(now);    // (returns at once when nothing is going on)
+    AuthSyncFrame(now);  // 5.00.05
     ProfileFrame(now);   // 3.24
     if(!s_szAuthSavedTok.empty() && !s_Auth.LoggedIn())
     {   // 3.22: the bot said the saved login ended (180 days unused / account gone): forget it, keep the name

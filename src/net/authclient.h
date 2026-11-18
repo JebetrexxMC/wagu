@@ -7,6 +7,8 @@
 //    account on this phone         -> LOGIN:  user, password, [Login]  ("new account" -> CODE)
 //    logged in this game session   -> a ticket straight from the session (no screen)
 //  ticket -> PKT_AUTH to the server -> server says OK -> DONE (then < Spawn >)
+//  5.00.05: Sync() (game start, login screen, Discord /forgotpass /forgotuser /create pushes): the bot says
+//    which accounts this phone (auth_device id) is registered to + its saved login -> MP/auth_service.txt
 #pragma once
 #include <stdint.h>
 #include <string>
@@ -46,6 +48,14 @@ public:
     const std::string& Session() const { return m_Sess; }                 // 3.22: saved in account.txt
     void RestoreSession(const std::string& s) { if(m_Sess.empty()) m_Sess = s; }   // 3.22: auto login after a restart / mod update
 
+    // 5.00.05: saved login / account files of this phone, from the bot (op=sync). tok = the saved login we have.
+    void Sync(const std::string& tok);
+    void Logout(const std::string& tok);            // the saved login ends at the bot too (profile > Logout)
+    void UseSession(const std::string& tok);        // a saved login from Sync: use it now (login screen -> ticket)
+    bool        syncPending = false, syncReady = false;
+    std::string syncUser, syncTok, syncUsers, syncDiscord, syncAsked;
+    std::string app = "game";                       // 5.00.05: game-sa / game-vc (the bot lists the phones by it)
+
     State       state = IDLE;
     char        code[MP_AUTH_CODE_LEN + 1] = "";
     uint64_t    codeAt = 0;             // when this code was made (it works 10 min)
@@ -73,4 +83,8 @@ private:
     uint64_t    m_nLastHello = 0, m_nBusySince = 0;
     bool        m_bLinked = false, m_bAccountHint = false;
     State       m_AfterLink = LOGIN;
+    uint64_t    m_nSyncAt = 0, m_nSyncSent = 0, m_nOutAt = 0;   // 5.00.05
+    std::string m_OutTok;                           // a logout still to be sent
+    int         m_nOutSends = 0;
+    void        SyncSend(uint64_t now);
 };

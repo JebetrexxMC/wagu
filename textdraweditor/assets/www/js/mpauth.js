@@ -107,7 +107,8 @@
   };
   Client.prototype.raw = function (kv) { var self = this; seal(this.s, kv).then(function (f) { try { self.m.pub(TOPIC_REQ, f); } catch (e) {} }); };
   Client.prototype.flush = function () { while (this.linked && this.queue.length) this.raw(this.queue.shift()); };
-  Client.prototype.send = function (kv) { kv.rid = kv.rid || String(++this.rid); kv.dev = this.dev; this.queue.push(kv); this.flush(); return kv.rid; };
+  Client.prototype.send = function (kv) { kv.rid = kv.rid || String(++this.rid); kv.dev = this.dev; kv.app = kv.app || G.MPAUTH_APP || 'web';   // 5.00.05: the bot lists the phones by app
+    this.queue.push(kv); this.flush(); return kv.rid; };
   Client.prototype.stop = function () { this.stopped = true; clearInterval(this.helloT); if (this.m) this.m.close(); };
 
   // an 8 character code, no 0/O/1/I (same alphabet as the game: 32 letters + digits)

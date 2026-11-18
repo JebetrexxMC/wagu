@@ -45,6 +45,7 @@ void AuthClient::Send(const std::map<std::string, std::string>& kv)
 {
     std::string plain;
     for(auto& it : kv) { plain += it.first; plain += '='; plain += Clean(it.second); plain += '\n'; }
+    if(!kv.count("app")) { plain += "app="; plain += Clean(app); plain += '\n'; }   // 5.00.05
     std::string f;
     if(AuthCrypto::Seal(m_S, plain, f)) Online::AuthLinkSend(f);
 }
@@ -131,6 +132,42 @@ void AuthClient::RequestAvatar()
     if(!m_bLinked) Online::AuthLinkStart(m_S.sid);
     avatarPending = true; avatarAt = 0;
     Send({ { "op", "avatar" }, { "sess", m_Sess }, { "rid", "a" } });
+}
+
+// ---- 5.00.05: saved login sync (MP/auth_service.txt) ---------------------------------------------
+static bool LinkFree(const AuthClient& c) { return c.state == AuthClient::IDLE && !c.statsPending && !c.avatarPending; }
+void AuthClient::Sync(const std::string& tok)
+{
+    if(syncPending || device.empty()) return;
+    if(!m_S.ok) AuthCrypto::NewSession(m_S);
+    if(!m_S.ok) return;
+    syncAsked = tok.size() == 32 ? tok : "";
+    syncPending = true; m_nSyncAt = 0; m_nSyncSent = 0;
+}
+void AuthClient::SyncSend(uint64_t now)
+{
+    if(LinkFree(*this) && !Online::AuthLinkUp()) Online::AuthLinkStart(m_S.sid);
+    m_nSyncSent = now;
+    Send({ { "op", "sync" }, { "sess", syncAsked }, { "rid", "y" }, { "dev", device } });
+}
+void AuthClient::Logout(const std::string& tok)
+{
+    if(tok.size() != 32 || device.empty()) return;
+    if(!m_S.ok) AuthCrypto::NewSession(m_S);
+    if(!m_S.ok) return;
+    m_OutTok = tok; m_nOutAt = 0; m_nOutSends = 0;
+}
+void AuthClient::UseSession(const std::string& tok)
+{
+    if(tok.size() != 32) return;
+    m_Sess = tok;                                   // (the caller checked it is the same account or none)
+    if(state == LOGIN && m_bLinked && !m_Chal.empty())
+    {   // on the login screen: log in with it right away
+        err.clear(); info = "Saved login found - logging in...";
+        Set(TICKET);
+        Send({ { "op", "ticket" }, { "sess", m_Sess }, { "chal", m_Chal }, { "srv", m_Server }, { "rid", "t" }, { "dev", device } });
+    }
+    else if(state == LINKING) m_AfterLink = TICKET;
 }
 
 static int B64Val(char c)
@@ -230,6 +267,16 @@ void AuthClient::OnAnswer(std::map<std::string, std::string>& a)
         Set(op == "ticket" ? LOGIN : m_AfterLink);
         return;
     }
+    if(op == "sync")     // 5.00.05: answer to Sync() or a push (rid=y) after Discord /forgotpass /forgotuser /create
+    {
+        syncPending = false;
+        if(!ok) return;
+        syncUser = a["user"]; syncTok = a["sess"]; syncUsers = a["users"]; syncDiscord = a["discord"];
+        if(!syncTok.empty()) syncAsked = syncTok;
+        syncReady = true;
+        return;
+    }
+    if(op == "logout") { m_OutTok.clear(); m_nOutSends = 0; return; }
     if(op == "stats")
     {
         statsPending = false;
@@ -253,7 +300,23 @@ void AuthClient::OnAnswer(std::map<std::string, std::string>& a)
 
 void AuthClient::Tick(uint64_t now)
 {
-    if(state == IDLE && !statsPending && !avatarPending) return;
+    if(state == IDLE && !statsPending && !avatarPending && !syncPending && m_OutTok.empty()) return;
+    if(syncPending)
+    {   // 5.00.05: sent again every 4 s (the link may still be connecting), given up after 20 s
+        if(!m_nSyncAt) { m_nSyncAt = now; SyncSend(now); }
+        else if(now - m_nSyncAt > 20000) syncPending = false;
+        else if(now - m_nSyncSent > 4000) SyncSend(now);
+    }
+    if(!m_OutTok.empty() && (!m_nOutAt || now - m_nOutAt > 4000))
+    {   // 5.00.05: logout to the bot, up to 4 times (answer = done)
+        if(++m_nOutSends > 4) { m_OutTok.clear(); m_nOutSends = 0; }
+        else
+        {
+            m_nOutAt = now;
+            if(LinkFree(*this) && !Online::AuthLinkUp()) Online::AuthLinkStart(m_S.sid);
+            Send({ { "op", "logout" }, { "sess", m_OutTok }, { "rid", "o" }, { "dev", device } });
+        }
+    }
     if(avatarPending) { if(!avatarAt) avatarAt = now; else if(now - avatarAt > 20000) avatarPending = false; }   // 3.24
     std::string f, plain;
     while(Online::AuthLinkRecv(f))

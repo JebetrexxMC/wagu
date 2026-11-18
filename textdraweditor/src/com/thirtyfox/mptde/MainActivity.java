@@ -205,6 +205,12 @@ public class MainActivity extends Activity {
     }
 
     class Bridge {
+        // 5.00.05: js/keep.js - the login / device id / settings of the app, kept outside the WebView storage too
+        @JavascriptInterface public String keepGet() { return getSharedPreferences("mp_keep", MODE_PRIVATE).getString("ls", "{}"); }
+        @JavascriptInterface public void keepSet(String json) {
+            if (json == null || json.length() > 512 * 1024) return;
+            getSharedPreferences("mp_keep", MODE_PRIVATE).edit().putString("ls", json).apply();
+        }
         @JavascriptInterface public String listProjects() {
             ArrayList<String> l = new ArrayList<String>();
             File[] fs = projects().listFiles();

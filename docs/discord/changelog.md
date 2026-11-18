@@ -1,5 +1,11 @@
 @everyone # Changelogs
 
+- your MP account now stays logged in after a game restart, a rejoin or a mod update (game, Moquil and MP Textdraw Editor), the login is kept in MP/auth_service.txt and comes back by itself if the file is deleted
+
+- new /create user: pass: gender: age: in Discord makes your game account right there, and /delete removes one so you can /create a new one on the same Discord
+
+- /forgotpass sets a new password and your phones stay logged in, /forgotuser shows your usernames and your phones and writes MP/accounts.txt again
+
 - fix Rocket League spawning you stuck inside the LV airport buildings when you don't have the SA-MP models, now everyone plays on the sky pitch
 
 - the Moquil Library no longer shows the generated pictures of the mods and apps, now they show unknown
@@ -14,4 +20,4 @@
 
 - the Moquil app 1.4 is now included inside the full zip (server roles, channels, moderation, polls and the Discord-style avatar decorations)
 
-[Multiplayer Client FULL 4.13.21](https://github.com/ThirtyFoxMCx00E1/wagu/raw/main/assets/MP/MP.zip)
+[Multiplayer Client FULL 5.00.05](https://github.com/ThirtyFoxMCx00E1/wagu/raw/main/assets/MP/MP.zip)
