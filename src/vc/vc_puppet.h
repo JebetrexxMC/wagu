@@ -9,6 +9,7 @@
 //   - the position error is pulled out smoothly (sideways firmly, along the way gently, never backwards = no moonwalk)
 //   - snap only when 4 m off or 3 m in height (SA), heading turned smoothly, facing the aim while shooting
 #pragma once
+#include "../game/locofacing.h"   // 5.01.03
 #include <math.h>
 
 namespace VcPuppet
@@ -93,7 +94,7 @@ inline Out Step(const In& in)
     if(d > 0.05f || fabsf(dz) > 0.35f)
     {
         const float ex = in.tgt[0] - in.cur[0], ey = in.tgt[1] - in.cur[1];
-        if(g != GAIT_STAND && speed > 0.3f && !in.shooting)
+        if(speed > 0.3f && !in.shooting)   // 5.01.03: also while waiting ahead (no backwards slide)
         {
             const float fx = in.vel[0] / speed, fy = in.vel[1] / speed;
             const float al = ex * fx + ey * fy, lx = ex - al * fx, ly = ey - al * fy;
@@ -108,12 +109,19 @@ inline Out Step(const In& in)
     }
     // heading: the aim while shooting, the sent heading while standing (smooth), the walk task turns a moving ped
     float want = -1;
+    float rate = 10.0f;
     if(in.shooting && (in.aimDir[0] != 0 || in.aimDir[1] != 0)) want = TravelHeading(in.aimDir[0], in.aimDir[1]);
+    else if(!in.shooting && speed >= 0.8f && !frozen)
+    {   // 5.01.03 moonwalk fix: moving without shooting = face the way the player goes (the walk task turned a
+        // 180 so slowly that the avatar slid backwards towards the player's camera for half a second)
+        want = MP_LocoFacing(in.heading, in.vel[0], in.vel[1], false);
+        rate = MP_TurnRate(in.pedHeading, want);
+    }
     else if(g == GAIT_STAND) want = in.heading;
     if(want >= 0)
     {
         const float hd = fmodf(want - in.pedHeading + 540.0f, 360.0f) - 180.0f;
-        if(fabsf(hd) > 3.0f || in.shooting) { o.turn = true; o.newHeading = in.shooting ? want : LerpAngle(in.pedHeading, want, in.dt * 10.0f); }
+        if(fabsf(hd) > 3.0f || in.shooting) { o.turn = true; o.newHeading = in.shooting ? want : LerpAngle(in.pedHeading, want, in.dt * rate); }
     }
     return o;
 }

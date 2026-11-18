@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # 3.34: builds release/MP-<v>-client.zip, release/MP-<v>-full.zip and release/HiveMQ-kit-<v>.zip
+# 5.01.03: + release/MP-<v>-Package.zip and release/INSTALL.txt; needs bin/ViceLoader.apk (CI artifact)
 # from bin/, assets/MP, docs/ and the HiveMQ/ folder (same layout as the 3.32 zips).
 import os, sys, zipfile
 V = sys.argv[1]
@@ -50,15 +51,38 @@ with zf("release/MP-%s-client.zip" % V) as z:
     z.write("bin/libMP64.so", c + "/lib/arm64-v8a/libMP64.so"); z.write("bin/libMP32.so", c + "/lib/armeabi-v7a/libMP32.so")
     tree(z, "assets/MP", c + "/files/TYFMC/MP", ("MP.zip",))   # 4.12.7: files/TYFMC/MP
 with zf("release/HiveMQ-kit-%s.zip" % V) as z: tree(z, "HiveMQ", "HiveMQ-kit", kit_skip)
-with zf("release/MP-%s-full.zip" % V) as z:
-    f = "MP-%s" % V
-    z.write("release/MP-Voice.apk", f + "/MP-Voice.apk"); z.write("release/MP-Textdraw-Editor.apk", f + "/MP-Textdraw-Editor.apk")   # 3.59: both APKs
-    if os.path.isfile("release/Moquil.apk"): z.write("release/Moquil.apk", f + "/Moquil.apk")   # 4.13.20: the Moquil app too
-    # 4.13.20: the full zip is only the libs, the assets and the 3 APKs (no readmes, HiveMQ kit, termux, website)
-    z.write("bin/libMP64.so", f + "/lib/arm64-v8a/libMP64.so"); z.write("bin/libMP32.so", f + "/lib/armeabi-v7a/libMP32.so")
-    tree(z, "assets/MP", f + "/assets/MP", ("MP.zip",))
-# 4.13.20: assets/MP/MP.zip = the full zip, the direct download link of the Discord /changelog post
-import shutil; shutil.copyfile("release/MP-%s-full.zip" % V, "assets/MP/MP.zip")
+# 5.01.03: the full zip = lib/<abi>/libMP*.so (MonetLoader built in, no separate libmonetloader.so), assets/MP,
+# apks/ (ViceLoader.apk + the helper apps) and INSTALL.txt from tools/INSTALL_template.txt. mp_selftest.lua stays inside
+# assets/MP/moonloader/tests (no loose copy next to the zip).
+def find_apk(n):
+    for d in ("bin", "release", "viceloader/build"):
+        if os.path.isfile(os.path.join(d, n)): return os.path.join(d, n)
+    return None
+VL = find_apk("ViceLoader.apk")
+if not VL: sys.exit("ViceLoader.apk missing: put the CI build (gh run download <viceloader run>) in bin/ViceLoader.apk")
+APKS = [(n, find_apk(n)) for n in ("ViceLoader.apk", "Moquil.apk", "MP-Voice.apk", "MP-Textdraw-Editor.apk")]
+APKS = [(n, a) for n, a in APKS if a]
+INST = open("tools/INSTALL_template.txt", encoding="utf-8").read().replace("{V}", V)
+def full_zip(path, with_vl=True, package=False):
+    with zf(path) as z:
+        f = ("MP-%s-Package" if package else "MP-%s") % V
+        for n, a in APKS:
+            if n == "ViceLoader.apk" and not with_vl: continue
+            z.write(a, f + "/apks/" + n)
+        z.write("bin/libMP64.so", f + "/lib/arm64-v8a/libMP64.so"); z.write("bin/libMP32.so", f + "/lib/armeabi-v7a/libMP32.so")
+        tree(z, "assets/MP", f + "/assets/MP", ("MP.zip",))
+        inst = INST
+        if package:
+            inst = inst.replace("  assets/MP/   ", "  " + ("MP_%s.zip" % V).ljust(33) + "the same release as one zip (lib + assets + apks + INSTALL.txt)\n  assets/MP/   ", 1)
+            z.write("release/MP-%s-full.zip" % V, f + "/MP_%s.zip" % V)
+        z.writestr(f + "/INSTALL.txt", inst)
+full_zip("release/MP-%s-full.zip" % V)
+full_zip("release/MP-%s-Package.zip" % V, package=True)   # the full zip + everything unpacked next to it
+open("release/INSTALL.txt", "w", encoding="utf-8").write(INST)
+# 4.13.20: assets/MP/MP.zip = the full zip, the direct download link of the Discord /changelog post.
+# 5.01.03: without ViceLoader.apk there (GitHub refuses files over 100 MB in the repo); the release zip has it
+full_zip("assets/MP/MP.zip", with_vl=False)
+print("release/MP-%s-Package.zip" % V, os.path.getsize("release/MP-%s-Package.zip" % V))
 for n in ("client", "full"): print("release/MP-%s-%s.zip" % (V, n), os.path.getsize("release/MP-%s-%s.zip" % (V, n)))
 print("release/HiveMQ-kit-%s.zip" % V, os.path.getsize("release/HiveMQ-kit-%s.zip" % V))
 # 4.05.4: keep docs/release.json on the new version (it was stuck at 4.01, so the website's
@@ -75,6 +99,6 @@ _r["published_at"] = datetime.date.today().isoformat()
 if _sup: _r["also_supported"] = ", ".join("v" + x for x in _sup if x != V)
 _r["assets"] = [{"name": n, "size": os.path.getsize(n), "download_count": 0} for n in (
     "bin/libMP32.so", "bin/libMP64.so", "release/MP-%s-full.zip" % V, "release/MP-%s-client.zip" % V,
-    "release/HiveMQ-kit-%s.zip" % V, "release/MP-Textdraw-Editor.apk", "release/MP-Voice.apk", "release/Moquil.apk") if os.path.isfile(n)]
+    "release/HiveMQ-kit-%s.zip" % V, "release/MP-Textdraw-Editor.apk", "release/MP-Voice.apk", "release/Moquil.apk", VL) if n and os.path.isfile(n)]
 json.dump(_r, open(_rp, "w"), indent=1); open(_rp, "a").write("\n")
 print(_rp, _r["tag_name"])

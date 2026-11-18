@@ -42,6 +42,7 @@
 #include "../net/vcmp.h"      // 4.13.40: VC:MP-style gamemode (classes, teams, server cars)
 #include "vc_data.h"
 #include "vc_puppet.h"   // 4.13.64
+#include "../game/locofacing.h"   // 5.01.03: moonwalk fix
 #include "vc_save.h"     // 5.00.02: save guard (CheckDataNotCorrupt crash)
 #include "../ui/filepick.h"   // the phone keyboard dialog (game independent)
 #include "../../imgui/stb_image.h"   // 4.13.38: title2.png / title_logo_connected2.png (implementation in hud.cpp)
@@ -1374,6 +1375,8 @@ static void SendMySync(uint64_t now)
     }
     memcpy(s_LastPos, at, 12); s_nLastPosAt = now;
     p.d.speed = sqrtf(e.vel[0] * e.vel[0] + e.vel[1] * e.vel[1] + e.vel[2] * e.vel[2]);
+    // 5.01.03 moonwalk fix: on foot and not shooting, the heading of the way the body goes (running back to the camera)
+    if(!car) p.d.heading = MP_SendHeading(p.d.heading, e.vel[0], e.vel[1], -1.0f, (p.d.flags & SYNC_SHOOTING) != 0);
     if(car)
     {
         const float* cf = MatFwd(car);

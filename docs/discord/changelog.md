@@ -1,5 +1,11 @@
 @everyone # Changelogs
 
+- fixed the moonwalk: when you run back towards your camera, other players now see you turn round and run, not slide backwards
+
+- Vice City players turn the same way
+
+- the release zip now has VICE Loader inside and new install notes (MonetLoader is inside libMP)
+
 - Rocket League now has its own background picture and preview in the server list, like the other 24/7 servers
 
 - VICE Loader: the VICE City LAN server preview now shows the MP LAN Server picture instead of the blurred background, and the server rows have pictures like San Andreas

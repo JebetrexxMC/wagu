@@ -29,3 +29,4 @@ _site/
 __pycache__/
 tools/bg_cache/
 /regions_cache.txt
+bin/ViceLoader.apk

@@ -38,6 +38,7 @@ extern "C" unsigned long crc32(unsigned long crc, const unsigned char* buf, unsi
 #include "audio/sound.h"
 #include "audio/voice.h"   // 3.11
 #include "ui/airicons.h"   // 5.00.04: aircraft kill / speedometer icons
+#include "game/locofacing.h"   // 5.01.03: remote players face the way they walk (moonwalk fix)
 #include <set>
 #include <time.h>
 #include "ui/i18n.h"
@@ -1709,12 +1710,11 @@ static float TravelHeading(float vx, float vy)
 // strafing (lock-on). Walking, running and sprinting always face the way the ped goes, so a remote
 // player that would run one way and slide the other (lag, a sharp turn, the avatar a bit ahead of
 // the network position) faces its real direction of travel instead of the sampled heading.
+// 5.01.03: src/game/locofacing.h (the same rule for every on-foot path and Vice City)
 static float FacingForLoco(float sent, const Vec3& v, float speed)
 {
     if(speed < 0.8f) return sent;
-    float th = TravelHeading(v.x, v.y);
-    float diff = fabsf(fmodf(th - sent + 540.0f, 360.0f) - 180.0f);
-    return diff > 40.0f ? th : sent;   // small differences: the sender's own turn (lean into the curve)
+    return MP_LocoFacing(sent, v.x, v.y, false);
 }
 
 // Where the player was `delay` ms ago (between two snapshots), or a short extrapolation.
@@ -2461,7 +2461,10 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
             // 4.13.19 moonwalk fix: walking / running / sprinting legs (no aim, no lock-on, nothing
             // else full-body like a fall or a hit) face the direction of travel
             {
-                const bool strafe = p.hasX2 && (p.x2flags & X2_AIMING);
+                // 5.01.03: any walk style (weapon / fat / gang walks too) and short run-stop / turn anims count:
+                // only a real full-body action (jump, fall, hit, climb, fight) keeps the sent heading. "Strafe" =
+                // aiming a gun (aimingNow), not the bare aim flag (no gun = no strafe in GTA)
+                const bool strafe = aimingNow || shootingNow;
                 float locoFull = 0, otherFull2 = 0;
                 for(int i = 0; i < af->n; ++i)
                 {
@@ -2470,7 +2473,8 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
                     bool loco = a.id >= 0 && a.id <= 11 && (a.group == 0 || (a.group >= 54 && a.group <= 87));
                     if(loco) locoFull += a.blend; else otherFull2 += a.blend;
                 }
-                if(!gunUp && !strafe && !duckWant && locoFull >= 0.5f && otherFull2 < 0.35f) heading = FacingForLoco(heading, mvel, legSpeed);
+                (void)locoFull;
+                if(!gunUp && !strafe && otherFull2 < 0.35f) heading = FacingForLoco(heading, mvel, legSpeed);
             }
             if(gunUp)
             {
@@ -2485,7 +2489,7 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
                 if(p.gunUp) { p.gunUp = false; Game::TaskStandStill(p.ped); }   // 2.32: gun down = aim task off now (not 1.6 s later)
                 float ch = Game::GetCharHeading(p.ped);
                 float hd = fmodf(heading - ch + 540.0f, 360.0f) - 180.0f;
-                if(fabsf(hd) > 1.0f) Game::SetCharHeading(p.ped, LerpAngle(ch, heading, dt * 12.0f > 1.0f ? 1.0f : dt * 12.0f));
+                if(fabsf(hd) > 1.0f) Game::SetCharHeading(p.ped, LerpAngle(ch, heading, dt * MP_TurnRate(ch, heading) > 1.0f ? 1.0f : dt * MP_TurnRate(ch, heading)));
                 // pose at the drawn time: advance each anim by the time since that frame
                 Game::PedAnim pose[MP_ANIM_SLOTS];
                 float el = (float)((p.renderT - (double)af->t) / 1000.0); if(el < 0) el = 0; if(el > 0.5f) el = 0.5f;
@@ -2554,12 +2558,21 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
         if(along < -1.0f)     ms = (ms >= 6) ? 4 : 0;
         else if(along > 2.0f) ms = (ms == 4) ? 6 : 7;
         if(ms == 0)
-        {
+        {   // ahead of the network position: wait for it facing the way the player goes (5.01.03)
             if(p.moveState != 0) { Game::TaskStandStill(p.ped); p.moveState = 0; }
+            float want = MP_LocoFacing(heading, mvel.x, mvel.y, false);
+            float ch = Game::GetCharHeading(p.ped);
+            if(fabsf(MP_AngleDiff(want, ch)) > 3.0f) Game::SetCharHeading(p.ped, MP_LerpHeading(ch, want, dt * MP_TurnRate(ch, want)));
         }
         else
         {
         Vec3 goal = { target.x + dx * 4.0f, target.y + dy * 4.0f, target.z };
+        {   // 5.01.03 moonwalk fix: the walk task turns the ped slowly (a 180 took ~0.5 s of sliding backwards) -
+            // face the direction of travel now, like the player's own body on their phone
+            float want = MP_LocoFacing(heading, mvel.x, mvel.y, false);
+            float ch = Game::GetCharHeading(p.ped);
+            if(fabsf(MP_AngleDiff(want, ch)) > 3.0f) Game::SetCharHeading(p.ped, MP_LerpHeading(ch, want, dt * MP_TurnRate(ch, want)));
+        }
         // re-issue also when the ped is about to reach the old goal (it stopped there = stutter)
         if(ms != p.moveState || Dist2D(goal, p.lastGoal) > 1.5f || Dist2D(cur, p.lastGoal) < 2.5f || now - p.lastTask > 1000)
         {
@@ -2581,7 +2594,8 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
     {
         Vec3 e = { target.x - cur.x, target.y - cur.y, 0 };
         Vec3 step;
-        if(ms > 0 && speed > 0.3f && !p.gunUp)   // 3.39: gun up = no walk anim, pull the position along firmly
+        if(speed > 0.3f && !p.gunUp)   // 3.39: gun up = no walk anim, pull the position along firmly. 5.01.03: also while
+                                       // waiting ahead of the network position (it slid the standing avatar backwards)
         {
             // 2.14: while walking, fix sideways error firmly but leave the direction of travel
             // to the walk animation (pulling it back is what looked like walking in place)
@@ -3149,6 +3163,25 @@ static void SendLocalSync(int ped, uint64_t now)
         else s_Vel = { 0, 0, 0 };
         s_LastAt = at; s_LastAtT = now; s_LastInCar = inCar;
         memcpy(e.vel, &s_Vel, 12);
+        // 5.01.03 moonwalk fix (sender): stick pulled back = the body turns round and runs towards the camera; the
+        // other phones got the old heading for a while and saw the player slide backwards. On foot and not aiming,
+        // send the heading of the way the body goes (travel direction, or the stick direction while turning round)
+        if(!inCar && !(d.flags & SYNC_DEAD))
+        {
+            const bool aw = (d.weapon >= 22 && d.weapon <= 38) || (d.weapon >= 41 && d.weapon <= 43);
+            const bool aiming = (d.flags & SYNC_SHOOTING) || (aw && (Game::IsPedAimingGun(ped) || Game::IsLocalAimHeld()));
+            float stickH = -1.0f;
+            int sx = 0, sy = 0; Vec3 cp, cl;
+            if(!aiming && Game::GetStick(sx, sy) && Game::GetCameraPos(cp, cl) && (cl.x != cp.x || cl.y != cp.y))
+                stickH = MP_StickHeading(MP_TravelHeading(cl.x - cp.x, cl.y - cp.y), sx, sy);
+            const float h = MP_SendHeading(d.heading, s_Vel.x, s_Vel.y, stickH, aiming);
+            if(h != d.heading)
+            {
+                d.heading = h;
+                float hr2 = h * 0.0174533f;   // the default look point follows (an aimed one is set below)
+                d.aim[0] = pos.x - sinf(hr2) * 25.0f; d.aim[1] = pos.y + cosf(hr2) * 25.0f; d.aim[2] = pos.z + 0.4f;
+            }
+        }
         e.moveState = (uint8_t)Game::GetPedMoveState(ped);
         e.pedState  = (uint8_t)Game::GetPedState(ped);
         if(inCar)
