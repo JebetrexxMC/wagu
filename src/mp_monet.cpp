@@ -139,13 +139,13 @@ void Start()
     if(!on) { logger->Info("MonetLoader: off (MonetLoader = 0 in TYFMC.MP.ini)"); return; }
     if(aml->HasMod("com.monetloader.aml") || dlopen("libmonetloader.so", RTLD_NOW | RTLD_NOLOAD))
     {
-        // 4.13.64: no separate MonetLoader any more - MonetLoader for MP 3.9.1-mp (mimgui fix) is built into libMP.
+        // 4.13.64: no separate MonetLoader any more - MonetLoader for MP 4.0.0-mp (mimgui fix) is built into libMP.
         // An old separate libmonetloader.so (the one that gave "undefined symbol: luaJIT_BC_mimgui_cdefs") is already
         // running for this start (two MonetLoaders can't run), so it is moved out of the mods folder now: from the
         // next start only the built-in copy runs, and there is never a duplicate.
         const int moved = MoveSeparateAway();
-        if(moved > 0) logger->Info("MonetLoader: an old separate libmonetloader.so was found and moved to *.old (%d file%s). It runs one last time now - restart the game once and the built-in MonetLoader for MP 3.9.1-mp is used.", moved, moved == 1 ? "" : "s");
-        else logger->Info("MonetLoader: a separate libmonetloader.so is running and could not be moved - delete it from the mods folder, MonetLoader for MP 3.9.1-mp is built into libMP.");
+        if(moved > 0) logger->Info("MonetLoader: an old separate libmonetloader.so was found and moved to *.old (%d file%s). It runs one last time now - restart the game once and the built-in MonetLoader for MP 4.0.0-mp is used.", moved, moved == 1 ? "" : "s");
+        else logger->Info("MonetLoader: a separate libmonetloader.so is running and could not be moved - delete it from the mods folder, MonetLoader for MP 4.0.0-mp is built into libMP.");
         s_bSeparateMoved = moved > 0;
         return;
     }

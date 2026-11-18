@@ -12,7 +12,7 @@ end
 
 local lustache = {
   name     = "lustache",
-  version  = "1.3.1-0",
+  version  = "1.3-1",
   renderer = require("lustache.renderer"):new(),
 }
 
@@ -21,7 +21,6 @@ return setmetatable(lustache, {
     if self.renderer[idx] then return self.renderer[idx] end
   end,
   __newindex = function(self, idx, val)
-    if idx == "partials" then self.renderer.partials = val end
     if idx == "tags" then self.renderer.tags = val end
   end
 })

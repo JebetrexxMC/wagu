@@ -1,5 +1,15 @@
 @everyone # Changelogs
 
+- MonetLoader for MP 4.0.0: the old guessed lib folder and the remade HG menu, hitmarker and TV player mods are gone (old files are renamed to .old on the first start), moonloader/lib now has the real libraries from their sources
+
+- new built-in Lua modules for both phones (32 and 64 bit): lpeg, lrexlib (regex with PCRE2), luasql sqlite3, lanes, xml
+
+- PC MoonLoader scripts that use PC game addresses (readMemory, callFunction, memory.*) now reach the same function or variable in the Android game
+
+- PC imgui scripts (require 'imgui', imgui.Process, OnDrawFrame) now run on mimgui
+
+- .dll / .asi loaded from a Lua mod now look for the Android .so build next to the script
+
 - Custom GTA HUD now works with Advanced Settings installed: MP writes the Compact HUD (clock above the money, health and armor right under it, next to the weapon icon) into the Advanced Settings ini, with Apply again / Restore my ini buttons in Settings > Display > GTA HUD
 
 - the AMMO number on the right side (Settings > Textdraw > Ammo Info) is off on the default server
