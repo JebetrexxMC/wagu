@@ -2,20 +2,23 @@
 # Every 10 minutes: listen to the MP lobby (MQTT, the same topic the game and the website read),
 # draw players.svg and the shields.io badge files, and force-push them to the `live-status` branch
 # (one commit, so main's history stays clean). README images point at that branch.
+# 5.01.00: GitHub ran the 10-minute cron only every few hours, so the badges sat at old / 0 values. One run now
+# stays up ~5h50m and refreshes every 10 minutes itself; the cron only starts the next run (queued, never
+# cancelling the running one). The lobby is read from every public broker and merged.
 name: live-status
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
 permissions:
   contents: write
 concurrency:
   group: live-status
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   status:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 358
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,17 +28,26 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install --quiet paho-mqtt
-      - run: python3 tools/lobby_status.py out 20
-      - name: Push to live-status
+      - name: Refresh every 10 minutes (~5h50m)
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
-          cd out
-          cat > README.md <<'MD'
-          Live MP lobby status, made every 10 minutes by `.github/workflows/live-status.yml` on main.
-          Files: players.svg (README card), players.json / servers.json / discord.json (shields.io endpoint badges), status.json, history.json (8 days of 10-minute readings + one row per day for the navigator).
-          MD
-          git init -q -b live-status
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -qm "live status $(date -u +%Y-%m-%dT%H:%MZ)"
-          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" live-status
+          end=$(( $(date +%s) + 350*60 ))
+          while :; do
+            rm -rf out; mkdir -p out
+            python3 tools/lobby_status.py out 20 || true
+            if [ -f out/players.json ]; then
+              ( cd out
+                printf '%s\n' 'Live MP lobby status, made every 10 minutes by `.github/workflows/live-status.yml` on main.' \
+                  'Files: players.svg (README card), players.json / servers.json / discord.json (shields.io endpoint badges), status.json, history.json (8 days of 10-minute readings + one row per day for the navigator).' > README.md
+                git init -q -b live-status
+                git config user.name "github-actions[bot]"
+                git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                git add -A
+                git commit -qm "live status $(date -u +%Y-%m-%dT%H:%MZ)"
+                git push -qf "https://x-access-token:${TOKEN}@github.com/${REPO}.git" live-status || true )
+            fi
+            [ $(( $(date +%s) + 600 )) -lt $end ] || break
+            sleep 570
+          done

@@ -20,6 +20,22 @@
   <a href="#gta-vice-city"><img alt="GTA VC Android" src="https://img.shields.io/badge/GTA%20VC-Android-ff4fa3?style=for-the-badge&labelColor=3a3a3a"></a>
   <a href="https://github.com/ThirtyFoxMCx00E1/AndroidModLoader"><img alt="AML" src="https://img.shields.io/badge/AML-AndroidModLoader-8a5cf6?style=for-the-badge&labelColor=3a3a3a"></a>
   <a href="https://discord.gg/QSdtut3SWV"><img alt="Discord" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/live-status/discord.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=600"></a>
+  <br>
+  <a href="https://github.com/ThirtyFoxMCx00E1/wagu/actions/workflows/build-ndk.yml"><img alt="Build Android MP libraries" src="https://img.shields.io/github/actions/workflow/status/ThirtyFoxMCx00E1/wagu/build-ndk.yml?branch=main&style=for-the-badge&labelColor=3a3a3a&label=libMP%20build&logo=githubactions&logoColor=white"></a>
+  <a href="https://github.com/ThirtyFoxMCx00E1/MonetLoaderOSS/actions/workflows/build.yml"><img alt="MonetLoader for MP build" src="https://img.shields.io/github/actions/workflow/status/ThirtyFoxMCx00E1/MonetLoaderOSS/build.yml?branch=main&style=for-the-badge&labelColor=3a3a3a&label=MonetLoader%20build&logo=githubactions&logoColor=white"></a>
+  <a href="https://github.com/ThirtyFoxMCx00E1/wagu/actions/workflows/mp-247-servers.yml"><img alt="24/7 servers" src="https://img.shields.io/github/actions/workflow/status/ThirtyFoxMCx00E1/wagu/mp-247-servers.yml?branch=main&style=for-the-badge&labelColor=3a3a3a&label=24%2F7%20servers&logo=githubactions&logoColor=white"></a>
+  <a href="https://github.com/ThirtyFoxMCx00E1/wagu/actions/workflows/live-status.yml"><img alt="Live status" src="https://img.shields.io/github/actions/workflow/status/ThirtyFoxMCx00E1/wagu/live-status.yml?branch=main&style=for-the-badge&labelColor=3a3a3a&label=live%20status&logo=githubactions&logoColor=white"></a>
+  <br>
+  <a href="https://youtube.com/@thirtyfoxmc"><img alt="YouTube @thirtyfoxmc" src="https://img.shields.io/badge/YouTube-@thirtyfoxmc-FF0000?style=for-the-badge&labelColor=3a3a3a&logo=youtube&logoColor=white"></a>
+  <a href="https://mpsamp-open.github.io/"><img alt="MP website" src="https://img.shields.io/badge/Website-mpsamp--open-FFB21E?style=for-the-badge&labelColor=3a3a3a"></a>
+  <a href="https://github.com/ThirtyFoxMCx00E1"><img alt="ThirtyFoxMC profile" src="https://img.shields.io/badge/GitHub-ThirtyFoxMCx00E1-181717?style=for-the-badge&labelColor=3a3a3a&logo=github&logoColor=white"></a>
+  <br>
+  <img alt="C++" src="https://img.shields.io/badge/C%2B%2B-20-00599C?style=for-the-badge&labelColor=3a3a3a&logo=cplusplus&logoColor=white">
+  <img alt="Lua / LuaJIT" src="https://img.shields.io/badge/Lua-LuaJIT%202.1-2C2D72?style=for-the-badge&labelColor=3a3a3a&logo=lua&logoColor=white">
+  <img alt="Android NDK" src="https://img.shields.io/badge/Android-NDK%20r27%20%2F%20r30-3DDC84?style=for-the-badge&labelColor=3a3a3a&logo=android&logoColor=white">
+  <img alt="ARM" src="https://img.shields.io/badge/ARM-armeabi--v7a%20%2B%20arm64--v8a-0091BD?style=for-the-badge&labelColor=3a3a3a&logo=arm&logoColor=white">
+  <img alt="Python" src="https://img.shields.io/badge/Python-tools%20%26%20bots-3776AB?style=for-the-badge&labelColor=3a3a3a&logo=python&logoColor=white">
+  <img alt="MQTT" src="https://img.shields.io/badge/MQTT-HiveMQ%20lobby-660066?style=for-the-badge&labelColor=3a3a3a&logo=mqtt&logoColor=white">
 </p>
 
 <p align="center">

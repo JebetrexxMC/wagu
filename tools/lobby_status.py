@@ -20,7 +20,9 @@ import json, os, sys, time, html, datetime
 import paho.mqtt.client as mqtt
 
 TOPIC = "thirtyfox/mp5/l/+"
-BROKERS = [("broker.hivemq.com", 1883), ("broker.emqx.io", 1883), ("test.mosquitto.org", 1883)]
+# 5.01.00: every public lobby broker is read and merged - the game lists servers from all of them, and since 5.00.06
+# the 24/7 servers announce on mosquitto (broker.hivemq.com alone gave "0 servers online").
+BROKERS = [("test.mosquitto.org", 1883), ("broker.hivemq.com", 1883), ("broker.emqx.io", 1883)]
 REG = ["Asia", "Europe", "NA", "Oceania"]
 DISCORD_INVITE = "QSdtut3SWV"
 
@@ -212,15 +214,19 @@ def main():
     out = sys.argv[1] if len(sys.argv) > 1 else "out"
     secs = float(sys.argv[2]) if len(sys.argv) > 2 else 20
     os.makedirs(out, exist_ok=True)
-    live, used = None, None
-    for h, p in BROKERS:
-        try:
-            live = listen(h, p, secs); used = h
-            break
-        except Exception as ex:
-            print("broker %s failed: %s" % (h, ex), file=sys.stderr)
-    if live is None:
-        live = {}
+    import threading
+    live, used, res = {}, [], {}
+    def run(h, p):
+        try: res[h] = listen(h, p, secs)
+        except Exception as ex: print("broker %s failed: %s" % (h, ex), file=sys.stderr)
+    th = [threading.Thread(target=run, args=b) for b in BROKERS]
+    for t in th: t.start()
+    for t in th: t.join(secs + 40)
+    for h, _ in BROKERS:
+        if h in res:
+            used.append("%s:%d" % (h, len(res[h])))
+            for tok, srv in res[h].items(): live.setdefault(tok, srv)
+    used = ", ".join(used) or None
     servers = sorted(live.values(), key=lambda s: (not is_default(s), -s["players"], s["name"].lower()))
     players = sum(s["players"] for s in servers)
     now = datetime.datetime.now(datetime.timezone.utc)
