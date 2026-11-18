@@ -1,5 +1,11 @@
 @everyone # Changelogs
 
+- fixed players getting a second slot when they reconnect: no more "try to reconnecting" for someone who is still playing, and no more "left the server" + "joined the server" for a player who never left
+
+- the 24/7 server handover and host takeovers no longer flood the chat with "joined the server" for players who were already there
+
+- "{name} reconnected to the server successfully" when someone is back after a real network drop
+
 - MonetLoader for MP 4.0.0: the old guessed lib folder and the remade HG menu, hitmarker and TV player mods are gone (old files are renamed to .old on the first start), moonloader/lib now has the real libraries from their sources
 
 - new built-in Lua modules for both phones (32 and 64 bit): lpeg, lrexlib (regex with PCRE2), luasql sqlite3, lanes, xml

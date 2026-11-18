@@ -1374,8 +1374,42 @@ static void RemovePlayer(int id)
     players[id] = RemotePlayer();
 }
 
+// 5.01.01: "left the server" + "joined the server" for one player who never really left (an older server that
+// gave a reconnecting phone a second slot, or the slot of a phone that restarted the game). A plain leave is
+// held for a few seconds: the same name joining back in that time shows nothing at all.
+// The players of a server you were moved off (24/7 shift handover, host takeover, a reconnect) are kept the
+// same way for 60 s: when you see them again on the new copy there is no "joined the server" for them either.
+struct PendingLeave { char name[MP_NAME_LEN]; uint64_t at; bool silent; };
+static std::vector<PendingLeave> s_PendingLeaves;
+static uint64_t s_nInitialListUntil = 0;   // 5.01.01: the player list right after the welcome = already there, not "joined"
+static void BaseName(const char* in, char* out, size_t n)
+{
+    MP_CopyStr(out, in, n);
+    size_t l = strlen(out), k = l;
+    while(k > 0 && out[k - 1] >= '0' && out[k - 1] <= '9') --k;
+    if(k > 0 && k < l && out[k - 1] == '_') out[k - 1] = 0;   // "Juan_3" -> "Juan" (a taken name gets "_<id>")
+}
+static bool TakePendingLeave(const char* name)
+{
+    char b[MP_NAME_LEN]; BaseName(name, b, sizeof(b));
+    for(size_t i = 0; i < s_PendingLeaves.size(); ++i)
+    {
+        char o[MP_NAME_LEN]; BaseName(s_PendingLeaves[i].name, o, sizeof(o));
+        if(!strcasecmp(o, b)) { s_PendingLeaves.erase(s_PendingLeaves.begin() + i); return true; }
+    }
+    return false;
+}
+static void FlushPendingLeaves(uint64_t now);
+
 static void ClearAllPlayers()
 {
+    {   // 5.01.01: remember who was here (silent), and a held "left" line belongs to the server we left
+        const uint64_t now = MP_NowMs();
+        for(auto& pl : s_PendingLeaves) pl.silent = true;
+        for(int i = 0; i < MP_MAX_PLAYERS; ++i)
+            if(players[i].active && i != myId && players[i].name[0] && s_PendingLeaves.size() < 128)
+            { PendingLeave pl; MP_CopyStr(pl.name, players[i].name, sizeof(pl.name)); pl.at = now; pl.silent = true; s_PendingLeaves.push_back(pl); }
+    }
     ResetPairs(); s_nServerPerms = 0; s_nServerModes = 0; s_bModesSeen = false; s_bPermsSeen = false;
     for(int i = 0; i < MP_MAX_PLAYERS; ++i) RemovePlayer(i);
     ClearEnv(false);   // 2.13: shared pickups / fires belong to the server we left
@@ -2652,6 +2686,7 @@ public:
         myId = w.yourId; myColor = w.color;
         MP_CopyStr(s_szCurServer, w.serverName, sizeof(s_szCurServer));
         s_szCustomWelcome[0] = 0;   // 5.00.08: the welcome message (if any) comes right after this
+        s_nInitialListUntil = MP_NowMs() + 1500;   // 5.01.01: the players already on the server come right after this
         LuaOnConnected(w.yourId, s_szCurServer);   // 4.13.29
         s_bWorldSynced = false;
         s_nWorldNoticed = 0;   // 2.18.2: new connection -> each notice may show once again
@@ -2743,14 +2778,15 @@ public:
         ApplyPlayerColor(j.id, j.color);
         if(j.id == myId) return;
         if(!wasActive) LuaOnJoin(j.id, p.name, p.color);   // 4.13.29
-        if(!wasActive) SysMsg(COL_SYSTEM, "*** %s joined the server.", p.name);
+        if(!wasActive && !TakePendingLeave(p.name) && MP_NowMs() >= s_nInitialListUntil) SysMsg(COL_SYSTEM, "*** %s joined the server.", p.name);
     }
     void OnPlayerLeave(const PktPlayerLeave& l) override
     {
         if(l.id >= MP_MAX_PLAYERS || !players[l.id].active) return;
         LuaOnQuit(l.id, l.reason == LEAVE_KICK ? 2 : 1);   // 4.13.29
         SampOnPlayerLeave(l.id);   // 3.01
-        SysMsg(COL_SYSTEM, "*** %s left the server.%s", players[l.id].name, l.reason == LEAVE_KICK ? " (Kicked)" : "");   // 4.13.22: never "(Timeout)"
+        if(l.reason == LEAVE_KICK) SysMsg(COL_SYSTEM, "*** %s left the server. (Kicked)", players[l.id].name);   // 4.13.22: never "(Timeout)"
+        else if(s_PendingLeaves.size() < 64) { PendingLeave pl; MP_CopyStr(pl.name, players[l.id].name, sizeof(pl.name)); pl.at = MP_NowMs(); pl.silent = false; s_PendingLeaves.push_back(pl); }   // 5.01.01
         if(s_bGroup[l.id]) { s_bGroup[l.id] = false; GroupFixFirst(); }   // 2.31
         if(l.id == s_nPairAskedTo) s_nPairAskedTo = MP_INVALID_ID;
         s_bPairAsked[l.id] = false;
@@ -4472,6 +4508,7 @@ void MP::Process()
         if(mpOn) Game::KeepPadAwake();
     }
     client.Poll(&s_Events);
+    FlushPendingLeaves(now);   // 5.01.01
     {   // 4.13.22: the link went quiet for 30 s: "reconnecting" - the world, the gamemode and the players stay loaded,
         // the local player stops (no control, the car held) until the server answers again, then everything goes on
         static bool s_bReconn = false; static uint64_t s_nReconnSay = 0; static int s_nReconnCar = 0;
@@ -4491,7 +4528,7 @@ void MP::Process()
             if(s_nReconnCar > 0) Game::FreezeCar(s_nReconnCar, false); else if(ped > 0) Game::FreezeChar(ped, false);
             s_nReconnCar = 0;
             Game::SetPlayerControl(true);
-            if(client.GetState() == NET_CONNECTED) SysMsg(COL_GREEN, "Done reconnecting.");
+            if(client.GetState() == NET_CONNECTED) SysMsg(COL_GREEN, "Reconnected to the server successfully.");
         }
     }
     AuthFrame(MP_NowMs());   // 3.21.6: login screens + ticket
@@ -8146,4 +8183,16 @@ void MP::Init(const char* dataDir)
     // 4.12.2: ScreenGuard - recording / screenshots are black without a valid MP/src_Access.txt
     if(ScreenGuard::Locked())
         SysMsg(COL_YELLOW, "Screen recording is locked on MP. To record, DM ThirtyFox on Discord (discord.gg/QSdtut3SWV) for your src_Access.txt, put it in the MP folder and restart the game.");
+}
+
+// 5.01.01: a held "left the server" line that nobody joined back for
+static void FlushPendingLeaves(uint64_t now)
+{
+    for(size_t i = 0; i < s_PendingLeaves.size(); )
+    {
+        PendingLeave& pl = s_PendingLeaves[i];
+        if(!pl.silent && now - pl.at >= 10000) { SysMsg(COL_SYSTEM, "*** %s left the server.", pl.name); s_PendingLeaves.erase(s_PendingLeaves.begin() + i); }
+        else if(pl.silent && now - pl.at >= 60000) s_PendingLeaves.erase(s_PendingLeaves.begin() + i);
+        else ++i;
+    }
 }

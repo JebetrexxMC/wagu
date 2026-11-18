@@ -728,7 +728,7 @@ void MPServer::Loop()
                 if(!s.reconn && q > MP_TIMEOUT_MS)
                 {
                     s.reconn = true;
-                    char t[96]; snprintf(t, sizeof(t), "%s try to reconnecting to the server", s.name);
+                    char t[96]; snprintf(t, sizeof(t), "%s is reconnecting to the server...", s.name);
                     ReconnMsg(t, 0xB8C2CCFFu);
                     Log("%s (id %d) is reconnecting (no packets for %llu s)", s.name, i, (unsigned long long)(q / 1000));
                 }
@@ -821,7 +821,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
     if(slot >= 0 && m_Slots[slot].reconn)
     {   // 4.13.22: back from "reconnecting": everything is still loaded, it just runs on
         m_Slots[slot].reconn = false;
-        char t[96]; snprintf(t, sizeof(t), "%s is done reconnecting", m_Slots[slot].name);
+        char t[96]; snprintf(t, sizeof(t), "%s reconnected to the server successfully", m_Slots[slot].name);
         ReconnMsg(t, 0x8CE68CFFu);
         Log("%s (id %d) is done reconnecting", m_Slots[slot].name, slot);
     }
@@ -913,25 +913,33 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             bool grantedMod = false;   // 3.54
             if(len >= (int)sizeof(PktJoin3)) { memcpy(juid, ((const PktJoin3*)data)->uid, MP_UID_LEN); juid[MP_UID_LEN] = 0; }
             // 3.39: the same phone on a new network path (Wi-Fi <-> mobile data, direct <-> relay) while it
-            // is still connected: keep its slot, id and login instead of a timeout + a new player
-            if(slot < 0 && juid[0] && len >= (int)sizeof(PktJoin6) && (data[offsetof(PktJoin6, flags)] & MP_JOIN_REBIND))
+            // is still connected: keep its slot, id and login instead of a timeout + a new player.
+            // 5.01.01: matched by the phone id alone. The old name check failed for names the server had changed
+            // (clan tags [..] stripped, [VIP] / [MOD] prefixes, "_<id>" for a taken name): the rebind became a NEW
+            // player ("joined"), the old slot went quiet ("try to reconnecting") and 5 min later "left the server"
+            // although the player had been in the game the whole time.
+            // 5.01.01: the same for a plain join (no rebind flag) of a phone that already has a slot here: the game
+            // restarted, the auto-reconnect after a long stall, or a late direct join after the phone already fell
+            // back to the relay (= two slots for one phone). It takes over its own slot - same id, same gamemode
+            // state, nobody reads "left" + "joined".
+            if(slot < 0 && juid[0])
             {
-                char jn[MP_NAME_LEN]; MP_CopyStr(jn, j->name, MP_NAME_LEN);
+                const bool rbFlag = len >= (int)sizeof(PktJoin6) && (data[offsetof(PktJoin6, flags)] & MP_JOIN_REBIND);
                 for(int i = 0; i < MP_MAX_PLAYERS; ++i)
                 {
                     Slot& o = m_Slots[i];
-                    if(!o.used || strcmp(o.uid, juid) || MP_NowMs() - o.lastSeen < 1500) continue;
-                    char base[MP_NAME_LEN]; MP_CopyStr(base, o.name, sizeof(base)); MP_StripAdminTag(base);
-                    if(!strncmp(base, "[MOD] ", 6)) memmove(base, base + 6, strlen(base + 6) + 1);
-                    if(strncasecmp(base, jn, strlen(jn) > 17 ? 17 : strlen(jn))) continue;
+                    if(!o.used || o.ghost || strcmp(o.uid, juid)) continue;
                     o.addr = from; o.lastSeen = MP_NowMs(); slot = i;
-                    Log("%s (id %d) is back on a new network path (no timeout)", o.name, i);
+                    if(o.reconn)
+                    {
+                        o.reconn = false;
+                        char t[96]; snprintf(t, sizeof(t), "%s reconnected to the server successfully", o.name);
+                        ReconnMsg(t, 0x8CE68CFFu);
+                    }
+                    Log("%s (id %d) is back on a new network path (%s, no leave / join)", o.name, i, rbFlag ? "rebind" : "rejoin");
                     break;
                 }
             }
-            if(slot < 0 && juid[0])   // 4.13.22: the same phone joins fresh (game restarted) while its old slot is "reconnecting"
-                for(int i = 0; i < MP_MAX_PLAYERS; ++i)
-                    if(m_Slots[i].used && m_Slots[i].reconn && !strcmp(m_Slots[i].uid, juid)) { m_Slots[i].reconn = false; Drop(i, LEAVE_QUIT); }
             if(slot < 0)
             {   // 3.50: anti-cheat (invalid version, fake NPC, reconnect / slot flood, key brute force)
                 uint32_t jb = 0;
