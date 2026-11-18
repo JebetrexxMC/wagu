@@ -30,3 +30,5 @@ __pycache__/
 tools/bg_cache/
 /regions_cache.txt
 bin/ViceLoader.apk
+release/MP-*-Package.zip
+release/MP-*-full.zip

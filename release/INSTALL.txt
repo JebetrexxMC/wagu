@@ -1,0 +1,68 @@
+MP Multiplayer 5.01.03 - install
+=================================
+GTA San Andreas 2.00 and GTA Vice City (Android), 32-bit and 64-bit.
+
+What is in this package
+  lib/<abi>/libMP32.so, libMP64.so MP 5.01.03 (San Andreas + Vice City), one file per ABI with everything inside:
+                                   MonetLoader 4.0.0-mp is built in - there is no separate libmonetloader.so
+                                   or any other binary mod to copy
+  assets/MP/                       the MP files (UI pictures, server backgrounds, sounds, titles, moonloader scripts and libs)
+  apks/ViceLoader.apk              VICE Loader 5.01.03 - the MP launcher overlay for GTA Vice City
+  apks/Moquil.apk                  Moquil 1.4.5 (friends / chats, linked to the game)
+  apks/MP-Voice.apk                microphone helper for voice chat
+  apks/MP-Textdraw-Editor.apk      textdraw editor for server owners
+
+Before you start
+  - Your game APK must already load mods (an AML-patched GTA SA / GTA VC, AML 1.4.0 or newer).
+    AML is not in this package: it is the mod loader, not part of MP.
+  - 64-bit game = libMP64.so, 32-bit game = libMP32.so. If you are not sure, copy both.
+  - Some phones use Android_unprotected/data/... instead of Android/data/... - use the one your game uses.
+
+---------------------------------------------------------------------
+GTA SAN ANDREAS
+---------------------------------------------------------------------
+1. Copy lib/arm64-v8a/libMP64.so (or lib/armeabi-v7a/libMP32.so) to
+     Android/data/com.rockstargames.gtasa/mods/
+   Replace the old libMP*.so. Delete any separate libmonetloader.so there (MonetLoader is inside MP;
+   an old one is renamed to .old by MP on start).
+2. Copy everything inside assets/MP/ to
+     Android/data/com.rockstargames.gtasa/files/TYFMC/MP/
+   Replace the files. Keep your own admin.txt, administrator.txt, moderator.txt, bans.txt, gates.txt
+   and a private broker.txt if you have one.
+3. Optional: install apks/MP-Voice.apk (if the game has no microphone permission), apks/Moquil.apk and
+   apks/MP-Textdraw-Editor.apk.
+4. Start the game. Tap [MultiPlayer] on the main menu, or the [ : ] floating menu > Server,
+   pick a server and CONNECT.
+
+---------------------------------------------------------------------
+GTA VICE CITY (with VICE Loader)
+---------------------------------------------------------------------
+1. Copy the same lib/arm64-v8a/libMP64.so (or lib/armeabi-v7a/libMP32.so) to
+     Android/data/com.rockstargames.gtavc/mods/
+2. Copy everything inside assets/MP/ to
+     Android/data/com.rockstargames.gtavc/files/TYFMC/MP/
+   (the Vice City titles title2.png / title_logo_connected2.png and the moonloader files).
+   MP writes vc.ini there by itself on the first start.
+3. Install apks/ViceLoader.apk and open it.
+   - Allow "Display over other apps" when asked (the real Android permission screen).
+   - Tap Start overlay, then Launch Vice City.
+4. In the game use the floating bar:  [ : ] menu   [chat]   [mic]   [moon = MonetLoader]
+   [ : ] > Server opens the Internet list. The 24/7 "VICE City LAN server" (port 7777) is at the top.
+   Type a nickname and tap CONNECT - no login.
+5. Settings > Connection shows "Game link: connected" when the game runs MP 5.01.03.
+
+---------------------------------------------------------------------
+Problems? Send these files
+---------------------------------------------------------------------
+  San Andreas:  Android/data/com.rockstargames.gtasa/files/TYFMC/MP/mp_log.txt
+                Android/data/com.rockstargames.gtasa/aml_crashlog.txt
+  Vice City:    Android/data/com.rockstargames.gtavc/files/TYFMC/MP/mp_log.txt
+  VICE Loader:  Download/ViceLoader/crash_*.txt  (or the Save log button in the app)
+
+Source and releases: https://github.com/ThirtyFoxMCx00E1/wagu
+
+Vice City crashes on the Load screen (SIGABRT in CheckDataNotCorrupt / OS_FileClose)?
+  A save file is incomplete or from another version and the game closes it twice. MP 5.01.03 blocks that and names the slot in mp_log.txt.
+  Move or rename that GTA3sf<number>.b out of the game's files folder to clean it up.
+
+MonetLoader self test: assets/MP/moonloader/tests/mp_selftest.lua (copy it into moonloader/ to run it once).
