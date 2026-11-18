@@ -270,6 +270,10 @@ public:
     bool VcmpLoad(const char* path);   // VC:MP server.ini [GAME] format; false = file not found / nothing in it
 private:
     void VcmpSend(int slot); void VcmpHandle(int slot, const uint8_t* data, int len); void VcmpTick(uint64_t now);
+    // 5.00.07: notification system (server_notify.inc)
+    std::vector<PktNotify> m_Notify; uint32_t m_nNotifySeq = 0; uint64_t m_NotifyAt[MP_MAX_PLAYERS] = {};
+    bool NotifyOn() const; bool NotifyStaff(int slot) const;
+    void NotifyHandle(int slot, const uint8_t* data, int len); void NotifyOnJoin(int slot);
     void VcmpLeave(int slot); bool VcmpOnDamage(int from, int to) const;
     uint8_t  m_CoopWith[MP_MAX_PLAYERS], m_CoopAsk[MP_MAX_PLAYERS]; bool m_CoopHost[MP_MAX_PLAYERS];
     bool     m_bCoopInit = false;

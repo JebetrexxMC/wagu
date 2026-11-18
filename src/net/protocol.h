@@ -13,10 +13,10 @@
 // phones refuse servers older than that too (they would let old phones in).
 // 3.10: build 31000. MP_MIN_BUILD stays 30406 and the lobby stays thirtyfox/mp5/: 3.04.6 (no cheats)
 // and 3.10 phones play together on the same servers; only 3.04.5 and older (mp4) stay shut out.
-#define MP_BUILD 50006   // 5.00.06
+#define MP_BUILD 50007   // 5.00.07
 #define MP_MIN_BUILD       30406
 #define MP_AUTH_MIN_BUILD  32106   // 3.21.6: servers with the login system refuse older phones (they could not log in)
-#define MP_VERSION_STR     "5.00.06"
+#define MP_VERSION_STR     "5.00.07"
 #define MP_VOICE_BUILD     31100   // 3.11: phones from this build on get voice packets
 #define MP_DOWNLOAD_URL    "mpsamp-open.github.io"   // 4.05.4: new website (mpsamp-open org); thirtyfoxmcx00e1.github.io/wagu still works as a backup
 #define MP_DEFAULT_HOST    "127.0.0.1"
@@ -150,6 +150,7 @@ enum ePacket : uint8_t
     PKT_HOST_MAP,       // S<->C         4.13.15: host map editor objects (custom servers, net/hostmap.h)
     PKT_COOP,           // S<->C         4.13.15: Co-op story (2 players, net/coop.h)
     PKT_VCMP,           // S<->C         4.13.40: VC:MP-style gamemode on Vice City servers (net/vcmp.h)
+    PKT_NOTIFY,         // S<->C         5.00.07: notification system (GM_NOTIFY): staff pop-up notifications
 };
 
 enum eRegion : uint8_t { REGION_ASIA = 0, REGION_EUROPE, REGION_NA, REGION_OCEANIA, REGION_COUNT };
@@ -505,7 +506,8 @@ enum eGameMode : uint16_t
     GM_DM = 16,        // /dm deathmatch zones
     GM_JOBS = 32,      // /job trucking, pizza, taxi ...
     GM_LABELS = 64,    // 3D text labels at the starts
-    GM_ICONS = 128,    // 3.03: unused (map icons = a player setting)
+    GM_NOTIFY = 128,   // 5.00.07: notification system - /notify pop-ups from the admin / moderators / host owner (always on on the default server)
+    GM_ICONS = GM_NOTIFY,   // 3.03: was map icons (a player setting since 3.03, the bit was unused)
     GM_ACTORS = 256,   // people standing at the job starts
     GM_TIMBER = 512,   // 3.51: Timber (lumberjack) job (was GM_BUBBLES, unused since 3.03)
     GM_BUBBLES = GM_TIMBER,
@@ -519,6 +521,20 @@ enum eGameMode : uint16_t
 };
 #define MP_MODES_MAGIC 0x47
 struct PktPerms       { uint8_t type; uint8_t perms; uint8_t modesMagic; uint8_t pad; uint16_t modes; };
+// 5.00.07: notification system. C->S NOTIFY_SEND (staff only, the server checks it), S->C NOTIFY_SHOW to
+// everybody (also to players who join while it is still on), NOTIFY_CLEAR, NOTIFY_DENIED (logo = 1: the
+// notification system is on but you are not staff, 0: it is off on this server). start / end are Unix
+// seconds (0 = now / start + timer); srvNow = the server's clock, so a phone with a wrong clock still shows
+// it at the right moment.
+#define MP_NOTIFY_TITLE 48
+#define MP_NOTIFY_TEXT  128
+#define MP_NOTIFY_KEEP  8
+#define MP_NOTIFY_BUILD 50007
+enum eNotifyOp : uint8_t { NOTIFY_SEND = 1, NOTIFY_SHOW = 2, NOTIFY_CLEAR = 3, NOTIFY_DENIED = 4 };
+enum eNotifyLogo : uint8_t { NLOGO_INFO = 0, NLOGO_WARNING, NLOGO_HEART, NLOGO_CAR, NLOGO_TROPHY, NLOGO_DROP, NLOGO_STAR, NLOGO_MONEY,
+                             NLOGO_SHIELD, NLOGO_CLOCK, NLOGO_BELL, NLOGO_SKULL, NLOGO_GIFT, NLOGO_MEGAPHONE, NLOGO_COUNT };
+struct PktNotify      { uint8_t type; uint8_t op; uint8_t logo; uint8_t from; uint32_t id; uint32_t start; uint32_t end; uint32_t srvNow;
+                        uint16_t timer; uint16_t pad; char sender[MP_NAME_LEN]; char title[MP_NOTIFY_TITLE]; char text[MP_NOTIFY_TEXT]; };
 enum ePairAction : uint8_t { PAIR_REQUEST = 1, PAIR_ACCEPT = 2, PAIR_END = 3, PAIR_LINKED = 4, PAIR_DENIED = 5,
                           PAIR_DECLINE = 6 /* 2.19 C->S: no thanks */, PAIR_DECLINED = 7 /* 2.19 S->C: they said no */ };
 // C->S: other = who I ask / accept / leave.  S->C: other = the other player, action as above

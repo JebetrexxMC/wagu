@@ -833,6 +833,7 @@ static void CoopRender(); static bool CoopCommand(const char* cmd, const char* a
 static bool Modes2Command(const char* cmd, const char* arg);
 static void Modes2Process(int ped, uint64_t now);
 static void Modes2Render();
+static void NotifyOnPacket(const uint8_t* d, int len); static void NotifyReset(); static void NotifyRender(); static bool NotifyCommand(const char* cmd, const char* arg);   // 5.00.07 (mp_notify.inc)
 static void DealerProcess(int ped, uint64_t now);
 static void DealerRender();
 static bool DealerCommand(const char* cmd, const char* arg);
@@ -2633,7 +2634,7 @@ public:
     void OnConnected(const PktWelcome& w) override
     {
         SampReset();   // 3.01
-        HkReset(); HmReset(); CoopReset(true); CgReset(); RulesReset(); Modes2Reset(); SrvSettingsReset(); HudReset(); ProgReset();   // 3.39: a new join: houses / rules / modes come again
+        HkReset(); HmReset(); CoopReset(true); CgReset(); RulesReset(); Modes2Reset(); NotifyReset(); SrvSettingsReset(); HudReset(); ProgReset();   // 3.39: a new join: houses / rules / modes come again
         myId = w.yourId; myColor = w.color;
         MP_CopyStr(s_szCurServer, w.serverName, sizeof(s_szCurServer));
         LuaOnConnected(w.yourId, s_szCurServer);   // 4.13.29
@@ -2927,6 +2928,7 @@ public:
     void OnLg(const uint8_t* d, int len) override { LgOnPacket(d, len); }     // 4.13.4
     void OnHostMap(const uint8_t* d, int len) override { HmOnPacket(d, len); }   // 4.13.15
     void OnCoop(const uint8_t* d, int len) override { CoopOnPacket(d, len); }    // 4.13.15
+    void OnNotify(const uint8_t* d, int len) override { NotifyOnPacket(d, len); }   // 5.00.07
     void OnCg(const uint8_t* d, int len) override { CgOnPacket(d, len); }
     void OnSamp(const uint8_t* d, int len) override { SampSrvOnPacket(d, len); }   // 4.11     // 4.09
     void OnBcw(const uint8_t* d, int len) override { BcwOnPacket(d, len); }   // 3.04   // 2.25: the dialog opens; PKT_REJECT follows
@@ -4791,6 +4793,7 @@ int MP_DzPackMigrate();   // mp_launcher.inc
 #include "mp_league.inc"    // 4.13.4: Rocket League (was San Andreas Online League) (Rocket Soccer)
 #include "mp_hostmap.inc"   // 4.13.15: host map editor (custom servers, host owner only)
 #include "mp_coop.inc"      // 4.13.15: Co-op story (2 players, SA:COOP style)
+#include "mp_notify.inc"    // 5.00.07: notification system (/notify pop-ups, Broker MQQ look)
 
 // 2.37: CheatMenu (libCheatMenu.so / libCheatMenu64.so) is not allowed on any server - the default
 // server and every custom server. Detected with aml->HasMod() in ON_ALL_MODS_LOAD (+ a re-check of

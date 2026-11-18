@@ -245,6 +245,7 @@ static bool HandleCommand(const char* text)
     int n = 0; while(*arg && *arg != ' ' && n < 30) cmd[n++] = (char)tolower((unsigned char)*arg++);
     cmd[n] = 0;
     while(*arg == ' ') ++arg;
+    if(NotifyCommand(cmd, arg)) return true;  // 5.00.07: /notify (staff)
     if(AdmCommand(cmd, arg)) return true;     // 3.54: admin / moderator commands + /report (before the gamemode blocks)
     if(GatesCommand(cmd, arg)) return true;   // 3.04.2: /gatepos, /gates
     if(TdeCommand(cmd, arg)) return true;     // 3.50: /tde Textdraw Editor
@@ -777,10 +778,12 @@ static void OpenChatKeyboard(const char* initial)
 
 struct Suggest { std::string text, hint; };
 static void GamesSuggest(const char* t, std::vector<Suggest>& out);   // 2.21
+static bool NotifySuggest(const char* t, std::vector<Suggest>& out);   // 5.00.07 (mp_notify.inc)
 static void BuildSuggestions(const char* t, std::vector<Suggest>& out)
 {
     out.clear();
     if(!t || t[0] != '/') return;
+    if(NotifySuggest(t, out)) return;   // 5.00.07: /notify embed: logo: message: timer: start: end:
     const char* sp = strchr(t, ' ');
     if(!sp)
     {   // command names
@@ -1092,7 +1095,7 @@ static void Render219(void*)
     RenderDz();                // 3.58: Project Day Z Legacy
     RenderLg();                // 4.13.4: Rocket League (was San Andreas Online League)
     CgRender();                // 4.09: CGRP labels, ENTER / EXIT, /editor
-    HkRender(); HmRender(); CoopRender(); NeedsRender(); Modes2Render(); DealerRender();   // 3.39 / 3.55
+    HkRender(); HmRender(); CoopRender(); NeedsRender(); Modes2Render(); DealerRender(); NotifyRender();   // 3.39 / 3.55
     HudRenderExtras();   // 4.07: HUD Player + Ammo Info
     RenderHotelPc();           // 3.36: hotel room computer (every server)
     RenderSafeZones();         // 3.21: hospital safe zones

@@ -23,6 +23,7 @@ static const AdmCmdHelp kAdmCmds[] =
     { "/makeadmin",  "[id] [1|0]",             "give / take moderator rights [MOD]" },
     { "/resetstats", "[id]",                   "reset money, weapons and server stats of a player" },
     { "/givecookie", "[id] [amount]",          "give a player a cookie" },
+    { "/notify",     "embed: logo: message: timer: start: end:", "pop-up notification for everyone (/notify clear)" },
     { "/pay",        "[id] [amount]",          "everyone: give your own money to a player" },
 };
 

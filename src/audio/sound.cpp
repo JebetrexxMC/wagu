@@ -151,6 +151,40 @@ bool Sound::PlayHit(const char* path, float volume)
     return false;
 }
 
+// ---- 5.00.07: sounds streamed from the media host into memory (notify.mp3) ------------------------
+namespace
+{
+    std::mutex s_MemMx;
+    Pcm* s_Mem[4] = {};   // decoded once, never freed (a voice may still read it)
+    Voice s_MemV;
+}
+bool Sound::DecodeMem(int slot, const void* data, size_t size)
+{
+    if(slot < 0 || slot >= 4 || !data || size < 512) return false;
+    { std::lock_guard<std::mutex> lk(s_MemMx); if(s_Mem[slot]) return true; }
+    mp3dec_t dec; mp3dec_file_info_t info; memset(&info, 0, sizeof(info));
+    if(mp3dec_load_buf(&dec, (const uint8_t*)data, size, &info, nullptr, nullptr) || !info.buffer || !info.samples || info.channels < 1 || info.channels > 2 || info.hz < 8000)
+    {
+        if(info.buffer) free(info.buffer);
+        logger->Error("Sound: could not decode the downloaded sound %d (%u bytes)", slot, (unsigned)size);
+        return false;
+    }
+    Pcm* p = new Pcm(); p->path = "mem"; p->data.assign(info.buffer, info.buffer + info.samples); p->ch = info.channels; p->hz = info.hz; p->ok = true;
+    free(info.buffer);
+    std::lock_guard<std::mutex> lk(s_MemMx);
+    if(s_Mem[slot]) { delete p; return true; }
+    s_Mem[slot] = p;
+    logger->Info("Sound: downloaded sound %d decoded (%d Hz, %d ch, %.1f s)", slot, p->hz, p->ch, (float)p->data.size() / p->ch / p->hz);
+    return true;
+}
+bool Sound::MemReady(int slot) { std::lock_guard<std::mutex> lk(s_MemMx); return slot >= 0 && slot < 4 && s_Mem[slot]; }
+bool Sound::PlayMem(int slot, float volume)
+{
+    if(slot < 0 || slot >= 4 || !EnsureEngine()) return false;
+    const Pcm* p; { std::lock_guard<std::mutex> lk(s_MemMx); p = s_Mem[slot]; }
+    return p && PlayOn(s_MemV, *p, volume);
+}
+
 // ---- 3.04: looping music (Brief Case War: war_ambient.mp3, 45 %) ------------------------------
 // The mp3 is decoded on its own thread (a 3-minute song takes a moment on a phone), then played by
 // a buffer-queue voice whose "buffer done" callback queues the same PCM again = endless loop.

@@ -248,7 +248,15 @@ static void NeedsRender()
         // 3.55: a hexagon (was a dark box); the border shows the colour of the value
         ImU32 border = hx[i].icon == 2 ? IM_COL32(190, 190, 200, 230) : ((hx[i].col & 0x00FFFFFF) | 0xE6000000);
         if(MP::IsOnDefault() && (hx[i].col & 0x00FFFFFF) == (IM_COL32(60, 200, 70, 255) & 0x00FFFFFF) && hx[i].icon != 2) border = 0;   // 4.09: default server - no green outline (yellow / red / grey stay)
-        HexLabelGlass(dl, ImVec2(a.x + sz * 0.5f, a.y + sz * 0.5f), sz * 0.54f, HudOn() ? ((HudPalette().fill & 0x00FFFFFF) | 0x99000000) : IM_COL32(0, 0, 0, 128), border, UI::S(3));   // 4.07: tinted like the server HUD   // 3.58: black 50 % (was green: the border fill bled through)
+        ImU32 hfill = HudOn() ? ((HudPalette().fill & 0x00FFFFFF) | 0x99000000) : IM_COL32(0, 0, 0, 128);
+        ImU32 tcol = hx[i].col;
+        if(MP::IsOnDefault())
+        {   // 5.00.07: Broker MQQ red + brown, like the title logo (was blue / green)
+            hfill = IM_COL32(70, 16, 12, 0x99);
+            border = (hx[i].icon == 2 || hx[i].icon == 3) ? IM_COL32(176, 112, 64, 240) : IM_COL32(220, 38, 38, 240);
+            if((tcol & 0x00FFFFFF) == (IM_COL32(60, 200, 70, 255) & 0x00FFFFFF)) tcol = IM_COL32(255, 255, 255, 255);
+        }
+        HexLabelGlass(dl, ImVec2(a.x + sz * 0.5f, a.y + sz * 0.5f), sz * 0.54f, hfill, border, UI::S(3));   // 4.07: tinted like the server HUD   // 3.58: black 50 % (was green: the border fill bled through)
         ImVec2 c(a.x + sz * 0.5f, a.y + sz * 0.36f);
         switch(hx[i].icon)
         {
@@ -268,6 +276,6 @@ static void NeedsRender()
         ImVec2 p(a.x + (sz - ts.x) * 0.5f, a.y + sz * 0.55f + (fs - f2) * 0.5f);   // 3.55: inside the hexagon
         const float o = fmaxf(1.0f, f2 * 0.07f);
         for(int ox = -1; ox <= 1; ++ox) for(int oy = -1; oy <= 1; ++oy) if(ox || oy) dl->AddText(pf, f2, ImVec2(p.x + ox * o, p.y + oy * o), IM_COL32(0, 0, 0, 255), t);
-        dl->AddText(pf, f2, p, hx[i].col, t);
+        dl->AddText(pf, f2, p, tcol, t);
     }
 }

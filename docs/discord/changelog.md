@@ -1,5 +1,9 @@
 @everyone # Changelogs
 
+- new notification system: admins and moderators on the default server (and host owners on custom servers with the new Notification system gamemode) can send pop-up notifications with /notify embed: logo: message: timer: start: end:, pick the logo from the list, set the start and end time with AM / PM, everyone gets a card sliding in from the left with a sound
+
+- the default server HUD now matches the Broker MQQ logo: red and brown hexagons and a red top-right score bar
+
 - fix servers showing offline (Brief Case War, VICE City and sometimes all of them): the HiveMQ public broker stopped delivering messages, now the game and the 24/7 servers detect a broker like that in 5 seconds and move to a working one (Mosquitto first), the server list comes back by itself
 
 - fix login / sign up / Discord account sync hanging on "connecting" in the game, Moquil and MP Textdraw Editor: if the login bot doesn't answer in 6 seconds it tries the next broker

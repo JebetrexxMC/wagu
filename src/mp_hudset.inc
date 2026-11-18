@@ -25,7 +25,12 @@ static const HudPal kHudPal[6] = {
     { IM_COL32(127,  29,  29, 235), IM_COL32(248, 113, 113, 255), IM_COL32(252, 165, 165, 255), "Crimson" },
     { IM_COL32(113,  63,  18, 235), IM_COL32(250, 204,  21, 255), IM_COL32(253, 224,  71, 255), "Gold" },
 };
-static const HudPal& HudPalette() { return kHudPal[s_Hud.mode <= 5 ? s_Hud.mode : 1]; }
+static const HudPal kHudPalBroker = { IM_COL32(92, 22, 16, 235), IM_COL32(220, 38, 38, 255), IM_COL32(196, 132, 84, 255), "Broker MQQ red" };   // 5.00.07
+static const HudPal& HudPalette()
+{
+    if(MP::IsOnDefault() && s_Hud.mode <= 1) return kHudPalBroker;   // 5.00.07: the default server matches the Broker MQQ title (red + brown)
+    return kHudPal[s_Hud.mode <= 5 ? s_Hud.mode : 1];
+}
 
 // "$525250" or (Dollar Cent) "$525,250.00"
 static void HudMoney(char* out, size_t n, int v)

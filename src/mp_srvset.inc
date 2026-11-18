@@ -42,6 +42,7 @@ static void SrvSettingsDlg(int resp, int item, const char*, int)
     if(item < MP_GAMEMODE_COUNT)
     {
         if(featured && !MP::IsOnDefault()) { SysMsg(COL_YELLOW, "This featured server runs only its own gamemode."); SrvSettingsShow(); return; }   // 3.53: the default server's staff can
+        if(kGameModes[item].bit == GM_NOTIFY && MP::IsOnDefault()) { SysMsg(COL_YELLOW, "The notification system is always on here (the admin and moderators send /notify)."); SrvSettingsShow(); return; }   // 5.00.07
         s_SrvSet.s.modes ^= kGameModes[item].bit;
     }
     else if(item < MP_GAMEMODE_COUNT + SRV_PERM_ROWS) s_SrvSet.s.perms ^= kSrvPerms[item - MP_GAMEMODE_COUNT].bit;
@@ -87,7 +88,7 @@ static void SrvSettingsShow()
     std::string body = "Setting\tState\n";
     for(int i = 0; i < MP_GAMEMODE_COUNT; ++i)
     {
-        char l[160]; snprintf(l, sizeof(l), "{FFFFFF}Gamemode: %s\t%s\n", kGameModes[i].name, (s.modes & kGameModes[i].bit) ? "{33CC55}ON" : "{FF4444}OFF"); body += l;
+        char l[160]; snprintf(l, sizeof(l), "{FFFFFF}Gamemode: %s\t%s\n", kGameModes[i].name, ((s.modes & kGameModes[i].bit) || (kGameModes[i].bit == GM_NOTIFY && MP::IsOnDefault())) ? "{33CC55}ON" : "{FF4444}OFF"); body += l;
     }
     for(int i = 0; i < SRV_PERM_ROWS; ++i)
     {

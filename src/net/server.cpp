@@ -501,7 +501,7 @@ void MPServer::MakePerms(PktPerms& p, uint8_t perms) const
     p.type = PKT_PERMS; p.perms = perms | PERM_V219;
     p.modesMagic = MP_MODES_MAGIC; p.modes = GetModes();
 }
-uint16_t MPServer::GetModes() const { if(IsRpServer()) return GM_HOME; if(IsBcwServer() || IsMw3Server() || IsDayzServer() || IsLgServer()) return 0; return IsDefaultServer() ? (m_bStaffModes ? (uint16_t)(m_nModes & GM_ALL) : (uint16_t)GM_ALL) : (uint16_t)(m_nModes & GM_ALL); }   // 3.53: + staff choice   // 3.04: Brief Case War runs only its own gamemode
+uint16_t MPServer::GetModes() const { if(IsRpServer()) return GM_HOME; if(IsBcwServer() || IsMw3Server() || IsDayzServer() || IsLgServer()) return 0; return IsDefaultServer() ? (m_bStaffModes ? (uint16_t)((m_nModes & GM_ALL) | GM_NOTIFY) : (uint16_t)GM_ALL) : (uint16_t)(m_nModes & GM_ALL); }   // 5.00.07: notifications always on on the default server   // 3.53: + staff choice   // 3.04: Brief Case War runs only its own gamemode
 void MPServer::SetModes(uint16_t modes)
 {
     std::lock_guard<std::mutex> lk(m_Mutex);
@@ -1147,6 +1147,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             Mw3OnJoin(slot, fresh);        // 3.23: MW3 state
             RpOnJoin(slot, fresh);         // 3.25: Mega Vil Futuristic
             DzOnJoin(slot, fresh);         // 3.58: Project Day Z
+            NotifyOnJoin(slot);            // 5.00.07: notifications that are still on
             LgOnJoin(slot, fresh);         // 4.13.4: Rocket League (was San Andreas Online League)
             CgOnJoin(slot);                // 4.09: CGRP systems
             if(!s.authed) AuthBegin(slot);              // 3.21.6: log in first (the others see you after that)
@@ -1707,6 +1708,9 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
         case PKT_HOST_MAP:   // 4.13.15: host map editor (the host owner of a custom server)
             if(slot >= 0) HostMapHandle(slot, (const uint8_t*)data, len);
             break;
+        case PKT_NOTIFY:     // 5.00.07: notification system
+            if(slot >= 0) NotifyHandle(slot, (const uint8_t*)data, len);
+            break;
         case PKT_VCMP:       // 4.13.40: VC:MP-style gamemode
             if(slot >= 0) VcmpHandle(slot, (const uint8_t*)data, len);
             break;
@@ -2175,6 +2179,7 @@ void MPServer::RaceQueueTick(uint64_t now, bool changed)
 #include "server_bridge.inc" // 4.12: open.mp cross-play bridge
 #include "server_hostmap.inc" // 4.13.15: host map editor + Co-op story pairs
 #include "server_vcmp.inc"    // 4.13.40: VC:MP-style gamemode (Vice City servers)
+#include "server_notify.inc"  // 5.00.07: notification system (/notify)
 
 // 3.04.6: an old MP version tried to join: log it once per phone every 10 minutes (console + the
 // --outdated-log file of the 24/7 server) and count it

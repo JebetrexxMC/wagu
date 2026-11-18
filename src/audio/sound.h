@@ -24,6 +24,11 @@ namespace Sound
     float StreamPosition();              // seconds played
     float StreamDuration();              // seconds (estimated from the bitrate), 0 = unknown
     const char* StreamInfo();            // 4.00.1: what the file is / which decoder plays it / why it failed
+    // 5.00.07: a short sound downloaded into memory (never saved in files/TYFMC/MP): DecodeMem on any
+    // thread (once per slot), PlayMem on the game thread. slot 0 = notify.mp3 (notification system)
+    bool  DecodeMem(int slot, const void* data, size_t size);
+    bool  MemReady(int slot);
+    bool  PlayMem(int slot, float volume = 1.0f);
     void* EngineItf();   // 3.11: the shared OpenSL engine (SLEngineItf) for voice chat
     void* OutputMix();   // 3.11: SLObjectItf output mix
 }

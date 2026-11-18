@@ -1011,10 +1011,11 @@ static int ScoreSegsBuild(Game::HudSeg* seg)
 {
     if(MP::IsOnBcw() || MP::IsOnMw3() || MP::IsOnRp() || MP::IsOnDz() || MP::IsOnLg()) return 0;
     int n = 0;
-    if(MP::ModeOn(GM_DM))                       { snprintf(seg[n].text, sizeof(seg[n].text), "DM SCORE: %d", s_nDmScore);     seg[n++].rgba = 0x3C8CFFFF; }   // blue
-    if(MP::ModeOn(GM_RACE) || MP::ModeOn(GM_DERBY)) { snprintf(seg[n].text, sizeof(seg[n].text), "RACE SCORE: %d", s_nRaceScore); seg[n++].rgba = 0xFFD21EFF; }   // yellow
-    if(MP::ModeOn(GM_JOBS))                     { snprintf(seg[n].text, sizeof(seg[n].text), "JOB SCORE: %d", s_nJobScore);   seg[n++].rgba = 0xE6322DFF; }   // red
-    if(n)                                       { snprintf(seg[n].text, sizeof(seg[n].text), "SCORE: %d", s_nMyScore);        seg[n++].rgba = 0x37C846FF; }   // green
+    const bool br = MP::IsOnDefault();   // 5.00.07: Broker MQQ reds + browns on the default server
+    if(MP::ModeOn(GM_DM))                       { snprintf(seg[n].text, sizeof(seg[n].text), "DM SCORE: %d", s_nDmScore);     seg[n++].rgba = br ? 0xDC2626FF : 0x3C8CFFFF; }   // blue
+    if(MP::ModeOn(GM_RACE) || MP::ModeOn(GM_DERBY)) { snprintf(seg[n].text, sizeof(seg[n].text), "RACE SCORE: %d", s_nRaceScore); seg[n++].rgba = br ? 0xC4844FFF : 0xFFD21EFF; }   // yellow
+    if(MP::ModeOn(GM_JOBS))                     { snprintf(seg[n].text, sizeof(seg[n].text), "JOB SCORE: %d", s_nJobScore);   seg[n++].rgba = br ? 0xF87171FF : 0xE6322DFF; }   // red
+    if(n)                                       { snprintf(seg[n].text, sizeof(seg[n].text), "SCORE: %d", s_nMyScore);        seg[n++].rgba = br ? 0xFF5A3CFF : 0x37C846FF; }   // green
     return n;
 }
 static int ScoreBarSegs(Game::HudSeg* out, int maxOut)
