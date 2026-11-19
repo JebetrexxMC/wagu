@@ -243,6 +243,7 @@ static void JoinRestoreGame(bool teleportGrove)
     if(s_bJoinCamSet) Game::RestoreCamera();
     if(s_bJoinHudOff) { Game::ShowGameHud(true); Game::SetPlayerControl(true); }
     s_bJoinCamSet = false; s_bJoinHudOff = false;
+    SpawnUnstickArm(MP_NowMs());   // 5.01.12
 }
 
 // 4.12.8: a save load ran while the join screen / spawn picker was up: the game put the player back at the
@@ -287,7 +288,16 @@ static void StartCamFlight(const Vec3& toP, const Vec3& toL)
 static void SpawnSettleTick(int ped, uint64_t now)
 {
     if(!s_SpawnSettle.until) return;
-    if(ped <= 0 || ped != s_SpawnSettle.ped || s_nJoinPhase != JP_NONE) { s_SpawnSettle.until = 0; return; }
+    if(ped <= 0 || ped != s_SpawnSettle.ped || s_nJoinPhase != JP_NONE)
+    {   // 5.01.12: "CJ can't move after the spawn" (Grove Street, LAN / custom / featured servers). The hold was dropped
+        // here WITHOUT letting go: the ped handle changed for a moment (skin / model swap, a save load) or the join
+        // screen came back, and the player stayed frozen for good. Now the held ped is always let go.
+        const int held = s_SpawnSettle.ped; s_SpawnSettle.until = 0;
+        if(held > 0 && Game::PedPtr(held)) Game::FreezeChar(held, false);
+        if(ped > 0 && ped != held) Game::FreezeChar(ped, false);
+        if(s_nJoinPhase == JP_NONE) SpawnUnstickArm(MP_NowMs());
+        return;
+    }
     const Vec3& a = s_SpawnSettle.at;
     const float g = Game::GroundBelow(a.x, a.y, a.z + 3.0f);
     const bool in = g > -999.0f && g > a.z - (s_SpawnSettle.ground ? 30.0f : 4.0f);
@@ -296,6 +306,7 @@ static void SpawnSettleTick(int ped, uint64_t now)
     if(s_SpawnSettle.ground) Game::PlaceChar(ped, { a.x, a.y, in ? g + 1.0f : -100.0f });   // -100 = the game finds the ground
     Game::FreezeChar(ped, false);
     Game::SetCharHeading(ped, s_SpawnSettle.heading);
+    SpawnUnstickArm(now);   // 5.01.12: make sure nothing leaves you held / without control right after the spawn
 }
 
 // 4.12.9: put the player at a spot without LOAD_SCENE; held there until the ground is in (max 4 s)

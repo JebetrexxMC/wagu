@@ -702,6 +702,9 @@ static bool JoinScreenUp();   // 4.13.2
 static void MenuMpProcess(int ped, uint64_t now);   // 4.13.4 (mp_menu.inc)
 static bool MenuMpActive();                          // 4.13.5 (mp_menu.inc)
 static void SpawnLight(int ped, const Vec3& at, float heading, bool findGround);   // 4.12.9 (mp_join.inc)
+static void SpawnUnstickArm(uint64_t now);           // 5.01.12: after a spawn: never stuck frozen / without control
+static void SpawnUnstickTick(int ped, uint64_t now);
+static bool MenuMpHolding();                         // 5.01.12 (mp_menu.inc): the black server select holds you
 static void JoinOverlayStart();
 static void LeaveServer(const char* msg);
 static char s_szDirectRelay[32] = "";   // 3.11: relay address of the server we joined over direct UDP
@@ -4302,6 +4305,10 @@ static void NpcUpdateCopies(int lp, uint64_t now)
     int area = Game::GetAreaVisible();
     int myCarUsing = Game::GetCarCharIsUsing(lp);
     int myCar = Game::IsCharInAnyCar(lp) ? Game::GetCarCharIsIn(lp) : 0;
+    // 5.01.12: a copy of another phone's car was made / warped right where you stand (the host's Grove Street parked cars
+    // and traffic are on the spawn spots): CJ was boxed in and "could not move" at the spawn. Never on top of you on foot.
+    Vec3 meFoot = { 0, 0, 0 }; const bool onFoot = !myCar && Game::GetCharPos(lp, meFoot);
+    auto onMe = [&](const Vec3& p, float r) { if(!onFoot) return false; const float dx = p.x - meFoot.x, dy = p.y - meFoot.y, dz = p.z - meFoot.z; return dx * dx + dy * dy < r * r && dz > -3.0f && dz < 3.0f; };
     for(auto& c : s_NpcCar)
     {
         if(!c.used) continue;
@@ -4331,7 +4338,7 @@ static void NpcUpdateCopies(int lp, uint64_t now)
         Vec3 want = { c.target.x + c.vel.x * age, c.target.y + c.vel.y * age, c.target.z + c.vel.z * age };
         if(!c.car)
         {
-            if(created >= 1) continue;
+            if(created >= 1 || onMe(want, 5.0f)) continue;
             bool ok = Game::ModelReady(c.model);
             if(c.driverModel) ok = Game::ModelReady(c.driverModel) && ok;
             if(!ok) continue;
@@ -4391,7 +4398,7 @@ static void NpcUpdateCopies(int lp, uint64_t now)
         Vec3 cur; if(!Game::GetCarPos(c.car, cur)) continue;
         Vec3 d = { want.x - cur.x, want.y - cur.y, want.z - cur.z };
         float dist = sqrtf(d.x * d.x + d.y * d.y + d.z * d.z);
-        if(dist > 10.0f) { Game::SetCarPos(c.car, want, c.base); Game::SetCarRotation(c.car, c.fwd, c.up); }
+        if(dist > 10.0f) { if(!onMe(want, 4.0f)) { Game::SetCarPos(c.car, want, c.base); Game::SetCarRotation(c.car, c.fwd, c.up); } }
         else
         {
             float k = dt * 5.0f; if(k > 1.0f) k = 1.0f;
@@ -4410,7 +4417,7 @@ static void NpcUpdateCopies(int lp, uint64_t now)
         Vec3 want = { c.target.x + c.vel.x * age, c.target.y + c.vel.y * age, c.target.z + c.vel.z * age };
         if(!c.ped)
         {
-            if(created >= 2 || c.dead) continue;   // a dead one I never saw alive: not worth a body
+            if(created >= 2 || c.dead || onMe(want, 1.5f)) continue;   // a dead one I never saw alive: not worth a body
             if(!Game::ModelReady(c.model)) continue;
             c.ped = Game::CreateNpcPed(c.model, want, c.heading); ++created;
             if(!c.ped) continue;
@@ -4736,6 +4743,7 @@ void MP::Process()
     CgProcess(ped, now);         // 4.09: CGRP systems
     SampSrvProcess(ped, now);    // 4.11: SA-MP gamemode servers
     HkProcess(ped, now); HmProcess(ped, now); CoopProcess(ped, now); NeedsProcess(ped, now); MvProcess(now); Modes2Process(ped, now); RulesProcess(now); ModCheckProcess(now); ProgProcess(ped, now); AdmProcess(ped); DealerProcess(ped, now);   // 3.39 / 3.54 staff commands
+    SpawnUnstickTick(ped, now);  // 5.01.12: CJ can't move after the spawn (every server)
     ProcessGates(ped, now);      // 3.04.2: Area 69 gates
     ProcessHotelPc(ped, now);    // 3.36: hotel rooms with a computer (eyefind.info vehicle shops)
     ProcessClothes(now);         // 3.10: clothing sync
@@ -4922,6 +4930,36 @@ int MP_DzPackMigrate();   // mp_launcher.inc
 #include "mp_hostmap.inc"   // 4.13.15: host map editor (custom servers, host owner only)
 #include "mp_coop.inc"      // 4.13.15: Co-op story (2 players, SA:COOP style)
 #include "mp_notify.inc"    // 5.00.07: notification system (/notify pop-ups, Broker MQQ look)
+
+// 5.01.12: "CJ can't move at the spawn" (Grove Street; MP LAN, custom and featured servers alike). Several things hold
+// the player during a join (the black server select, the join camera, the spawn hold until the ground is in, the
+// launcher, the reconnect hold) and each lets go on its own. When one of them was cut short (the ped handle changed
+// for a frame, the join screen flickered back, a save load ran) its "let go" never happened and CJ stayed frozen /
+// without control. For 8 s after a spawn this checks twice a second: nothing is holding you on purpose = you are let
+// go (on foot: unfrozen; control and HUD on). Anything that holds on purpose (a server /freeze, class selection, a
+// mode's team screen, cut scenes, the launcher, /freeze, reconnecting) keeps priority.
+static uint64_t s_nUnstickUntil = 0, s_nUnstickNext = 0;
+static void SpawnUnstickArm(uint64_t now) { s_nUnstickUntil = now + 8000; s_nUnstickNext = now + 300; }
+static bool SpawnHeldOnPurpose()
+{
+    if(JoinFlowActive() || s_SpawnSettle.until || FloatMenu::IsModal() || TdeIsOpen() || AuthScreenUp()) return true;
+    if(MenuMpHolding() || s_Cheat.freeze || classSelect || s_nBehindHoldUntil) return true;
+    if(client.GetState() == NET_CONNECTED && client.IsReconnecting()) return true;
+    if(s_SS.frozen || s_Cg.frozen || s_Cg.specId >= 0 || s_Co.wasCut || s_Inv.froze || s_Lg.frozen) return true;
+    if(DzOnServer() || Mw3OnServer() || BcwOnServer() || RpOnServer()) return true;   // their own team / lobby screens
+    return false;
+}
+static void SpawnUnstickTick(int ped, uint64_t now)
+{
+    if(!s_nUnstickUntil) return;
+    if(now >= s_nUnstickUntil || ped <= 0) { s_nUnstickUntil = 0; return; }
+    if(now < s_nUnstickNext) return;
+    s_nUnstickNext = now + 500;
+    if(!Game::IsReady() || Game::IsCharDead(ped) || SpawnHeldOnPurpose()) return;
+    if(!Game::IsCharInAnyCar(ped)) Game::FreezeChar(ped, false);
+    Game::SetPlayerControl(true);
+    if(!JoinHudOff()) Game::ShowGameHud(true);
+}
 
 // 2.37: CheatMenu (libCheatMenu.so / libCheatMenu64.so) is not allowed on any server - the default
 // server and every custom server. Detected with aml->HasMod() in ON_ALL_MODS_LOAD (+ a re-check of
