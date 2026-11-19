@@ -10,6 +10,10 @@ retained/saved one), and writes:
   out/servers.json  - shields.io endpoint badge: "servers online"
   out/discord.json  - shields.io endpoint badge: Discord online / members
   out/status.json   - raw data (servers, players, time)
+  out/lobbies.json  - 5.01.04: public lobby brokers that answered (Mosquitto / HiveMQ / EMQX)
+  out/regions.json  - 5.01.04: region brokers (regions.txt hosts) reachable from the internet on 1883
+  out/peak.json     - 5.01.04: most players online today (UTC)
+  out/top.json      - 5.01.04: the busiest server right now
 
 Run by .github/workflows/live-status.yml every 10 minutes; the files are
 force-pushed to the `live-status` branch so main's history stays clean.
@@ -23,6 +27,8 @@ TOPIC = "thirtyfox/mp5/l/+"
 # 5.01.00: every public lobby broker is read and merged - the game lists servers from all of them, and since 5.00.06
 # the 24/7 servers announce on mosquitto (broker.hivemq.com alone gave "0 servers online").
 BROKERS = [("test.mosquitto.org", 1883), ("broker.hivemq.com", 1883), ("broker.emqx.io", 1883)]
+# 5.01.04: the region brokers (from regions.txt when it loads)
+REGIONS = [("mpsamp.duckdns.org", 1883), ("eusamp.duckdns.org", 1883), ("nasamp.duckdns.org", 1883), ("ocsamp.duckdns.org", 1883)]
 REG = ["Asia", "Europe", "NA", "Oceania"]
 DISCORD_INVITE = "QSdtut3SWV"
 
@@ -262,6 +268,38 @@ def main():
               open(os.path.join(out, "servers.json"), "w"))
     json.dump({"updated": now.isoformat(timespec="seconds"), "broker": used, "players": players,
                "servers": servers}, open(os.path.join(out, "status.json"), "w"), indent=1)
+    # 5.01.04: more MP status badges (gathered here so every repo can show them)
+    def badge(name, label, msg, color, **kw):
+        d = {"schemaVersion": 1, "label": label, "message": msg, "color": color, "cacheSeconds": 600}; d.update(kw)
+        json.dump(d, open(os.path.join(out, name), "w"))
+    up = sum(1 for h, _ in BROKERS if h in res)
+    badge("lobbies.json", "public lobbies", "%d/%d up" % (up, len(BROKERS)), "brightgreen" if up == len(BROKERS) else ("yellow" if up else "red"))
+    regs = REGIONS
+    try:
+        import urllib.request
+        rq = urllib.request.Request("https://mpsamp-open.github.io/regions.txt?t=%d" % time.time(), headers={"User-Agent": "wagu-live-status"})
+        txt = urllib.request.urlopen(rq, timeout=15).read().decode("utf-8", "replace")
+        got, cur = [], None   # [Region] blocks with host= / port= lines
+        for ln in txt.splitlines():
+            ln = ln.strip()
+            if ln.startswith("["): cur = {}; got.append(cur)
+            elif cur is not None and "=" in ln and not ln.startswith("#"):
+                k, v = ln.split("=", 1); cur.setdefault(k.strip(), v.strip())
+        got = [(g["host"], int(g.get("port", "1883") or 1883)) for g in got if g.get("host")]
+        if got: regs = got
+    except Exception as ex:
+        print("regions.txt: %s" % ex, file=sys.stderr)
+    import socket
+    ok = 0
+    for h, p in regs:
+        try: socket.create_connection((h, p), timeout=5).close(); ok += 1
+        except Exception: pass
+    badge("regions.json", "region brokers", "%d/%d reachable" % (ok, len(regs)), "brightgreen" if ok == len(regs) else ("yellow" if ok else "red"))
+    today = now.isoformat()[:10]
+    pk = max([0] + [int(h.get("players", 0)) for h in hist if h["t"][:10] == today])
+    badge("peak.json", "peak today", "%d players" % pk, "blue")
+    top = max(servers, key=lambda s: s["players"], default=None)
+    badge("top.json", "busiest server", ("%s %d/%d" % (top["name"][:28], top["players"], top["max"])) if top and top["players"] else "none", "e2554b" if top and top["players"] else "lightgrey")
     # Discord members / online (the invite API, no bot / widget needed)
     try:
         import urllib.request
