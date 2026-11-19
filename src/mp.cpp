@@ -44,6 +44,7 @@ extern "C" unsigned long crc32(unsigned long crc, const unsigned char* buf, unsi
 #include "ui/i18n.h"
 #include "ui/hud.h"
 #include "ui/neonpaint.h"   // 4.13.28
+#include "game/mobilesettings.h"   // 5.01.11: neon Settings page
 #include "ui/server_style.h"   // 4.03
 #include "ui/floatmenu.h"
 #include "ui/vkeyboard.h"
@@ -848,6 +849,7 @@ static void CoopRender(); static bool CoopCommand(const char* cmd, const char* a
 static bool Modes2Command(const char* cmd, const char* arg);
 static void Modes2Process(int ped, uint64_t now);
 static void Modes2Render();
+static void NeonMusicInGame();   // 5.01.11 (mp_neon.inc): the neon menu music never plays on in a game
 static void NotifyOnPacket(const uint8_t* d, int len); static void NotifyReset(); static void NotifyRender(); static bool NotifyCommand(const char* cmd, const char* arg);   // 5.00.07 (mp_notify.inc)
 static void DealerProcess(int ped, uint64_t now);
 static void DealerRender();
@@ -4526,6 +4528,7 @@ void MP::Process()
     EnforceServerModes();   // 3.35
     LuaCmdTick(now);
     NeonFileTick(now);
+    NeonMusicInGame();   // 5.01.11
     {   // 2.18.3: remember where the MP MENU | CHAT buttons were dropped
         float bx, by;
         if(FloatMenu::GetBarPos(&bx, &by))
@@ -5881,7 +5884,7 @@ void MP::SaveConfig()
     I("ChatFade", settings.chatFade); B("ChatFadeOn", settings.chatFadeOn); B("ChatBackground", settings.chatBg);
     B("ChatBoxBackground", settings.chatBoxBg); B("ChatBoxLabel", settings.chatBoxLabel); B("ChatBoxTap", settings.chatBoxTap);   // 2.22
     F("ChatBoxX", settings.chatBoxX); F("ChatBoxY", settings.chatBoxY); B("RealSkin", settings.realSkin); B("SyncClothes", settings.syncClothes);
-    I("Region", settings.region); B("LobbyAuto", settings.lobbyAuto); B("RegionPicked", settings.regionPicked); I("NameColor", (int)settings.nameColor); I("ServerChatColor", (int)settings.serverChatColor); I("PlayerChatColor", (int)settings.playerChatColor); I("MaxPlayers", settings.maxPlayers); I("HostGamemodes", settings.hostModes); I("ServerIcon", settings.serverIcon); S("ServerLang", settings.serverLang); S("ServerCC", settings.serverCC); S("ServerMode", settings.serverMode); I("ServerModeCol", settings.serverModeCol); S("ServerTags", settings.serverTags); S("ServerDesc", settings.serverDesc); S("ServerPreview", settings.serverPreview); S("ServerLogo", settings.serverLogo); I("HudMode", settings.hudMode); I("HudFlags", settings.hudFlags); I("HudDoor", settings.hudDoor); I("LogoX", settings.logoX); I("LogoY", settings.logoY); I("LogoZ", settings.logoZ); S("DeviceId", settings.deviceId); S("UiLanguage", settings.uiLanguage);   // 3.52
+    I("Region", settings.region); B("LobbyAuto", settings.lobbyAuto); B("NeonMusic", settings.neonMusic); I("NeonMusicVolume", settings.neonMusicVol); B("RegionPicked", settings.regionPicked); I("NameColor", (int)settings.nameColor); I("ServerChatColor", (int)settings.serverChatColor); I("PlayerChatColor", (int)settings.playerChatColor); I("MaxPlayers", settings.maxPlayers); I("HostGamemodes", settings.hostModes); I("ServerIcon", settings.serverIcon); S("ServerLang", settings.serverLang); S("ServerCC", settings.serverCC); S("ServerMode", settings.serverMode); I("ServerModeCol", settings.serverModeCol); S("ServerTags", settings.serverTags); S("ServerDesc", settings.serverDesc); S("ServerPreview", settings.serverPreview); S("ServerLogo", settings.serverLogo); I("HudMode", settings.hudMode); I("HudFlags", settings.hudFlags); I("HudDoor", settings.hudDoor); I("LogoX", settings.logoX); I("LogoY", settings.logoY); I("LogoZ", settings.logoZ); S("DeviceId", settings.deviceId); S("UiLanguage", settings.uiLanguage);   // 3.52
     B("FullProgressDefault", settings.fullProgressDefault);
     B("UnlockWorld", settings.unlockWorld); B("Girlfriends", settings.girlfriends); B("EventTips", settings.eventTips);   // 2.21
     B("PermAfk", settings.permAfk); B("PermDmgInd", settings.permDmgInd); B("PermShowIds", settings.permShowIds); B("PermNeeds", settings.permNeeds); B("RulesOn", settings.rulesOn); S("RulesTitle", settings.rulesTitle);
@@ -5984,6 +5987,8 @@ static void LoadConfig()
     MP::ClampChatSettings();
     settings.region          = ::cfg->GetInt("Region", REGION_ASIA, "MP");
     settings.lobbyAuto       = ::cfg->GetBool("LobbyAuto", true, "MP");
+    settings.neonMusic       = ::cfg->GetBool("NeonMusic", true, "MP");            // 5.01.11
+    settings.neonMusicVol    = ::cfg->GetInt("NeonMusicVolume", 70, "MP"); if(settings.neonMusicVol < 0 || settings.neonMusicVol > 100) settings.neonMusicVol = 70;
     settings.unlockWorld     = ::cfg->GetBool("UnlockWorld", true, "MP");   // 2.21
     settings.girlfriends     = ::cfg->GetBool("Girlfriends", false, "MP");
     settings.eventTips       = ::cfg->GetBool("EventTips", true, "MP");

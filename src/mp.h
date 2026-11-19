@@ -55,6 +55,8 @@ struct MPSettings
     int   skin              = 106;     // GSF member used for your remote avatar
     int   region            = 0;       // eRegion: 0 Asia, 1 Europe, 2 NA, 3 Oceania
     bool  lobbyAuto         = true;    // 2.20: regional brokers: lobby on the lowest-ping region
+    bool  neonMusic         = true;    // 5.01.11: neon_mainmenu.mp3 on the neon title menu
+    int   neonMusicVol      = 70;      // 5.01.11: its volume 0..100
     bool  regionPicked      = false;   // 2.20: the player chose a region (else it follows the lowest ping once)
     uint32_t nameColor      = 0;       // RGBA; 0 = automatic (server palette)
     uint32_t serverChatColor = 0;      // 3.53.1: RGBA of server / system chat lines, 0 = the server's own colours
@@ -341,6 +343,7 @@ namespace MP
     int  NeonPaintWanted();        // 4.13.28: 0 nothing / 1 neon title / 2 mp tile / 3 pill - painted after MobileMenu::Render
     bool NeonNativeTitle();        // 4.13.28: the title is painted natively (no ImGui on the title)
     void NeonPaintMenu(int what);
+    void NeonPad(int keys);        // 5.01.11: controller keys for the neon title menu (main.cpp, MobileMenu::Update)
     void NeonTouch(int kind, int finger, float x, float y);
     void NeonMenuTick();           // 4.13.28: game thread, runs the tapped title action    // 4.13.23: the neon title menu is up -> the game's own title menu is not drawn / touched
     bool MenuMpLoading();         // a Multiplayer load is running: MP draws the loading screen

@@ -37,4 +37,7 @@ namespace NeonPaint
     bool Tap(float x0, float y0, float x1, float y1);       // released inside, pressed inside
     bool Held(float x0, float y0, float x1, float y1);      // a finger is down inside
     void EatTap();                         // the tap of this frame is used (dialogs above the menu)
+    float DragDY(float x0, float y0, float x1, float y1);   // 5.01.11: finger moved this frame (pressed inside), 0 = none
+    bool  Dragging();                      // the finger moved too far for a tap
+    bool  HeldX(float x0, float y0, float x1, float y1, float* x);   // pressed inside, still down: its x (sliders)
 }

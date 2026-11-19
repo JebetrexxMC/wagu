@@ -59,6 +59,8 @@ namespace
     // the frame's snapshot
     bool  f_bDown = false, f_bTap = false;
     float f_fX = 0, f_fY = 0, f_fPX = 0, f_fPY = 0, f_fUX = 0, f_fUY = 0;
+    float s_fMove = 0, f_fMove = 0, f_fLY = 0;   // 5.01.11: how far the finger went (a drag is no tap), the last frame's y
+    bool  f_bWasDown = false;
 
     bool LoadTex(const std::string& dir, const char* name);
     bool LoadTexOld(const std::string& dir, const char* name)
@@ -300,21 +302,27 @@ void NeonPaint::OnTouch(int kind, int finger, float x, float y)
     if(kind == 1)
     {
         if(s_nFinger >= 0 && s_nFinger != finger) return;   // one finger is enough for a menu
-        s_nFinger = finger; s_bDown = true; s_fX = s_fPX = x; s_fY = s_fPY = y;
+        s_nFinger = finger; s_bDown = true; s_fX = s_fPX = x; s_fY = s_fPY = y; s_fMove = 0;
     }
     else if(finger == s_nFinger)
     {
         s_fX = x; s_fY = y;
+        if(x >= 0 && y >= 0) { const float d = fabsf(x - s_fPX) + fabsf(y - s_fPY); if(d > s_fMove) s_fMove = d; }
         if(kind == 3) { s_bDown = false; s_bUp = true; s_fUX = x; s_fUY = y; s_nFinger = -1; }
     }
 }
 void NeonPaint::FrameInput()
 {
     std::lock_guard<std::mutex> lk(s_TouchMx);
-    f_bDown = s_bDown; f_fX = s_fX; f_fY = s_fY; f_fPX = s_fPX; f_fPY = s_fPY;
+    f_fLY = (f_bWasDown && s_bDown) ? f_fY : s_fY;
+    f_bDown = s_bDown; f_fX = s_fX; f_fY = s_fY; f_fPX = s_fPX; f_fPY = s_fPY; f_fMove = s_fMove; f_bWasDown = s_bDown;
     f_bTap = s_bUp; f_fUX = s_fUX; f_fUY = s_fUY; s_bUp = false;
 }
 static inline bool In(float x, float y, float x0, float y0, float x1, float y1) { return x >= x0 && x <= x1 && y >= y0 && y <= y1; }
-bool NeonPaint::Tap(float x0, float y0, float x1, float y1) { return f_bTap && In(f_fPX, f_fPY, x0, y0, x1, y1) && In(f_fUX, f_fUY, x0, y0, x1, y1); }
+bool NeonPaint::Tap(float x0, float y0, float x1, float y1) { return f_bTap && f_fMove < H() * 0.035f && In(f_fPX, f_fPY, x0, y0, x1, y1) && In(f_fUX, f_fUY, x0, y0, x1, y1); }
 bool NeonPaint::Held(float x0, float y0, float x1, float y1) { return f_bDown && In(f_fX, f_fY, x0, y0, x1, y1) && In(f_fPX, f_fPY, x0, y0, x1, y1); }
 void NeonPaint::EatTap() { f_bTap = false; }
+// 5.01.11: lists scroll with the finger, sliders follow it
+float NeonPaint::DragDY(float x0, float y0, float x1, float y1) { return (f_bDown && In(f_fPX, f_fPY, x0, y0, x1, y1)) ? f_fY - f_fLY : 0.0f; }
+bool  NeonPaint::Dragging() { return f_bDown && f_fMove >= H() * 0.035f; }
+bool  NeonPaint::HeldX(float x0, float y0, float x1, float y1, float* x) { if(!(f_bDown && In(f_fPX, f_fPY, x0, y0, x1, y1))) return false; if(x) *x = f_fX; return true; }

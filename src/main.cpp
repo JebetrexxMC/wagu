@@ -29,6 +29,7 @@
 #include "game/screenguard.h"   // 4.12.2
 #include "tyfmc.h"               // 4.12.7: files/TYFMC/MP + files/TYFMC/TYFMC.MP.ini
 #include "ui/neonpaint.h"
+#include "game/mobilesettings.h"   // 5.01.11
 #include "ui/hud.h"
 #include "ui/floatmenu.h"
 #include "ui/vkeyboard.h"
@@ -236,6 +237,7 @@ static void NeonUnmaskPointers()
         s_bPtrMasked[p] = false;
     }
 }
+static void NeonPadPoll();   // 5.01.11 (below, with the controller code)
 DECL_HOOKv(MobileMenu_Update, void* self)
 {
     const bool neon = NeonCoverRecent() && LIB_PointerGetButton && LIB_PointerGetCoordinates;
@@ -263,6 +265,7 @@ DECL_HOOKv(MobileMenu_Update, void* self)
         s_bNeonPrevDown = down;
     }
     else if(s_bNeonPrevDown) { s_bNeonPrevDown = false; MP::NeonTouch(3, 0, -1, -1); }
+    if(neon) NeonPadPoll();   // 5.01.11: the controller drives the neon title menu
     MP::NeonMenuTick();   // 4.13.28: the tapped title menu action
     MP::MenuMpMenuTick();
 }
@@ -595,7 +598,7 @@ DECL_HOOK(int, WarPadButtons, void)
     int m = WarPadButtons();
     s_nPadMask = m; s_nPadHookAt = MP_NowMs();
     if(m) s_nPadUsedAt = MP_NowMs();
-    if(PadBlocksGame()) return 0;
+    if(PadBlocksGame() || NeonCoverRecent()) return 0;   // 5.01.11: the neon title menu has the pad (the hidden game menu gets nothing)
     return m & ~PB_BACK;   // Back is MP's cursor key
 }
 DECL_HOOK(float, WarPadAxis, int axis)
@@ -603,7 +606,44 @@ DECL_HOOK(float, WarPadAxis, int axis)
     float v = WarPadAxis(axis);
     if(axis >= 0 && axis < 6) s_fPadAxis[axis] = v;
     if(fabsf(v) > 0.3f) s_nPadUsedAt = MP_NowMs();
-    return PadBlocksGame() ? 0.0f : v;
+    return (PadBlocksGame() || NeonCoverRecent()) ? 0.0f : v;
+}
+// 5.01.11: the neon title menu's controller, PCMenu's ControllerNav: D-pad / left stick, A, B, X, Y, LB / RB, Start;
+// the arrows repeat after 350 ms every 90 ms
+static int s_nNeonPadPrev = 0; static uint64_t s_nNeonPadRepAt = 0; static bool s_bNeonPadLogged = false;
+static void NeonPadPoll()
+{
+    if(!Pad_Buttons0) return;
+    int m = WarPadButtons();
+    if(Pad_Axis1)
+    {
+        const float ax = WarPadAxis(0), ay = WarPadAxis(1);
+        if(ay < -0.55f) m |= PB_UP;
+        if(ay > 0.55f) m |= PB_DOWN;
+        if(ax < -0.55f) m |= PB_LEFT;
+        if(ax > 0.55f) m |= PB_RIGHT;
+    }
+    const uint64_t now = MP_NowMs();
+    const int arrows = PB_UP | PB_DOWN | PB_LEFT | PB_RIGHT;
+    int pressed = m & ~s_nNeonPadPrev;
+    if(pressed & arrows) s_nNeonPadRepAt = now + 350;
+    else if((m & arrows) && now >= s_nNeonPadRepAt) { pressed |= m & arrows; s_nNeonPadRepAt = now + 90; }
+    s_nNeonPadPrev = m;
+    if(!pressed) return;
+    int k = 0;
+    if(pressed & PB_UP) k |= 1;
+    if(pressed & PB_DOWN) k |= 2;
+    if(pressed & PB_LEFT) k |= 4;
+    if(pressed & PB_RIGHT) k |= 8;
+    if(pressed & PB_A) k |= 16;
+    if(pressed & (PB_B | PB_BACK)) k |= 32;
+    if(pressed & (PB_LB | PB_LT)) k |= 64;
+    if(pressed & (PB_RB | PB_RT)) k |= 128;
+    if(pressed & PB_X) k |= 256;
+    if(pressed & PB_Y) k |= 512;
+    if(pressed & PB_START) k |= 1024;
+    if(!s_bNeonPadLogged) { s_bNeonPadLogged = true; logger->Info("5.01.11: controller drives the neon title menu (buttons 0x%X)", m); }
+    MP::NeonPad(k);
 }
 static void HookGamepad()
 {
@@ -1101,6 +1141,7 @@ extern "C" void OnModLoad()
     }
 
     NeonPaint::Init(pGameHandle);   // 4.13.28: the native (PCMenu-style) title menu
+    GameSettings::Init(pGameHandle);   // 5.01.11: the neon Settings page (the game's settings table, PCMenu's way)
     SET_TO(nearScreenZ,    aml->GetSym(pGameHandle, "_ZN9CSprite2d11NearScreenZE"));
     SET_TO(recipNearClip,  aml->GetSym(pGameHandle, "_ZN9CSprite2d13RecipNearClipE"));
     SET_TO(SetScissorRect, aml->GetSym(pGameHandle, "_ZN7CWidget10SetScissorER5CRect"));
