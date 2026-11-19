@@ -172,14 +172,12 @@ def pot_all(folder):
             im.resize((min(p2(w), 1024), min(p2(h), 1024)), Image.LANCZOS).save(p, optimize=True)
 
 
-def launcher_assets(folder, fredoka_ttf, bg_default_jpg):
-    """5.01.14: the MP launcher look: lp_bg.png = the MP LAN Server preview (bg_default.jpg in bg_server.jar)
-    stretched to 1024x512 and slightly softened; lp_title / lp_caps / lp_ui = Fredoka atlases (imgui/fredoka.h)."""
-    from PIL import ImageFilter
-    im = Image.open(bg_default_jpg).convert('RGB').resize((1024, 512), Image.LANCZOS).filter(ImageFilter.GaussianBlur(0.8))
-    im.convert('RGBA').save(os.path.join(folder, 'lp_bg.png'), optimize=True)
-    for name, px in (('lp_title', 64), ('lp_caps', 48), ('lp_ui', 40)):
-        font_atlas(fredoka_ttf, px, os.path.join(folder, name + '.png'), os.path.join(folder, name + '.txt'))
+def browser_assets(folder, bg_jpeg, flags_png):
+    """5.01.15: nb_bg.png = the neon menu background (Screenshots/images (15).jpeg) stretched to 1024x512 (drawn
+    cover-fitted at 739:415); nb_flags.png = assets/MP/flags.png (the country flags of Browse servers)."""
+    import shutil
+    Image.open(bg_jpeg).convert('RGB').resize((1024, 512), Image.LANCZOS).convert('RGBA').save(os.path.join(folder, 'nb_bg.png'), optimize=True)
+    shutil.copy(flags_png, os.path.join(folder, 'nb_flags.png'))
 
 
 if __name__ == '__main__':

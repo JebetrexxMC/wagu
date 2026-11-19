@@ -27,10 +27,10 @@ static uint64_t s_nNeonCopiedAt = 0, s_nNeonTapAt = 0;
 bool MP::NeonMenuMode() { return NeonOn(); }
 
 // ---- small drawing helpers ------------------------------------------------------------------
-// 5.01.14: the MP launcher palette (was gold): kNGold = the launcher blue accent, slate panels, light lines
-static const ImU32 kNGold = IM_COL32(126, 178, 226, 255), kNGoldDim = IM_COL32(90, 128, 166, 255);
-static const ImU32 kNGrey = IM_COL32(150, 157, 166, 255), kNText = IM_COL32(226, 229, 233, 255);
-static const ImU32 kNPanel = IM_COL32(30, 34, 40, 225), kNLine = IM_COL32(64, 70, 78, 255);
+// 5.01.15: the accent outlines are blue (were gold); the rest is the original neon look again
+static const ImU32 kNGold = IM_COL32(88, 101, 242, 255), kNGoldDim = IM_COL32(64, 74, 180, 255);
+static const ImU32 kNGrey = IM_COL32(141, 143, 149, 255), kNText = IM_COL32(226, 228, 232, 255);
+static const ImU32 kNPanel = IM_COL32(14, 15, 18, 236), kNLine = IM_COL32(38, 40, 45, 255);
 static const ImU32 kNBlue = IM_COL32(159, 194, 255, 255);
 // letter-spaced text (the tracked small caps labels of the reference)
 static float NeonTextW(ImFont* f, float fs, const char* t, float sp)
@@ -227,7 +227,7 @@ static void NeonBrowser(ImDrawList* dl, ImVec2 ds)
     {   // BACK TO MAIN MENU
         const ImVec2 a(X(1212), 30 * u), b(X(1430), 70 * u);
         dl->AddRectFilled(a, b, IM_COL32(10, 10, 12, 240), 5 * u);
-        dl->AddRect(a, b, IM_COL32(205, 182, 120, 255), 5 * u, 0, 1.6f * u);
+        dl->AddRect(a, b, IM_COL32(88, 101, 242, 255), 5 * u, 0, 1.6f * u);
         const float cy = (a.y + b.y) * 0.5f;
         dl->AddLine(ImVec2(a.x + 18 * u, cy), ImVec2(a.x + 31 * u, cy), kNText, 1.6f * u);
         NeonChevron(dl, ImVec2(a.x + 21 * u, cy), 5 * u, kNText, 1.6f * u); // drawn as "<" below
@@ -519,7 +519,7 @@ static void NeonSettings(ImDrawList* dl, ImVec2 ds)
     NeonText(dl, pd, 60 * u, ImVec2(ds.x * 0.04f, 42 * u), IM_COL32(190, 192, 196, 255), "settings", 0, true);
     {
         const ImVec2 a(ds.x - 260 * u, 30 * u), b(ds.x - 40 * u, 70 * u);
-        dl->AddRectFilled(a, b, IM_COL32(10, 10, 12, 240), 5 * u); dl->AddRect(a, b, IM_COL32(205, 182, 120, 255), 5 * u, 0, 1.6f * u);
+        dl->AddRectFilled(a, b, IM_COL32(10, 10, 12, 240), 5 * u); dl->AddRect(a, b, IM_COL32(88, 101, 242, 255), 5 * u, 0, 1.6f * u);
         const float cy = (a.y + b.y) * 0.5f;
         dl->AddLine(ImVec2(a.x + 18 * u, cy), ImVec2(a.x + 31 * u, cy), kNText, 1.6f * u);
         dl->AddLine(ImVec2(a.x + 18 * u, cy), ImVec2(a.x + 24 * u, cy - 6 * u), kNText, 1.6f * u);
@@ -695,7 +695,7 @@ static void NeonMain(ImDrawList* dl, ImVec2 ds)
         const bool tap = ImGui::InvisibleButton(id, ImVec2(w + 60 * u, step));
         const bool press = ImGui::IsItemActive();
         const bool on = i == s_nNeonSel || press;
-        if(on) NeonTri(dl, ImVec2(ix - 14 * u, y + step * 0.5f), 3.6f * u, IM_COL32(126, 178, 226, 255));
+        if(on) NeonTri(dl, ImVec2(ix - 14 * u, y + step * 0.5f), 3.6f * u, IM_COL32(160, 170, 255, 255));
         // the silver blackletter with a dark edge (like the reference)
         const ImVec2 p(ix, y + (step - fs) * 0.5f - 2 * u);
         for(int k = 0; k < 4; ++k) dl->AddText(gf, fs, ImVec2(p.x + ((k & 1) ? 1.4f : -1.4f) * u, p.y + ((k & 2) ? 1.4f : -1.4f) * u), IM_COL32(10, 12, 18, 230), kItems[i]);
@@ -748,8 +748,8 @@ static void NeonMain(ImDrawList* dl, ImVec2 ds)
             ImVec2 uv(1, 1); void* t = LRowBg(feat, &uv);
             if(t) { dl->PushClipRect(ImVec2(a.x + 220 * u, a.y), b, true); LImageCover(dl, t, uv, ImVec2(a.x + 220 * u, a.y), b, IM_COL32(255, 255, 255, 40)); dl->PopClipRect(); }
         }
-        dl->AddRect(a, b, IM_COL32(64, 60, 52, 255), 2 * u, 0, 1.0f * u);
-        dl->AddRectFilled(ImVec2(a.x, a.y), ImVec2(a.x + 2.5f * u, b.y), IM_COL32(126, 178, 226, 255));
+        dl->AddRect(a, b, IM_COL32(48, 54, 100, 255), 2 * u, 0, 1.0f * u);
+        dl->AddRectFilled(ImVec2(a.x, a.y), ImVec2(a.x + 2.5f * u, b.y), IM_COL32(88, 101, 242, 255));
         if(haveFeat)
         {
             NeonRowIcon(dl, feat, ImVec2(a.x + 11 * u, a.y + 13 * u), 54 * u);
@@ -955,65 +955,35 @@ static void NeonPFrame(float x0, float y0, float x1, float y1, float t, NeonPain
     NeonPaint::Quad(x0, y0, x1, y0 + t, c); NeonPaint::Quad(x0, y1 - t, x1, y1, c);
     NeonPaint::Quad(x0, y0, x0 + t, y1, c); NeonPaint::Quad(x1 - t, y0, x1, y1, c);
 }
-// 5.01.14: the MP launcher look (mp_launcher.inc kV* colours): slate glass panels, thin light lines, white text,
-// blue accent, green CONNECT / red QUIT, square corners, Fredoka; the backdrop is the MP LAN Server preview picture
-static NeonPaint::Col LP_TEXT() { return NC(226, 229, 233); }
-static NeonPaint::Col LP_DIM()  { return NC(150, 157, 166); }
-static NeonPaint::Col LP_LINE() { return NC(255, 255, 255, 30); }
-static NeonPaint::Col LP_BLUE(int a = 255) { return NC(126, 178, 226, a); }
-static NeonPaint::Col LP_GREEN(){ return NC(76, 160, 48); }
-static NeonPaint::Col LP_RED()  { return NC(222, 74, 60); }
-static void NeonPGlass(float x0, float y0, float x1, float y1)
-{   // VGlass: see-through slate, lighter at the top
-    using namespace NeonPaint;
-    if(const Tex* w = T("white.png")) ImgUV(w, x0, y0, x1, y1, 0, 0, 1, 1, NC(58, 66, 76, 150), NC(18, 21, 26, 205));
-    else Quad(x0, y0, x1, y1, NC(30, 34, 40, 190));
-}
 static void NeonPBackdrop(float W, float H)
 {
     using namespace NeonPaint;
-    Quad(0, 0, W, H, NC(8, 10, 14));
-    if(const Tex* b = T("lp_bg.png"))
-    {   // cover the screen (the picture is 2:1)
-        float w = W, h = W * 0.5f;
-        if(h < H) { h = H; w = H * 2.0f; }
+    Quad(0, 0, W, H, NC(0, 0, 0));
+    if(const Tex* bg = T("nb_bg.png"))
+    {   // 5.01.15: the new background (Screenshots/images (15).jpeg, the Las Vegas night), cover-fitted (739 x 415)
+        const float ar = 739.0f / 415.0f;
+        float w = W, h = W / ar; if(h < H) { h = H; w = H * ar; }
         const float x0 = (W - w) * 0.5f, y0 = (H - h) * 0.5f;
-        Img(b, x0, y0, x0 + w, y0 + h);
+        Img(bg, x0, y0, x0 + w, y0 + h);
+        Quad(0, 0, W, H, NC(0, 0, 0, 96));   // a little darker: the text stays readable
+        Img(T("shade_left.png"), 0, 0, W * 0.55f, H, NC(255, 255, 255, 150));
     }
     else if(const Tex* a = T("art.png"))
     {
         const float iw = H * (1131.0f / 707.0f), x0 = fmaxf(W - iw, W * 0.30f);
         Img(a, x0, 0, x0 + iw, H);
     }
-    Quad(0, 0, W, H, NC(8, 10, 14, 110));   // the launcher's dark tint
-    Img(T("shade_bottom.png"), 0, H * 0.80f, W, H);
-}
-// the launcher's top bar: PLAY  MP Launcher vX.Y   ...   the Discord name
-static void NeonPTopBar(float W, float u, float L)
-{
-    using namespace NeonPaint;
-    const float h = 52 * u;
-    Quad(0, 0, W, h, NC(12, 14, 18, 200));
-    Quad(0, h - 1 * u, W, h, LP_LINE());
-    NeonPText(F_CAPS, "PLAY", L - 8 * u, 13 * u, 22 * u, LP_TEXT(), 1.2f * u);
-    Quad(L - 8 * u, h - 3 * u, L - 8 * u + TextW(F_CAPS, "PLAY", 22 * u, 1.2f * u), h, LP_RED());
-    char v[64]; snprintf(v, sizeof(v), "MP Launcher v%s", MP_VERSION_STR);
-    NeonPText(F_UI, v, L + 70 * u, 18 * u, 15 * u, LP_DIM());
-}
-static bool NeonPButtonC(const char* label, float x0, float y0, float x1, float y1, float u, NeonPaint::Col fill)
-{
-    using namespace NeonPaint;
-    const bool held = Held(x0, y0, x1, y1);
-    Quad(x0, y0, x1, y1, fill);
-    if(held) Quad(x0, y0, x1, y1, NC(255, 255, 255, 40));
-    NeonPFrame(x0, y0, x1, y1, 1.0f * u, LP_LINE());
-    const float fs = 15 * u, w = TextW(F_CAPS, label, fs, 1.2f * u);
-    NeonPText(F_CAPS, label, (x0 + x1 - w) * 0.5f, (y0 + y1 - fs) * 0.5f, fs, NC(255, 255, 255), 1.2f * u);
-    return Tap(x0, y0, x1, y1);
+    Img(T("shade_bottom.png"), 0, H * 0.78f, W, H);
+    Img(T("shade_top.png"), 0, 0, W, H * 0.16f);
 }
 static bool NeonPButton(const char* label, float x0, float y0, float x1, float y1, float u)
 {
-    return NeonPButtonC(label, x0, y0, x1, y1, u, NC(77, 87, 99, 185));
+    using namespace NeonPaint;
+    const bool held = Held(x0, y0, x1, y1);
+    Img(T("button.png"), x0, y0, x1, y1, held ? NC(205, 212, 255) : NC(255, 255, 255));
+    const float fs = 13 * u, w = TextW(F_CAPS, label, fs, 1.6f * u);
+    NeonPText(F_CAPS, label, (x0 + x1 - w) * 0.5f, (y0 + y1 - fs) * 0.5f, fs, NC(226, 228, 232), 1.6f * u);
+    return Tap(x0, y0, x1, y1);
 }
 // ================================================================================================
 // 5.01.11: the neon title menu's own pages, painted natively like the main menu (no ImGui on the title):
@@ -1069,13 +1039,13 @@ static void NeonPToast(float W, float H, float u)
     k = k < 0 ? 0 : k; const float e = 1.0f - (1.0f - k) * (1.0f - k) * (1.0f - k);   // ease out
     const float w = 400 * u, h = 74 * u, x1 = W - 28 * u, x0r = x1 - w;
     const float x0 = x0r + (W - x0r + 10 * u) * (1.0f - e), y0 = 66 * u;
-    // 5.01.14: the launcher notification card (mp_notify.inc): dark glass, the accent strip left, white title
+    // 5.01.14: the notification card: dark glass, the blue strip left + a blue outline (kept in 5.01.15)
     Quad(x0, y0, x0 + w, y0 + h, NC(16, 18, 22, 236));
-    NeonPFrame(x0, y0, x0 + w, y0 + h, 1.0f * u, LP_LINE());
+    NeonPFrame(x0, y0, x0 + w, y0 + h, 1.0f * u, NC(88, 101, 242, 120));
     Quad(x0, y0, x0 + 4 * u, y0 + h, NC(88, 101, 242));
     Img(T("discord.png"), x0 + 18 * u, y0 + 16 * u, x0 + 60 * u, y0 + 58 * u);
-    NeonPText(F_CAPS, s_szNeonToast[0], x0 + 74 * u, y0 + 14 * u, 16 * u, LP_TEXT(), 1.0f * u);
-    NeonPText(F_UI, s_szNeonToast[1], x0 + 74 * u, y0 + 42 * u, 12.5f * u, LP_DIM());
+    NeonPText(F_CAPS, s_szNeonToast[0], x0 + 74 * u, y0 + 14 * u, 16 * u, NC(226, 228, 232), 1.0f * u);
+    NeonPText(F_UI, s_szNeonToast[1], x0 + 74 * u, y0 + 42 * u, 12.5f * u, NC(150, 152, 158));
     const float p = t < kIn ? 1.0f : (t < kIn + kHold ? 1.0f - (t - kIn) / kHold : 0.0f);
     Quad(x0 + 4 * u, y0 + h - 3 * u, x0 + 4 * u + (w - 4 * u) * p, y0 + h, NC(88, 101, 242, 220));
 }
@@ -1121,43 +1091,45 @@ static void NeonMusicStop()
 }
 static void NeonMusicInGame() { if(s_nNeonMus == 1 && Game::LocalPed() > 0) NeonMusicStop(); }   // MP::Process
 static bool s_bNeonMusUrl = false, s_bNeonMusLoop = false;   // 5.01.14: streaming from the URL / a loop restart (no fade)
+static float s_fNeonMusMax = 0.0f;   // 5.01.15: the furthest position heard (a track that "ends" early is resumed, not looped)
+static uint64_t s_nNeonMusLastPos = 0;
 static void NeonMusicTick(bool want)   // game thread
 {
-    // 5.01.14: the music was late (streamed from the URL on every start until a copy was on the disk, + a 1.5 s fade)
-    // or stayed silent (a URL / decoder failure left it "playing" forever with nothing playing, or waited 30 s).
-    // Now: the local copy is downloaded as soon as the menu runs, a stuck / failed start is noticed within ~2 s and
-    // started again (the local file first), the URL stream is swapped for the file once it is downloaded, a 0.4 s fade.
+    // 5.01.15: the track (5:46) was cut after a few seconds and started again: the 5.01.14 "silent" check restarted it
+    // whenever the position did not move for 4 s (the Android decoder / URL player reports 0 for a while), and a URL
+    // player that stalls while buffering reports "end of track", which looped it from 0:00. Now a running track is
+    // never restarted because of its position; an early "end" (before the real length) is a stall - the downloaded
+    // copy (or the URL again) takes over; only a real end of the track loops it; a failed start is tried again.
     if(s_nNeonMode == NEON_MODE_NEON && settings.neonMusic && s_nNeonMusDl.load() == 0)
     {   // once: a copy on the disk already, or download it now (before the first start needs it)
         char q[600];
         if(NeonMusicLocal(q, sizeof(q))) s_nNeonMusDl = 2; else NeonMusicDownload();
     }
     want = want && settings.neonMusic && settings.neonMusicVol > 0;
-    if(!want) { NeonMusicStop(); s_bNeonMusLoop = false; return; }
+    if(!want) { NeonMusicStop(); s_bNeonMusLoop = false; s_fNeonMusMax = 0.0f; return; }
     const uint64_t now = MP_NowMs();
-    if(s_nNeonMus == -1 && now - s_nNeonMusAt < 5000) return;
+    if(s_nNeonMus == -1 && now - s_nNeonMusAt < 3000) return;
     if(s_nNeonMus == 1)
     {
         Sound::StreamUpdate();
         const bool active = Sound::StreamActive(), ended = Sound::StreamEnded();
-        const float pos = Sound::StreamPosition();
+        const float pos = Sound::StreamPosition(), dur = Sound::StreamDuration();
+        if(pos > s_fNeonMusMax) { s_fNeonMusMax = pos; s_nNeonMusLastPos = now; }
         char p[600];
-        if(ended) { s_nNeonMus = 0; s_bNeonMusLoop = true; }   // the end of the track: again from the start (endless)
-        else if(!active && now - s_nNeonMusAt > 1500)
-        {   // it failed (no internet, decoder error): try again now, the file if there is one
-            logger->Info("Neon menu: menu music stopped by itself (%s) - starting again", Sound::StreamInfo());
-            Sound::StreamStop(); s_nNeonMus = 0; s_bNeonMusLoop = false;
+        if(ended || (!active && now - s_nNeonMusAt > 3000))
+        {
+            const bool full = ended && s_fNeonMusMax > 20.0f && (dur <= 0.0f || s_fNeonMusMax >= dur - 10.0f) && !s_bNeonMusUrl;
+            logger->Info("Neon menu: menu music %s at %.1f / %.1f s (%s)", full ? "reached the end - looping" : "stopped early - starting again",
+                         s_fNeonMusMax, dur, Sound::StreamInfo());
+            Sound::StreamStop(); s_nNeonMus = 0;
+            s_bNeonMusLoop = full;
+            if(full) s_fNeonMusMax = 0.0f;
+            if(!full && !ended) { s_nNeonMus = -1; s_nNeonMusAt = now; return; }   // a failed start: wait 3 s
         }
-        else if(s_bNeonMusUrl && pos < 1.0f && s_nNeonMusDl.load() == 2 && NeonMusicLocal(p, sizeof(p)))
-        {   // still connecting to the URL, but the downloaded copy is here: play that
+        else if(s_bNeonMusUrl && s_nNeonMusDl.load() == 2 && (pos < 1.0f || now - s_nNeonMusLastPos > 3000) && NeonMusicLocal(p, sizeof(p)))
+        {   // still connecting to the URL (or it stalled), and the downloaded copy is here: play that
             logger->Info("Neon menu: menu music -> the downloaded copy");
-            Sound::StreamStop(); s_nNeonMus = 0; s_bNeonMusLoop = false;
-        }
-        else if(pos <= 0.0f && now - s_nNeonMusAt > (s_bNeonMusUrl ? 12000u : 4000u))
-        {   // nothing came out: start it again
-            logger->Info("Neon menu: menu music silent after %u ms (%s) - starting again", (unsigned)(now - s_nNeonMusAt), Sound::StreamInfo());
-            Sound::StreamStop(); s_nNeonMus = -1; s_nNeonMusAt = now - 4000;
-            return;
+            Sound::StreamStop(); s_nNeonMus = 0; s_bNeonMusLoop = false; s_fNeonMusMax = 0.0f;
         }
     }
     if(s_nNeonMus != 1)
@@ -1166,7 +1138,7 @@ static void NeonMusicTick(bool want)   // game thread
         if(local) ok = Sound::StreamPlay(p, s_bNeonMusLoop ? settings.neonMusicVol / 100.0f : 0.0f);
         s_bNeonMusUrl = false;
         if(!ok) { ok = Sound::StreamPlayUrl(NEON_MUSIC_URL1, 0.0f); s_bNeonMusUrl = ok; NeonMusicDownload(); }
-        s_nNeonMus = ok ? 1 : -1; s_nNeonMusAt = now;
+        s_nNeonMus = ok ? 1 : -1; s_nNeonMusAt = now; s_nNeonMusLastPos = now;
         if(!s_bNeonMusLoop || !ok) logger->Info("Neon menu: menu music %s (%s)", ok ? "playing" : "could not start", local ? p : NEON_MUSIC_URL1);
         if(!ok) return;
         Sound::StreamUpdate();
@@ -1194,14 +1166,12 @@ static void NeonPAscii(char* o, size_t n, const char* s, bool upper)
     o[j] = 0;
 }
 static void NeonPHeader(const char* title, const char* sub, float L, float u)
-{   // 5.01.14: the launcher page title: bold caps, a red underline, the grey caption under it
+{
     using namespace NeonPaint;
-    NeonPTopBar(W(), u, L);
-    char t[64]; NeonUpper(t, sizeof(t), title);
-    const float fs = 30 * u, px = L - 8 * u, py = 66 * u;
-    NeonPText(F_GOTHIC, t, px, py, fs, NC(255, 255, 255), 1.0f * u, true);
-    Quad(px, py + fs + 6 * u, px + 46 * u, py + fs + 9 * u, LP_RED());
-    if(sub) NeonPText(F_CAPS, sub, px + 56 * u, py + fs + 1 * u, 11 * u, LP_DIM(), 1.4f * u);
+    const float fs = 50 * u, px = L, py = 34 * u;
+    for(int k = 0; k < 4; ++k) Text(F_GOTHIC, title, px + ((k & 1) ? 1.6f : -1.6f) * u, py + ((k & 2) ? 1.6f : -1.6f) * u, fs, NC(10, 12, 18, 230));
+    Text(F_GOTHIC, title, px, py, fs, NC(240, 243, 250), NC(150, 160, 185));
+    if(sub) NeonPText(F_CAPS, sub, L + 4 * u, py + 62 * u, 11 * u, NC(150, 152, 158), 1.6f * u);
 }
 // the hints bottom right: { key, label } pairs
 static void NeonPHints(const char* const* kv, int n, float W, float u, float L)
@@ -1223,69 +1193,199 @@ static void NeonPHints(const char* const* kv, int n, float W, float u, float L)
 }
 static void NeonPPanel(float x0, float y0, float x1, float y1, float u)
 {
-    NeonPGlass(x0, y0, x1, y1);
-    NeonPFrame(x0, y0, x1, y1, 1.0f * u, LP_LINE());
+    NeonPaint::Quad(x0, y0, x1, y1, NC(8, 9, 12, 222));
+    NeonPFrame(x0, y0, x1, y1, 1.1f * u, NC(40, 46, 96));
 }
-static bool NeonPBtn(const char* label, float x0, float y0, float x1, float y1, float u, bool focus, int kind = 0)
-{   // kind: 0 slate, 1 green (CONNECT / JOIN), 2 red (QUIT)
-    const NeonPaint::Col c = kind == 1 ? LP_GREEN() : (kind == 2 ? LP_RED() : NC(77, 87, 99, 185));
-    const bool t = NeonPButtonC(label, x0, y0, x1, y1, u, c);
-    if(focus) NeonPFrame(x0 - 2 * u, y0 - 2 * u, x1 + 2 * u, y1 + 2 * u, 1.6f * u, LP_BLUE());
+static bool NeonPBtn(const char* label, float x0, float y0, float x1, float y1, float u, bool focus)
+{
+    const bool t = NeonPButton(label, x0, y0, x1, y1, u);
+    if(focus) NeonPFrame(x0 - 2 * u, y0 - 2 * u, x1 + 2 * u, y1 + 2 * u, 1.6f * u, NC(88, 101, 242));
     return t;
 }
 
 // ---- Browse servers ----
+// 5.01.15: the reference layout (docs/media/neon-server-browser.jpg): "Choose your server", the list tools (list, refresh,
+// search = paste a server link, CONNECT, FILTERS), rows with flags / favourite star / players / ping, and on the right
+// the SELECTED SERVER card (description, server link + COPY LINK, players / ping / mode, regions & languages, JOIN
+// SERVER). The outlines are blue (the notification card's blue), not gold.
 static std::vector<LRow> s_NTRows;
-static uint64_t s_nNTBuiltAt = 0, s_nNTOpenAt = 0, s_nNTTapAt = 0;
+static uint64_t s_nNTBuiltAt = 0, s_nNTOpenAt = 0, s_nNTTapAt = 0, s_nNTCopiedAt = 0;
 static int   s_nNTSel = 0, s_nNTFocus = 0;     // focus: 0 the list, 1 BACK, 2 REFRESH, 3 JOIN
+static int   s_nNTFilter = 0;                  // 0 all, 1 with players, 2 not full, 3 low ping
+static bool  s_bNTPasteWait = false;
 static float s_fNTScroll = 0;
 static std::atomic<int> s_nNTJoinReq{-1};      // a row to join (game thread)
 static LRow  s_NTJoin;
+static LRow  s_NTFav; static std::atomic<int> s_nNTFavReq{-1};   // a favourite star tapped (game thread: favorites.txt)
 static void NeonTOpenBrowse() { s_nNT = NT_BROWSE; s_nNTBuiltAt = 0; s_nNTOpenAt = MP_NowMs(); s_nNTSel = 0; s_fNTScroll = 0; s_nNTFocus = 0; s_szNeonSearch[0] = 0; }
+static NeonPaint::Col NB_BLUE(int a = 255) { return NC(88, 101, 242, a); }
+static NeonPaint::Col NB_BLUE_LT() { return NC(160, 170, 255); }
+static void NeonPFlag(int ci, float x0, float y0, float x1, float y1)
+{   // nb_flags.png = assets/MP/flags.png (64 x 48 cells, 16 a row, slot 0 = unknown, slot i = kCountries[i - 1])
+    using namespace NeonPaint;
+    if(ci == kCountryGlobal)
+    {
+        Quad(x0, y0, x1, y1, NC(26, 86, 168));
+        const float cx = (x0 + x1) * 0.5f, cy = (y0 + y1) * 0.5f, r = (y1 - y0) * 0.34f, t = fmaxf(1.0f, (y1 - y0) * 0.07f);
+        NeonPFrame(cx - r, cy - r, cx + r, cy + r, t, NC(255, 255, 255, 230));
+        Quad(cx - r, cy - t * 0.5f, cx + r, cy + t * 0.5f, NC(255, 255, 255, 230)); Quad(cx - t * 0.5f, cy - r, cx + t * 0.5f, cy + r, NC(255, 255, 255, 230));
+    }
+    else if(const Tex* f = T("nb_flags.png"))
+    {
+        const int slot = ci + 1, cx = slot % MP_FLAG_COLS, cy = slot / MP_FLAG_COLS;
+        const float fx = (float)MP_FLAG_CELL_W / MP_FLAG_ATLAS, fy = (float)MP_FLAG_CELL_H / MP_FLAG_ATLAS;
+        ImgUV(f, x0, y0, x1, y1, cx * fx, cy * fy, (cx + 1) * fx, (cy + 1) * fy, NC(255, 255, 255), NC(255, 255, 255));
+    }
+    else Quad(x0, y0, x1, y1, NC(90, 95, 102));
+    NeonPFrame(x0, y0, x1, y1, 1.0f, NC(0, 0, 0, 140));
+}
+static void NeonPIni(const LRow& r, float x0, float y0, float sz)
+{   // the initials tile (coloured from the name)
+    using namespace NeonPaint;
+    uint32_t hsh = 2166136261u; for(const char* p = r.name; *p; ++p) hsh = (hsh ^ (unsigned char)tolower((unsigned char)*p)) * 16777619u;
+    static const NeonPaint::Col kc[5] = { {150, 52, 52, 255}, {52, 140, 72, 255}, {56, 92, 160, 255}, {160, 120, 50, 255}, {120, 70, 150, 255} };
+    const NeonPaint::Col c = kc[hsh % 5];
+    Quad(x0, y0, x0 + sz, y0 + sz, NC(16, 16, 19, 255)); NeonPFrame(x0, y0, x0 + sz, y0 + sz, fmaxf(1.0f, sz * 0.03f), c);
+    char ini[4] = { 0 }; int k = 0;
+    for(const char* p = r.name; *p && k < 2; ++p) if(isalnum((unsigned char)*p) && (p == r.name || !isalnum((unsigned char)p[-1]))) ini[k++] = (char)toupper((unsigned char)*p);
+    if(!k) { ini[0] = 'M'; ini[1] = 'P'; }
+    const float fs = sz * 0.36f, w = TextW(F_CAPS, ini, fs);
+    NeonPText(F_CAPS, ini, x0 + (sz - w) * 0.5f, y0 + (sz - fs) * 0.5f, fs, c);
+}
+static void NeonPWrap(int f, const char* s, float x, float y, float px, float maxw, float lh, int maxLines, NeonPaint::Col c)
+{   // word wrap, the last line ends with "..." when the text is longer
+    std::string line, word; int lines = 0; const char* p = s ? s : "";
+    auto flush = [&](bool last) {
+        if(line.empty()) return;
+        NeonPText(f, (last ? NeonFit(f, line.c_str(), px, maxw) : line).c_str(), x, y + lines * lh, px, c);
+        ++lines; line.clear();
+    };
+    for(;; ++p)
+    {
+        if(*p && *p != ' ' && *p != '\n') { word += *p; continue; }
+        if(!word.empty())
+        {
+            std::string t = line.empty() ? word : line + " " + word;
+            if(NeonPaint::TextW(f, t.c_str(), px) <= maxw || line.empty()) line = t;
+            else
+            {
+                if(lines == maxLines - 1) { line += " " + word; while(*p) { line += *p == '\n' ? ' ' : *p; ++p; } flush(true); return; }
+                flush(false); line = word;
+            }
+            word.clear();
+        }
+        if(*p == '\n' && lines < maxLines - 1) flush(false);
+        if(!*p) break;
+        if(lines >= maxLines) return;
+    }
+    flush(true);
+}
+static bool NeonPPass(const LRow& r)
+{
+    switch(s_nNTFilter)
+    {
+        case 1: return r.players > 0;
+        case 2: return r.maxp <= 0 || r.players < r.maxp;
+        case 3: return r.ping >= 0 && r.ping < 150;
+    }
+    return true;
+}
+static bool NeonPChip(const char* label, float x0, float y0, float x1, float y1, float u, bool on, bool focus)
+{   // a toolbar box: dark glass, a blue outline when on / focused
+    using namespace NeonPaint;
+    const bool held = Held(x0, y0, x1, y1);
+    Quad(x0, y0, x1, y1, held ? NC(40, 46, 96, 235) : NC(10, 11, 16, 225));
+    NeonPFrame(x0, y0, x1, y1, (on || focus) ? 1.6f * u : 1.1f * u, (on || focus) ? NB_BLUE() : NC(64, 68, 82));
+    const float fs = 12 * u, w = TextW(F_CAPS, label, fs, 1.4f * u);
+    NeonPText(F_CAPS, label, (x0 + x1 - w) * 0.5f, (y0 + y1 - fs) * 0.5f, fs, on ? NB_BLUE_LT() : NC(226, 228, 232), 1.4f * u);
+    return Tap(x0, y0, x1, y1);
+}
 static void NeonPBrowse(float W, float H)
 {
     using namespace NeonPaint;
     const float u = H / 804.0f;
     const float L = fminf(W * 0.07f, 100 * u * (W / H) / (1430.0f / 804.0f));
     NeonPBackdrop(W, H);
-    char sub[96]; snprintf(sub, sizeof(sub), "%d SERVER%s - TAP A SERVER TWICE TO JOIN", (int)s_NTRows.size(), s_NTRows.size() == 1 ? "" : "S");
-    NeonPHeader("Browse servers", sub, L, u);
     const int K = s_nNK;
-    // the lists
-    static const char* const kTabs[] = { "ALL", "FEATURED", "FAVOURITES", "WI-FI" };
+    // the rows shown (the filter) + totals
+    std::vector<int> idx; idx.reserve(s_NTRows.size()); int playersOn = 0;
+    for(int i = 0; i < (int)s_NTRows.size(); ++i) { if(s_NTRows[i].players > 0) playersOn += s_NTRows[i].players; if(NeonPPass(s_NTRows[i])) idx.push_back(i); }
+    const int n = (int)idx.size();
+    if(s_nNTSel >= n) s_nNTSel = n > 0 ? n - 1 : 0;
+    bool doJoin = false, doBack = (K & NK_B) != 0, doRefresh = (K & (NK_X | NK_Y)) != 0, doConnect = false;
+    // ---- the header: "MP NEON NETWORK" / "Choose your server" / the counts / BACK TO MAIN MENU
+    NeonPText(F_CAPS, "MP NEON NETWORK", L + 2 * u, 30 * u, 12 * u, NB_BLUE_LT(), 3.0f * u, true);
+    {
+        const float fs = 52 * u, px = L, py = 46 * u; const char* t = "Choose your server";
+        for(int k = 0; k < 4; ++k) Text(F_GOTHIC, t, px + ((k & 1) ? 1.6f : -1.6f) * u, py + ((k & 2) ? 1.6f : -1.6f) * u, fs, NC(10, 12, 18, 230));
+        Text(F_GOTHIC, t, px, py, fs, NC(240, 243, 250), NC(150, 160, 185));
+    }
+    const float bbx1 = W - L + 14 * u, bbx0 = bbx1 - 236 * u;
+    if(NeonPBtn("BACK TO MAIN MENU", bbx0, 40 * u, bbx1, 80 * u, u, s_nNTFocus == 1 && NeonPadUI())) doBack = true;
+    {
+        char a[48], b[48]; snprintf(a, sizeof(a), "%d SERVER%s", (int)s_NTRows.size(), s_NTRows.size() == 1 ? "" : "S");
+        snprintf(b, sizeof(b), "%d PLAYER%s ONLINE", playersOn, playersOn == 1 ? "" : "S");
+        const float fs = 12 * u, wb = TextW(F_CAPS, b, fs, 1.6f * u), wa = TextW(F_CAPS, a, fs, 1.6f * u);
+        float x = bbx0 - 26 * u - wb;
+        NeonPText(F_CAPS, b, x, 54 * u, fs, NC(200, 202, 208), 1.6f * u, true);
+        Quad(x - 15 * u, 57 * u, x - 9 * u, 63 * u, NC(110, 200, 120));   // the online dot
+        x -= 30 * u + wa;
+        NeonPText(F_CAPS, a, x, 54 * u, fs, NC(200, 202, 208), 1.6f * u, true);
+    }
+    // ---- the tools: list / refresh / search (paste) / CONNECT / FILTERS
+    static const char* const kTabs[] = { "ALL SERVERS", "FEATURED", "FAVOURITES", "WI-FI" };
+    static const char* const kFilt[] = { "FILTERS", "WITH PLAYERS", "NOT FULL", "LOW PING" };
     if(K & NK_LB) { s_nNeonList = (s_nNeonList + 3) % 4; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
     if(K & NK_RB) { s_nNeonList = (s_nNeonList + 1) % 4; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
-    float tx = L; const float ty = 136 * u, th = 34 * u;
-    for(int i = 0; i < 4; ++i)
+    const float ty0 = 116 * u, ty1 = 152 * u, lx0 = L - 14 * u, lx1 = fmaxf(W * 0.635f, lx0 + 560 * u), rx0 = lx1 + 18 * u, rx1 = W - L + 14 * u;
     {
-        const float fs = 13 * u, w = TextW(F_CAPS, kTabs[i], fs, 1.8f * u) + 34 * u;
-        const bool on = s_nNeonList == i;
-        if(on) Quad(tx, ty, tx + w, ty + th, NC(255, 255, 255, 18));
-        if(Held(tx, ty, tx + w, ty + th)) Quad(tx, ty, tx + w, ty + th, NC(255, 255, 255, 30));
-        NeonPText(F_CAPS, kTabs[i], tx + 17 * u, ty + (th - fs) * 0.5f, fs, on ? LP_BLUE() : NC(160, 164, 172), 1.8f * u);
-        if(on) Quad(tx + 10 * u, ty + th - 2.4f * u, tx + w - 10 * u, ty + th, LP_BLUE());
-        if(Tap(tx, ty, tx + w, ty + th) && !on) { s_nNeonList = i; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
-        tx += w + 6 * u;
+        char lab[40]; snprintf(lab, sizeof(lab), "%s  v", kTabs[s_nNeonList]);
+        if(NeonPChip(lab, lx0, ty0, lx0 + 190 * u, ty1, u, false, false)) { s_nNeonList = (s_nNeonList + 1) % 4; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
+        if(NeonPChip("REFRESH", lx0 + 200 * u, ty0, lx0 + 310 * u, ty1, u, false, s_nNTFocus == 2 && NeonPadUI())) doRefresh = true;
+        const float sx0 = lx0 + 320 * u, sx1 = lx1 - 8 * u;
+        Quad(sx0, ty0, sx1, ty1, NC(10, 11, 16, 225)); NeonPFrame(sx0, ty0, sx1, ty1, 1.1f * u, s_bNTPasteWait ? NB_BLUE() : NC(64, 68, 82));
+        char sq[80]; NeonPAscii(sq, sizeof(sq), s_szNeonSearch, true);
+        const char* sh = s_szNeonSearch[0] ? sq : "TAP TO PASTE A SERVER LINK OR ADDRESS";
+        const float clr = s_szNeonSearch[0] ? 30 * u : 0;
+        NeonPText(F_CAPS, NeonFit(F_CAPS, sh, 11 * u, sx1 - sx0 - 24 * u - clr, 1.0f * u).c_str(), sx0 + 12 * u, (ty0 + ty1 - 11 * u) * 0.5f, 11 * u,
+                  s_szNeonSearch[0] ? NC(226, 228, 232) : NC(130, 134, 142), 1.0f * u);
+        if(s_szNeonSearch[0])
+        {
+            NeonPText(F_CAPS, "X", sx1 - 22 * u, (ty0 + ty1 - 12 * u) * 0.5f, 12 * u, NC(200, 202, 208));
+            if(Tap(sx1 - clr, ty0, sx1, ty1)) { s_szNeonSearch[0] = 0; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
+            else if(Tap(sx0, ty0, sx1 - clr, ty1)) { Clipboard::RequestPaste(); s_bNTPasteWait = true; }
+        }
+        else if(Tap(sx0, ty0, sx1, ty1)) { Clipboard::RequestPaste(); s_bNTPasteWait = true; }
+        if(s_bNTPasteWait)
+        {
+            std::string got;
+            if(Clipboard::PollPaste(got))
+            {
+                s_bNTPasteWait = false;
+                while(!got.empty() && got.back() == ' ') got.pop_back();
+                size_t b0 = 0; while(b0 < got.size() && got[b0] == ' ') ++b0;
+                MP_CopyStr(s_szNeonSearch, got.c_str() + b0, sizeof(s_szNeonSearch)); s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0;
+            }
+        }
+        if(NeonPChip("CONNECT", rx0, ty0, rx0 + (rx1 - rx0) * 0.5f - 5 * u, ty1, u, NeonIsAddress(s_szNeonSearch), false)) doConnect = true;
+        if(NeonPChip(kFilt[s_nNTFilter], rx0 + (rx1 - rx0) * 0.5f + 5 * u, ty0, rx1, ty1, u, s_nNTFilter != 0, false)) { s_nNTFilter = (s_nNTFilter + 1) % 4; s_nNTSel = 0; s_fNTScroll = 0; }
     }
-    // the table
-    const float x0 = L - 14 * u, x1 = W - L + 14 * u, tY0 = 182 * u, tY1 = 700 * u;
-    NeonPPanel(x0, tY0, x1, tY1, u);
-    const float cw = x1 - x0, cMode = x0 + cw * 0.50f, cPl = x0 + cw * 0.72f, cPing = x0 + cw * 0.86f;
+    // ---- the list
+    const float tY0 = 166 * u, tY1 = 716 * u;
+    NeonPPanel(lx0, tY0, lx1, tY1, u);
+    const float cPing = lx1 - 74 * u, cPl = lx1 - 160 * u, cStar = lx1 - 200 * u, cFlag = lx1 - 310 * u;
     const float hy = tY0 + 12 * u;
-    NeonPText(F_CAPS, "SERVER", x0 + 70 * u, hy, 10 * u, LP_DIM(), 1.6f * u);
-    NeonPText(F_CAPS, "GAMEMODE", cMode, hy, 10 * u, LP_DIM(), 1.6f * u);
-    NeonPText(F_CAPS, "PLAYERS", cPl, hy, 10 * u, LP_DIM(), 1.6f * u);
-    NeonPText(F_CAPS, "PING", cPing, hy, 10 * u, LP_DIM(), 1.6f * u);
-    Quad(x0 + 12 * u, hy + 20 * u, x1 - 12 * u, hy + 21 * u, LP_LINE());
-    const float ly0 = hy + 26 * u, ly1 = tY1 - 6 * u, rh = 52 * u;
-    const int n = (int)s_NTRows.size(), vis = (int)((ly1 - ly0) / rh);
-    if(s_nNTSel >= n) s_nNTSel = n > 0 ? n - 1 : 0;
-    // pad
+    NeonPText(F_CAPS, "SERVER", lx0 + 86 * u, hy, 10 * u, NC(130, 134, 142), 1.6f * u);
+    NeonPText(F_CAPS, "REGION", cFlag, hy, 10 * u, NC(130, 134, 142), 1.6f * u);
+    NeonPText(F_CAPS, "PLAYERS", cPl, hy, 10 * u, NC(130, 134, 142), 1.6f * u);
+    NeonPText(F_CAPS, "PING", cPing, hy, 10 * u, NC(130, 134, 142), 1.6f * u);
+    Quad(lx0 + 12 * u, hy + 20 * u, lx1 - 12 * u, hy + 21 * u, NC(40, 46, 96));
+    const float ly0 = hy + 28 * u, ly1 = tY1 - 8 * u, rh = 64 * u;
+    const int vis = (int)((ly1 - ly0) / rh);
     if(K & NK_UP)   { if(s_nNTFocus) s_nNTFocus = 0; else if(s_nNTSel > 0) --s_nNTSel; }
     if(K & NK_DOWN) { if(!s_nNTFocus && s_nNTSel < n - 1) ++s_nNTSel; else if(!s_nNTFocus) s_nNTFocus = 3; }
     if(s_nNTFocus && (K & NK_LEFT))  s_nNTFocus = s_nNTFocus > 1 ? s_nNTFocus - 1 : 1;
     if(s_nNTFocus && (K & NK_RIGHT)) s_nNTFocus = s_nNTFocus < 3 ? s_nNTFocus + 1 : 3;
-    bool doJoin = false, doBack = (K & NK_B) != 0, doRefresh = (K & (NK_X | NK_Y)) != 0;
     if(K & NK_A) { if(s_nNTFocus == 1) doBack = true; else if(s_nNTFocus == 2) doRefresh = true; else doJoin = true; }
     if(K & (NK_UP | NK_DOWN))
     {   // keep the selection on screen
@@ -1293,83 +1393,185 @@ static void NeonPBrowse(float W, float H)
         if(top < s_fNTScroll) s_fNTScroll = top;
         if(top + rh > s_fNTScroll + vis * rh) s_fNTScroll = top + rh - vis * rh;
     }
-    // finger scroll (whole rows)
-    s_fNTScroll -= DragDY(x0, ly0, x1, ly1);
+    s_fNTScroll -= DragDY(lx0, ly0, lx1, ly1);
     const float maxS = n > vis ? (n - vis) * rh : 0;
     if(s_fNTScroll < 0) s_fNTScroll = 0; if(s_fNTScroll > maxS) s_fNTScroll = maxS;
     const int first = (int)(s_fNTScroll / rh + 0.5f);
-    for(int i = first; i < n && i < first + vis; ++i)
+    for(int j = first; j < n && j < first + vis; ++j)
     {
-        const LRow& r = s_NTRows[i];
-        const float ry0 = ly0 + (i - first) * rh, ry1 = ry0 + rh - 4 * u;
-        const bool sel = i == s_nNTSel;
-        Quad(x0 + 8 * u, ry0, x1 - 8 * u, ry1, sel ? NC(255, 255, 255, 26) : NC(255, 255, 255, (i & 1) ? 7 : 3));
-        if(Held(x0 + 8 * u, ry0, x1 - 8 * u, ry1) && !Dragging()) Quad(x0 + 8 * u, ry0, x1 - 8 * u, ry1, NC(255, 255, 255, 20));
-        if(sel) { Quad(x0 + 8 * u, ry0, x0 + 11 * u, ry1, LP_BLUE()); if(!s_nNTFocus && NeonPadUI()) NeonPFrame(x0 + 8 * u, ry0, x1 - 8 * u, ry1, 1.2f * u, LP_BLUE()); }
-        {   // the initials tile
-            uint32_t hsh = 2166136261u; for(const char* p = r.name; *p; ++p) hsh = (hsh ^ (unsigned char)tolower((unsigned char)*p)) * 16777619u;
-            static const NeonPaint::Col kc[5] = { {150, 52, 52, 255}, {52, 140, 72, 255}, {56, 92, 160, 255}, {160, 120, 50, 255}, {120, 70, 150, 255} };
-            const NeonPaint::Col c = kc[hsh % 5];
-            const float ix0 = x0 + 22 * u, iy0 = ry0 + 6 * u, sz = rh - 16 * u;
-            Quad(ix0, iy0, ix0 + sz, iy0 + sz, NC(16, 16, 19, 255)); NeonPFrame(ix0, iy0, ix0 + sz, iy0 + sz, 1.4f * u, c);
-            char ini[4] = { 0 }; int k = 0;
-            for(const char* p = r.name; *p && k < 2; ++p) if(isalnum((unsigned char)*p) && (p == r.name || !isalnum((unsigned char)p[-1]))) ini[k++] = (char)toupper((unsigned char)*p);
-            if(!k) { ini[0] = 'M'; ini[1] = 'P'; }
-            const float fs = sz * 0.36f, w = TextW(F_CAPS, ini, fs);
-            NeonPText(F_CAPS, ini, ix0 + (sz - w) * 0.5f, iy0 + (sz - fs) * 0.5f, fs, c);
-        }
-        char nm[64]; NeonPAscii(nm, sizeof(nm), r.name, false);
-        float nx = x0 + 70 * u; const float nameMax = cMode - nx - 16 * u;
-        if(NeonFeatured(r))
+        const LRow& r = s_NTRows[idx[j]];
+        const float ry0 = ly0 + (j - first) * rh, ry1 = ry0 + rh - 6 * u, rx = lx0 + 10 * u, rxe = lx1 - 10 * u;
+        const bool sel = j == s_nNTSel;
+        Quad(rx, ry0, rxe, ry1, sel ? NB_BLUE(34) : NC(255, 255, 255, (j & 1) ? 7 : 3));
+        if(Held(rx, ry0, rxe, ry1) && !Dragging()) Quad(rx, ry0, rxe, ry1, NC(255, 255, 255, 18));
+        if(sel) { NeonPFrame(rx, ry0, rxe, ry1, 1.6f * u, NB_BLUE()); Quad(rx, ry0, rx + 3 * u, ry1, NB_BLUE()); }
+        NeonPIni(r, rx + 12 * u, ry0 + 7 * u, rh - 20 * u);
+        // name (caps) + NEON FEATURED, the description under it
+        char nm[64]; NeonPAscii(nm, sizeof(nm), r.name, true);
+        const float nx = lx0 + 86 * u, nameMax = cFlag - nx - 14 * u;
+        float bw = 0;
+        if(NeonFeatured(r)) bw = TextW(F_CAPS, "NEON FEATURED", 8 * u, 1.2f * u) + 12 * u;
+        std::string nf = NeonFit(F_CAPS, nm, 14 * u, nameMax - (bw > 0 ? bw + 10 * u : 0), 1.4f * u);
+        NeonPText(F_CAPS, nf.c_str(), nx, ry0 + 10 * u, 14 * u, NC(236, 238, 244), 1.4f * u);
+        if(bw > 0)
         {
-            const float fw = TextW(F_CAPS, "FEATURED", 8.5f * u, 1.2f * u) + 12 * u;
-            Quad(nx, ry0 + 9 * u, nx + fw, ry0 + 23 * u, LP_BLUE(40)); NeonPFrame(nx, ry0 + 9 * u, nx + fw, ry0 + 23 * u, 1.0f * u, LP_BLUE());
-            NeonPText(F_CAPS, "FEATURED", nx + 6 * u, ry0 + 11.5f * u, 8.5f * u, LP_BLUE(), 1.2f * u);
-            NeonPText(F_UI, NeonFit(F_UI, nm, 16 * u, nameMax - fw - 8 * u).c_str(), nx + fw + 8 * u, ry0 + 7 * u, 16 * u, NC(230, 232, 238));
+            const float fx = nx + TextW(F_CAPS, nf.c_str(), 14 * u, 1.4f * u) + 10 * u;
+            Quad(fx, ry0 + 10 * u, fx + bw, ry0 + 25 * u, NB_BLUE(46)); NeonPFrame(fx, ry0 + 10 * u, fx + bw, ry0 + 25 * u, 1.0f * u, NB_BLUE());
+            NeonPText(F_CAPS, "NEON FEATURED", fx + 6 * u, ry0 + 13.5f * u, 8 * u, NB_BLUE_LT(), 1.2f * u);
         }
-        else NeonPText(F_UI, NeonFit(F_UI, nm, 16 * u, nameMax).c_str(), nx, ry0 + 7 * u, 16 * u, NC(230, 232, 238));
         {
-            char d[160], line[200];
+            char d[160], line[220];
             NeonPAscii(d, sizeof(d), r.desc[0] ? r.desc : (r.live ? "Online now" : "Saved server"), false);
             snprintf(line, sizeof(line), "%s%s%s", r.locked ? "LOCKED - " : "", r.internet ? "" : (r.kind == 1 ? "WI-FI - " : ""), d);
-            NeonPText(F_UI, NeonFit(F_UI, line, 11 * u, nameMax).c_str(), nx, ry0 + 28 * u, 11 * u, LP_DIM());
+            NeonPText(F_UI, NeonFit(F_UI, line, 11.5f * u, nameMax).c_str(), nx, ry0 + 32 * u, 11.5f * u, NC(140, 144, 152));
         }
-        char md[48]; NeonPAscii(md, sizeof(md), r.mode[0] ? r.mode : "Freeroam", true);
-        NeonPText(F_CAPS, NeonFit(F_CAPS, md, 11.5f * u, cPl - cMode - 16 * u, 1.2f * u).c_str(), cMode, ry0 + 15 * u, 11.5f * u, NC(200, 202, 208), 1.2f * u);
-        char pl[32]; if(r.maxp > 0) snprintf(pl, sizeof(pl), "%d / %d", r.players, r.maxp); else snprintf(pl, sizeof(pl), "%d", r.players);
-        NeonPText(F_UI, pl, cPl, ry0 + 13 * u, 15 * u, r.players > 0 ? NC(226, 228, 232) : LP_DIM());
-        char pg[16]; NeonPaint::Col pc = LP_DIM();
+        // flag + language
+        {
+            const int ci = LCountryIndex(r.cc[0] ? r.cc : MP_CC_GLOBAL);
+            const float fh = 15 * u, fw = fh * 1.4f, fy = ry0 + (rh - 6 * u - fh) * 0.5f;
+            NeonPFlag(ci, cFlag, fy, cFlag + fw, fy + fh);
+            char lg[MP_LANG_LEN + 4]; NeonPAscii(lg, sizeof(lg), r.lang[0] ? r.lang : "ALL", true);
+            NeonPText(F_CAPS, NeonFit(F_CAPS, lg, 9.5f * u, cStar - cFlag - fw - 14 * u, 1.0f * u).c_str(), cFlag + fw + 7 * u, fy + 3 * u, 9.5f * u, NC(170, 174, 182), 1.0f * u);
+        }
+        // the favourite star
+        {
+            const bool fav = r.saved || LIsFav(r.name, r.port);
+            const float sy = ry0 + (rh - 6 * u - 16 * u) * 0.5f;
+            NeonPText(F_CAPS, "*", cStar + 6 * u, sy, 22 * u, fav ? NB_BLUE_LT() : NC(90, 94, 104));
+            if(Tap(cStar - 4 * u, ry0, cStar + 34 * u, ry1)) { s_NTFav = r; s_nNTFavReq = fav ? 0 : 1; }
+        }
+        char pl[32]; if(r.maxp > 0) snprintf(pl, sizeof(pl), "%d / %d", r.players < 0 ? 0 : r.players, r.maxp); else snprintf(pl, sizeof(pl), "%d", r.players < 0 ? 0 : r.players);
+        NeonPText(F_UI, pl, cPl, ry0 + 18 * u, 15 * u, r.players > 0 ? NC(226, 228, 232) : NC(130, 134, 142));
+        char pg[16]; NeonPaint::Col pc = NC(130, 134, 142);
         if(r.ping > 0) { snprintf(pg, sizeof(pg), "%d MS", r.ping); pc = r.ping < 90 ? NC(110, 200, 120) : (r.ping < 180 ? NC(222, 200, 110) : NC(220, 100, 90)); }
         else snprintf(pg, sizeof(pg), "--");
-        NeonPText(F_UI, pg, cPing, ry0 + 13 * u, 15 * u, pc, 1.0f * u);
-        if(Tap(x0 + 8 * u, ry0, x1 - 8 * u, ry1))
+        NeonPText(F_UI, pg, cPing, ry0 + 18 * u, 15 * u, pc, 1.0f * u);
+        if(Tap(rx, ry0, cStar - 4 * u, ry1) || Tap(cStar + 34 * u, ry0, rxe, ry1))
         {
             const uint64_t now = MP_NowMs();
             if(sel && now - s_nNTTapAt < 700) doJoin = true;
-            s_nNTSel = i; s_nNTTapAt = now; s_nNTFocus = 0;
+            s_nNTSel = j; s_nNTTapAt = now; s_nNTFocus = 0;
         }
     }
     if(n > vis)
     {   // the scroll bar
         const float bh = (ly1 - ly0) * vis / n, by = ly0 + (ly1 - ly0 - bh) * (maxS > 0 ? s_fNTScroll / maxS : 0);
-        Quad(x1 - 6 * u, by, x1 - 3 * u, by + bh, LP_BLUE(160));
+        Quad(lx1 - 6 * u, by, lx1 - 3 * u, by + bh, NB_BLUE(170));
     }
     if(!n)
     {
         const bool early = MP_NowMs() - s_nNTOpenAt < 4000;
-        const char* m = early ? "LOOKING FOR SERVERS..." : (s_nNeonList == 2 ? "NO FAVOURITE SERVERS YET" : (s_nNeonList == 3 ? "NO SERVERS ON THIS WI-FI" : "NO SERVERS FOUND - CHECK YOUR INTERNET"));
+        const char* m = early ? "LOOKING FOR SERVERS..." : (s_szNeonSearch[0] ? "NO SERVER MATCHES THE SEARCH" : s_nNTFilter ? "NO SERVER MATCHES THE FILTER" :
+                        (s_nNeonList == 2 ? "NO FAVOURITE SERVERS YET" : (s_nNeonList == 3 ? "NO SERVERS ON THIS WI-FI" : "NO SERVERS FOUND - CHECK YOUR INTERNET")));
         const float fs = 14 * u, w = TextW(F_CAPS, m, fs, 1.8f * u);
-        NeonPText(F_CAPS, m, (x0 + x1 - w) * 0.5f, (ly0 + ly1) * 0.5f - fs, fs, NC(160, 164, 172), 1.8f * u);
+        NeonPText(F_CAPS, m, (lx0 + lx1 - w) * 0.5f, (ly0 + ly1) * 0.5f - fs, fs, NC(160, 164, 172), 1.8f * u);
     }
-    // the buttons
-    const float by0 = 712 * u, by1 = 748 * u;
-    if(NeonPBtn("BACK", L - 14 * u, by0, L + 150 * u, by1, u, s_nNTFocus == 1 && NeonPadUI())) doBack = true;
-    if(NeonPBtn("REFRESH", L + 164 * u, by0, L + 328 * u, by1, u, s_nNTFocus == 2 && NeonPadUI())) doRefresh = true;
-    if(NeonPBtn("JOIN", W - L - 200 * u, by0, W - L + 14 * u, by1, u, s_nNTFocus == 3 && NeonPadUI(), 1)) doJoin = true;
-    static const char* const kHints[] = { "A", "JOIN", "B", "BACK", "LB RB", "LIST", "Y", "REFRESH" };
-    NeonPHints(kHints, 4, W, u, L);
+    // ---- the SELECTED SERVER card
+    NeonPPanel(rx0, tY0, rx1, tY1, u);
+    const float px = rx0 + 20 * u, pw = rx1 - rx0 - 40 * u;
+    const float jy0 = tY1 - 66 * u, jy1 = tY1 - 18 * u;
+    if(n > 0)
+    {
+        const LRow& r = s_NTRows[idx[s_nNTSel]];
+        NeonPIni(r, px, tY0 + 18 * u, 60 * u);
+        NeonPText(F_CAPS, "SELECTED SERVER", px + 74 * u, tY0 + 24 * u, 10 * u, NB_BLUE_LT(), 1.8f * u);
+        char nm[64]; NeonPAscii(nm, sizeof(nm), r.name, true);
+        float ns = 19 * u; while(ns > 11 * u && TextW(F_CAPS, nm, ns, 1.6f * u) > pw - 74 * u) ns -= 1 * u;
+        NeonPText(F_CAPS, NeonFit(F_CAPS, nm, ns, pw - 74 * u, 1.6f * u).c_str(), px + 74 * u, tY0 + 46 * u, ns, NC(240, 242, 248), 1.6f * u, true);
+        // the description (wrapped)
+        char dsc[MP_DESC_LEN + 120], dd[MP_DESC_LEN + 120];
+        if(r.desc[0]) MP_CopyStr(dsc, r.desc, sizeof(dsc));
+        else snprintf(dsc, sizeof(dsc), "%s on MP. %s%s Tap JOIN SERVER to play.", r.mode[0] ? r.mode : "Freeroam", r.lang[0] ? "Language: " : "", r.lang[0] ? r.lang : "");
+        NeonPAscii(dd, sizeof(dd), dsc, false);
+        NeonPWrap(F_UI, dd, px, tY0 + 96 * u, 13 * u, pw, 18 * u, 5, NC(205, 208, 214));
+        // the server link + COPY LINK
+        const float sy0 = tY0 + 196 * u, sy1 = sy0 + 54 * u;
+        Quad(px, sy0, px + pw, sy1, NC(6, 7, 10, 235)); NeonPFrame(px, sy0, px + pw, sy1, 1.1f * u, NC(48, 54, 100));
+        NeonPText(F_CAPS, "SERVER LINK", px + 11 * u, sy0 + 9 * u, 9.5f * u, NC(130, 134, 142), 1.4f * u);
+        char link[128];
+        if(r.ip[0]) snprintf(link, sizeof(link), "mp://%s:%d", r.ip, r.port); else snprintf(link, sizeof(link), "mp://%s", r.name);
+        char la[128]; NeonPAscii(la, sizeof(la), link, false);
+        const float cbx1 = px + pw - 10 * u, cbx0 = cbx1 - 104 * u;
+        NeonPText(F_UI, NeonFit(F_UI, la, 12.5f * u, cbx0 - px - 20 * u).c_str(), px + 11 * u, sy0 + 28 * u, 12.5f * u, NC(226, 228, 232));
+        {
+            const bool copied = MP_NowMs() - s_nNTCopiedAt < 1500;
+            const bool held = Held(cbx0, sy0 + 11 * u, cbx1, sy1 - 11 * u);
+            Quad(cbx0, sy0 + 11 * u, cbx1, sy1 - 11 * u, held ? NB_BLUE(70) : NB_BLUE(26));
+            NeonPFrame(cbx0, sy0 + 11 * u, cbx1, sy1 - 11 * u, 1.2f * u, NB_BLUE());
+            const char* cl = copied ? "COPIED" : "COPY LINK"; const float cw = TextW(F_CAPS, cl, 9.5f * u, 1.2f * u);
+            NeonPText(F_CAPS, cl, (cbx0 + cbx1 - cw) * 0.5f, (sy0 + sy1 - 9.5f * u) * 0.5f, 9.5f * u, NB_BLUE_LT(), 1.2f * u);
+            if(Tap(cbx0, sy0 + 11 * u, cbx1, sy1 - 11 * u)) { Clipboard::Copy(link); s_nNTCopiedAt = MP_NowMs(); }
+        }
+        // players / ping / mode
+        const float bw = (pw - 16 * u) / 3.0f, by0 = sy1 + 14 * u, by1 = by0 + 54 * u;
+        char v0[32], v1[24], v2[MP_MODE_LEN + 4];
+        if(r.maxp > 0) snprintf(v0, sizeof(v0), "%d / %d", r.players < 0 ? 0 : r.players, r.maxp); else snprintf(v0, sizeof(v0), "%d", r.players < 0 ? 0 : r.players);
+        if(r.ping > 0) snprintf(v1, sizeof(v1), "%d MS", r.ping); else MP_CopyStr(v1, "-", sizeof(v1));
+        NeonPAscii(v2, sizeof(v2), r.mode[0] ? r.mode : "Freeroam", true);
+        const char* hl[3] = { "PLAYERS", "PING", "MODE" }; const char* vl[3] = { v0, v1, v2 };
+        for(int k = 0; k < 3; ++k)
+        {
+            const float bx0 = px + k * (bw + 8 * u), bx1 = bx0 + bw;
+            Quad(bx0, by0, bx1, by1, NC(6, 7, 10, 235)); NeonPFrame(bx0, by0, bx1, by1, 1.1f * u, NC(48, 54, 100));
+            NeonPText(F_CAPS, hl[k], bx0 + 10 * u, by0 + 9 * u, 9.5f * u, NC(130, 134, 142), 1.4f * u);
+            NeonPText(F_UI, NeonFit(F_UI, vl[k], 13.5f * u, bw - 18 * u).c_str(), bx0 + 10 * u, by0 + 27 * u, 13.5f * u, NC(226, 228, 232));
+        }
+        // regions & languages
+        {
+            const float gy = by1 + 18 * u;
+            NeonPText(F_CAPS, "REGIONS & LANGUAGES", px, gy, 10 * u, NB_BLUE_LT(), 1.6f * u);
+            const int ci = LCountryIndex(r.cc[0] ? r.cc : MP_CC_GLOBAL);
+            NeonPFlag(ci, px, gy + 22 * u, px + 24 * u, gy + 39 * u);
+            const char* cn = LCountryNameAt(ci);
+            char cu[64]; NeonPAscii(cu, sizeof(cu), cn ? cn : "Global", true);
+            NeonPText(F_CAPS, NeonFit(F_CAPS, cu, 11 * u, pw - 34 * u, 1.0f * u).c_str(), px + 34 * u, gy + 25 * u, 11 * u, NC(220, 222, 228), 1.0f * u);
+            static const char* const kReg[4] = { "ASIA", "EUROPE", "NORTH AMERICA", "OCEANIA" };
+            char lu[MP_LANG_LEN + 4]; NeonPAscii(lu, sizeof(lu), r.lang[0] ? r.lang : "All languages", true);
+            char rl[160]; snprintf(rl, sizeof(rl), "LANGUAGE: %s%s%s", lu, r.region >= 0 && r.region < 4 ? "   REGION: " : "", r.region >= 0 && r.region < 4 ? kReg[r.region] : "");
+            NeonPText(F_CAPS, NeonFit(F_CAPS, rl, 10 * u, pw, 1.0f * u).c_str(), px, gy + 50 * u, 10 * u, NC(160, 164, 172), 1.0f * u);
+        }
+    }
+    else
+    {
+        const char* m = "SELECT A SERVER"; const float fs = 13 * u, w = TextW(F_CAPS, m, fs, 1.8f * u);
+        NeonPText(F_CAPS, m, (rx0 + rx1 - w) * 0.5f, (tY0 + jy0) * 0.5f, fs, NC(130, 134, 142), 1.8f * u);
+    }
+    {   // JOIN SERVER
+        const bool held = Held(px, jy0, px + pw, jy1), foc = s_nNTFocus == 3 && NeonPadUI();
+        Quad(px, jy0, px + pw, jy1, n ? (held ? NC(120, 132, 255) : NB_BLUE(230)) : NC(40, 44, 60, 220));
+        if(foc) NeonPFrame(px - 3 * u, jy0 - 3 * u, px + pw + 3 * u, jy1 + 3 * u, 1.6f * u, NC(205, 212, 255));
+        const char* jl = "JOIN SERVER"; const float fs = 16 * u, w = TextW(F_CAPS, jl, fs, 2.4f * u);
+        NeonPText(F_CAPS, jl, px + (pw - w) * 0.5f, (jy0 + jy1 - fs) * 0.5f, fs, NC(255, 255, 255), 2.4f * u, true);
+        if(Tap(px, jy0, px + pw, jy1)) doJoin = true;
+    }
+    {   // the hints (always: NAVIGATE / JOIN SERVER, like the reference)
+        const bool pad = NeonPadUI();
+        const char* kv[6] = { pad ? "D-PAD" : "SWIPE", "NAVIGATE", pad ? "A" : "DOUBLE TAP", "JOIN SERVER", pad ? "B" : "BACK", "MAIN MENU" };
+        const float hy2 = 740 * u, fs = 11 * u; float x = L;
+        for(int i = 0; i < 3; ++i)
+        {
+            const float kw = TextW(F_CAPS, kv[i * 2], fs, 1.2f * u) + 14 * u;
+            Quad(x, hy2 - 4 * u, x + kw, hy2 + fs + 4 * u, NC(10, 11, 16, 220)); NeonPFrame(x, hy2 - 4 * u, x + kw, hy2 + fs + 4 * u, 1.1f * u, NB_BLUE());
+            NeonPText(F_CAPS, kv[i * 2], x + 7 * u, hy2, fs, NC(226, 228, 232), 1.2f * u);
+            x += kw + 9 * u;
+            NeonPText(F_CAPS, kv[i * 2 + 1], x, hy2, fs, NC(170, 174, 182), 1.8f * u, true);
+            x += TextW(F_CAPS, kv[i * 2 + 1], fs, 1.8f * u) + 30 * u;
+        }
+    }
     if(doRefresh) { ServerList::Refresh(); s_nNTBuiltAt = 0; s_nNTOpenAt = MP_NowMs(); logger->Info("Neon menu: Browse servers -> refresh"); }
-    if(doJoin && s_nNTSel >= 0 && s_nNTSel < n) { s_NTJoin = s_NTRows[s_nNTSel]; s_nNTJoinReq = s_nNTSel; }
+    if(doConnect)
+    {
+        if(NeonIsAddress(s_szNeonSearch))
+        {   // a pasted server link / address
+            const char* s = s_szNeonSearch;
+            char host[96]; MP_CopyStr(host, !strncasecmp(s, "mp://", 5) ? s + 5 : s, sizeof(host));
+            int port = MP_DEFAULT_PORT; if(char* c = strrchr(host, ':')) { *c = 0; port = atoi(c + 1); if(port <= 0 || port > 65535) port = MP_DEFAULT_PORT; }
+            LRow r; memset(&r, 0, sizeof(r)); r.kind = 1; MP_CopyStr(r.ip, host, sizeof(r.ip)); r.port = port; MP_CopyStr(r.name, host, sizeof(r.name));
+            s_NTJoin = r; s_nNTJoinReq = 0;
+        }
+        else doJoin = true;
+    }
+    if(doJoin && s_nNTSel >= 0 && s_nNTSel < n) { s_NTJoin = s_NTRows[idx[s_nNTSel]]; s_nNTJoinReq = idx[s_nNTSel]; }
     if(doBack) s_nNT = NT_MAIN;
 }
 
@@ -1463,10 +1665,10 @@ static void NeonPSettings(float W, float H)
     {
         const float y0 = ty0 + 8 * u + i * tstep, y1 = y0 + tstep - 4 * u;
         const bool on = i == s_nNSTab;
-        if(on) { Quad(tx0 + 6 * u, y0, tx1 - 6 * u, y1, NC(255, 255, 255, 24)); Quad(tx0 + 6 * u, y0, tx0 + 9 * u, y1, LP_BLUE()); }
+        if(on) { Quad(tx0 + 6 * u, y0, tx1 - 6 * u, y1, NC(205, 212, 255, 24)); Quad(tx0 + 6 * u, y0, tx0 + 9 * u, y1, NC(88, 101, 242)); }
         if(Held(tx0, y0, tx1, y1)) Quad(tx0 + 6 * u, y0, tx1 - 6 * u, y1, NC(255, 255, 255, 18));
         const float fs = 14 * u;
-        NeonPText(F_CAPS, kNSTabs[i].name, tx0 + 26 * u, y0 + (y1 - y0 - fs) * 0.5f, fs, on ? LP_BLUE() : NC(170, 174, 182), 1.8f * u);
+        NeonPText(F_CAPS, kNSTabs[i].name, tx0 + 26 * u, y0 + (y1 - y0 - fs) * 0.5f, fs, on ? NC(160, 170, 255) : NC(170, 174, 182), 1.8f * u);
         if(Tap(tx0, y0, tx1, y1)) { s_nNSTab = i; s_nNSSel = 0; s_fNSScroll = 0; s_nNSFocus = 0; }
     }
     // the rows of the tab
@@ -1476,8 +1678,8 @@ static void NeonPSettings(float W, float H)
     NeonPPanel(px0, py0, px1, py1, u);
     {
         char t[48]; snprintf(t, sizeof(t), "%s", kNSTabs[s_nNSTab].name);
-        NeonPText(F_CAPS, t, px0 + 22 * u, py0 + 14 * u, 12 * u, LP_DIM(), 2.0f * u);
-        Quad(px0 + 12 * u, py0 + 36 * u, px1 - 12 * u, py0 + 37 * u, LP_LINE());
+        NeonPText(F_CAPS, t, px0 + 22 * u, py0 + 14 * u, 12 * u, NC(130, 134, 142), 2.0f * u);
+        Quad(px0 + 12 * u, py0 + 36 * u, px1 - 12 * u, py0 + 37 * u, NC(40, 46, 96));
     }
     const float ly0 = py0 + 44 * u, ly1 = py1 - 8 * u, rh = 50 * u;
     const int n = (int)rows.size(), vis = (int)((ly1 - ly0) / rh);
@@ -1513,16 +1715,16 @@ static void NeonPSettings(float W, float H)
         const GameSettings::Item& it = s_NSItems[rows[k]];
         const float ry0 = ly0 + (k - first) * rh, ry1 = ry0 + rh - 4 * u, mid = (ry0 + ry1) * 0.5f;
         const bool sel = k == s_nNSSel;
-        Quad(px0 + 8 * u, ry0, px1 - 8 * u, ry1, sel ? NC(255, 255, 255, 22) : NC(255, 255, 255, (k & 1) ? 6 : 2));
-        if(sel) { Quad(px0 + 8 * u, ry0, px0 + 11 * u, ry1, LP_BLUE()); if(!s_nNSFocus && NeonPadUI()) NeonPFrame(px0 + 8 * u, ry0, px1 - 8 * u, ry1, 1.2f * u, LP_BLUE()); }
+        Quad(px0 + 8 * u, ry0, px1 - 8 * u, ry1, sel ? NC(205, 212, 255, 22) : NC(255, 255, 255, (k & 1) ? 6 : 2));
+        if(sel) { Quad(px0 + 8 * u, ry0, px0 + 11 * u, ry1, NC(88, 101, 242)); if(!s_nNSFocus && NeonPadUI()) NeonPFrame(px0 + 8 * u, ry0, px1 - 8 * u, ry1, 1.2f * u, NC(88, 101, 242)); }
         char lb[64]; NeonPAscii(lb, sizeof(lb), it.label[0] ? it.label : "Mod option", true);
         const std::string val = NeonNSValue(it);
         if(it.kind == GameSettings::K_HEADER)
         {   // 5.01.13: a mod's settings tab / the mods folder (PCMenu's Mods list)
-            Quad(px0 + 12 * u, ry1 - 2 * u, px1 - 12 * u, ry1 - 1 * u, NC(255, 255, 255, 46));
-            NeonPText(F_CAPS, NeonFit(F_CAPS, lb, 12.5f * u, vx0 - px0 - 40 * u, 2.0f * u).c_str(), px0 + 22 * u, mid - 6 * u, 12.5f * u, LP_BLUE(), 2.0f * u);
+            Quad(px0 + 12 * u, ry1 - 2 * u, px1 - 12 * u, ry1 - 1 * u, NC(52, 60, 130));
+            NeonPText(F_CAPS, NeonFit(F_CAPS, lb, 12.5f * u, vx0 - px0 - 40 * u, 2.0f * u).c_str(), px0 + 22 * u, mid - 6 * u, 12.5f * u, NC(160, 170, 255), 2.0f * u);
             const float w = TextW(F_UI, val.c_str(), 12 * u);
-            NeonPText(F_UI, val.c_str(), vx1 - w, mid - 7 * u, 12 * u, LP_DIM());
+            NeonPText(F_UI, val.c_str(), vx1 - w, mid - 7 * u, 12 * u, NC(130, 134, 142));
             continue;
         }
         NeonPText(F_CAPS, NeonFit(F_CAPS, lb, 13.5f * u, vx0 - px0 - 40 * u, 1.4f * u).c_str(), px0 + 26 * u, mid - 7 * u, 13.5f * u, NC(226, 228, 232), 1.4f * u);
@@ -1536,9 +1738,9 @@ static void NeonPSettings(float W, float H)
         if(it.kind == GameSettings::K_BUTTON)
         {
             const float bx0 = vx1 - 130 * u, hb = Held(bx0, ry0 + 6 * u, vx1, ry1 - 6 * u);
-            Quad(bx0, ry0 + 8 * u, vx1, ry1 - 8 * u, hb ? LP_BLUE(90) : LP_BLUE(40));
+            Quad(bx0, ry0 + 8 * u, vx1, ry1 - 8 * u, hb ? NC(88, 101, 242, 90) : NC(88, 101, 242, 40));
             const float w = TextW(F_CAPS, val.c_str(), 12 * u, 1.6f * u);
-            NeonPText(F_CAPS, val.c_str(), (bx0 + vx1 - w) * 0.5f, mid - 6 * u, 12 * u, NC(255, 255, 255), 1.6f * u);
+            NeonPText(F_CAPS, val.c_str(), (bx0 + vx1 - w) * 0.5f, mid - 6 * u, 12 * u, NC(236, 226, 196), 1.6f * u);
             if(Tap(px0 + 8 * u, ry0, px1 - 8 * u, ry1)) { s_nNSSel = k; s_nNSFocus = 0; NeonNSStep(it, +1); }
             continue;
         }
@@ -1546,11 +1748,11 @@ static void NeonPSettings(float W, float H)
         {
             const float bx0 = vx0 + 14 * u, bx1 = vx1 - 78 * u, f = NeonNSFrac(it);
             Quad(bx0, mid - 3 * u, bx1, mid + 3 * u, NC(40, 42, 48));
-            Quad(bx0, mid - 3 * u, bx0 + (bx1 - bx0) * f, mid + 3 * u, LP_BLUE());
+            Quad(bx0, mid - 3 * u, bx0 + (bx1 - bx0) * f, mid + 3 * u, NC(88, 101, 242));
             const float kx = bx0 + (bx1 - bx0) * f;
-            Quad(kx - 5 * u, mid - 11 * u, kx + 5 * u, mid + 11 * u, NC(255, 255, 255));
+            Quad(kx - 5 * u, mid - 11 * u, kx + 5 * u, mid + 11 * u, NC(236, 226, 196));
             const float w = TextW(F_UI, val.c_str(), 14 * u);
-            NeonPText(F_UI, val.c_str(), vx1 - w, mid - 8 * u, 14 * u, LP_BLUE());
+            NeonPText(F_UI, val.c_str(), vx1 - w, mid - 8 * u, 14 * u, NC(160, 170, 255));
             float fx = 0;
             if(HeldX(bx0 - 16 * u, ry0, bx1 + 16 * u, ry1, &fx)) { s_nNSSel = k; s_nNSFocus = 0; NeonNSFraction(it, (fx - bx0) / (bx1 - bx0)); }
         }
@@ -1558,11 +1760,11 @@ static void NeonPSettings(float W, float H)
         {
             const float aw = 34 * u;
             const bool hl = Held(vx0, ry0, vx0 + aw, ry1), hr = Held(vx1 - aw, ry0, vx1, ry1);
-            NeonPText(F_CAPS, "<", vx0 + 10 * u, mid - 8 * u, 16 * u, hl ? NC(255, 255, 255) : NC(150, 152, 158));
-            NeonPText(F_CAPS, ">", vx1 - 20 * u, mid - 8 * u, 16 * u, hr ? NC(255, 255, 255) : NC(150, 152, 158));
+            NeonPText(F_CAPS, "<", vx0 + 10 * u, mid - 8 * u, 16 * u, hl ? NC(205, 212, 255) : NC(150, 152, 158));
+            NeonPText(F_CAPS, ">", vx1 - 20 * u, mid - 8 * u, 16 * u, hr ? NC(205, 212, 255) : NC(150, 152, 158));
             const std::string fit = NeonFit(F_CAPS, val.c_str(), 13 * u, vx1 - vx0 - 2 * aw - 8 * u, 1.2f * u);
             const float w = TextW(F_CAPS, fit.c_str(), 13 * u, 1.2f * u);
-            NeonPText(F_CAPS, fit.c_str(), (vx0 + vx1 - w) * 0.5f, mid - 7 * u, 13 * u, LP_BLUE(), 1.2f * u);
+            NeonPText(F_CAPS, fit.c_str(), (vx0 + vx1 - w) * 0.5f, mid - 7 * u, 13 * u, NC(160, 170, 255), 1.2f * u);
             if(Tap(vx0, ry0, (vx0 + vx1) * 0.5f, ry1)) { s_nNSSel = k; s_nNSFocus = 0; NeonNSStep(it, -1); }
             else if(Tap((vx0 + vx1) * 0.5f, ry0, vx1, ry1)) { s_nNSSel = k; s_nNSFocus = 0; NeonNSStep(it, +1); }
         }
@@ -1575,7 +1777,7 @@ static void NeonPSettings(float W, float H)
     if(n > vis)
     {
         const float bh = (ly1 - ly0) * vis / n, by = ly0 + (ly1 - ly0 - bh) * (maxS > 0 ? s_fNSScroll / maxS : 0);
-        Quad(px1 - 6 * u, by, px1 - 3 * u, by + bh, LP_BLUE(160));
+        Quad(px1 - 6 * u, by, px1 - 3 * u, by + bh, NC(88, 101, 242, 160));
     }
     if(!n)
     {
@@ -1597,21 +1799,19 @@ static void NeonPDialog(float W, float H, float u)
     using namespace NeonPaint;
     Quad(0, 0, W, H, NC(0, 0, 0, 170));
     const float dw = 520 * u, dh = 230 * u, x0 = (W - dw) * 0.5f, y0 = (H - dh) * 0.5f;
-    Quad(x0, y0, x0 + dw, y0 + dh, NC(36, 40, 46, 252));   // 5.01.14: the launcher's dialog panel
-    NeonPFrame(x0, y0, x0 + dw, y0 + dh, 1.0f * u, LP_LINE());
-    Quad(x0, y0, x0 + dw, y0 + 3 * u, LP_RED());
+    Img(T("dialog.png"), x0, y0, x0 + dw, y0 + dh);
     const bool about = s_nNeonDlg == 1;
-    NeonPText(F_GOTHIC, about ? "ABOUT" : "QUIT GAME", x0 + 28 * u, y0 + 20 * u, 28 * u, NC(255, 255, 255), 1.0f * u, true);
+    NeonPText(F_GOTHIC, about ? "About" : "Quit game", x0 + 28 * u, y0 + 18 * u, 34 * u, NC(226, 228, 232), 0, true);
     char l[5][120]; int n = 0;
     if(about)
     {
         snprintf(l[n++], 120, "MP Multiplayer %s for GTA San Andreas (Android, AML).", MP_VERSION_STR);
         snprintf(l[n++], 120, "by ThirtyFoxMCx00E1 - mpsamp-open.github.io");
         snprintf(l[n++], 120, "Discord: %s", MP_AUTH_DISCORD_URL);
-        snprintf(l[n++], 120, "Font: Fredoka (SIL OFL 1.1).");
+        snprintf(l[n++], 120, "Fonts: UnifrakturMaguntia, Cinzel, Fredoka (SIL OFL 1.1).");
     }
     else snprintf(l[n++], 120, "Close GTA San Andreas now? Unsaved progress is lost.");
-    for(int i = 0; i < n; ++i) NeonPText(F_UI, l[i], x0 + 30 * u, y0 + (72 + i * 22) * u, 15 * u, LP_DIM());
+    for(int i = 0; i < n; ++i) NeonPText(F_UI, l[i], x0 + 30 * u, y0 + (72 + i * 22) * u, 15 * u, NC(190, 194, 202));
     const float by0 = y0 + dh - 62 * u, by1 = by0 + 40 * u;
     const bool pad = NeonPadUI();   // 5.01.11: the controller: left / right = the button, A = press, B = close
     if(about)
@@ -1623,7 +1823,7 @@ static void NeonPDialog(float W, float H, float u)
         if(s_nNK & NK_LEFT) s_nNeonDlgSel = 0;
         if(s_nNK & NK_RIGHT) s_nNeonDlgSel = 1;
         if(NeonPBtn("CANCEL", x0 + dw - 340 * u, by0, x0 + dw - 190 * u, by1, u, pad && s_nNeonDlgSel == 0) || (s_nNK & NK_B) || ((s_nNK & NK_A) && s_nNeonDlgSel == 0)) s_nNeonDlg = 0;
-        else if(NeonPBtn("QUIT", x0 + dw - 180 * u, by0, x0 + dw - 30 * u, by1, u, pad && s_nNeonDlgSel == 1, 2) || ((s_nNK & NK_A) && s_nNeonDlgSel == 1)) s_nNeonAct = NA_QUIT;
+        else if(NeonPBtn("QUIT", x0 + dw - 180 * u, by0, x0 + dw - 30 * u, by1, u, pad && s_nNeonDlgSel == 1) || ((s_nNK & NK_A) && s_nNeonDlgSel == 1)) s_nNeonAct = NA_QUIT;
     }
     EatTap();   // nothing under the dialog gets the tap
 }
@@ -1633,22 +1833,16 @@ static void NeonPTitle(float W, float H)
     const float u = H / 804.0f;
     const float L = fminf(W * 0.07f, 100 * u * (W / H) / (1430.0f / 804.0f));
     NeonPBackdrop(W, H);
-    NeonPTopBar(W, u, L);
-    // 5.01.14: the launcher layout: the menu is a glass side panel (logo, PLAY / OPTIONS sections, rows with the
-    // white selection strip + the blue bar), the bottom bar has the status and the green BROWSE SERVERS button
-    const float px0 = L - 14 * u, px1 = L + 340 * u, py0 = 70 * u, py1 = 728 * u;
-    NeonPPanel(px0, py0, px1, py1, u);
     if(const Tex* lg = T("logo.png"))
     {
-        const float w = 300 * u, h = w * (601.0f / 1920.0f);   // title.png's shape (the texture is stretched to 1024x512)
-        const float lx = (px0 + px1 - w) * 0.5f;
-        Img(lg, lx, py0 + 16 * u, lx + w, py0 + 16 * u + h);
+        const float w = 490 * u, h = w * (601.0f / 1920.0f);   // title.png's shape (the texture is stretched to 1024x512)
+        Img(lg, L, 52 * u, L + w, 52 * u + h);
     }
     // the dialog takes the taps first (it is drawn last, on top)
     const bool dlg = s_nNeonDlg != 0;
     bool tapUsed = false;
     static const char* const kItems[] = { "Resume", "New game", "Browse servers", "Quick connect", "Settings", "About", "Quit game" };
-    const int ni = 7; const float fs = 21 * u, step = 46 * u, ix = px0 + 30 * u;
+    const int ni = 7; const float fs = 38 * u, step = 43 * u, y0 = 205 * u, ix = L + 24 * u;
     // 5.01.11: the items do what they say: Browse servers / Settings open their neon pages right here
     auto activate = [&](int i)
     {
@@ -1662,13 +1856,13 @@ static void NeonPTitle(float W, float H)
             case 4: NeonTOpenSettings(); break;
             case 5: s_nNeonDlg = 1; break;
             case 6: s_nNeonDlg = 2; s_nNeonDlgSel = 1; break;
-            case 7: NeonTOpenBrowse(); break;            // the BROWSE SERVERS button
+            case 7: NeonTOpenBrowse(); break;            // NEON FEATURED
         }
     };
     if(!dlg && s_nNK)
-    {   // 5.01.11: the controller (PCMenu's ControllerNav): up / down = the item (then the button), A = press, B = Quit game
+    {   // 5.01.11: the controller (PCMenu's ControllerNav): up / down = the item (then the two cards), A = press, B = Quit game
         if(s_nNeonSel < 0 || s_nNeonSel > 7) s_nNeonSel = 0;
-        if(s_nNK & NK_UP) s_nNeonSel = (s_nNeonSel + 7) % 8;
+        if(s_nNK & NK_UP) s_nNeonSel = (s_nNeonSel + 7) % 8;   // 5.01.12: no identity card (8) any more
         if(s_nNK & NK_DOWN) s_nNeonSel = (s_nNeonSel + 1) % 8;
         if((s_nNK & NK_RIGHT) && s_nNeonSel < 7) s_nNeonSel = 7;
         if((s_nNK & NK_LEFT) && s_nNeonSel >= 7) s_nNeonSel = 2;
@@ -1676,30 +1870,23 @@ static void NeonPTitle(float W, float H)
         else if(s_nNK & NK_B) { s_nNeonDlg = 2; s_nNeonDlgSel = 0; }
         if(s_nNK & NK_Y) NeonTOpenBrowse();
     }
-    float y = py0 + 136 * u;
     for(int i = 0; i < ni; ++i)
     {
-        if(i == 0 || i == 4)
-        {   // the section titles
-            NeonPText(F_CAPS, i == 0 ? "PLAY" : "OPTIONS", ix, y + 6 * u, 11 * u, LP_DIM(), 2.0f * u);
-            y += 28 * u;
-        }
-        const float hx0 = px0 + 8 * u, hy0 = y, hx1 = px1 - 8 * u, hy1 = y + step - 4 * u;
+        const float y = y0 + i * step, w = TextW(F_GOTHIC, kItems[i], fs);
+        const float hx0 = ix - 30 * u, hy0 = y, hx1 = ix + w + 30 * u, hy1 = y + step;
         const bool held = !dlg && Held(hx0, hy0, hx1, hy1);
         const bool on = i == s_nNeonSel || held;
-        if(on) { Quad(hx0, hy0, hx1, hy1, NC(255, 255, 255, held ? 34 : 22)); Quad(hx0, hy0, hx0 + 3 * u, hy1, LP_BLUE()); }
-        if(on && i == s_nNeonSel && NeonPadUI()) NeonPFrame(hx0, hy0, hx1, hy1, 1.2f * u, LP_BLUE());
-        const NeonPaint::Col c = i == 6 ? (on ? NC(255, 120, 104) : LP_RED()) : (on ? NC(255, 255, 255) : LP_TEXT());
-        NeonPText(F_GOTHIC, kItems[i], ix, hy0 + (hy1 - hy0 - fs) * 0.5f - 1 * u, fs, c, 0.4f * u);
-        if(on) NeonPText(F_CAPS, ">", hx1 - 26 * u, hy0 + (hy1 - hy0 - 16 * u) * 0.5f, 16 * u, LP_DIM());
+        if(on) { const float a = 9 * u; Img(T("arrow.png"), ix - 14 * u - a * 0.5f, y + step * 0.5f - a * 0.5f, ix - 14 * u + a * 0.5f, y + step * 0.5f + a * 0.5f, NC(160, 170, 255)); }
+        const float px = ix, py = y + (step - fs) * 0.5f - 2 * u;
+        for(int k = 0; k < 4; ++k) Text(F_GOTHIC, kItems[i], px + ((k & 1) ? 1.4f : -1.4f) * u, py + ((k & 2) ? 1.4f : -1.4f) * u, fs, NC(10, 12, 18, 230));
+        Text(F_GOTHIC, kItems[i], px + 2 * u, py + 3 * u, fs, NC(0, 0, 0, 160));
+        Text(F_GOTHIC, kItems[i], px, py, fs, on ? NC(240, 243, 250) : NC(196, 204, 220), on ? NC(170, 180, 205) : NC(112, 122, 145));
         if(!dlg && !tapUsed && Tap(hx0, hy0, hx1, hy1)) { tapUsed = true; activate(i); }
-        y += step;
     }
     {   // tagline
-        const float ty = py1 - 52 * u;
-        Quad(px0 + 14 * u, ty - 12 * u, px1 - 14 * u, ty - 11 * u, LP_LINE());
-        NeonPText(F_UI, "Find a world and join the streets", ix, ty, 13 * u, LP_DIM());
-        NeonPText(F_UI, "of San Andreas.", ix, ty + 17 * u, 13 * u, LP_DIM());
+        const float ty = y0 + ni * step + 22 * u;
+        NeonPText(F_UI, "FIND A WORLD AND JOIN THE STREETS OF SAN", ix + 10 * u, ty, 12.5f * u, NC(205, 208, 214), 1.0f * u);
+        NeonPText(F_UI, "ANDREAS.", ix + 10 * u, ty + 16 * u, 12.5f * u, NC(205, 208, 214), 1.0f * u);
     }
     {   // Neon Identity: 5.01.12: no card on the menu any more. It showed "DISCORD CONNECTED" all the time right above the
         // pop-up (two notifications). Only the slide-in pop-up is left: once a run, when Discord is linked.
@@ -1728,40 +1915,47 @@ static void NeonPTitle(float W, float H)
             s_nNeonLinkedSeen = s_nNeonLinkedCand;
         }
     }
-    {   // 5.01.14: the launcher's bottom bar: status left, the green BROWSE SERVERS (= CONNECT) button right
-        const float by0 = H - 64 * u;
-        Quad(0, by0, W, H, NC(12, 14, 18, 205));
-        Quad(0, by0, W, by0 + 1 * u, LP_LINE());
-        const float ax = W - L - 300 * u, ay = by0 + 10 * u, bx = W - L + 14 * u, bby = H - 10 * u;
-        const bool focus = s_nNeonSel == 7 && NeonPadUI();
-        if(NeonPBtn("BROWSE SERVERS", ax, ay, bx, bby, u, focus, 1) && !dlg && !tapUsed) { tapUsed = true; activate(7); }
-        const float hy = by0 + 16 * u;
-        NeonPText(F_CAPS, "NOT CONNECTED", L - 8 * u, hy, 13 * u, LP_TEXT(), 1.2f * u);
-        char v[64]; snprintf(v, sizeof(v), "V%s - SERVERS ON THE INTERNET AND YOUR WI-FI", MP_VERSION_STR);
-        NeonPText(F_UI, v, L - 8 * u, hy + 19 * u, 11.5f * u, LP_DIM(), 1.0f * u);
-        float hx = W * 0.42f;
+    {   // Neon featured (bottom left): on the title it opens the server browser after the Multiplayer load
+        const float ax = L - 8 * u, ay = 643 * u, bx = L + 379 * u, by = 723 * u;
+        const bool held = !dlg && (Held(ax, ay, bx, by) || s_nNeonSel == 7);
+        Img(T("card_featured.png"), ax, ay, bx, by, held ? NC(205, 212, 255) : NC(255, 255, 255));
+        if(s_nNeonSel == 7 && NeonPadUI()) NeonPFrame(ax - 2 * u, ay - 2 * u, bx + 2 * u, by + 2 * u, 1.6f * u, NC(88, 101, 242));
+        NeonPText(F_CAPS, "NEON FEATURED", ax + 20 * u, ay + 18 * u, 10 * u, NC(150, 152, 158), 1.2f * u);
+        NeonPText(F_CAPS, "BROWSE SERVERS", ax + 20 * u, ay + 32 * u, 18 * u, NC(226, 228, 232), 1.8f * u, true);
+        NeonPText(F_CAPS, "PLAY NOW", ax + 20 * u, ay + 57 * u, 10 * u, NC(200, 202, 208), 1.2f * u);
+        if(!dlg && !tapUsed && Tap(ax, ay, bx, by)) { tapUsed = true; activate(7); }
+    }
+    {   // footer: version + hints + language
+        char v[64]; snprintf(v, sizeof(v), "V%s - NEON PREVIEW", MP_VERSION_STR);
+        const float hy = 758 * u;
+        NeonPText(F_UI, v, L - 8 * u, hy, 12 * u, NC(100, 104, 112), 2.4f * u);
+        float hx = W * (998.0f / 1430.0f);
         if(NeonPadUI())
         {   // 5.01.12: SELECT / A CONFIRM only while a controller is in use (touch = no pad hints)
-            Img(T("arrow_down.png"), hx, hy + 6 * u, hx + 9 * u, hy + 15 * u, LP_DIM());
-            NeonPText(F_UI, "SELECT", hx + 16 * u, hy + 4 * u, 12 * u, LP_DIM(), 2.0f * u);
-            const float ex = hx + 84 * u;
-            NeonPFrame(ex, hy + 1 * u, ex + 18 * u, hy + 18 * u, 1.1f * u, LP_DIM());
-            NeonPText(F_UI, "A", ex + 5 * u, hy + 4 * u, 12 * u, LP_TEXT());
-            NeonPText(F_UI, "CONFIRM", ex + 26 * u, hy + 4 * u, 12 * u, LP_DIM(), 2.0f * u);
+            Img(T("arrow_down.png"), hx, hy + 2 * u, hx + 9 * u, hy + 11 * u, NC(120, 124, 132));
+            NeonPText(F_UI, "SELECT", hx + 16 * u, hy, 12 * u, NC(120, 124, 132), 2.2f * u);
+            const float ex = hx + 84 * u;   // 5.01.11: the controller's A (the menu takes the pad now)
+            NeonPFrame(ex, hy - 3 * u, ex + 18 * u, hy + 14 * u, 1.1f * u, NC(150, 152, 158));
+            NeonPText(F_UI, "A", ex + 5 * u, hy, 12 * u, NC(200, 202, 208));
+            NeonPText(F_UI, "CONFIRM", ex + 26 * u, hy, 12 * u, NC(120, 124, 132), 2.2f * u);
         }
         const char* ln = "ENGLISH";
         {   // the atlas is ASCII: other languages show their code
             static char up[16]; const char* c = settings.uiLanguage[0] ? settings.uiLanguage : "en";
             if(strcasecmp(c, "en")) { NeonUpper(up, sizeof(up), c); ln = up; }
         }
-        const float lw = TextW(F_UI, ln, 12 * u, 1.6f * u);
-        NeonPText(F_UI, ln, W - L - 8 * u - lw, 20 * u, 12 * u, LP_DIM(), 1.6f * u);   // top bar, right
+        const float lx = W - 160 * u;
+        if(NeonPadUI())
+        {
+            NeonPFrame(lx, hy - 2 * u, lx + 16 * u, hy + 14 * u, 1.2f * u, NC(200, 202, 208));
+            NeonPText(F_UI, "A", lx + 4 * u, hy, 11 * u, NC(200, 202, 208));
+        }
+        NeonPText(F_UI, ln, lx + 24 * u, hy, 12 * u, NC(220, 222, 228), 1.6f * u);
     }
     if(dlg) NeonPDialog(W, H, u);
 }
-// 5.01.14: the loading cover (paint 4): from the join tap until the loading screen, and over the pause menu after it
 static void NeonPLoading(float W, float H)
-{
+{   // 5.01.14 (the 5.01.13 look again in 5.01.15): the cover over the game's menus while a server is being joined
     using namespace NeonPaint;
     const float u = H / 804.0f;
     const float L = fminf(W * 0.07f, 100 * u * (W / H) / (1430.0f / 804.0f));
@@ -1773,27 +1967,25 @@ static void NeonPLoading(float W, float H)
     }
     const uint64_t now = MP_NowMs();
     char m[48]; snprintf(m, sizeof(m), "CONNECTING TO MULTIPLAYER%s", (now / 400) % 4 == 0 ? "" : (now / 400) % 4 == 1 ? "." : (now / 400) % 4 == 2 ? ".." : "...");
-    const float fs = 16 * u, ty = H - 64 * u;
-    NeonPText(F_CAPS, m, W - L - TextW(F_CAPS, "CONNECTING TO MULTIPLAYER...", fs, 1.4f * u), ty, fs, LP_TEXT(), 1.4f * u, true);
-    {   // a moving bar (the launcher's busy line)
+    const float fs = 15 * u, ty = H - 64 * u;
+    NeonPText(F_CAPS, m, W - L - TextW(F_CAPS, "CONNECTING TO MULTIPLAYER...", fs, 1.8f * u), ty, fs, NC(226, 228, 232), 1.8f * u, true);
+    {   // a moving blue bar
         const float bx0 = L - 8 * u, bx1 = W - L + 8 * u, by = H - 30 * u;
         Quad(bx0, by, bx1, by + 3 * u, NC(255, 255, 255, 36));
         const float f = (float)(now % 1600) / 1600.0f, seg = (bx1 - bx0) * 0.22f;
         const float a = bx0 + (bx1 - bx0 + seg) * f - seg;
-        Quad(fmaxf(a, bx0), by, fminf(a + seg, bx1), by + 3 * u, LP_BLUE());
+        Quad(fmaxf(a, bx0), by, fminf(a + seg, bx1), by + 3 * u, NC(88, 101, 242));
     }
-    NeonPText(F_CAPS, "GAMEPLAY TIP", L - 8 * u, ty, 12 * u, LP_RED(), 1.6f * u);
-    NeonPText(F_UI, "Find a world and join the streets of San Andreas.", L - 8 * u, ty + 17 * u, 13 * u, LP_DIM());
+    NeonPText(F_CAPS, "GAMEPLAY TIP", L - 8 * u, ty, 12 * u, NC(160, 170, 255), 1.8f * u, true);
+    NeonPText(F_UI, "Find a world and join the streets of San Andreas.", L - 8 * u, ty + 17 * u, 13 * u, NC(170, 174, 182));
     EatTap();
 }
 static void NeonPPill(float W, float H)
 {   // the game's own menu (Game settings): the way back to the neon menu
     using namespace NeonPaint;
     const float u = H / 804.0f, w = 230 * u, h = 46 * u, x0 = W * 0.02f, y0 = H - h - 20 * u;
-    Quad(x0, y0, x0 + w, y0 + h, Held(x0, y0, x0 + w, y0 + h) ? NC(77, 87, 99, 230) : NC(26, 29, 34, 225));   // 5.01.14
-    NeonPFrame(x0, y0, x0 + w, y0 + h, 1.0f * u, LP_LINE());
-    Quad(x0, y0, x0 + 3 * u, y0 + h, LP_BLUE());
-    NeonPText(F_CAPS, "MP MENU", x0 + 22 * u, y0 + (h - 15 * u) * 0.5f, 15 * u, LP_TEXT(), 1.6f * u);
+    Img(T("pill.png"), x0, y0, x0 + w, y0 + h);
+    NeonPText(F_UI, "NEON MENU", x0 + 20 * u, y0 + 14 * u, 14 * u, NC(226, 228, 232), 3.0f * u);
     if(Tap(x0, y0, x0 + w, y0 + h)) s_bNeonHidden = false;
 }
 static void NeonPTile(float W, float H)
@@ -1814,7 +2006,7 @@ void MP::NeonPaintMenu(int what)
 {
     if(!NeonPaint::Ready() || what <= 0) return;
     const float W = NeonPaint::W(), H = NeonPaint::H();
-    if(s_nNeonPaintFrames < 3) logger->Info("Neon menu: native frame %d (%s, %.0fx%.0f)", s_nNeonPaintFrames + 1, what == 1 ? "neon title" : what == 2 ? "mp tile" : what == 4 ? "loading cover" : "pill", W, H);
+    if(s_nNeonPaintFrames < 3) logger->Info("Neon menu: native frame %d (%s, %.0fx%.0f)", s_nNeonPaintFrames + 1, what == 1 ? "neon title" : what == 2 ? "mp tile" : "pill", W, H);
     NeonPaint::FrameInput();
     NeonPaint::Begin();
     s_nNK = s_nNeonKeysQ.exchange(0);   // 5.01.11: the controller keys since the last paint
@@ -1847,7 +2039,8 @@ void MP::NeonMenuTick()
     const uint64_t now = MP_NowMs();
     const bool titleUp = s_nNeonTitleMs && now - s_nNeonTitleMs < 600 && NeonTitleCtx();
     // 5.01.11: the menu music while the neon title menu is up; notify.mp3 for the Discord pop-up
-    NeonMusicTick(titleUp);
+    // 5.01.15: it keeps playing through a short gap (a sub-menu, a frame without the title) instead of restarting at 0:00
+    NeonMusicTick(s_nNeonTitleMs && now - s_nNeonTitleMs < 4000 && NeonTitleCtx());
     if(titleUp) NotifySoundFetch();
     if(s_bNeonToastSound && titleUp)
     {
@@ -1862,6 +2055,8 @@ void MP::NeonMenuTick()
     if(titleUp && s_nNT == NT_SETTINGS && now - s_nNSBuiltAt > 1500) { s_nNSBuiltAt = now; NeonNSBuild(); }
     if(!titleUp && s_nNT != NT_MAIN && !NeonTitleCtx()) s_nNT = NT_MAIN;
     {
+        const int fv = s_nNTFavReq.exchange(-1);   // 5.01.15: the favourite star (favorites.txt on this thread)
+        if(fv >= 0) { LSetFav(s_NTFav.name, s_NTFav.port, fv == 1); s_nNTBuiltAt = 0; }
         const int j = s_nNTJoinReq.exchange(-1);
         if(j >= 0 && NeonTitleCtx())
         {

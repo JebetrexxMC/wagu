@@ -175,7 +175,7 @@ mp_neon_20_end:
     .global mp_neon_21
     .hidden mp_neon_21
 mp_neon_21:
-    .incbin "lp_bg.png"
+    .incbin "nb_bg.png"
     .global mp_neon_21_end
     .hidden mp_neon_21_end
 mp_neon_21_end:
@@ -183,49 +183,9 @@ mp_neon_21_end:
     .global mp_neon_22
     .hidden mp_neon_22
 mp_neon_22:
-    .incbin "lp_title.png"
+    .incbin "nb_flags.png"
     .global mp_neon_22_end
     .hidden mp_neon_22_end
 mp_neon_22_end:
-    .balign 4
-    .global mp_neon_23
-    .hidden mp_neon_23
-mp_neon_23:
-    .incbin "lp_title.txt"
-    .global mp_neon_23_end
-    .hidden mp_neon_23_end
-mp_neon_23_end:
-    .balign 4
-    .global mp_neon_24
-    .hidden mp_neon_24
-mp_neon_24:
-    .incbin "lp_caps.png"
-    .global mp_neon_24_end
-    .hidden mp_neon_24_end
-mp_neon_24_end:
-    .balign 4
-    .global mp_neon_25
-    .hidden mp_neon_25
-mp_neon_25:
-    .incbin "lp_caps.txt"
-    .global mp_neon_25_end
-    .hidden mp_neon_25_end
-mp_neon_25_end:
-    .balign 4
-    .global mp_neon_26
-    .hidden mp_neon_26
-mp_neon_26:
-    .incbin "lp_ui.png"
-    .global mp_neon_26_end
-    .hidden mp_neon_26_end
-mp_neon_26_end:
-    .balign 4
-    .global mp_neon_27
-    .hidden mp_neon_27
-mp_neon_27:
-    .incbin "lp_ui.txt"
-    .global mp_neon_27_end
-    .hidden mp_neon_27_end
-mp_neon_27_end:
     .byte 0
     .section .note.GNU-stack,"",%progbits

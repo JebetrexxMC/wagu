@@ -200,7 +200,7 @@ bool NeonPaint::Load(const char* mpDir)
     std::string dir = std::string(mpDir) + "/neon/";
     NeonEmbed::Ensure(dir);   // 4.13.33: missing / old files come from the copy built into MP
     static const char* const kTex[] = { "art.png", "logo.png", "shade_left.png", "shade_bottom.png", "shade_top.png", "card_identity.png",
-        "card_featured.png", "dialog.png", "button.png", "pill.png", "discord.png", "arrow.png", "arrow_down.png", "dot.png", "white.png", "lp_bg.png" };
+        "card_featured.png", "dialog.png", "button.png", "pill.png", "discord.png", "arrow.png", "arrow_down.png", "dot.png", "white.png", "nb_bg.png", "nb_flags.png" };
     // 5.01.08: a texture that does not load no longer turns the whole neon menu off (it is just not drawn); only no
     // font at all does. What failed goes to mp_log.txt + neon_mode_status.txt.
     s_szErr.clear();
@@ -209,9 +209,7 @@ bool NeonPaint::Load(const char* mpDir)
     static const char* const kFont[] = { "font_gothic", "font_caps", "font_ui" };
     for(int i = 0; i < F_COUNT; ++i)
     {
-        // 5.01.14: the launcher font (Fredoka, lp_*) first - the old blackletter / Cinzel atlases only as a fallback
-        static const char* const kLp[] = { "lp_title", "lp_caps", "lp_ui" };
-        if(s_Font[i].tex || LoadFont(dir, i, kLp[i]) || LoadFont(dir, i, kFont[i])) ++fontOk;
+        if(s_Font[i].tex || LoadFont(dir, i, kFont[i])) ++fontOk;
         else s_szErr += std::string(s_szErr.empty() ? "" : ", ") + kFont[i] + ".png/.txt";
     }
     if(!fontOk)

@@ -48,6 +48,7 @@ extern "C" unsigned long crc32(unsigned long crc, const unsigned char* buf, unsi
 #include "ui/server_style.h"   // 4.03
 #include "ui/floatmenu.h"
 #include "ui/vkeyboard.h"
+#include "ui/clipboard.h"   // 5.01.15: COPY LINK / paste a server link on the neon Browse servers page
 #include "ui/ui_common.h"
 #include "ui/hexlabel.h"   // 3.55
 #include "game/cleoblock.h"
