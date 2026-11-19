@@ -156,6 +156,34 @@ bool HookLoadAtomic(void* stream, unsigned id)
     StreamClose(ms, nullptr);
     return r;
 }
+// 5.01.13: the big model path (gta-reversed CStreaming::ConvertBufferToObject / CFileLoader 0x5373F0 + 0x537450):
+// a dff bigger than the streaming buffer is read in two calls - StartLoadClumpFile (RpClumpGtaStreamRead1, the
+// model goes LOADSTATE_FINISHING) then FinishLoadClumpFile (RpClumpGtaStreamRead2 + SetClump) on the next
+// ConvertBufferToObject. LoadClumpFile is never called there, so big MTA models (the high-poly player skins,
+// big objects) were flagged "did not go through the clump/atomic loader" and fell back to the buffer swap.
+// Now the start is skipped for our model (GTA's half-read clump is never made) and the finish reads the whole
+// MTA dff from memory through the normal clump loader (which does SetClump).
+bool  (*StartClump_orig)(void*, unsigned) = nullptr;
+bool  (*FinishClump_orig)(void*, unsigned) = nullptr;
+int   s_BigId = -1;                          // our big model between the two calls
+bool HookStartClump(void* stream, unsigned id)
+{
+    if(s_CurId < 0 || (int)id != s_CurId || s_CurUsed || !LoadClump_orig) return StartClump_orig(stream, id);
+    s_CurUsed = true; s_CurHow = "big model loader"; s_BigId = (int)id;
+    return true;
+}
+bool HookFinishClump(void* stream, unsigned id)
+{
+    if(s_BigId != (int)id) return FinishClump_orig(stream, id);
+    s_BigId = -1;
+    // GTA's first half was never read, so GTA's finish must not run: ours or a failed load (the streamer asks again)
+    if(s_CurId != (int)id) return false;
+    void* ms = OpenCur(); if(!ms) return false;
+    s_CurUsed = true; s_CurHow = "big model loader";
+    bool r = LoadClump_orig(ms, id);
+    StreamClose(ms, nullptr);
+    return r;
+}
 // a ped clump that came another way (big model path): read ours, drop the game's one
 void HookPedSetClump(void* mi, void* clump)
 {
@@ -516,10 +544,15 @@ bool DecodeNative(const uint8_t* d, size_t n, int cap, Tex& t)
     {
         // D3D9 format, or the RW raster format (D3D8 files)
         int f = 0;   // 1 = BGRA8888, 2 = BGRX8888, 3 = 565, 4 = 1555, 5 = 4444, 6 = L8, 7 = BGR888 (24 bit)
+        // 5.01.13: + D3DFMT_R8G8B8 (20), X1R5G5B5 (24), A8 (28), X4R4G4B4 (30), A8L8 (51); a 888 raster is 4 bytes a
+        // pixel on D3D (X8R8G8B8) even when the depth byte says 24 - only 3 when the level really is that small
         if(plat == 9 && fmt == 21) f = 1; else if(plat == 9 && fmt == 22) f = 2; else if(plat == 9 && fmt == 23) f = 3;
         else if(plat == 9 && fmt == 25) f = 4; else if(plat == 9 && fmt == 26) f = 5; else if(plat == 9 && fmt == 50) f = 6;
-        else switch(rf & 0x0F00) { case 0x500: f = 1; break; case 0x600: f = depth == 24 ? 7 : 2; break; case 0x200: f = 3; break; case 0x100: f = 4; break; case 0x300: f = 5; break; case 0x400: f = 6; break; default: f = 0; }
-        int bpp = (f == 1 || f == 2) ? 4 : (f == 7 ? 3 : (f == 6 ? 1 : 2));
+        else if(plat == 9 && fmt == 20) f = 7; else if(plat == 9 && fmt == 24) f = 8; else if(plat == 9 && fmt == 28) f = 9;
+        else if(plat == 9 && fmt == 30) f = 10; else if(plat == 9 && fmt == 51) f = 11;
+        else switch(rf & 0x0F00) { case 0x500: f = 1; break; case 0x600: f = 2; break; case 0x200: f = 3; break; case 0x100: f = 4; break; case 0x300: f = 5; break; case 0x400: f = 6; break; case 0xA00: f = 8; break; default: f = 0; }
+        if(f == 2 && depth == 24 && (size_t)lw * lh * 4 > sz) f = 7;
+        int bpp = (f == 1 || f == 2) ? 4 : (f == 7 ? 3 : ((f == 6 || f == 9) ? 1 : 2));
         if(!f || (size_t)lw * lh * bpp > sz) return false;
         for(size_t i = 0; i < (size_t)lw * lh; ++i)
         {
@@ -532,6 +565,10 @@ bool DecodeNative(const uint8_t* d, size_t n, int cap, Tex& t)
             case 4: { uint16_t c = U16(s); q[0] = (uint8_t)(((c >> 10) & 31) * 255 / 31); q[1] = (uint8_t)(((c >> 5) & 31) * 255 / 31); q[2] = (uint8_t)((c & 31) * 255 / 31); q[3] = (c & 0x8000) ? 255 : 0; break; }
             case 5: { uint16_t c = U16(s); q[0] = (uint8_t)(((c >> 8) & 15) * 17); q[1] = (uint8_t)(((c >> 4) & 15) * 17); q[2] = (uint8_t)((c & 15) * 17); q[3] = (uint8_t)((c >> 12) * 17); break; }
             case 6: q[0] = q[1] = q[2] = s[0]; q[3] = 255; break;
+            case 8: { uint16_t c = U16(s); q[0] = (uint8_t)(((c >> 10) & 31) * 255 / 31); q[1] = (uint8_t)(((c >> 5) & 31) * 255 / 31); q[2] = (uint8_t)((c & 31) * 255 / 31); q[3] = 255; break; }
+            case 9: q[0] = q[1] = q[2] = 255; q[3] = s[0]; break;
+            case 10: { uint16_t c = U16(s); q[0] = (uint8_t)(((c >> 8) & 15) * 17); q[1] = (uint8_t)(((c >> 4) & 15) * 17); q[2] = (uint8_t)((c & 15) * 17); q[3] = 255; break; }
+            case 11: q[0] = q[1] = q[2] = s[0]; q[3] = s[1]; break;
             }
         }
     }
@@ -950,12 +987,16 @@ void DzModels::Init(void* h)
         if(void* g = (void*)aml->GetSym(h, "_ZN11CFileLoader14LoadAtomicFileEP8RwStreamj")) aml->Hook(g, (void*)&HookLoadAtomic, (void**)&LoadAtomic_orig);
         if(StreamFindChunk && ClumpStreamRead && ClumpDestroy)
             if(void* g = (void*)aml->GetSym(h, "_ZN14CPedModelInfo8SetClumpEP7RpClump")) aml->Hook(g, (void*)&HookPedSetClump, (void**)&PedSetClump_orig);
+            // 5.01.13: the two-call big model path (both or neither: a start without our finish would leave GTA half-read)
+            void* gs = (void*)aml->GetSym(h, "_ZN11CFileLoader18StartLoadClumpFileEP8RwStreamj");
+            void* gf = (void*)aml->GetSym(h, "_ZN11CFileLoader19FinishLoadClumpFileEP8RwStreamj");
+            if(gs && gf) { aml->Hook(gs, (void*)&HookStartClump, (void**)&StartClump_orig); aml->Hook(gf, (void*)&HookFinishClump, (void**)&FinishClump_orig); }
     }
     s_Cache = FindCacheDir();
     if(!s_Cache.empty()) LoadBad();
     DzLog(false, "DzModels: loader hooks clump %s atomic %s ped %s texdb %s", LoadClump_orig ? "ok" : "-", LoadAtomic_orig ? "ok" : "-", PedSetClump_orig ? "ok" : "-", DbGetTexture_orig ? "ok" : "-");
-    DzLog(false, "DzModels: hook %s, txd %s, rw %s, cache %s", CBTO_orig ? "ok" : "-", (AddTxdSlot && TxdCreate && s_TxdPool) ? "ok" : "-",
-                 (TexCreate && DictAddTex) ? "ok" : "-", s_Cache.empty() ? "-" : s_Cache.c_str());
+    DzLog(false, "DzModels: hook %s, txd %s, rw %s, big models %s, cache %s", CBTO_orig ? "ok" : "-", (AddTxdSlot && TxdCreate && s_TxdPool) ? "ok" : "-",
+                 (TexCreate && DictAddTex) ? "ok" : "-", StartClump_orig ? "ok" : "-", s_Cache.empty() ? "-" : s_Cache.c_str());
 }
 
 void DzModels::Tick(bool on, const int* objIds, int nObj)
