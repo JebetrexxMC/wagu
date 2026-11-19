@@ -1,0 +1,13 @@
+# lua_scripts_loader.lua does not start the scripts listed here.
+# One per line: a file name (AutoLock.lua), a path inside lua_scripts/ (moonloader-scripts/arizona/AutoLock.lua),
+# a zip (hitmarker.zip) or a folder ending in / (templates/). Lines starting with # are comments.
+# Delete a line (or put # in front) to start that script too.
+
+# code templates of the moonloader-scripts collection (examples to copy from, not mods)
+templates/
+# PC only: changes the Windows registry / process priority
+setLowPriority.lua
+# outdated by its author
+absTXDNames(outdated).lua
+# /bb crashes your own game on purpose
+bb.lua

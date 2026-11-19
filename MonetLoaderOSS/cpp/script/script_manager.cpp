@@ -1,0 +1,1505 @@
+#include <dlfcn.h>
+#include <cmath>
+#include "game/CEntity.h"
+#include "luavideo.h"
+#include "game/mp_bridge.h"
+#include "game/rakhook.h"
+#include "script_manager.h"
+#include "clipboard.h"
+#include "compat.h"
+#include "encoding.h"
+#include "file_manager.h"
+#include "game/CMatrix.h"
+#include "game/CMessages.h"
+#include "game/CPad.h"
+#include "game/CPlayerPed.h"
+#include "game/CPools.h"
+#include "game/CQuaternion.h"
+#include "game/CRadar.h"
+#include "game/CTouchInterface.h"
+#include "game/MobileMenu.h"
+#include "game/common.h"
+#include "game/customgxt.h"
+#include "game/netinfo.h"
+#include "gui/render.h"
+#include "lib_manager.h"
+#include "logger.h"
+#include "luabass.h"
+#include "luafuncs.h"
+#include "luajson.h"
+#include "modules/cjson/lua_cjson.h"
+#include "modules/effil/lua-module.h"
+#include "modules/lbase64.h"
+#include "modules/lfs.h"
+#include "modules/luasec/api.h"
+#include "modules/luasocket/luasocket.h"
+#include "modules/luasocket/mime.h"
+#include "modules/luasocket/serial.h"
+#include "modules/luasocket/unix.h"
+#include "modules/memory.h"
+#include "modules/pccompat.h"
+
+extern "C" { // 4.0.0-mp native modules (cpp/script/modules/natives.cmake)
+int luaopen_lpeg(lua_State* L);
+int luaopen_rex_posix(lua_State* L);
+int luaopen_rex_pcre2(lua_State* L);
+int luaopen_luasql_sqlite3(lua_State* L);
+int luaopen_lanes_core(lua_State* L);
+int luaopen_xml_core(lua_State* L);
+}
+#include "modules/mimgui/renderer.h"
+#include "modules/mimgui/embedded_lua.h"
+#include "opcodes.h"
+#include "sol/sol.hpp"
+#include "thread.h"
+#include <filesystem>
+#include <optional>
+
+namespace {
+class wait_task : public lua::scheduler_task {
+  public:
+  wait_task(int ms)
+      : _end(std::chrono::steady_clock::now() + std::chrono::milliseconds(ms))
+  {
+  }
+
+  bool is_complete() override
+  {
+    return std::chrono::steady_clock::now() >= _end;
+  }
+
+  private:
+  std::chrono::time_point<std::chrono::steady_clock> _end;
+};
+
+class infinite_task : public lua::scheduler_task {
+  public:
+  infinite_task() = default;
+
+  bool is_complete() override
+  {
+    return false;
+  }
+};
+
+// not working for cross device links
+// bool move_recursive(const std::filesystem::path& old_path, const std::filesystem::path& new_path)
+// {
+//   if (std::filesystem::exists(old_path) && std::filesystem::is_directory(old_path)) {
+//     std::vector<std::filesystem::path> rename_list {};
+//     for (const auto& entry : std::filesystem::recursive_directory_iterator(old_path)) {
+//       if (std::filesystem::is_regular_file(entry) || std::filesystem::is_symlink(entry)) {
+//         rename_list.emplace_back(entry.path());
+//       }
+//     }
+
+//     for (auto& i : rename_list) {
+//       std::filesystem::path new_file_path = new_path / std::filesystem::relative(i, old_path);
+//       std::filesystem::create_directories(new_file_path.parent_path());
+//       std::filesystem::rename(i, new_file_path);
+//     }
+
+//     std::filesystem::remove(old_path);
+//     return true;
+//   }
+
+//   return false;
+// }
+
+bool move_recursive(const std::filesystem::path& old_path, const std::filesystem::path& new_path)
+{
+  if (std::filesystem::exists(old_path) && std::filesystem::is_directory(old_path)) {
+    std::error_code ec;
+
+    auto old_log_path = old_path / logger::relative_path;
+    if (std::filesystem::exists(old_log_path)) {
+      std::filesystem::remove(old_log_path, ec);
+      ec.clear();
+    }
+
+    std::filesystem::copy(old_path, new_path,
+        std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive, ec);
+    if (ec) {
+      logger::log<logger::LV_SYSTEM>(nullptr, "{}", "Failed to move files. Make sure you have enough storage.");
+      ec.clear();
+      return true;
+    }
+
+    std::filesystem::remove_all(old_path, ec);
+    if (ec) {
+      ec.clear();
+      std::filesystem::path dirname = old_path.filename();
+
+      int i = 1;
+      std::filesystem::path move_to_path = old_path.parent_path() / (dirname.string() + "_old");
+      while (std::filesystem::exists(move_to_path)) {
+        move_to_path = old_path.parent_path() / (dirname.string() + "_old" + std::to_string(i));
+        ++i;
+      }
+
+      std::filesystem::rename(old_path, move_to_path);
+    }
+    return true;
+  }
+
+  return false;
+}
+}
+
+void lua::script_manager::init()
+{
+  if (_initialized) {
+    return;
+  }
+
+  logger::log<logger::LV_SYSTEM>(nullptr, "{}", "\n\n\n\t* MonetLoader for MP initialized! Version: " PROJECT_VERSION "\n\n");
+
+  // MP Multiplayer: PC MoonLoader scripts live in the MP folder (files/TYFMC/MP/moonloader, lib/ for the libraries)
+  std::filesystem::path monetloader_path = file_manager::mp_moonloader_path();
+  std::error_code ec;
+  std::filesystem::create_directories(monetloader_path / "lib", ec);
+
+  // setup
+  _main_thread_id = gettid();
+  _root_path = monetloader_path;
+  pccompat::set_root(_root_path.string());
+  std::filesystem::current_path(monetloader_path);
+  init_modules();
+
+  mp_bridge::try_attach(); // 3.8.1: MP first, so samp.events / isSampLoaded work in the scripts' main chunk
+  gui::render::new_frame();
+  load_all();
+
+  for_each_event_handler("onSystemInitialized", [](sol::protected_function fn) -> std::optional<sol::error> {
+    auto pfr = fn();
+    if (!pfr.valid()) {
+      sol::error e = pfr;
+      return e;
+    }
+    return std::nullopt;
+  });
+  run_queued_actions();
+
+  start_main_all();
+  gui::render::end_frame();
+
+  _initialized = true;
+}
+
+void lua::script_manager::shutdown()
+{
+  // std::lock_guard<std::mutex> lock { _gil };
+
+  if (!_initialized) {
+    return;
+  }
+
+  for_each_event_handler("onQuitGame", [](sol::protected_function fn) -> std::optional<sol::error> {
+    auto pfr = fn();
+    if (!pfr.valid()) {
+      sol::error e = pfr;
+      return e;
+    }
+    return std::nullopt;
+  });
+  run_queued_actions();
+
+  for (auto it = _scripts.begin(); it != _scripts.end();) {
+    it = destroy_script(it, destroy_script_type::quit);
+  }
+
+  _commands.clear();
+  _loaded_paths.clear();
+  _scripts.clear();
+  _modules.clear();
+  _queued_actions.clear();
+  _reload_all_later = false;
+  _next_script_id = 1;
+  _initialized = false;
+}
+
+std::optional<std::size_t> lua::script_manager::load(std::filesystem::path path)
+{
+  path = std::filesystem::weakly_canonical(path).make_preferred();
+  if (_loaded_paths.find(path) != _loaded_paths.end())
+    return std::nullopt;
+
+  logger::log<logger::LV_SYSTEM>(nullptr, "{} '{}'...", "Loading script:", path.string());
+  std::size_t script_id = _next_script_id++;
+  _scripts.try_emplace(script_id, script_id, path);
+  script& ref = _scripts.at(script_id);
+
+  // Script stuff
+  register_packages(ref.state);
+  register_core_functions(ref);
+  register_script_info_functions(ref);
+  register_thread_functions(ref);
+  register_memory_functions(ref);
+  pccompat::register_functions(ref.state);
+
+  // Opcodes
+  opcodes::reg(ref.state);
+  register_opcode_extensions(ref);
+  register_cleo_opcodes(ref);
+  register_sampfuncs_opcodes(ref);
+
+  // Variables
+  register_globals(ref);
+  register_handles(ref);
+
+  auto e = start(ref, path.string());
+  if (e.has_value()) {
+    ref.dying = true;
+    logger::log<logger::LV_ERROR>(&ref, "{}", e->what());
+    logger::log<logger::LV_ERROR>(&ref, "{}", "Script died due to an error.");
+    destroy_script(_scripts.find(script_id), destroy_script_type::silent);
+    return std::nullopt;
+  } else {
+    logger::log<logger::LV_SYSTEM>(&ref, "{}", "Loaded successfully.");
+
+    _loaded_paths.emplace(path, script_id);
+    for_each_event_handler("onScriptLoad", [&ref = ref](sol::protected_function fn) -> std::optional<sol::error> {
+      auto pfr = fn(ref.info);
+      if (!pfr.valid()) {
+        sol::error e = pfr;
+        return e;
+      }
+      return std::nullopt;
+    });
+
+    return script_id;
+  }
+}
+
+void lua::script_manager::one_off_load(std::filesystem::path path)
+{
+  auto o = load(path);
+  if (o.has_value()) {
+    auto it = _scripts.find(*o);
+    if (it == _scripts.end())
+      return;
+
+    auto o_2 = start_main(it->second);
+    if (o_2.has_value()) {
+      it->second.dying = true;
+      logger::log<logger::LV_ERROR>(&it->second, "{}", o_2->what());
+      destroy_script(it, destroy_script_type::error);
+    }
+  }
+}
+
+void lua::script_manager::load_all()
+{
+  std::filesystem::path path { _root_path };
+  std::error_code ec;
+  std::filesystem::create_directories(path, ec);
+  std::filesystem::create_directories(path / "lib", ec);
+  std::filesystem::create_directories(path / "config", ec);
+
+  std::string ext_lua { ".lua" };
+  std::string ext_luac { ".luac" };
+  std::filesystem::directory_iterator it { path, ec };
+  if (ec) {
+    return;   // MP: no readable moonloader folder = no scripts (never throw into the game)
+  }
+  for (auto& i : it) {
+    std::error_code fe;
+    if (i.is_regular_file(fe) && (i.path().extension() == ext_lua || i.path().extension() == ext_luac)) {
+      load(i.path());
+    }
+  }
+
+  run_queued_actions();
+}
+
+void lua::script_manager::run(bool in_pause)
+{
+  // std::lock_guard<std::mutex> lock { _gil };
+  gui::render::new_frame();
+
+  run_queued_actions();
+
+  if (_reload_all_later) {
+    for (auto it = _scripts.begin(); it != _scripts.end();) {
+      if (it->second.flags & script_flags::forced_reloading_only) {
+        it->second.sched.run(in_pause);
+        ++it;
+      } else {
+        it = destroy_script(it, destroy_script_type::normal);
+      }
+    }
+    run_queued_actions();
+
+    load_all();
+    start_main_all();
+    _reload_all_later = false;
+  } else {
+    for (auto it = _scripts.begin(); it != _scripts.end();) {
+      auto o = it->second.sched.run(in_pause);
+      if (o.has_value()) {
+        it->second.dying = true;
+        logger::log<logger::LV_ERROR>(&it->second, "{}", o->what());
+        it = destroy_script(it, destroy_script_type::error);
+      } else if (it->second.event_handlers.size() == 0 && it->second.sched.pending_tasks() == 0) {
+        it = destroy_script(it, destroy_script_type::normal);
+      } else {
+        ++it;
+      }
+    }
+  }
+
+  run_queued_actions();
+
+  gui::render::end_frame();
+}
+
+void lua::script_manager::run_queued_actions()
+{
+  for (auto& i : _queued_actions) {
+    if (i.type == script_action::action_type::reload) {
+      auto it = _scripts.find(i.id);
+      if (it == _scripts.end())
+        continue;
+      std::string path = it->second.info.path;
+      destroy_script(it, destroy_script_type::normal);
+      _queued_actions.push_back(script_action { 0, path, script_action::action_type::load });
+    } else if (i.type == script_action::action_type::unload) {
+      auto it = _scripts.find(i.id);
+      if (it == _scripts.end())
+        continue;
+      destroy_script(it, destroy_script_type::normal);
+    } else if (i.type == script_action::action_type::load) {
+      one_off_load(i.path);
+    } else if (i.type == script_action::action_type::perform_real_unload) {
+      // perform real unload
+      auto siter = _scripts.find(i.id);
+      if (siter == _scripts.end())
+        continue;
+      _loaded_paths.erase(siter->second.info.path);
+      _scripts.erase(siter);
+    }
+  }
+  _queued_actions.clear();
+}
+
+void lua::script_manager::on_game_restart()
+{
+  _reload_all_later = true; // Reinit all scripts that are not forced-reloading-only
+
+  // Scripts were reinitialized, handles were changed
+  for (auto& i : _scripts) {
+    register_handles(i.second);
+  }
+}
+
+std::optional<sol::error> lua::script_manager::start(script& s, const std::string& path)
+{
+  // Run compat scripts (preload)
+  for (auto& i : compat::compat_scripts) {
+    std::filesystem::path compat_script_path = _root_path / i;
+    if (std::filesystem::exists(compat_script_path)) {
+      auto pfr = s.state.safe_script_file(_root_path / i);
+      if (!pfr.valid()) {
+        sol::error e = pfr;
+        return e;
+      }
+    }
+  }
+
+  // Run main script
+  auto pfr = s.state.safe_script_file(path);
+  if (!pfr.valid()) {
+    sol::error e = pfr;
+    return e;
+  }
+
+  static const char* GOOD_EVENTS[] {
+    "onExitScript",
+    "onQuitGame",
+    "onScriptLoad",
+    "onScriptTerminate",
+    "onSystemInitialized",
+    "onScriptMessage",
+    "onSystemMessage",
+    "onReceivePacket",
+    "onReceiveRpc",
+    "onSendPacket",
+    "onSendRpc",
+    "onTouch"
+  };
+  for (auto i : GOOD_EVENTS) {
+    sol::protected_function pf = s.state[i];
+    if (pf.valid()) {
+      s.event_handlers[i].emplace_back(s.state, pf);
+    }
+  }
+
+  return std::nullopt;
+}
+
+std::optional<sol::error> lua::script_manager::start_main(script& s)
+{
+  if (s.main_thread_id != 0)
+    return std::nullopt;
+
+  sol::protected_function f = s.state["main"];
+  if (f.valid()) {
+    auto v = s.sched.start(f, s.flags & script_flags::work_in_pause);
+    if (std::holds_alternative<sol::error>(v)) {
+      return std::get<sol::error>(v);
+    } else {
+      s.main_thread_id = std::get<std::size_t>(v);
+    }
+  }
+
+  return std::nullopt;
+}
+
+void lua::script_manager::start_main_all()
+{
+  for (auto it = _scripts.begin(); it != _scripts.end();) {
+    auto o = start_main(it->second);
+    if (o.has_value()) {
+      it->second.dying = true;
+      logger::log<logger::LV_ERROR>(&it->second, "{}", o->what());
+      it = destroy_script(it, destroy_script_type::error);
+    } else {
+      ++it;
+    }
+  }
+
+  run_queued_actions();
+}
+
+lua::script_manager::script_map_type::iterator lua::script_manager::destroy_script(script_map_type::iterator siter, destroy_script_type type)
+{
+  if (siter == _scripts.end()) {
+    return siter;
+  }
+
+  siter->second.dying = true;
+
+  if (type != destroy_script_type::silent) {
+    bool has_error = type == destroy_script_type::error;
+    bool has_quit = type == destroy_script_type::quit;
+
+    // Placed here to match moonloader behaviour
+    if (has_error) {
+      logger::log<logger::LV_ERROR>(&siter->second, "{}", "Script died due to an error.");
+    } else {
+      logger::log<logger::LV_SYSTEM>(&siter->second, "{}", "Script terminated.");
+    }
+
+    for_each_event_handler("onScriptTerminate", [siter, has_quit](sol::protected_function fn) -> std::optional<sol::error> {
+      auto pfr = fn(siter->second.info, has_quit);
+      if (!pfr.valid()) {
+        sol::error e = pfr;
+        return e;
+      }
+
+      return std::nullopt;
+    });
+
+    if (!siter->second.dead && !has_error) {
+      auto it = siter->second.event_handlers.find("onExitScript");
+      if (it != siter->second.event_handlers.end()) {
+        for (auto i : it->second) {
+          auto pfr = i(has_quit);
+          if (!pfr.valid()) {
+            sol::error e = pfr;
+            logger::log<logger::LV_ERROR>(&siter->second, "{}", e.what());
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // _loaded_paths.erase(siter->second.info.path);
+  // return _scripts.erase(siter);
+  siter->second.dead = true;
+  _queued_actions.emplace_back(script_action { siter->second.info.id, "", script_action::action_type::perform_real_unload });
+  return ++siter;
+}
+
+void lua::script_manager::init_modules()
+{
+  _modules.emplace("__mimgui_renderer",
+      sol::c_call<decltype(&mimgui::reg_renderer), &mimgui::reg_renderer>);
+  _modules.emplace("cjson", luaopen_cjson);
+  _modules.emplace("cjson.safe", luaopen_cjson_safe);
+  _modules.emplace("lfs", luaopen_lfs);
+  _modules.emplace("base64", luaopen_base64);
+  _modules.emplace("effil", luaopen_effil);
+
+  _modules.emplace("socket.core", luaopen_socket_core);
+  _modules.emplace("socket.unix", luaopen_socket_unix);
+  _modules.emplace("socket.serial", luaopen_socket_serial);
+  _modules.emplace("mime.core", luaopen_mime_core);
+
+  _modules.emplace("ssl.core", luaopen_ssl_core);
+  _modules.emplace("ssl.context", luaopen_ssl_context);
+  _modules.emplace("ssl.x509", luaopen_ssl_x509);
+  _modules.emplace("ssl.config", luaopen_ssl_config);
+
+  _modules.emplace("pccompat", pccompat::luaopen_pccompat); // 4.0.0-mp PC MoonLoader layer
+  _modules.emplace("lpeg", luaopen_lpeg);
+  _modules.emplace("rex_posix", luaopen_rex_posix);
+  _modules.emplace("rex_pcre2", luaopen_rex_pcre2);
+  _modules.emplace("rex_pcre", luaopen_rex_pcre2); // PC scripts written for lrexlib's PCRE1 binding: same API
+  _modules.emplace("luasql.sqlite3", luaopen_luasql_sqlite3);
+  _modules.emplace("lanes.core", luaopen_lanes_core);
+  _modules.emplace("xml.core", luaopen_xml_core);
+}
+
+void lua::script_manager::register_packages(sol::state_view state)
+{
+  static std::string path = []() {
+    std::string path {};
+    path.reserve(_root_path.string().length() * 8 + 100); // must be enough
+
+    std::filesystem::path lib_path = _root_path / "lib";
+    path += lib_path / "?.lua";
+    path += ';';
+    path += lib_path / "?/init.lua";
+    path += ';';
+    path += _root_path / "?.lua";
+    path += ';';
+    path += _root_path / "?/init.lua";
+    path += ';';
+    path += lib_path / "?.luac";
+    path += ';';
+    path += lib_path / "?/init.luac";
+    path += ';';
+    path += _root_path / "?.luac";
+    path += ';';
+    path += _root_path / "?/init.luac";
+
+    return path;
+  }();
+  static std::string cpath = []() {
+    return (_root_path / "lib/?.so").string();
+  }();
+
+  sol::table package = state["package"];
+  package["path"] = path;
+  package["cpath"] = cpath;
+
+  // 3.9.1-mp: ffi.load("monetloader") (mimgui/imgui.lua, lib/imgui.lua, monethook.lua and many mods) is a bare
+  // dlopen("libmonetloader.so"). MonetLoader for MP runs from MP's private folder (libMP_monetloader.so) or from
+  // AML's mods folder, which the Android linker never searches by name, so the dlopen failed and LuaJIT printed
+  // the last dlerror() - "undefined symbol: luaJIT_BC_mimgui_cdefs" from the preload probe of require. Every
+  // script now gets MONET_LIB_PATH (the real path of this library) and an ffi.load that maps every MonetLoader
+  // name to it. dlopen() of a library that is already loaded by its full path returns the same handle.
+  static std::string self_path = []() {
+    Dl_info info {};
+    if (dladdr(reinterpret_cast<void*>(&lua::script_manager::register_packages), &info) && info.dli_fname) {
+      return std::string(info.dli_fname);
+    }
+    return std::string("libmonetloader.so");
+  }();
+  state["MONET_LIB_PATH"] = self_path;
+  state.safe_script(R"lua(
+local ok, ffi = pcall(require, 'ffi')
+if ok and ffi and not ffi.__monet_load then
+  local real_load = ffi.load
+  local self_path = MONET_LIB_PATH
+  local names = { monetloader = true, libmonetloader = true, ['libmonetloader.so'] = true,
+                  ['monetloader.so'] = true, ['libMP_monetloader.so'] = true }
+  local cache = {}
+  ffi.load = function(name, global)
+    if type(name) == 'string' then
+      local base = name:match('[^/\\]+$') or name
+      if names[base] then
+        local key = global and 'g' or 'l'
+        if not cache[key] then
+          local okl, lib = pcall(real_load, self_path, global)
+          if not okl then
+            for line in io.lines('/proc/self/maps') do
+              local p = line:match('(/%S*monetloader%S*%.so)$')
+              if p then okl, lib = pcall(real_load, p, global) if okl then break end end
+            end
+          end
+          if not okl then error('MonetLoader: cannot load itself through ffi (' .. tostring(lib) .. ')', 2) end
+          cache[key] = lib
+        end
+        return cache[key]
+      end
+    end
+    return real_load(name, global)
+  end
+  ffi.__monet_load = real_load
+end
+)lua", sol::script_pass_on_error);
+
+  // 3.9.1-mp: mimgui is built into MonetLoader for MP (cpp/script/modules/mimgui/embedded_lua.h, made from
+  // dist/lib/mimgui by tools/embed_lua.py). The files in moonloader/lib/mimgui still win when they are there; a
+  // phone without them (or with a broken copy shipped by a mod) gets the built-in one instead of a dead script.
+  state.add_package_loader(+[](lua_State* L) -> int {
+    const char* module_name = luaL_checkstring(L, 1);
+    const embedded_lua::module* m = embedded_lua::find(module_name);
+    if (!m) {
+      lua_pushfstring(L, "\n\tno built-in module '%s'", module_name);
+      return 1;
+    }
+    if (luaL_loadbuffer(L, m->source, m->size, m->chunk_name) != 0) {
+      return lua_error(L);
+    }
+    return 1;
+  });
+  state.add_package_loader(+[](lua_State* L) -> int {
+    const char* module_name = luaL_checkstring(L, 1);
+
+    lua_CFunction func = nullptr;
+    {
+      auto it = _modules.find(module_name);
+      if (it != _modules.end()) {
+        func = it->second;
+      }
+    }
+
+    if (func) {
+      lua_pushcfunction(L, func);
+    } else {
+      lua_pushnil(L);
+    }
+    return 1;
+  });
+}
+
+void lua::script_manager::register_core_functions(script& s)
+{
+  sol::state& state = s.state;
+
+  // General core functions
+  state["print"] = [&s = s](sol::variadic_args args) {
+    sol::state_view view { args.lua_state() };
+    std::string str = "";
+    sol::protected_function pf = view["tostring"];
+    if (!pf.valid()) {
+      return;
+    }
+
+    for (auto i : args) {
+      sol::protected_function_result pfr = pf(i);
+      if (pfr.valid()) {
+        str += pfr;
+      } else {
+        str += sol::type_name(i.lua_state(), i.get_type());
+      }
+      str += " ";
+    }
+    if (str.size() != 0) {
+      str.resize(str.size() - 1);
+    }
+
+    logger::script_log(s, "{}", str);
+  };
+
+  // MoonLoader core functions
+  state["wait"] = sol::yielding([&s = s](float ms) {
+    if (s.sched.current_thread_id() == 0) {
+      return;
+    }
+    if (ms < 0) {
+      return s.sched.yield<infinite_task>();
+    }
+
+    return s.sched.yield<wait_task>(ms);
+  });
+
+  state["import"] = [&s = s](std::string str_path) {
+    std::filesystem::path path = std::filesystem::weakly_canonical(str_path).make_preferred();
+    std::size_t script_id;
+
+    auto it = _loaded_paths.find(path);
+    if (it != _loaded_paths.end()) {
+      script_id = it->second;
+    } else {
+      load(path);
+
+      auto it2 = _loaded_paths.find(path);
+      if (it2 != _loaded_paths.end()) {
+        script_id = it2->second;
+      } else {
+        return std::tuple<sol::object, std::optional<std::string>>(sol::lua_nil, "?");
+      }
+    }
+
+    return std::tuple<sol::object, std::optional<std::string>>(get_script(script_id)->get_exports(s.id), std::nullopt);
+  };
+
+  state["addEventHandler"] = [&s = s](const char* name, sol::protected_function handler) {
+    s.event_handlers[name].emplace_back(s.state, handler);
+  };
+  state["getMoonloaderVersion"] = []() {
+    return 27;
+  };
+  state["encodeJson"] = [](sol::table table, std::optional<bool> compact) {
+    return luajson::encode(table, compact.has_value() ? *compact : true);
+  };
+  state["decodeJson"] = [](sol::this_state state, std::string_view json) {
+    return luajson::decode(state, json);
+  };
+  state["getGameDirectory"] = []() {
+    return (file_manager::external_storage / "files").string();
+  };
+  state["getWorkingDirectory"] = []() {
+    return _root_path.string();
+  };
+  state["setClipboardText"] = [](const char* text) {
+    clipboard::set(text);
+  };
+  state["getClipboardText"] = []() {
+    return clipboard::get();
+  };
+
+  // MonetLoader core functions
+  state["monet_cp1251_to_utf8"] = [](std::string_view cp1251) {
+    return encoding::cp1251_to_utf8(cp1251);
+  };
+  state["monet_utf8_to_cp1251"] = [](std::string_view utf8) {
+    return encoding::utf8_to_cp1251(utf8);
+  };
+}
+
+void lua::script_manager::register_script_info_functions(script& s)
+{
+  sol::state& state = s.state;
+
+  state.new_usertype<script::lua_info>(
+      "script",
+      sol::no_constructor,
+      sol::meta_function::equal_to, sol::object(state, sol::in_place, &script::lua_info::operator==),
+      "this", sol::readonly_property([&s = s]() { return s.info; }),
+      "name", sol::readonly_property([](const script::lua_info& i) { return i.name; }),
+      "description", sol::readonly_property([](const script::lua_info& i) { return i.description; }),
+      "version_num", sol::readonly_property([](const script::lua_info& i) { return i.version_number; }),
+      "version", sol::readonly_property([](const script::lua_info& i) { return i.version; }),
+      "authors", sol::readonly_property([](script::lua_info& self, sol::this_state state) {
+        sol::table authors { state, sol::new_table { static_cast<int>(self.authors.size()) } };
+        int i = 1;
+        for (auto& it : self.authors) {
+          authors[i] = it;
+          ++i;
+        }
+        return authors;
+      }),
+      "dependencies", sol::readonly_property([](script::lua_info& self, sol::this_state state) {
+        sol::table dependencies { state, sol::new_table { static_cast<int>(self.dependencies.size()) } };
+        int i = 1;
+        for (auto& it : self.dependencies) {
+          dependencies[i] = it;
+          ++i;
+        }
+        return dependencies;
+      }),
+      "path", sol::readonly_property([](const script::lua_info& i) { return i.path; }),
+      "filename", sol::readonly_property([](const script::lua_info& i) { return i.filename; }),
+      "directory", sol::readonly_property([](const script::lua_info& i) { return i.directory; }),
+      "frozen", sol::var(false),
+      "dead", sol::readonly_property(&script::lua_info::get_dead),
+      "id", sol::readonly_property([](const script::lua_info& i) { return i.id; }),
+      "url", sol::readonly_property([](const script::lua_info& i) { return i.url; }),
+      "properties", sol::readonly_property([](sol::this_state state, script::lua_info& self) {
+        sol::table properties { state, sol::new_table { static_cast<int>(self.properties.size()) } };
+        int i = 1;
+        for (auto& it : self.properties) {
+          properties[i] = it;
+          ++i;
+        }
+        return properties;
+      }),
+      "exports", sol::readonly_property([&s = s](script::lua_info& self) -> sol::object {
+        script* this_s = get_script(self.id);
+        if (!this_s) {
+          return sol::lua_nil;
+        }
+
+        return this_s->get_exports(s.id);
+      }),
+      "pause", []() {},
+      "resume", []() {},
+      "unload", [](script::lua_info& self) {
+        if (!self.get_dead())
+          _queued_actions.push_back(script_action { self.id, "", script_action::action_type::unload }); },
+      "reload", [](script::lua_info& self) {
+        if (!self.get_dead())
+          _queued_actions.push_back(script_action { self.id, "", script_action::action_type::reload }); },
+      "load", [](std::string path) { _queued_actions.push_back(script_action { 0, path, script_action::action_type::load }); },
+      "find", [](std::string name) {
+        for(auto& i : _scripts) {
+          if (i.second.info.name == name) {
+            return std::optional<script::lua_info>(i.second.info);
+          }
+        }
+        return std::optional<script::lua_info>(std::nullopt); },
+      "get", [](std::size_t id) {
+        auto it = _scripts.find(id);
+        if (it == _scripts.end()) {
+          return std::optional<script::lua_info>(std::nullopt);
+        }
+        return std::optional<script::lua_info>(it->second.info); },
+      "list", [](sol::this_state state) {
+        sol::table scripts { state, sol::new_table { static_cast<int>(_scripts.size()) } };
+        int i = 1;
+        for (auto& it : _scripts) {
+          scripts[i] = it.second.info;
+          ++i;
+        }
+        return scripts; });
+
+  state["script_name"] = [&s = s](std::string name) {
+    s.info.name = name;
+  };
+  state["script_author"] = [&s = s](sol::variadic_args args) {
+    for (auto i : args) {
+      s.info.authors.push_back(i);
+    }
+  };
+  state["script_authors"] = [&s = s](sol::variadic_args args) {
+    for (auto i : args) {
+      s.info.authors.push_back(i);
+    }
+  };
+  state["script_description"] = [&s = s](std::string description) {
+    s.info.description = description;
+  };
+  state["script_version"] = [&s = s](std::string version) {
+    s.info.version = version;
+  };
+  state["script_version_number"] = [&s = s](int number) {
+    s.info.version_number = number;
+  };
+  state["script_url"] = [&s = s](std::string url) {
+    s.info.url = url;
+  };
+  state["script_dependencies"] = [&s = s](sol::variadic_args args) {
+    for (auto i : args) {
+      s.info.dependencies.push_back(i);
+    }
+  };
+  state["script_moonloader"] = [](int moonloader) {};
+  state["script_properties"] = [&s = s](sol::variadic_args args) {
+    for (auto i : args) {
+      s.apply_property(i);
+    }
+  };
+
+  state["reloadScripts"] = []() {
+    _reload_all_later = true;
+  };
+  state["thisScript"] = [&s = s]() {
+    return s.info;
+  };
+}
+
+void lua::script_manager::register_thread_functions(script& s)
+{
+  s.state.new_usertype<thread>(
+      "lua_thread",
+      "create", sol::factories([&s = s](sol::protected_function func, sol::variadic_args args) { return thread::create(s, func, args); }),
+      "create_suspended", sol::factories([&s = s](sol::protected_function func) { return thread::create_suspended(s, func); }),
+      "run", &thread::run,
+      "status", &thread::status,
+      "terminate", &thread::terminate,
+      "work_in_pause", sol::property(&thread::get_work_in_pause, &thread::set_work_in_pause),
+      "dead", sol::readonly_property(&thread::get_dead));
+}
+
+void lua::script_manager::register_memory_functions(script& s)
+{
+  sol::state& state = s.state;
+
+  // Memory module is now implemented as lua, but we still use internally memory for other functions
+  // s.state.require("memory", sol::c_call<decltype(&memory::reg), &memory::reg>, false);
+
+  state["representIntAsFloat"] = [](std::int32_t i) {
+    float f;
+    std::memcpy(&f, &i, sizeof(f));
+    return f;
+  };
+  state["representFloatAsInt"] = [](float f) {
+    std::int32_t i;
+    std::memcpy(&i, &f, sizeof(i));
+    return i;
+  };
+
+  // 4.0.0-mp: PC addresses (gta_sa.exe 1.0 US) are translated to libGTASA.so; unknown PC addresses never crash
+  state["writeMemory"] = [](std::uintptr_t address, std::size_t size, double value, std::optional<bool> unprotect) {
+    bool widen = false;
+    if (!pccompat::fix(address, size, &widen)) {
+      return;
+    }
+    if (widen) {
+      memory::write64(address, value, true, unprotect);
+      return;
+    }
+    memory::write(address, size, static_cast<std::int32_t>(static_cast<std::int64_t>(value)), unprotect);
+  };
+  state["readMemory"] = [](std::uintptr_t address, std::size_t size, std::optional<bool> unprotect) -> double {
+    bool widen = false;
+    if (!pccompat::fix(address, size, &widen)) {
+      return 0;
+    }
+    if (widen) {
+      return memory::read64(address, true, unprotect);
+    }
+    return memory::read(address, size, unprotect);
+  };
+  state["allocateMemory"] = [&s = s](std::size_t size) {
+    void* allocation = std::malloc(size);
+    if (allocation != nullptr) {
+      s.allocations.insert(allocation);
+    }
+    return reinterpret_cast<std::uintptr_t>(allocation);
+  };
+  state["freeMemory"] = [&s = s](std::uintptr_t memory) {
+    s.allocations.erase(reinterpret_cast<void*>(memory));
+    std::free(reinterpret_cast<void*>(memory));
+  };
+
+  state["getStructElement"] = [](std::uintptr_t base, std::uintptr_t offset, std::size_t size, std::optional<bool> unprotect) -> double {
+    std::uintptr_t a = base + offset;
+    bool widen = false;
+    if (!pccompat::fix(a, size, &widen)) {
+      return 0;
+    }
+    return widen ? memory::read64(a, true, unprotect) : memory::read(a, size, unprotect);
+  };
+  state["getStructFloatElement"] = [](std::uintptr_t base, std::uintptr_t offset, std::optional<bool> unprotect) {
+    std::uintptr_t a = base + offset;
+    if (!pccompat::fix(a, 4)) {
+      return 0.0f;
+    }
+    std::uint32_t i = memory::read(a, sizeof(i), unprotect);
+    float f;
+    std::memcpy(&f, &i, sizeof(f));
+    return f;
+  };
+  state["setStructElement"] = [](std::uintptr_t base, std::uintptr_t offset, std::size_t size,
+                                             std::int32_t value, std::optional<bool> unprotect) {
+    std::uintptr_t a = base + offset;
+    if (!pccompat::fix(a, size)) {
+      return;
+    }
+    memory::write(a, size, value, unprotect);
+  };
+  state["setStructFloatElement"] = [](std::uintptr_t base, std::uintptr_t offset, float value, std::optional<bool> unprotect) {
+    std::int32_t i;
+    std::memcpy(&i, &value, sizeof(i));
+    std::uintptr_t a = base + offset;
+    if (!pccompat::fix(a, 4)) {
+      return;
+    }
+    memory::write(a, sizeof(i), i, unprotect);
+  };
+}
+
+void lua::script_manager::register_opcode_extensions(script& s)
+{
+  sol::state& state = s.state;
+
+  // MoonLoader extensions
+  state["getAllChars"] = [](sol::this_state state) {
+    sol::table chars { state, sol::new_table { game::netinfo::find_streamed_ped_count() } };
+    int idx = 1;
+    auto* pool = CPools::GetPedPool();
+    for (int i = 0; i < pool->m_nSize; ++i) {
+      auto* obj = pool->GetAt(i);
+      if (obj) {
+        chars[idx] = pool->GetRef(obj);
+        ++idx;
+      }
+    }
+
+    return chars;
+  };
+
+  state["getAllVehicles"] = [](sol::this_state state) {
+    sol::table cars { state, sol::new_table { game::netinfo::find_streamed_car_count() } };
+    int idx = 1;
+    auto* pool = CPools::GetVehiclePool();
+    for (int i = 0; i < pool->m_nSize; ++i) {
+      auto* obj = pool->GetAt(i);
+      if (obj) {
+        cars[idx] = pool->GetRef(obj);
+        ++idx;
+      }
+    }
+
+    return cars;
+  };
+
+  state["getAllObjects"] = [](sol::this_state state) {
+    sol::table objs { state, sol::create };
+    int idx = 1;
+    auto* pool = CPools::GetObjectPool();
+    for (int i = 0; i < pool->m_nSize; ++i) {
+      auto* obj = pool->GetAt(i);
+      if (obj) {
+        objs[idx] = pool->GetRef(obj);
+        ++idx;
+      }
+    }
+
+    return objs;
+  };
+
+  // 3.8.3-mp: map buildings / dummies / objects around a point (CWorld::FindObjectsInRange). getAllObjects only sees
+  // CObjects; furniture that is part of the map (the TV in CJ's house) is a building or a dummy and never showed up.
+  // Returns { {model=, type=1 building|4 object|5 dummy, ptr=, x=,y=,z=, heading=, rx,ry,rz (right), fx,fy,fz (forward),
+  // ux,uy,uz (up)}, ... }
+  state["getNearbyEntities"] = [](sol::this_state state, float x, float y, float z, float radius, sol::optional<int> maxn) {
+    sol::table out { state, sol::create };
+    using find_fn = void (*)(const CVector&, float, bool, short*, short, CEntity**, bool, bool, bool, bool, bool);
+    static find_fn find = nullptr;
+    static bool looked = false;
+    if (!looked) {
+      looked = true;
+      void* h = dlopen("libGTASA.so", RTLD_NOLOAD);
+      if (h) find = reinterpret_cast<find_fn>(dlsym(h, "_ZN6CWorld18FindObjectsInRangeERK7CVectorfbPssPP7CEntitybbbbb"));
+    }
+    if (!find || !(radius > 0.0f)) return out;
+    int cap = maxn.value_or(64);
+    if (cap < 1) cap = 1;
+    if (cap > 256) cap = 256;
+    CEntity* found[256] = {};
+    short n = 0;
+    CVector at; at.x = x; at.y = y; at.z = z;
+    find(at, radius, false, &n, (short)cap, found, true, false, false, true, true);
+    if (n > cap) n = cap;
+    int idx = 1;
+    for (int i = 0; i < n; ++i) {
+      CEntity* e = found[i];
+      if (!e) continue;
+      sol::table t { state, sol::create };
+      t["model"] = (int)e->nModelIndex;
+      t["type"] = (int)e->m_nType;
+      t["ptr"] = (double)reinterpret_cast<std::uintptr_t>(e);
+      if (e->m_matrix) {
+        const CMatrix* m = e->m_matrix;
+        t["x"] = m->pos.x; t["y"] = m->pos.y; t["z"] = m->pos.z;
+        t["rx"] = m->right.x; t["ry"] = m->right.y; t["rz"] = m->right.z;
+        t["fx"] = m->up.x; t["fy"] = m->up.y; t["fz"] = m->up.z;
+        t["ux"] = m->at.x; t["uy"] = m->at.y; t["uz"] = m->at.z;
+        t["heading"] = std::atan2(-m->up.x, m->up.y);
+      } else {
+        const float hd = e->m_fHeading, c = std::cos(hd), s = std::sin(hd);
+        t["x"] = e->m_vPosn.x; t["y"] = e->m_vPosn.y; t["z"] = e->m_vPosn.z;
+        t["rx"] = c; t["ry"] = s; t["rz"] = 0.0f;
+        t["fx"] = -s; t["fy"] = c; t["fz"] = 0.0f;
+        t["ux"] = 0.0f; t["uy"] = 0.0f; t["uz"] = 1.0f;
+        t["heading"] = hd;
+      }
+      out[idx++] = t;
+    }
+    return out;
+  };
+
+  state["setFreeGxtEntry"] = [](const char* ascii) {
+    std::string gxt_key = customgxt::find_free_gxt_key();
+    customgxt::add(gxt_key, ascii);
+    return gxt_key;
+  };
+  state["getFreeGxtKey"] = [](const char* ascii) {
+    return customgxt::find_free_gxt_key();
+  };
+
+  state["isGamePaused"] = []() {
+    return game::IsPaused();
+  };
+  state["isPauseMenuActive"] = []() {
+    return game::IsPaused();
+  };
+
+  state["isOpcodesAvailable"] = []() {
+    return true;
+  };
+  state["isCleoLoaded"] = []() {
+    return true;
+  };
+  state["isSampfuncsLoaded"] = []() {
+    return lib_manager::samp_base != 0 || rakhook::mp::active() || mp_bridge::try_attach();
+  };
+  state["isSampLoaded"] = []() {
+    return lib_manager::samp_base != 0 || rakhook::mp::active() || mp_bridge::try_attach();
+  };
+
+  state["getCharQuaternion"] = [](int self) {
+    CQuaternion quat;
+    quat.Set(*CPools::GetPedPool()->GetAtRef(self)->m_matrix);
+    return std::tuple<float, float, float, float>(quat.x, quat.y, quat.z, quat.w);
+  };
+  state["setCharQuaternion"] = [](int self, float x, float y, float z, float w) {
+    CQuaternion quat { x, y, z, w };
+    quat.Get(CPools::GetPedPool()->GetAtRef(self)->m_matrix);
+  };
+
+  state["convertMatrixToQuaternion"] = [](float rx, float ry, float rz, float fx, float fy, float fz, float ux, float uy, float uz) {
+    CMatrix mat {};
+    mat.right = CVector { rx, ry, rz };
+    mat.up = CVector { fx, fy, fz };
+    mat.at = CVector { ux, uy, uz };
+
+    CQuaternion quat;
+    quat.Set(mat);
+    return std::tuple<float, float, float, float>(quat.x, quat.y, quat.z, quat.w);
+  };
+  state["convertQuaternionToMatrix"] = [](float w, float x, float y, float z) {
+    CQuaternion quat { w, x, y, z };
+    CMatrix mat {};
+    quat.Get(&mat);
+
+    return std::tuple<float, float, float, float, float, float, float, float, float>(
+        mat.right.x, mat.right.y, mat.right.z,
+        mat.up.x, mat.up.y, mat.up.z,
+        mat.at.x, mat.at.y, mat.at.z);
+  };
+
+  state["lockPlayerControl"] = [](bool lock) {
+    CPad::GetPad(0)->DisablePlayerControls = lock;
+  };
+  state["isPlayerControlLocked"] = []() {
+    return CPad::GetPad(0)->DisablePlayerControls != 0;
+  };
+  state["setGameKeyState"] = [](int key, std::int16_t value) {
+    if (key == 0) { // analog left-right
+      CPad::GetPad(0)->NewState.LeftStickX = value;
+    }
+    if (key == 1) { // analog up-down
+      CPad::GetPad(0)->NewState.LeftStickY = value;
+    }
+  };
+
+  // MonetLoader extensions
+  state["isWidgetPressedEx"] = [](int widget_id, int frames) {
+    CVector2D out {};
+    bool result = CTouchInterface::IsTouched(widget_id, &out, frames);
+    if (!result) {
+      return std::tuple<bool, std::optional<float>, std::optional<float>>(result, std::nullopt, std::nullopt);
+    } else {
+      return std::tuple<bool, std::optional<float>, std::optional<float>>(result, out.x, out.y);
+    }
+  };
+}
+
+void lua::script_manager::register_cleo_opcodes(script& s)
+{
+  sol::state& state = s.state;
+
+  state["getCharPointer"] = [](int self) {
+    return reinterpret_cast<std::uintptr_t>(CPools::GetPedPool()->GetAtRef(self));
+  };
+  state["getCarPointer"] = [](int self) {
+    return reinterpret_cast<std::uintptr_t>(CPools::GetVehiclePool()->GetAtRef(self));
+  };
+  state["getObjectPointer"] = [](int self) {
+    return reinterpret_cast<std::uintptr_t>(CPools::GetObjectPool()->GetAtRef(self));
+  };
+
+  state["storeClosestEntities"] = [](int self) {
+    CVehicle* vehicle = nullptr;
+    CPed* ped = nullptr;
+    CPed* our_ped = CPools::GetPedPool()->GetAtRef(self);
+    if (our_ped) {
+      CPedIntelligence* intel = our_ped->m_pIntelligence;
+      if (intel) {
+        for (auto* entity : intel->m_vehicleScanner.m_apEntities) {
+          vehicle = reinterpret_cast<CVehicle*>(entity);
+          if (vehicle && !vehicle->m_nVehicleFlags.bFadeOut) {
+            break;
+          }
+          vehicle = nullptr;
+        }
+
+        for (auto* entity : intel->m_pedScanner.m_apEntities) {
+          ped = reinterpret_cast<CPed*>(entity);
+          if (ped && ped != our_ped && !ped->m_nPedFlags.bFadeOut) {
+            break;
+          }
+          ped = nullptr;
+        }
+      }
+    }
+
+    return std::tuple<std::optional<int>, std::optional<int>>(
+        vehicle ? std::make_optional(CPools::GetVehiclePool()->GetRef(vehicle)) : std::nullopt,
+        ped ? std::make_optional(CPools::GetPedPool()->GetRef(ped)) : std::nullopt);
+  };
+
+  state["getTargetBlipCoordinates"] = []() {
+    std::int32_t ref = MobileMenu::Get()->waypoint_blip;
+    tRadarTrace* trace = &CRadar::GetRadarTraces()[ref & 0xFFFF];
+    if (ref == 0 || !trace->m_nBlipDisplay) {
+      return std::tuple<bool,
+          std::optional<float>,
+          std::optional<float>,
+          std::optional<float>>(
+          false,
+          std::nullopt,
+          std::nullopt,
+          std::nullopt);
+    }
+
+    return std::tuple<bool,
+        std::optional<float>,
+        std::optional<float>,
+        std::optional<float>>(
+        true,
+        trace->m_vecPos.x,
+        trace->m_vecPos.y,
+        opcodes::getGroundZFor3dCoord(trace->m_vecPos.x, trace->m_vecPos.y, 9999.f));
+  };
+
+  state["getCarNumberOfGears"] = [](int self) {
+    return CPools::GetVehiclePool()->GetAtRef(self)->m_pHandlingData->m_transmissionData.m_nNumberOfGears;
+  };
+  state["getCarCurrentGear"] = [](int self) {
+    return CPools::GetVehiclePool()->GetAtRef(self)->m_nCurrentGear;
+  };
+  state["isCarSirenOn"] = [](int self) {
+    return static_cast<bool>(CPools::GetVehiclePool()->GetAtRef(self)->m_nVehicleFlags.bSirenOrAlarm);
+  };
+  state["isCarEngineOn"] = [](int self) {
+    return static_cast<bool>(CPools::GetVehiclePool()->GetAtRef(self)->m_nVehicleFlags.bEngineOn);
+  };
+  state["switchCarEngine"] = [](int self, bool state) {
+    CPools::GetVehiclePool()->GetAtRef(self)->m_nVehicleFlags.bEngineOn = state;
+  };
+
+  state["printStyledString"] = [](const char* text, std::uint32_t time, std::uint16_t style) {
+    if (std::strlen(text) > 256) {
+      return;
+    }
+    game::AsciiToGxtChar(text, CMessages::GetBuffer());
+    CMessages::AddBigMessage(CMessages::GetBuffer(), time, style);
+  };
+  state["printString"] = [](const char* text, std::uint32_t time) {
+    if (std::strlen(text) > 256) {
+      return;
+    }
+    game::AsciiToGxtChar(text, CMessages::GetBuffer());
+    CMessages::AddMessage(nullptr, CMessages::GetBuffer(), time, 0, false);
+  };
+  state["printStringNow"] = [](const char* text, std::uint32_t time) {
+    if (std::strlen(text) > 256) {
+      return;
+    }
+    game::AsciiToGxtChar(text, CMessages::GetBuffer());
+    CMessages::AddMessageJumpQ(nullptr, CMessages::GetBuffer(), time, 0, false);
+  };
+
+  state["getCharPlayerIsTargeting"] = [](int self) {
+    int char_ref = opcodes::getPlayerChar(self);
+    auto* player_ped = static_cast<CPlayerPed*>(CPools::GetPedPool()->GetAtRef(char_ref));
+    CEntity* target = nullptr;
+    if (player_ped) {
+      target = player_ped->m_pTargetedObject;
+      if (!target) {
+        target = player_ped->m_pPlayerTargettedPed;
+      }
+    }
+
+    if (target && target->m_nType == ENTITY_TYPE_PED) {
+      return std::tuple<bool, std::optional<int>>(
+          true,
+          CPools::GetPedPool()->GetRef(static_cast<CPed*>(target)));
+    } else {
+      return std::tuple<bool, std::optional<int>>(
+          false,
+          std::nullopt);
+    }
+  };
+
+  state["findAllRandomCharsInSphere"] = [&s = s](float x, float y, float z, float radius, bool find_next, bool skip_dead) {
+    CVector center { x, y, z };
+    auto* pool = CPools::GetPedPool();
+    int last_found = s.last_ped;
+    if (!find_next) {
+      last_found = 0;
+    }
+
+    for (int i = last_found; i < pool->m_nSize; ++i) {
+      CPed* ped = pool->GetAt(i);
+      if (ped) {
+        if (skip_dead && (ped->m_nPedFlags.bFadeOut || ped->m_nPedState == PEDSTATE_DEAD || ped->m_nPedState == PEDSTATE_DIE)) {
+          continue;
+        }
+
+        if (radius >= 1000.f || center.DistanceSquared(ped->GetPosition()) <= radius * radius) {
+          s.last_ped = last_found + 1;
+          return std::tuple<bool, std::optional<int>>(
+              true,
+              pool->GetRef(ped));
+        }
+      }
+    }
+
+    return std::tuple<bool, std::optional<int>>(
+        false,
+        std::nullopt);
+  };
+
+  state["findAllRandomVehiclesInSphere"] = [&s = s](float x, float y, float z, float radius, bool find_next, bool skip_wrecked) {
+    CVector center { x, y, z };
+    auto* pool = CPools::GetVehiclePool();
+    int last_found = s.last_vehicle;
+    if (!find_next) {
+      last_found = 0;
+    }
+
+    for (int i = last_found; i < pool->m_nSize; ++i) {
+      CVehicle* vehicle = pool->GetAt(i);
+      if (vehicle) {
+        if (skip_wrecked && (vehicle->m_nVehicleFlags.bFadeOut || vehicle->m_nVehicleFlags.bIsDrowning || vehicle->m_nStatus == STATUS_WRECKED)) {
+          continue;
+        }
+
+        if (radius >= 1000.f || center.DistanceSquared(vehicle->GetPosition()) <= radius * radius) {
+          s.last_vehicle = last_found + 1;
+          return std::tuple<bool, std::optional<int>>(
+              true,
+              pool->GetRef(vehicle));
+        }
+      }
+    }
+
+    return std::tuple<bool, std::optional<int>>(
+        false,
+        std::nullopt);
+  };
+
+  state["findAllRandomObjectsInSphere"] = [&s = s](float x, float y, float z, float radius, bool find_next) {
+    CVector center { x, y, z };
+    auto* pool = CPools::GetObjectPool();
+    int last_found = s.last_object;
+    if (!find_next) {
+      last_found = 0;
+    }
+
+    for (int i = last_found; i < pool->m_nSize; ++i) {
+      CObject* object = pool->GetAt(i);
+      if (object && (radius >= 1000.f || center.DistanceSquared(object->GetPosition()) <= radius * radius)) {
+        s.last_object = last_found + 1;
+        return std::tuple<bool, std::optional<int>>(
+            true,
+            pool->GetRef(object));
+      }
+    }
+
+    return std::tuple<bool, std::optional<int>>(
+        false,
+        std::nullopt);
+  };
+
+  state["doesFileExist"] = [](const char* path) {
+    return std::filesystem::exists(path);
+  };
+  state["doesDirectoryExist"] = [](const char* path) {
+    return std::filesystem::is_directory(path);
+  };
+  state["createDirectory"] = [](const char* path) {
+    return std::filesystem::create_directories(path);
+  };
+
+  state["getCharPointerHandle"] = [](std::uintptr_t ptr) {
+    return CPools::GetPedPool()->GetRef(reinterpret_cast<CPed*>(ptr));
+  };
+  state["getVehiclePointerHandle"] = [](std::uintptr_t ptr) {
+    return CPools::GetVehiclePool()->GetRef(reinterpret_cast<CVehicle*>(ptr));
+  };
+  state["getObjectPointerHandle"] = [](std::uintptr_t ptr) {
+    return CPools::GetObjectPool()->GetRef(reinterpret_cast<CObject*>(ptr));
+  };
+
+  state["getGxtText"] = [](const char* gxt_key) {
+    return customgxt::find(gxt_key);
+  };
+  state["setGxtEntry"] = [](std::string gxt_key, const char* ascii) {
+    customgxt::add(std::move(gxt_key), ascii);
+  };
+  state["clearGxtEntry"] = [](std::string gxt_key) {
+    customgxt::remove(std::move(gxt_key));
+  };
+
+  luabass::reg(state);
+  luavideo::reg(state); // 3.8.2-mp: tvplayer.lua
+}
+
+void lua::script_manager::register_sampfuncs_opcodes(script& s)
+{
+  sol::state& state = s.state;
+
+  // Command system
+  state["sampRegisterChatCommand"] = [&s = s](std::string command, sol::protected_function callback) {
+    return register_command(s, command, callback);
+  };
+  state["sampUnregisterChatCommand"] = [](std::string command) {
+    return unregister_command(command);
+  };
+  state["sampIsChatCommandDefined"] = [](std::string command) {
+    return _commands.find(command) != _commands.end();
+  };
+  state["sampSetClientCommandDescription"] = [](std::string_view command, std::string_view descrption) {};
+
+  luafuncs::reg(state);
+}
+
+void lua::script_manager::register_globals(script& s)
+{
+  sol::state& state = s.state;
+
+  state["MONET_VERSION"] = PROJECT_VERSION_INDEX;
+  state["MONET_COMPAT_PROFILE"] = compat::profile_name;
+  state["MONET_DPI_SCALE"] = gui::render::get_dpi_scale();
+  state["MONET_GTASA_BASE"] = lib_manager::gtasa_base;
+  state["MONET_SAMP_BASE"] = lib_manager::samp_base;
+  state["null"] = sol::light<luajson::null_t> { static_cast<luajson::null_t*>(nullptr) }; // 0.27
+}
+
+void lua::script_manager::register_handles(script& s)
+{
+  sol::state& state = s.state;
+
+  state["playerHandle"] = 0; // always 0 in GTA: SA
+  state["PLAYER_HANDLE"] = 0;
+  int playerChar = opcodes::getPlayerChar(0);
+  state["playerPed"] = playerChar;
+  state["PLAYER_PED"] = playerChar;
+}
+// ---- MonetLoader for MP 3.8.1: MP's floating menu MonetLoader page (the MonetLoader icon on the top bar) ----------
+// Both run on the game thread (MP draws its HUD from Render2dStuff, MonetLoader runs its scripts from CGame::Process).
+// MonetMP_Scripts: one line per running script: "name\tfile\tversion\tauthors\n" into buf (cut at n), returns the count.
+// MonetMP_ReloadAll: reloads every script on the next frame (like MoonLoader's reloadScripts()).
+extern "C" __attribute__((visibility("default"))) int MonetMP_Scripts(char* buf, int n)
+{
+  if (!buf || n <= 0) {
+    return 0;
+  }
+  buf[0] = 0;
+  if (!lua::script_manager::initialized()) {
+    return 0;
+  }
+  std::string out;
+  int count = 0;
+  lua::script_manager::for_each_script([&](lua::script& sc) {
+    lua::script* s = &sc;
+    std::string authors;
+    for (auto& a : s->info.authors) {
+      authors += (authors.empty() ? "" : ", ") + a;
+    }
+    out += (s->info.name.empty() ? s->info.filename : s->info.name) + "\t" + s->info.filename + "\t" + s->info.version + "\t" + authors + (s->dead ? "\tdead" : "\trunning") + "\n";
+    ++count;
+  });
+  std::snprintf(buf, static_cast<std::size_t>(n), "%s", out.c_str());
+  return count;
+}
+extern "C" __attribute__((visibility("default"))) void MonetMP_ReloadAll()
+{
+  lua::script_manager::reload_all_later();
+}
+extern "C" __attribute__((visibility("default"))) const char* MonetMP_Version()
+{
+  return PROJECT_VERSION;
+}
