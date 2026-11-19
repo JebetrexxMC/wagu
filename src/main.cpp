@@ -99,6 +99,9 @@ static bool s_bIgnoredFinger[16] = { false };
 #define TOUCH_MOVE    3
 #define TOUCH_POINTER_UP 4
 static void PollTouches();
+static int  (*LIB_PointerGetButton)(int, int) = nullptr;
+static int  (*LIB_PointerGetCoordinates)(int, int*, int*, float*) = nullptr;
+static void MapTouch(int& x, int& y);
 
 // ---- Game logic tick ------------------------------------------------------------------
 static void JPatchGuardSetup();
@@ -199,9 +202,67 @@ DECL_HOOKv(LS_RenderSplash)
     LS_RenderSplash();
 }
 // 4.13.9: the game's menu update (runs while the menu is up, CGame::Process does not)
+// 5.01.10: PCMenu's method. While the neon title menu covers the game's menu, the real finger is read from the game's
+// `pointers` table BEFORE the stock MobileMenu::Update, the table is blinded for that call (no finger, coordinates far
+// off the screen) and put back after it. So the game's hidden buttons under the neon menu can't be tapped any more and
+// the neon buttons get the finger even when MP's HUD is not up yet on the title (the touch hook skipped every touch).
+static uint8_t* s_pPointers = nullptr; static bool s_bPointersLooked = false;
+static uint32_t s_SavedPtr[2][3]; static int s_SavedPtrXY[2][2]; static bool s_bPtrMasked[2] = { false, false };
+static bool s_bNeonPrevDown = false;
+static const int kPtrStride = BYBIT(0x70, 0x78), kPtrX = 0x0C, kPtrOff = -30000;
+static void NeonMaskPointers()
+{
+    for(int p = 0; p < 2; ++p)
+    {
+        s_bPtrMasked[p] = false;
+        if(!s_pPointers) continue;
+        volatile uint32_t* w = (volatile uint32_t*)(s_pPointers + (size_t)p * kPtrStride);
+        volatile int* xy = (volatile int*)(s_pPointers + (size_t)p * kPtrStride + kPtrX);
+        for(int b = 0; b < 3; ++b) { s_SavedPtr[p][b] = w[b]; w[b] = 0; }
+        s_SavedPtrXY[p][0] = xy[0]; s_SavedPtrXY[p][1] = xy[1]; xy[0] = kPtrOff; xy[1] = kPtrOff;
+        s_bPtrMasked[p] = true;
+    }
+}
+static void NeonUnmaskPointers()
+{
+    for(int p = 0; p < 2; ++p)
+    {
+        if(!s_bPtrMasked[p]) continue;
+        volatile uint32_t* w = (volatile uint32_t*)(s_pPointers + (size_t)p * kPtrStride);
+        volatile int* xy = (volatile int*)(s_pPointers + (size_t)p * kPtrStride + kPtrX);
+        for(int b = 0; b < 3; ++b) if(w[b] == 0) w[b] = s_SavedPtr[p][b];   // keep an event the input thread wrote meanwhile
+        if(xy[0] == kPtrOff) xy[0] = s_SavedPtrXY[p][0];
+        if(xy[1] == kPtrOff) xy[1] = s_SavedPtrXY[p][1];
+        s_bPtrMasked[p] = false;
+    }
+}
 DECL_HOOKv(MobileMenu_Update, void* self)
 {
+    const bool neon = NeonCoverRecent() && LIB_PointerGetButton && LIB_PointerGetCoordinates;
+    bool down = false; int tx = 0, ty = 0;
+    if(neon)
+    {
+        if(!s_bPointersLooked)
+        {
+            s_bPointersLooked = true;
+            s_pPointers = (uint8_t*)aml->GetSym(aml->GetLibHandle("libGTASA.so"), "pointers");
+            logger->Info("5.01.10: neon menu touches like PCMenu (game pointers table %s)", s_pPointers ? "found - the game's menu under it is blinded" : "MISSING - the game's menu may still get taps");
+        }
+        const int st = LIB_PointerGetButton(0, 0);
+        down = (st == 2 || st == 3);
+        float pr = 0; LIB_PointerGetCoordinates(0, &tx, &ty, &pr); MapTouch(tx, ty);
+        NeonMaskPointers();
+    }
     MobileMenu_Update(self);
+    if(neon)
+    {
+        NeonUnmaskPointers();
+        if(down && !s_bNeonPrevDown) MP::NeonTouch(1, 0, (float)tx, (float)ty);
+        else if(down) MP::NeonTouch(2, 0, (float)tx, (float)ty);
+        else if(s_bNeonPrevDown) MP::NeonTouch(3, 0, (float)tx, (float)ty);
+        s_bNeonPrevDown = down;
+    }
+    else if(s_bNeonPrevDown) { s_bNeonPrevDown = false; MP::NeonTouch(3, 0, -1, -1); }
     MP::NeonMenuTick();   // 4.13.28: the tapped title menu action
     MP::MenuMpMenuTick();
 }
@@ -288,7 +349,7 @@ static bool DispatchTouch(int type, int finger, int x, int y)
 {
     std::lock_guard<std::recursive_mutex> lk(s_DispatchMx);
     const bool isRelease = (type == TOUCH_RELEASE || type == TOUCH_POINTER_UP);
-    MP::NeonTouch(type == TOUCH_PUSH ? 1 : (isRelease ? 3 : 2), finger, (float)x, (float)y);   // 4.13.28: the native title menu
+    if(!NeonCoverRecent()) MP::NeonTouch(type == TOUCH_PUSH ? 1 : (isRelease ? 3 : 2), finger, (float)x, (float)y);   // 4.13.28 (5.01.10: the neon title reads the game's pointers, MobileMenu_Update)
     uint64_t now = MP_NowMs();
 
     // a finger that "never lifted" (lost event) must not block ImGui forever.
@@ -434,6 +495,9 @@ DECL_HOOKv(AND_TouchEvent, int type, int finger, int x, int y)
 {
     ScreenGuard::OnUiThread();   // 4.12.5: FLAG_SECURE the normal way when this is Android's main thread
     if(!HUD::IsInitialised() || finger < 0 || finger >= 16) { AND_TouchEvent(type, finger, x, y); return; }
+    // 5.01.10: the neon title menu reads the finger from the game's pointers table (MobileMenu_Update, PCMenu's way):
+    // the touch must reach it, the game's own menu is blinded there
+    if(NeonCoverRecent()) { s_nLastHookTouchMs = MP_NowMs(); AND_TouchEvent(type, finger, x, y); return; }
     s_nLastHookTouchMs = MP_NowMs();
     int ox = x, oy = y;
     MapTouch(x, y);
@@ -475,7 +539,6 @@ DECL_HOOK(bool, Widget_IsTouched, void* self, void* v)      { return BlockGameTo
 // CHID / CPad itself, not only CTouchInterface), so a tap on the region or gear icon switched the weapon
 // and the launcher lost the tap. While the launcher / keyboard is open the game is now told: no finger is
 // down, no weapon cycle, no HID button - MP keeps reading the real pointer through the original function.
-static int  (*LIB_PointerGetButton)(int, int) = nullptr;
 static uint64_t s_nScreenBlockMs = 0;
 static inline bool ScreenBlocksGame()
 {
@@ -889,7 +952,6 @@ static void HookTouchInterface()
 // ---- Fallback: read the touch state straight from the game every frame --------------------
 // Works even if the AND_TouchEvent hook isn't reached on this game build.
 // LIB_PointerGetButton(finger, 0): 0/1 = up, 2/3 = down (same test as the game's IsPointerDown).
-static int  (*LIB_PointerGetCoordinates)(int, int*, int*, float*) = nullptr;
 struct PolledFinger { bool down; int x, y; };
 static PolledFinger s_Poll[4] = {};
 static bool s_bPollLogged = false;

@@ -919,7 +919,7 @@ static bool NeonPendingJoin()
 // runs on the title screen any more (ServerBrowserMode = neon AND mp): the game quit by itself there in 4.13.22-27.
 // The taps only queue an action; the action runs on the game thread (MobileMenu::Update -> MP::NeonMenuTick).
 // ================================================================================================
-enum { NA_NONE = 0, NA_RESUME, NA_NEWGAME, NA_BROWSE, NA_QUICK, NA_SETTINGS, NA_QUIT, NA_SIGNOUT, NA_MPTILE };
+enum { NA_NONE = 0, NA_RESUME, NA_NEWGAME, NA_BROWSE, NA_QUICK, NA_SETTINGS, NA_QUIT, NA_SIGNOUT, NA_MPTILE, NA_DISCORD };
 static std::atomic<int> s_nNeonAct{NA_NONE};
 static int  s_nNeonDlg = 0;              // 1 About, 2 Quit
 static int  s_nNeonPaintFrames = 0;
@@ -983,8 +983,9 @@ static void NeonPBackdrop(float W, float H)
         const float iw = H * (1131.0f / 707.0f), x0 = fmaxf(W - iw, W * 0.30f);
         Img(a, x0, 0, x0 + iw, H);
     }
-    Quad(0, 0, W, H, NC(24, 6, 8, 70));
-    Img(T("shade_left.png"), 0, 0, W * 0.62f, H);
+    // 5.01.10: no extra dark layers over the art any more (a full-screen tint + shade_left.png over the left 62%): the
+    // art's own left edge fade (alpha baked in art.png) is the only vignette, like the reference picture. The two
+    // layers on top of it made a second, half-screen black fade with a visible edge in the middle.
     Img(T("shade_bottom.png"), 0, H * 0.78f, W, H);
     Img(T("shade_top.png"), 0, 0, W, H * 0.16f);
 }
@@ -1076,7 +1077,7 @@ static void NeonPTitle(float W, float H)
     }
     {   // Neon Identity (top right)
         const float ax = W - 445 * u, ay = 40 * u, bx = W - 68 * u, by = 103 * u;
-        Img(T("card_identity.png"), ax, ay, bx, by);
+        Img(T("card_identity.png"), ax, ay, bx, by, (!dlg && Held(ax, ay, bx, by)) ? NC(255, 236, 190) : NC(255, 255, 255));
         Img(T("discord.png"), ax + 11 * u, ay + 13 * u, ax + 48 * u, ay + 50 * u);
         std::vector<std::string> acc = AuthAccounts();
         const std::string who = !s_AuthUser.empty() ? s_AuthUser : (!acc.empty() ? acc[0] : std::string());
@@ -1094,6 +1095,8 @@ static void NeonPTitle(float W, float H)
             NeonPText(F_CAPS, "SIGN OUT", bx - 14 * u - sw, ay + 42 * u, 9 * u, NC(150, 152, 158), 1.2f * u);
             if(!dlg && !tapUsed && Tap(bx - 110 * u, ay + 34 * u, bx, by)) { tapUsed = true; s_nNeonAct = NA_SIGNOUT; }
         }
+        // 5.01.10: the card is a real button: not linked = open Discord to link it, linked = Discord too (SIGN OUT is its own spot)
+        if(!dlg && !tapUsed && Tap(ax, ay, linked ? bx - 110 * u : bx, by)) { tapUsed = true; s_nNeonAct = NA_DISCORD; }
     }
     {   // Neon featured (bottom left): on the title it opens the server browser after the Multiplayer load
         const float ax = L - 8 * u, ay = 643 * u, bx = L + 379 * u, by = 723 * u;
@@ -1176,6 +1179,7 @@ void MP::NeonMenuTick()
         case NA_BROWSE:  if(NeonTitleCtx()) NeonBrowseFromTitle(); break;
         case NA_QUICK:   if(NeonTitleCtx()) { s_bNeonQuickAfterLoad = true; NeonBrowseFromTitle(); } break;
         case NA_MPTILE:  MenuMpTap(nullptr); break;
+        case NA_DISCORD: logger->Info("Neon menu: Neon identity -> Discord"); Voice::OpenUrl(MP_AUTH_DISCORD_URL); break;
         case NA_SIGNOUT:
         {
             std::vector<std::string> acc = AuthAccounts();
