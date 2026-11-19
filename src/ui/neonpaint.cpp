@@ -10,6 +10,8 @@
 #include <string>
 #include <sys/stat.h>
 #include "neonpaint.h"
+#define STBI_NO_STDIO
+#include "../../imgui/stb_image.h"   // 5.01.08: declarations only (the code is in hud.cpp)
 
 namespace
 {
@@ -33,6 +35,10 @@ namespace
     RasterFromImgFn  fnRasterFromImg = nullptr;
     TexCreateFn      fnTexCreate = nullptr;
     ImgDestroyFn     fnImgDestroy = nullptr;
+    typedef void* (*ImgCreateFn)(int w, int h, int d);
+    typedef void* (*ImgAllocFn)(void* img);
+    ImgCreateFn      fnImgCreate = nullptr;   // 5.01.08: MP's own PNG decoder (stb_image) -> RwImage
+    ImgAllocFn       fnImgAlloc = nullptr;
     int*             s_pRsGlobal = nullptr;
     bool             s_bInit = false, s_bLoaded = false, s_bFailed = false;
 
@@ -61,8 +67,43 @@ namespace
         std::string p = dir + name;
         struct stat st; if(stat(p.c_str(), &st) != 0) { logger->Error("Neon menu: %s missing", p.c_str()); return false; }
         logger->Info("Neon menu: loading %s (%ld bytes)", name, (long)st.st_size);   // 4.13.35: breadcrumb (once per file)
+        // 5.01.08: like PCMenu - the game's RtPNGImageRead with the full path, then with the path relative to the game's
+        // files/ folder (the game's file layer refused the full Android_unprotected path on some phones: every PNG
+        // failed), then MP's own PNG decoder (stb_image) into a RwImage, so no texture depends on the game's reader
         void* img = fnPngRead(p.c_str());
+        const char* how = "game reader";
+        if(!img)
+        {
+            size_t f = p.find("/files/");
+            if(f != std::string::npos)
+            {
+                std::string rel = p.substr(f + 7);
+                while(!rel.empty() && rel[0] == '/') rel.erase(0, 1);
+                img = fnPngRead(rel.c_str());
+                how = "game reader, relative path";
+            }
+        }
+        if(!img && fnImgCreate && fnImgAlloc)
+        {
+            std::string data;
+            if(FILE* f = fopen(p.c_str(), "rb")) { char b[16384]; size_t r; while((r = fread(b, 1, sizeof b, f)) > 0) data.append(b, r); fclose(f); }
+            int w = 0, h = 0, c = 0;
+            unsigned char* px = data.empty() ? nullptr : stbi_load_from_memory((const unsigned char*)data.data(), (int)data.size(), &w, &h, &c, 4);
+            if(px && w > 0 && h > 0)
+            {
+                if((img = fnImgCreate(w, h, 32)) != nullptr)
+                {
+                    fnImgAlloc(img);
+                    struct RwImg { int flags, width, height, depth, stride; unsigned char* pixels; void* pal; };
+                    RwImg* ri = (RwImg*)img;
+                    if(ri->pixels && ri->stride >= w * 4) { for(int y = 0; y < h; ++y) memcpy(ri->pixels + (size_t)y * ri->stride, px + (size_t)y * w * 4, (size_t)w * 4); how = "MP decoder"; }
+                    else { fnImgDestroy(img); img = nullptr; }
+                }
+            }
+            if(px) stbi_image_free(px);
+        }
         if(!img) { logger->Error("Neon menu: %s is not a readable PNG (8-bit RGBA, not interlaced)", p.c_str()); return false; }
+        if(strcmp(how, "game reader")) logger->Info("Neon menu: %s read by the %s", name, how);
         const int iw = ((int*)img)[1], ih = ((int*)img)[2];   // RwImage: flags, width, height, depth, stride, pixels
         void* tex = nullptr;
         int w = 0, h = 0, d = 0, flags = 0;
@@ -136,6 +177,8 @@ bool NeonPaint::Init(void* h)
     *(void**)&fnRasterFromImg = (void*)aml->GetSym(h, "_Z20RwRasterSetFromImageP8RwRasterP7RwImage");
     *(void**)&fnTexCreate     = (void*)aml->GetSym(h, "_Z15RwTextureCreateP8RwRaster");
     *(void**)&fnImgDestroy    = (void*)aml->GetSym(h, "_Z14RwImageDestroyP7RwImage");
+    *(void**)&fnImgCreate     = (void*)aml->GetSym(h, "_Z13RwImageCreateiii");
+    *(void**)&fnImgAlloc      = (void*)aml->GetSym(h, "_Z21RwImageAllocatePixelsP7RwImage");
     s_pRsGlobal = (int*)aml->GetSym(h, "RsGlobal");
     s_bInit = fnDrawSprite && fnDrawQuad && fnRenderState && fnPngRead && fnFindRasterFmt && fnRasterCreate && fnRasterFromImg && fnTexCreate && fnImgDestroy && s_pRsGlobal;
     logger->Info("Neon menu: PCMenu-style drawing %s", s_bInit ? "ready (game sprites + PNG textures)" : "NOT available (game functions missing)");

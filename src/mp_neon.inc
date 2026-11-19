@@ -930,7 +930,13 @@ static NeonPaint::Col NC(int r, int g, int b, int a = 255) { return { (uint8_t)r
 static bool NeonPaintLoad()
 {
     if(NeonPaint::Ready()) return true;
-    if(NeonPaint::Failed()) return false;
+    if(NeonPaint::Failed())
+    {   // 5.01.08: tried again every 5 s (3 times), e.g. while the game's file layer was not ready yet
+        static uint64_t s_at = 0; static int s_n = 0;
+        const uint64_t now = MP_NowMs();
+        if(s_n >= 3 || now - s_at < 5000) return false;
+        s_at = now; ++s_n; NeonPaint::Retry();
+    }
     return NeonPaint::Load(MP::DataDir());
 }
 // what the game's menu pass gets painted with: 0 nothing, 1 the neon title menu, 2 the [Multiplayer] tile (mp), 3 the NEON MENU pill

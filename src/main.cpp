@@ -2,6 +2,7 @@
 // Players meet and play together in the same game world: real-time movement, animations,
 // combat, chat, name tags, kill feed and radar icons. Builds as libMP32.so / libMP64.so.
 #include "../imgui/imgui_internal.h"   // 3.53: gamepad navigation (NavWindow / NavRectRel)
+#include <dlfcn.h>
 #include <mod/amlmod.h>
 #include <mod/logger.h>
 #include <mod/config.h>
@@ -400,8 +401,30 @@ extern "C" __attribute__((visibility("default"))) int MP_PollScriptTouch(int* ty
     if(y) *y = t.y;
     return 1;
 }
+// 5.01.08: a finger that went down on a MonetLoader mimgui window (HassleHUD's menu, tabs, toggles, close button)
+// belongs to mimgui: MP's UI and the game don't get it, MonetLoader gets it in the game's resolution (MP_PollScriptTouch)
+namespace MonetEmbed { void* Handle(); }
+static bool s_bMimguiFinger[16] = { false };
+static int MimguiHit(int x, int y)
+{
+    typedef int (*HitFn)(int, int);
+    static HitFn s_fn = nullptr; static void* s_h = nullptr; static bool s_logged = false;
+    void* h = MonetEmbed::Handle();
+    if(!h) return 0;
+    if(h != s_h) { s_h = h; s_fn = (HitFn)dlsym(h, "MonetMP_ImguiHit"); if(!s_logged) { s_logged = true; logger->Info("5.01.08: mimgui touches %s", s_fn ? "from MP (MonetMP_ImguiHit)" : "- this MonetLoader has no MonetMP_ImguiHit"); } }
+    return s_fn ? s_fn(x, y) : 0;
+}
 static bool DispatchTouchFed(int type, int finger, int x, int y)
 {
+    if(finger < 0 || finger >= 16) return DispatchTouch(type, finger, x, y);
+    const bool isRel = (type == TOUCH_RELEASE || type == TOUCH_POINTER_UP);
+    if(type == TOUCH_PUSH) s_bMimguiFinger[finger] = MimguiHit(x, y) != 0;
+    if(s_bMimguiFinger[finger])
+    {
+        if(isRel) s_bMimguiFinger[finger] = false;
+        FeedScriptTouch(type, finger, x, y, false);
+        return true;
+    }
     bool used = DispatchTouch(type, finger, x, y);
     FeedScriptTouch(type, finger, x, y, used);
     return used;
