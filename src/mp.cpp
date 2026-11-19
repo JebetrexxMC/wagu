@@ -7365,6 +7365,38 @@ static void SectionAddServer(void*)
     if(ownCustom) ImGui::TextColored(s_Server.AuthOn() ? kGreenTxt : kYellowTxt, "\"%s\": login %s", s_Server.GetName(), s_Server.AuthOn() ? "on" : "off");
 }
 
+// 5.01.09: Settings > Connection > Switch region - the same list as the launcher's region icon (LRegionChoose), so the
+// region can be changed from both places
+static void LRegionChoose(int i);   // mp_launcher.inc
+static void SettingsRegion()
+{
+    ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+    ImGui::TextUnformatted("Switch region");
+    const int cur = Online::CurrentRegion(), best = Online::BestRegion();
+    ImGui::TextDisabled("Now: %s%s", settings.lobbyAuto ? "Auto - " : "", cur >= 0 ? Online::RegionLabel(cur) : (best >= 0 ? Online::RegionLabel(best) : "not connected to a lobby yet"));
+    const float w = ImGui::GetContentRegionAvail().x, h = UI::S(64);
+    for(int i = -1; i < REGION_COUNT; ++i)
+    {
+        const bool sel = i < 0 ? settings.lobbyAuto : (!settings.lobbyAuto && settings.region == i);
+        char lbl[128];
+        if(i < 0) snprintf(lbl, sizeof(lbl), "Auto (lowest ping)%s%s", best >= 0 ? "  -  " : "", best >= 0 ? Online::RegionLabel(best) : "");
+        else
+        {
+            const int ms = Online::RegionPingMs(i), same = Online::RegionSameAs(i);
+            if(same >= 0) snprintf(lbl, sizeof(lbl), "%s  -  same server as %s", Online::RegionLabel(i), g_MPRegionNames[same]);
+            else if(ms >= 0) snprintf(lbl, sizeof(lbl), "%s  -  %d ms", Online::RegionLabel(i), ms);
+            else snprintf(lbl, sizeof(lbl), "%s  -  %s", Online::RegionLabel(i), ms == -2 ? "offline" : "-- ms");
+        }
+        ImGui::PushID(i + 7000);
+        if(sel) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(20 / 255.f, 120 / 255.f, 170 / 255.f, 1.0f));
+        const bool tap = ImGui::Button(lbl, ImVec2(w, h));
+        if(sel) ImGui::PopStyleColor();
+        ImGui::PopID();
+        if(tap && !sel) LRegionChoose(i);
+    }
+    ImGui::TextDisabled("Also on the launcher: the region icon at the top.");
+}
+
 static void SectionConnection(void*)
 {
     bool idle = client.GetState() == NET_DISCONNECTED;
@@ -7403,6 +7435,7 @@ static void SectionConnection(void*)
     ImGui::TextDisabled("Connect = the default server, always online.");
     ImGui::TextDisabled("Custom servers: Servers tab -> Join.");
     ImGui::Text("Players online: %d/%d", MP::OnlineCount(), MP::OnlineMax());
+    SettingsRegion();   // 5.01.09: Switch region here too (the launcher's region icon is the other place)
 }
 
 // 2.37: SectionHost ("Hosted" page) was merged into SectionAddServer
