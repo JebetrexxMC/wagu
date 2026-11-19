@@ -302,7 +302,7 @@ def main():
     # 5.01.04: real players only - the default server always has its Broker bot (1/100 with nobody on it)
     # (every 24/7 server in server/run_24_7.sh has it: 1922, 1930-1934, 7777)
     BOT_PORTS = {1922, 1930, 1931, 1932, 1933, 1934, 7777}
-    def real(s): return max(0, s["players"] - (1 if s["port"] in BOT_PORTS and s["max"] >= 20 else 0))
+    def real(s): return max(0, s["players"] - (1 if s["port"] in BOT_PORTS else 0))
     top = max(servers, key=real, default=None)
     badge("top.json", "busiest server", ("%s %d/%d" % (top["name"][:28], top["players"], top["max"])) if top and real(top) else "no players right now", "e2554b" if top and real(top) else "lightgrey")
     # 5.01.04: "live status" badge from the data itself (a cancelled 6 h run made the workflow badge say failing)
