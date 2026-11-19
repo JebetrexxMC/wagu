@@ -12,6 +12,9 @@ def tree(z, src, dst, skip=()):
             p = os.path.join(d, f); rel = os.path.relpath(p, src)
             if any(rel.startswith(s) for s in skip): continue
             z.write(p, dst + "/" + rel.replace(os.sep, "/"))
+# 5.01.16: the neon backgrounds/flags are built into libMP*.so (neon_embed writes them to files/TYFMC/MP/neon on start),
+# so the zips leave the loose copies out: the 1080p background pushed MP.zip / the client zip past GitHub's 100 MB.
+ASKIP = ("MP.zip", "neon/nb_bg1080.png", "neon/nb_bg.png", "neon/nb_flags.png")
 def zf(path): return zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=9)
 old = zipfile.ZipFile("release/MP-3.32-client.zip")
 inst = old.read("MP-3.31-client/INSTALL.txt").decode("utf-8", "replace").replace("3.31", V).replace("3.32", V)
@@ -49,7 +52,7 @@ with zf("release/MP-%s-client.zip" % V) as z:
     z.write("release/MP-Voice.apk", c + "/MP-Voice.apk"); z.write("release/MP-Textdraw-Editor.apk", c + "/MP-Textdraw-Editor.apk")   # 3.59: both APKs
     z.writestr(c + "/INSTALL.txt", inst); z.writestr(c + "/MODERATOR_README.txt", MOD)
     z.write("bin/libMP64.so", c + "/lib/arm64-v8a/libMP64.so"); z.write("bin/libMP32.so", c + "/lib/armeabi-v7a/libMP32.so")
-    tree(z, "assets/MP", c + "/files/TYFMC/MP", ("MP.zip",))   # 4.12.7: files/TYFMC/MP
+    tree(z, "assets/MP", c + "/files/TYFMC/MP", ASKIP)   # 4.12.7: files/TYFMC/MP
 with zf("release/HiveMQ-kit-%s.zip" % V) as z: tree(z, "HiveMQ", "HiveMQ-kit", kit_skip)
 # 5.01.03: the full zip = lib/<abi>/libMP*.so (MonetLoader built in, no separate libmonetloader.so), assets/MP,
 # apks/ (ViceLoader.apk + the helper apps) and INSTALL.txt from tools/INSTALL_template.txt. mp_selftest.lua stays inside
@@ -70,7 +73,7 @@ def full_zip(path, with_vl=True, package=False):
             if n == "ViceLoader.apk" and not with_vl: continue
             z.write(a, f + "/apks/" + n)
         z.write("bin/libMP64.so", f + "/lib/arm64-v8a/libMP64.so"); z.write("bin/libMP32.so", f + "/lib/armeabi-v7a/libMP32.so")
-        tree(z, "assets/MP", f + "/assets/MP", ("MP.zip",))
+        tree(z, "assets/MP", f + "/assets/MP", ASKIP)
         inst = INST
         if package:
             inst = inst.replace("  assets/MP/   ", "  " + ("MP_%s.zip" % V).ljust(33) + "the same release as one zip (lib + assets + apks + INSTALL.txt)\n  assets/MP/   ", 1)
