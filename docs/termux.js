@@ -7,6 +7,7 @@
   var REG = ['Asia', 'Europe', 'NA', 'Oceania'];
   var PUBLIC = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://test.mosquitto.org:8081/'];
   var ROOT = 'thirtyfox/mp5/', FRESH = 15000;
+  var PORTS = 'https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/live-status/ports.json', lastBroker = 0;
   var RAW = 'https://mpsamp-open.github.io/';   // 3.35: openmpsa.com (no repo links)
   var API = 'release.json';
   var $ = function (id) { return document.getElementById(id); };
@@ -227,6 +228,27 @@
       print('                  <span class="g">' + esc('certutil -hashfile ' + I + ' SHA256') + '</span>');
       p('m', '  sha256 cc8a95cde20f6ced61a322420de00f10cc3c90ced545daa46cb9c1a117f1d927');
     },
+    'phone-broker': function () {   // 5.01.04: the region broker on this phone (docs/termux-broker.sh) + live port check
+      lastBroker = Date.now();
+      var ONE = 'curl -fsSL https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/main/docs/termux-broker.sh | bash -s -- YOUR_DUCKDNS_TOKEN';
+      p('m', 'region broker on a phone (Mosquitto 1883 + 8883, MP login, restarts by itself, DuckDNS every 5 min) - paste in the real Termux app:');
+      print('  <span class="g">' + esc(ONE) + '</span>');
+      p('m', '  router (http://192.168.1.1) port forwarding to the phone Wi-Fi IP:');
+      print('  MP-MQTT      TCP 1883 -> <span class="g">PHONE_IP:1883</span>');
+      print('  MP-MQTT-TLS  TCP 8883 -> <span class="g">PHONE_IP:8883</span>');
+      p('m', '  afterwards: ~/mp-broker.sh status | stop | start');
+      return fetch(PORTS, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (j) {
+        var open = 0;
+        p('m', 'live port check from GitHub (' + esc((j.updated || '').replace('T', ' ').slice(0, 16)) + ' UTC):');
+        (j.regions || []).forEach(function (r) {
+          var ok = r['1883'] === 'open' && r['8883'] === 'open'; if (r.mqtt) open++;
+          var c = function (v) { return '<span class="' + (v === 'open' ? 'g' : 'r') + '">' + esc(v) + '</span>'; };
+          print('  ' + esc((r.region + '        ').slice(0, 8)) + esc(r.host) + ' <span class="m">' + esc(r.ip || '?') + '</span>  1883 ' + c(r['1883']) + '  8883 ' + c(r['8883']) + '  mqtt ' + (r.mqtt ? '<span class="g">login ok</span>' : '<span class="r">no</span>'));
+        });
+        if (!open) p('y', '  0 region brokers reachable: run the one-liner on the phone, add the 2 router rules, then wait for the next check (10 min)');
+        else p('g', '  ' + open + ' region broker(s) reachable - players worldwide can use them');
+      }).catch(function (e) { p('r', 'ports: ' + e.message); });
+    },
     'clear': function () { out.innerHTML = ''; }
   };
   // what the bot types -> which command runs
@@ -237,7 +259,7 @@
     'cat $MP_DATA/broker.txt': 'cat-broker',
     'cat $MP_DATA/regions.txt': 'cat-regions',
     'mp-server status': 'status', 'mp-server list': 'list', 'mp-server log': 'log', 'mp-server doctor': 'doctor', 'mp-server vps-update': 'vps-update', 'mp-server vps-setup': 'vps-setup', 'curl -fsSL https://mpsamp-open.github.io/HiveMQ/update.sh | sudo bash': 'vps-update',
-    'git-helper': 'git-helper', 'git-helper scan': 'git-helper', 'ping -c 2 $BROKERS': 'ping', 'curl -s $MP/release.json': 'release', 'mp-server xdp-setup': 'xdp-setup', 'xdp-setup': 'xdp-setup', 'mp-server iso-join': 'iso-join', 'iso-join': 'iso-join', 'clear': 'clear'
+    'git-helper': 'git-helper', 'git-helper scan': 'git-helper', 'ping -c 2 $BROKERS': 'ping', 'curl -s $MP/release.json': 'release', 'mp-server xdp-setup': 'xdp-setup', 'xdp-setup': 'xdp-setup', 'mp-server iso-join': 'iso-join', 'iso-join': 'iso-join', 'clear': 'clear', 'mp-server phone-broker': 'phone-broker'
   };
   function run(line) {
     print('<span class="g">~ $</span> ' + esc(line));
@@ -249,7 +271,7 @@
   }
 
   // ------------------------------------------------------------ MP Bot planner
-  var boot = ['termux-info', 'curl -fsSL $MP/install.sh | grep say', 'cat ~/mp-server/server.conf', 'cat $MP_DATA/broker.txt', 'cat $MP_DATA/regions.txt', 'curl -s $MP/release.json', 'curl -fsSL https://mpsamp-open.github.io/HiveMQ/update.sh | sudo bash', 'mp-server status'];
+  var boot = ['termux-info', 'curl -fsSL $MP/install.sh | grep say', 'cat ~/mp-server/server.conf', 'cat $MP_DATA/broker.txt', 'cat $MP_DATA/regions.txt', 'curl -s $MP/release.json', 'curl -fsSL https://mpsamp-open.github.io/HiveMQ/update.sh | sudo bash', 'mp-server phone-broker', 'mp-server status'];
   var relCheck = false, relSeen = '';
   var rot = ['mp-server status', 'mp-server list', 'mp-server log', 'mp-server status', 'mp-server log', 'mp-server status', 'mp-server xdp-setup', 'mp-server list', 'mp-server log', 'mp-server iso-join'], ri = 0, cycles = 0, lastRel = Date.now();
   function next() {
@@ -261,6 +283,7 @@
     if (Date.now() - lastPing > 90000) return { cmd: 'ping -c 2 $BROKERS', why: 'ping every 90 s', wait: 7000 };
     if (Date.now() - lastRel > 600000) { lastRel = Date.now(); relCheck = true; return { cmd: 'curl -s $MP/release.json', why: 'checking for a new release' }; }
     if (relCheck && release) { relCheck = false; if (release.tag_name !== relSeen) { relSeen = release.tag_name; return { cmd: 'curl -fsSL https://mpsamp-open.github.io/HiveMQ/update.sh | sudo bash', why: 'release ' + release.tag_name + ': typing the VPS update' }; } }
+    if (Date.now() - lastBroker > 300000) return { cmd: 'mp-server phone-broker', why: 'region broker ports (every 5 min)' };
     if (++cycles % 10 === 0) return { cmd: 'clear', why: 'keeping the screen short', wait: 600 };
     if (botsUp < BOTS.length && cycles % 4 === 0) return { cmd: 'mp-server doctor', why: '24/7 bot host: ' + botsUp + '/' + BOTS.length };
     return { cmd: rot[ri++ % rot.length], why: 'routine check' };
