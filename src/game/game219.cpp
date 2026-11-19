@@ -132,13 +132,22 @@ bool Game::GetCameraPos(Vec3& pos, Vec3& look)
 }
 
 void Game::SetPlayerControl(bool on) { if(IsReady()) CALLSCM(SET_PLAYER_CONTROL, 0, on ? 1 : 0); }
+static bool s_bRadarBlocked = false;   // 5.01.14
 void Game::ShowGameHud(bool on)
 {
     if(!IsReady()) return;
     CALLSCM(DISPLAY_HUD, on ? 1 : 0);
-    CALLSCM(DISPLAY_RADAR, on ? 1 : 0);
+    CALLSCM(DISPLAY_RADAR, on && !s_bRadarBlocked ? 1 : 0);
 }
-void Game::ShowRadar(bool on) { if(IsReady()) CALLSCM(DISPLAY_RADAR, on ? 1 : 0); }   // 3.27: the vector radar replaces it
+// 5.01.14: Project Day Z: the game's radar (the GTA map) stays off while it is blocked - any ShowGameHud(true) on the
+// way in (the join screen, the MP release, the respawn) turned it back on for a few seconds before Day Z hid it again
+void Game::ShowRadar(bool on) { if(IsReady()) CALLSCM(DISPLAY_RADAR, on && !s_bRadarBlocked ? 1 : 0); }   // 3.27: the vector radar replaces it
+void Game::BlockRadar(bool on)
+{
+    if(on == s_bRadarBlocked) return;
+    s_bRadarBlocked = on;
+    if(on && IsReady()) CALLSCM(DISPLAY_RADAR, 0);
+}
 void Game::SetCharVisible(int ped, bool on) { if(ped > 0 && PedPtr(ped)) CALLSCM(SET_CHAR_VISIBLE, ped, on ? 1 : 0); }
 void Game::FreezeChar(int ped, bool on)     { if(ped > 0 && PedPtr(ped)) CALLSCM(FREEZE_CHAR_POSITION, ped, on ? 1 : 0); }
 void Game::FreezeCar(int car, bool on)      { if(car > 0 && CarPtr(car)) CALLSCM(FREEZE_CAR_POSITION, car, on ? 1 : 0); }

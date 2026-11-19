@@ -307,6 +307,7 @@ namespace Game
     void  SetPlayerControl(bool on);
     void  ShowGameHud(bool on);                        // HUD + radar
     void  ShowRadar(bool on);                          // 3.27: radar only
+    void  BlockRadar(bool on);                         // 5.01.14: the game radar stays off (Project Day Z)
     void  SetCharVisible(int ped, bool on);
     void  FreezeChar(int ped, bool on);
     void  FreezeCar(int car, bool on);

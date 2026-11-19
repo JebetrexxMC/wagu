@@ -116,6 +116,7 @@ static void DzMapTick(const Vec3& me, uint64_t now);
 static void DzMapClear();
 static bool DzMapLocalCmd(const char* arg);
 static bool DzBaseOpen();
+static void DzHurtWhy(int why, uint64_t now);   // 5.01.14 (mp_dayz_mta.inc)
 static bool DzOnServer()
 {
     return client.GetState() == NET_CONNECTED && MP_IsDzServerName(client.GetServerName()[0] ? client.GetServerName() : s_szCurServer);
@@ -701,6 +702,7 @@ static void DzShutdown()
         if(s_Dz.view == 1 || s_Dz.view == 3) Game::Teleport(ped, kGroveStreet, kGroveHeading);
     }
     Game::RestoreCamera();
+    Game::BlockRadar(false);   // 5.01.14
     Game::ShowGameHud(true); Game::SetPlayerControl(true); Game::ShowRadar(true);
     Game::SetMaxWanted(6);
     s_Dz = DzClientState(); s_DzDlSkip = false;
@@ -1058,6 +1060,13 @@ static void DzFuelTick(int ped, uint64_t now)
 // ---- process -----------------------------------------------------------------------------------
 static void DzProcess(int ped, uint64_t now)
 {
+    {   // 5.01.14: the GTA radar never shows on the way into Project Day Z (connecting, the cabin, the spawn): the
+        // Day Z GPS replaces it. Before, it came back for a few seconds whenever the join turned the HUD on, until
+        // the 3 s re-hide check (a 40 ms window) caught it.
+        const int st = client.GetState();
+        const bool dz = DzOnServer() || (st != NET_DISCONNECTED && (s_bDzJoin || MP_IsDzServerName(client.GetServerName()[0] ? client.GetServerName() : s_szCurServer)));
+        Game::BlockRadar(dz);
+    }
     if(!DzOnServer())
     {
         if(s_Dz.engaged || s_Dz.nProps || !s_Dz.loot.empty()) DzShutdown();
@@ -1135,7 +1144,7 @@ static void DzProcess(int ped, uint64_t now)
         }
     }
     DzRulesTick(now);
-    if(s_Dz.radarHidden == false || now % 3000 < 40) { Game::ShowRadar(false); s_Dz.radarHidden = true; }
+    if(s_Dz.radarHidden == false || now % 3000 < 40) { Game::ShowRadar(false); s_Dz.radarHidden = true; }   // (5.01.14: Game::BlockRadar keeps it off in between)
     DzWeaponsTick();
     DzPickTick(ped, now);
     DzLootTick(me);
@@ -1182,8 +1191,10 @@ static void DzProcess(int ped, uint64_t now)
     // hunger / thirst at 0 and the infection cost blood
     if(s_Dz.haveMe)
     {
-        if((s_Dz.me.hunger == 0 || s_Dz.me.thirst == 0) && now - s_Dz.lastNeedsHurt > 6000) { s_Dz.lastNeedsHurt = now; if(hp > 1) Game::SetCharHealth(ped, hp - 1); }
-        if(s_Dz.me.infected && now - s_Dz.lastInfHurt > 9000) { s_Dz.lastInfHurt = now; if(hp > 1) Game::SetCharHealth(ped, hp - 1); }
+        // 5.01.14: the hp read at the top of the tick may be stale by now (bleeding / cold took 1 already): read it again,
+        // keep prevHp in step (so this is never taken as a new hit -> bleeding) and say why
+        if((s_Dz.me.hunger == 0 || s_Dz.me.thirst == 0) && now - s_Dz.lastNeedsHurt > 6000) { s_Dz.lastNeedsHurt = now; const int h = Game::GetCharHealth(ped); if(h > 1) { Game::SetCharHealth(ped, h - 1); s_Dz.prevHp = h - 1; DzHurtWhy(2, now); } }
+        if(s_Dz.me.infected && now - s_Dz.lastInfHurt > 9000) { s_Dz.lastInfHurt = now; const int h = Game::GetCharHealth(ped); if(h > 1) { Game::SetCharHealth(ped, h - 1); s_Dz.prevHp = h - 1; DzHurtWhy(3, now); } }
     }
     if(now - s_Dz.lastStatus > 5000) { s_Dz.lastStatus = now; DzSend(DZCMD_HIT, 0, 0, Game::GetCharHealth(ped)); }
     if(ImGui::IsKeyPressed(ImGuiKey_F2, false)) s_Dz.panelOpen = !s_Dz.panelOpen;

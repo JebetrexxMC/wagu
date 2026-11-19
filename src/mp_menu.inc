@@ -478,7 +478,11 @@ void MP::DrawMenuLoading(ImDrawList* dl, float pct, bool loadingScreen)
     // ---- background: the launcher's blurred night city over the whole screen, darker at the edges
     dl->AddRectFilled(ImVec2(0, 0), ds, IM_COL32(8, 11, 20, 255));
     ImVec2 uv(1, 1);
-    if(void* t = HUD::Texture("ui_bg.jpg", &uv)) LImageCover(dl, t, uv, ImVec2(0, 0), ds, IM_COL32(255, 255, 255, 255));
+    // 5.01.14: the MP LAN Server preview (bg_default.jpg, the neon menu's backdrop) - the same picture from the menu
+    // through the loading; ui_bg.jpg when bg_server.jar is missing
+    void* t = HUD::Texture("bg_default.jpg", &uv);
+    if(!t) t = HUD::Texture("ui_bg.jpg", &uv);
+    if(t) LImageCover(dl, t, uv, ImVec2(0, 0), ds, IM_COL32(255, 255, 255, 255));
     dl->AddRectFilled(ImVec2(0, 0), ds, IM_COL32(6, 8, 12, 130));   // 4.13.10: darker, like the Rust screen
     {   // 4.13.9: a soft round vignette all around (clear in the middle, a see-through dark at the edges)
         const ImVec2 c(ds.x * 0.5f, ds.y * 0.5f), uvw = dl->_Data->TexUvWhitePixel;

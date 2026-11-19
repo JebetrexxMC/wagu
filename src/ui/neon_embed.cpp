@@ -29,6 +29,13 @@ extern const unsigned char mp_neon_17[], mp_neon_17_end[];
 extern const unsigned char mp_neon_18[], mp_neon_18_end[];
 extern const unsigned char mp_neon_19[], mp_neon_19_end[];
 extern const unsigned char mp_neon_20[], mp_neon_20_end[];
+extern const unsigned char mp_neon_21[], mp_neon_21_end[];
+extern const unsigned char mp_neon_22[], mp_neon_22_end[];
+extern const unsigned char mp_neon_23[], mp_neon_23_end[];
+extern const unsigned char mp_neon_24[], mp_neon_24_end[];
+extern const unsigned char mp_neon_25[], mp_neon_25_end[];
+extern const unsigned char mp_neon_26[], mp_neon_26_end[];
+extern const unsigned char mp_neon_27[], mp_neon_27_end[];
 }
 
 namespace NeonEmbed
@@ -56,6 +63,14 @@ static const File kFiles[] = {
     { "font_caps.txt", mp_neon_18, mp_neon_18_end },
     { "font_ui.png", mp_neon_19, mp_neon_19_end },
     { "font_ui.txt", mp_neon_20, mp_neon_20_end },
+    // 5.01.14: the MP launcher look - the MP LAN Server picture + Fredoka (the launcher font) atlases
+    { "lp_bg.png", mp_neon_21, mp_neon_21_end },
+    { "lp_title.png", mp_neon_22, mp_neon_22_end },
+    { "lp_title.txt", mp_neon_23, mp_neon_23_end },
+    { "lp_caps.png", mp_neon_24, mp_neon_24_end },
+    { "lp_caps.txt", mp_neon_25, mp_neon_25_end },
+    { "lp_ui.png", mp_neon_26, mp_neon_26_end },
+    { "lp_ui.txt", mp_neon_27, mp_neon_27_end },
 };
 
 static bool Same(const std::string& p, const unsigned char* d, size_t n)

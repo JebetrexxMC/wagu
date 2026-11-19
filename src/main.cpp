@@ -286,7 +286,7 @@ DECL_HOOKv(MobileMenu_Render, void* self)
         if(HUD::GuardedNative("neon check + textures", NeonWantFn, nullptr)) paint = s_nPaintWant;
         if(s_nMenuRenderCalls < 2) { logger->Info("Neon menu: frame %d check done (paint %d)", s_nMenuRenderCalls + 1, paint); ++s_nMenuRenderCalls; }
     }
-    if(paint == 1) s_nNeonCoverMs = MP_NowMs();
+    if(paint == 1 || paint == 4) s_nNeonCoverMs = MP_NowMs();   // 5.01.14: + the loading cover
     MobileMenu_Render(self);
     if(paint && !HUD::TitleMenuBroken())
     {

@@ -25,7 +25,8 @@ struct DzXState
     // keys 7 (GPS) / 8 (compass)
     bool        gpsOff = false, bigCompass = false;
     // conditions + temperature
-    uint16_t    cond = 0; float temp = 37.0f, tempRate = 0.0f; uint64_t lastTempTick = 0, lastStatusTx = 0, lastBleed = 0, lastLegs = 0, lastCold = 0;
+    uint16_t    cond = 0; float temp = 37.0f, tempRate = 0.0f; uint64_t lastTempTick = 0, lastStatusTx = 0, lastBleed = 0, lastLegs = 0, lastCold = 0, bleedAt = 0;
+    uint64_t    whyAt[4] = {};   // 5.01.14: the last "why you lose blood" notice: 0 bleeding, 1 cold, 2 hunger / thirst, 3 infection
     int         netHit = 0;   // damage that came from the network this frame (not a fall)
     // weather from the server (sunny / cloudy / rain)
     int         weather = 0, rain = 0;
@@ -271,6 +272,15 @@ static void DzStartRevive(int ped, int target)
     if(!Game::PlayAnimOnce(ped, "CPR", "MEDIC", 4.0f, false, 3500)) Game::PlayAnimOnce(ped, "BOM_Plant", "BOMBER", 4.0f, false, 3500);
 }
 
+// 5.01.14: every blood loss you did not see coming says why (once in 20 s per reason): "I lose blood with 90 % food"
+static void DzHurtWhy(int why, uint64_t now)
+{
+    if(why < 0 || why > 3 || (s_DzX.whyAt[why] && now - s_DzX.whyAt[why] < 20000)) return;
+    s_DzX.whyAt[why] = now;
+    static const char* const kWhy[4] = { "You lose blood: BLEEDING - use a Bandage.", "You lose blood: you are COLD - get in a car, sprint or use a Heat Pack.",
+                                         "You lose blood: you are starving or THIRSTY - eat and drink.", "You lose blood: you are INFECTED - find Antibiotics." };
+    DzNotice(DZ_RED, "%s", kWhy[why]);
+}
 // ---- conditions + temperature (MTA DayZ: bleeding, pain, broken legs, fractured arms, cold) -------
 static void DzCondTick(int ped, int hp, int prevHp, uint64_t now)
 {
@@ -290,7 +300,7 @@ static void DzCondTick(int ped, int hp, int prevHp, uint64_t now)
     s_DzX.temp += rate * dt; s_DzX.tempRate += (rate - s_DzX.tempRate) * std::min(1.0f, dt * 0.5f);
     if(s_DzX.temp < 31.0f) s_DzX.temp = 31.0f; if(s_DzX.temp > 41.0f) s_DzX.temp = 41.0f;
     if(s_DzX.temp < 34.0f) s_DzX.cond |= DZCO_COLD; else if(s_DzX.temp > 35.0f) s_DzX.cond &= ~DZCO_COLD;
-    if((s_DzX.cond & DZCO_COLD) && now - s_DzX.lastCold > 12000) { s_DzX.lastCold = now; if(hp > 6) Game::SetCharHealth(ped, hp - 1); }
+    if((s_DzX.cond & DZCO_COLD) && now - s_DzX.lastCold > 12000) { s_DzX.lastCold = now; if(hp > 6) { Game::SetCharHealth(ped, hp - 1); s_Dz.prevHp = hp - 1; DzHurtWhy(1, now); } }
     // new damage: bleeding / pain / fractured arms; a fall (no zombie, no bullet) breaks the legs
     if(prevHp > 0 && hp < prevHp && !s_DzX.downed)
     {
@@ -298,18 +308,25 @@ static void DzCondTick(int ped, int hp, int prevHp, uint64_t now)
         bool fall = s_DzX.netHit == 0 && !inCar && dmg >= 8;
         bool zed = false; Vec3 me; if(Game::GetCharPos(ped, me)) for(auto& z : s_Dz.zeds) { Vec3 zp; if(z.ped > 0 && Game::GetCharPos(z.ped, zp) && (zp.x - me.x) * (zp.x - me.x) + (zp.y - me.y) * (zp.y - me.y) < 2.5f * 2.5f) { zed = true; break; } }
         if(fall && !zed) { if(!(s_DzX.cond & DZCO_LEGS)) DzNotice(DZ_RED, "You broke your legs - Morphine fixes them."); s_DzX.cond |= DZCO_LEGS; }
-        else if(dmg >= 4)
-        {
-            if(rand() % 100 < 30 && !(s_DzX.cond & DZCO_BLEEDING)) { s_DzX.cond |= DZCO_BLEEDING; DzNotice(DZ_RED, "You are BLEEDING - use a Bandage."); }
+        else if(dmg >= 4 && (zed || s_DzX.netHit > 0))
+        {   // 5.01.14: only a real hit (a zombie next to you / a player) makes you bleed. Before, any health drop did -
+            // a car bump, the game's own health changes - and the bleeding then cost blood for ever with full food
+            if(rand() % 100 < 30 && !(s_DzX.cond & DZCO_BLEEDING)) { s_DzX.cond |= DZCO_BLEEDING; s_DzX.bleedAt = now; DzNotice(DZ_RED, "You are BLEEDING - use a Bandage (it stops by itself after a minute)."); }
+            else if(s_DzX.cond & DZCO_BLEEDING) s_DzX.bleedAt = now;
             if(rand() % 100 < 20) s_DzX.cond |= DZCO_PAIN;
             if(s_DzX.netHit > 0 && rand() % 100 < 8) { s_DzX.cond |= DZCO_ARMS; DzNotice(DZ_RED, "Fractured arm - Morphine fixes it."); }
         }
     }
     s_DzX.netHit = 0;
+    if((s_DzX.cond & DZCO_BLEEDING) && (!s_DzX.bleedAt || now - s_DzX.bleedAt > 60000))
+    {   // 5.01.14: a wound stops bleeding by itself after a minute without a new hit (a saved / old bleeding too)
+        if(s_DzX.bleedAt) { s_DzX.cond &= ~DZCO_BLEEDING; DzNotice(DZ_GRN, "The bleeding stopped."); }
+        else s_DzX.bleedAt = now;
+    }
     if((s_DzX.cond & DZCO_BLEEDING) && now - s_DzX.lastBleed > 3500 && !s_DzX.downed)
     {
         s_DzX.lastBleed = now; int h = Game::GetCharHealth(ped);
-        if(h > 6) { Game::SetCharHealth(ped, h - 1); s_Dz.prevHp = h - 1; }
+        if(h > 6) { Game::SetCharHealth(ped, h - 1); s_Dz.prevHp = h - 1; DzHurtWhy(0, now); }
         if(s_Dz.opt.blood) s_Dz.drops.push_back({ 0.45f + (rand() % 100) / 1000.0f, 0.55f, 0.0f, now, false });
     }
     if((s_DzX.cond & DZCO_LEGS) && ms >= 6 && now - s_DzX.lastLegs > 2500 && !inCar)
