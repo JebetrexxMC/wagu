@@ -28,6 +28,8 @@
   <br>
   <a href="https://mpsamp-open.github.io/"><img alt="Public lobbies" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/live-status/lobbies.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=600"></a>
   <a href="https://mpsamp-open.github.io/"><img alt="Region brokers" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/live-status/regions.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=600"></a>
+  <a href="https://github.com/ThirtyFoxMCx00E1/wagu/blob/live-status/ports.json"><img alt="Port forward 1883" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/live-status/port1883.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=600"></a>
+  <a href="https://github.com/ThirtyFoxMCx00E1/wagu/blob/live-status/ports.json"><img alt="Port forward 8883" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/live-status/port8883.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=600"></a>
   <a href="https://mpsamp-open.github.io/"><img alt="Peak today" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/live-status/peak.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=600"></a>
   <a href="https://mpsamp-open.github.io/"><img alt="Busiest server" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/live-status/top.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=600"></a>
   <br>

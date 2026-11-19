@@ -11,7 +11,9 @@ retained/saved one), and writes:
   out/discord.json  - shields.io endpoint badge: Discord online / members
   out/status.json   - raw data (servers, players, time)
   out/lobbies.json  - 5.01.04: public lobby brokers that answered (Mosquitto / HiveMQ / EMQX)
-  out/regions.json  - 5.01.04: region brokers (regions.txt hosts) reachable from the internet on 1883
+  out/regions.json  - 5.01.04: region brokers (regions.txt hosts) that answer an MQTT login from the internet
+  out/port1883.json / out/port8883.json - 5.01.04: port forward check (open / refused / timeout per host)
+  out/ports.json    - 5.01.04: the full port check (region, host, IP, 1883, 8883, MQTT login)
   out/peak.json     - 5.01.04: most players online today (UTC)
   out/top.json      - 5.01.04: the busiest server right now (real players, not the Broker bot)
   out/live.json     - 5.01.04: when the status was last refreshed
@@ -275,27 +277,66 @@ def main():
         json.dump(d, open(os.path.join(out, name), "w"))
     up = sum(1 for h, _ in BROKERS if h in res)
     badge("lobbies.json", "public lobbies", "%d/%d up" % (up, len(BROKERS)), "brightgreen" if up == len(BROKERS) else ("yellow" if up else "red"))
-    regs = REGIONS
+    regs = [{"label": "Asia", "host": h, "port": p} for h, p in REGIONS]
     try:
         import urllib.request
         rq = urllib.request.Request("https://mpsamp-open.github.io/regions.txt?t=%d" % time.time(), headers={"User-Agent": "wagu-live-status"})
         txt = urllib.request.urlopen(rq, timeout=15).read().decode("utf-8", "replace")
-        got, cur = [], None   # [Region] blocks with host= / port= lines
+        got, cur = [], None   # [Region] blocks with host= / port= / user= / pass= lines
         for ln in txt.splitlines():
             ln = ln.strip()
-            if ln.startswith("["): cur = {}; got.append(cur)
+            if ln.startswith("["): cur = {"label": ln.strip("[]")}; got.append(cur)
             elif cur is not None and "=" in ln and not ln.startswith("#"):
                 k, v = ln.split("=", 1); cur.setdefault(k.strip(), v.strip())
-        got = [(g["host"], int(g.get("port", "1883") or 1883)) for g in got if g.get("host")]
+        got = [{"label": g["label"], "host": g["host"], "port": int(g.get("port", "1883") or 1883),
+                "user": g.get("user", ""), "pass": g.get("pass", "")} for g in got if g.get("host")]
         if got: regs = got
     except Exception as ex:
         print("regions.txt: %s" % ex, file=sys.stderr)
-    import socket
-    ok = 0
-    for h, p in regs:
-        try: socket.create_connection((h, p), timeout=5).close(); ok += 1
-        except Exception: pass
-    badge("regions.json", "region brokers", "%d/%d reachable" % (ok, len(regs)), "brightgreen" if ok == len(regs) else ("yellow" if ok else "red"))
+    import socket, errno
+    # 5.01.04: port forward check - TCP 1883 (MQTT) and 8883 (MQTT TLS) on every region host.
+    #   open    = something listens (forward OK)      refused = the router answers but forwards nothing
+    #   timeout = dropped (firewall / CGNAT / PC off) dns     = the duckdns name does not resolve
+    def tcp(h, p):
+        try: socket.create_connection((h, p), timeout=6).close(); return "open"
+        except socket.gaierror: return "dns"
+        except ConnectionRefusedError: return "refused"
+        except (socket.timeout, TimeoutError): return "timeout"
+        except OSError as ex: return "refused" if ex.errno == errno.ECONNREFUSED else "timeout"
+    def mqtt_ok(r):   # the broker really answers with the mp login (CONNACK 0)
+        try:
+            import paho.mqtt.client as mqtt
+            ok = {"c": False}
+            c = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="mpstatus-r%d" % (time.time() * 1000 % 1e9))
+            if r.get("user"): c.username_pw_set(r["user"], r.get("pass", ""))
+            c.on_connect = lambda c_, u, f, rc, pr=None: ok.__setitem__("c", rc == 0)
+            c.connect(r["host"], r["port"], 20); c.loop_start()
+            for _ in range(16):
+                if ok["c"]: break
+                time.sleep(0.5)
+            c.loop_stop(); c.disconnect(); return ok["c"]
+        except Exception: return False
+    rep = []
+    for r in regs:
+        try: ip = socket.gethostbyname(r["host"])
+        except Exception: ip = "-"
+        e = {"region": r["label"], "host": r["host"], "ip": ip, "1883": tcp(r["host"], 1883), "8883": tcp(r["host"], 8883)}
+        e["mqtt"] = e["1883"] == "open" and mqtt_ok(r)
+        rep.append(e)
+    n = len(rep); ok = sum(1 for e in rep if e["mqtt"])
+    badge("regions.json", "region brokers", "%d/%d reachable" % (ok, n), "brightgreen" if ok == n else ("yellow" if ok else "red"))
+    for port in ("1883", "8883"):
+        op = sum(1 for e in rep if e[port] == "open")
+        why = sorted({e[port] for e in rep if e[port] != "open"})
+        msg = "%d/%d open" % (op, n) + ("" if op == n else " (%s)" % ", ".join(why))
+        badge("port%s.json" % port, "port forward %s" % port, msg, "brightgreen" if op == n else ("yellow" if op else "red"))
+    json.dump({"updated": now.isoformat(timespec="seconds"), "regions": rep}, open(os.path.join(out, "ports.json"), "w"), indent=1)
+    for e in rep: print("region %-8s %-22s %-15s 1883=%-8s 8883=%-8s mqtt=%s" % (e["region"], e["host"], e["ip"], e["1883"], e["8883"], e["mqtt"]))
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+            f.write("### Region brokers - port forward check\n\n| Region | Host | IP | 1883 | 8883 | MQTT login |\n|---|---|---|---|---|---|\n")
+            for e in rep: f.write("| %s | %s | %s | %s | %s | %s |\n" % (e["region"], e["host"], e["ip"], e["1883"], e["8883"], "ok" if e["mqtt"] else "no"))
+            f.write("\nrefused = the router answers but does not forward the port to the broker PC; timeout = dropped (firewall, CGNAT or the PC is off).\n\n")
     today = now.isoformat()[:10]
     pk = max([0] + [int(h.get("players", 0)) for h in hist if h["t"][:10] == today])
     badge("peak.json", "peak today", "%d players" % pk, "blue")
