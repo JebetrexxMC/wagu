@@ -136,7 +136,10 @@ bool on_touch(int type, int num, int x, int y)
   if (gui::render::handle_touch(type, num, x, y)) {
     return true;
   }
-  if (lua::mimgui::handle_touch(type, num, x, y)) {
+  // MP 5.01.08: with MP, mimgui gets MP's touches (process_touch below, in the game's resolution like mimgui's
+  // DisplaySize). This hook gave raw screen pixels (the game often renders below the screen's resolution) or nothing,
+  // so HassleHUD's window showed but no button / tab / toggle / close reacted.
+  if (!mp_bridge::touch_feed() && lua::mimgui::handle_touch(type, num, x, y)) {
     return true;
   }
 
@@ -190,6 +193,9 @@ void process_touch()
   if (lua::script_manager::initialized()) {
     int type, num, x, y;
     while (mp_bridge::poll_touch(type, num, x, y)) {
+      if (lua::mimgui::handle_touch(type, num, x, y)) {
+        continue;   // MP 5.01.08: a mimgui window took it
+      }
       lua::script_manager::for_each_event_handler("onTouch",
           [type, num, x, y](sol::protected_function fn) -> std::optional<sol::error> {
             auto pfr = fn(type, num, x, y);

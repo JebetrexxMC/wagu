@@ -4,12 +4,35 @@
 #include "gui/render.h"
 #include "gui/touch_handler.h"
 #include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
 #include <list>
+#include <mutex>
+#include <vector>
 #include <ranges>
 
 namespace {
 struct imgui_renderer;
 std::list<imgui_renderer*> g_all_renderers;
+// MP 5.01.08: what MP's touch hook asks (MonetMP_ImguiHit, Android's UI thread): the input windows of every mimgui
+// context as of the last frame, so a tap on a mimgui window (HassleHUD) goes to mimgui and not to the game below
+std::mutex g_hit_mx;
+struct hit_ctx { const void* owner; bool on; bool held; std::vector<ImVec4> rects; };
+std::vector<hit_ctx> g_hit;
+void hit_publish(const void* owner, bool on, bool held, std::vector<ImVec4>&& rects)
+{
+  std::lock_guard<std::mutex> lk { g_hit_mx };
+  for (auto& h : g_hit) {
+    if (h.owner == owner) { h.on = on; h.held = held; h.rects = std::move(rects); return; }
+  }
+  g_hit.push_back({ owner, on, held, std::move(rects) });
+}
+void hit_drop(const void* owner)
+{
+  std::lock_guard<std::mutex> lk { g_hit_mx };
+  for (auto it = g_hit.begin(); it != g_hit.end(); ++it) {
+    if (it->owner == owner) { g_hit.erase(it); return; }
+  }
+}
 
 struct imgui_context_switch {
   imgui_context_switch(ImGuiContext* ctx)
@@ -54,6 +77,7 @@ struct imgui_renderer {
     input_system::destroyed_context();
 
     g_all_renderers.erase(all_renderers_iterator);
+    hit_drop(this);
   }
 
   void switch_context()
@@ -84,6 +108,15 @@ struct imgui_renderer {
     handler.end_frame();
     ImGui::Render();
     has_frame = true;
+    {   // MP 5.01.08
+      std::vector<ImVec4> rects;
+      ImGuiContext& g = *ImGui::GetCurrentContext();
+      for (ImGuiWindow* w : g.Windows) {
+        if (!w || !w->WasActive || w->Hidden || (w->Flags & ImGuiWindowFlags_NoInputs)) continue;
+        rects.push_back({ w->Pos.x, w->Pos.y, w->Pos.x + w->Size.x, w->Pos.y + w->Size.y });
+      }
+      hit_publish(this, enabled_io && handler.touches_on(), handler.active_pointers_count() > 0, std::move(rects));
+    }
 
     if (ImGui::GetIO().WantTextInput && enabled_io) {
       gui::render::show_keyboard(&ImGui::GetIO(), &ImGui::GetStyle());
@@ -165,6 +198,20 @@ sol::table lua::mimgui::reg_renderer(sol::this_state this_state)
       "ReleaseTexture", &imgui_renderer::release_texture);
 
   return module;
+}
+
+// MP 5.01.08: 1 = (x, y) in the game's resolution is on a mimgui window that takes input (or mimgui holds a finger)
+extern "C" __attribute__((visibility("default"))) int MonetMP_ImguiHit(int x, int y)
+{
+  std::lock_guard<std::mutex> lk { g_hit_mx };
+  for (const auto& h : g_hit) {
+    if (!h.on) continue;
+    if (h.held) return 1;
+    for (const auto& r : h.rects) {
+      if (x >= r.x && y >= r.y && x < r.z && y < r.w) return 1;
+    }
+  }
+  return 0;
 }
 
 bool lua::mimgui::handle_touch(int type, int num, int x, int y)

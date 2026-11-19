@@ -102,6 +102,8 @@ class touch_handler {
     multitouch = enable;
   }
 
+  bool touches_on() const { return touches_enabled; }   // MP 5.01.08
+
   std::size_t active_pointers_count()
   {
     return active_pointers;
