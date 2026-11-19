@@ -300,7 +300,9 @@ def main():
     pk = max([0] + [int(h.get("players", 0)) for h in hist if h["t"][:10] == today])
     badge("peak.json", "peak today", "%d players" % pk, "blue")
     # 5.01.04: real players only - the default server always has its Broker bot (1/100 with nobody on it)
-    def real(s): return max(0, s["players"] - (1 if is_default(s) else 0))
+    # (every 24/7 server in server/run_24_7.sh has it: 1922, 1930-1934, 7777)
+    BOT_PORTS = {1922, 1930, 1931, 1932, 1933, 1934, 7777}
+    def real(s): return max(0, s["players"] - (1 if s["port"] in BOT_PORTS and s["max"] >= 20 else 0))
     top = max(servers, key=real, default=None)
     badge("top.json", "busiest server", ("%s %d/%d" % (top["name"][:28], top["players"], top["max"])) if top and real(top) else "no players right now", "e2554b" if top and real(top) else "lightgrey")
     # 5.01.04: "live status" badge from the data itself (a cancelled 6 h run made the workflow badge say failing)
