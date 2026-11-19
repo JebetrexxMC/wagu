@@ -1,13 +1,13 @@
-MP Multiplayer 5.01.07 - install
+MP Multiplayer 5.01.08 - install
 =================================
 GTA San Andreas 2.00 and GTA Vice City (Android), 32-bit and 64-bit.
 
 What is in this package
-  lib/<abi>/libMP32.so, libMP64.so MP 5.01.07 (San Andreas + Vice City), one file per ABI with everything inside:
+  lib/<abi>/libMP32.so, libMP64.so MP 5.01.08 (San Andreas + Vice City), one file per ABI with everything inside:
                                    MonetLoader 4.0.0-mp is built in - there is no separate libmonetloader.so
                                    or any other binary mod to copy
   assets/MP/                       the MP files (UI pictures, server backgrounds, sounds, titles, moonloader scripts and libs)
-  apks/ViceLoader.apk              VICE Loader 5.01.07 - the MP launcher overlay for GTA Vice City
+  apks/ViceLoader.apk              VICE Loader 5.01.08 - the MP launcher overlay for GTA Vice City
   apks/Moquil.apk                  Moquil 1.4.5 (friends / chats, linked to the game)
   apks/MP-Voice.apk                microphone helper for voice chat
   apks/MP-Textdraw-Editor.apk      textdraw editor for server owners
@@ -49,7 +49,7 @@ GTA VICE CITY (with VICE Loader)
 4. In the game use the floating bar:  [ : ] menu   [chat]   [mic]   [moon = MonetLoader]
    [ : ] > Server opens the Internet list. The 24/7 "VICE City LAN server" (port 7777) is at the top.
    Type a nickname and tap CONNECT - no login.
-5. Settings > Connection shows "Game link: connected" when the game runs MP 5.01.07.
+5. Settings > Connection shows "Game link: connected" when the game runs MP 5.01.08.
 
 ---------------------------------------------------------------------
 Problems? Send these files
@@ -62,7 +62,7 @@ Problems? Send these files
 Source and releases: https://github.com/ThirtyFoxMCx00E1/wagu
 
 Vice City crashes on the Load screen (SIGABRT in CheckDataNotCorrupt / OS_FileClose)?
-  A save file is incomplete or from another version and the game closes it twice. MP 5.01.07 blocks that and names the slot in mp_log.txt.
+  A save file is incomplete or from another version and the game closes it twice. MP 5.01.08 blocks that and names the slot in mp_log.txt.
   Move or rename that GTA3sf<number>.b out of the game's files folder to clean it up.
 
 MonetLoader self test: assets/MP/moonloader/tests/mp_selftest.lua (copy it into moonloader/ to run it once).
