@@ -1,0 +1,44 @@
+# MP Discord bot (5.01.04): the MP login bot (/gen, /stats, /create, /forgotpass ...) online 24/7 from wagu.
+# Moved here from the discordpy-bot repo (its MP Railway cloud runner, 3.21.7) so MP runs from one repo.
+# The same bot keeps the 24/7 YouTube "Streaming" status (main.py), so no second login on another token.
+# Secrets: DISCORD_TOKEN (bot token) + AUTH_PRIVATE_KEY. Each run is one ~5 h 40 min shift that queues
+# the next one itself; accounts.db is kept encrypted on the mp-railway-data branch, the badge on bot-status.
+# Turn it off (e.g. when the HiveMQ PC runs the bot with mp-railway): repository variable BOT_RUNNER = off.
+name: MP Discord bot
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/mp-discord-bot.yml']
+  schedule:
+    - cron: '17 * * * *'   # safety net: restarts the chain if a shift ever failed
+concurrency:
+  group: mp-discord-bot
+  cancel-in-progress: false
+permissions:
+  contents: write   # accounts.db (encrypted) on mp-railway-data, bot.json on bot-status
+  actions: write    # queue the next shift
+jobs:
+  bot:
+    if: vars.BOT_RUNNER != 'off'
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: discordbot
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: discordbot/requirements.txt
+      - run: pip install -q -r discordbot/requirements.txt
+      - name: Run the bot (one shift)
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          AUTH_PRIVATE_KEY: ${{ secrets.AUTH_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -n "$DISCORD_TOKEN" ] && [ -n "$AUTH_PRIVATE_KEY" ] || { echo "::error title=MP Discord bot::Add the repo secrets DISCORD_TOKEN and AUTH_PRIVATE_KEY"; exit 1; }
+          python discordbot/runner.py
