@@ -187,5 +187,45 @@ mp_neon_22:
     .global mp_neon_22_end
     .hidden mp_neon_22_end
 mp_neon_22_end:
+    .balign 4
+    .global mp_neon_23
+    .hidden mp_neon_23
+mp_neon_23:
+    .incbin "nb_bg1080.png"
+    .global mp_neon_23_end
+    .hidden mp_neon_23_end
+mp_neon_23_end:
+    .balign 4
+    .global mp_neon_24
+    .hidden mp_neon_24
+mp_neon_24:
+    .incbin "nb_button.png"
+    .global mp_neon_24_end
+    .hidden mp_neon_24_end
+mp_neon_24_end:
+    .balign 4
+    .global mp_neon_25
+    .hidden mp_neon_25
+mp_neon_25:
+    .incbin "nb_card.png"
+    .global mp_neon_25_end
+    .hidden mp_neon_25_end
+mp_neon_25_end:
+    .balign 4
+    .global mp_neon_26
+    .hidden mp_neon_26
+mp_neon_26:
+    .incbin "nb_dialog.png"
+    .global mp_neon_26_end
+    .hidden mp_neon_26_end
+mp_neon_26_end:
+    .balign 4
+    .global mp_neon_27
+    .hidden mp_neon_27
+mp_neon_27:
+    .incbin "nb_pill.png"
+    .global mp_neon_27_end
+    .hidden mp_neon_27_end
+mp_neon_27_end:
     .byte 0
     .section .note.GNU-stack,"",%progbits

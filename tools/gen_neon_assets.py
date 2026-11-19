@@ -178,6 +178,26 @@ def browser_assets(folder, bg_jpeg, flags_png):
     import shutil
     Image.open(bg_jpeg).convert('RGB').resize((1024, 512), Image.LANCZOS).convert('RGBA').save(os.path.join(folder, 'nb_bg.png'), optimize=True)
     shutil.copy(flags_png, os.path.join(folder, 'nb_flags.png'))
+    # 5.01.16: nb_bg1080.png = the same picture upscaled to 1920x1080 (LANCZOS + light sharpen), stored POT 2048x1024
+    from PIL import ImageFilter
+    big = Image.open(bg_jpeg).convert('RGB').resize((1920, 1080), Image.LANCZOS).filter(ImageFilter.UnsharpMask(radius=1.6, percent=70, threshold=2))
+    big.resize((2048, 1024), Image.LANCZOS).convert('RGBA').save(os.path.join(folder, 'nb_bg1080.png'), optimize=True)
+    blue_assets(folder)
+
+
+def blue_assets(folder):
+    """5.01.16: nb_button/nb_card/nb_dialog/nb_pill = button/card_featured/dialog/pill with the gold frame hue-shifted to blue (88,101,242)."""
+    import colorsys
+    for src, dst in [('button.png', 'nb_button.png'), ('card_featured.png', 'nb_card.png'), ('dialog.png', 'nb_dialog.png'), ('pill.png', 'nb_pill.png')]:
+        im = Image.open(os.path.join(folder, src)).convert('RGBA'); px = im.load(); w, h = im.size
+        for y in range(h):
+            for x in range(w):
+                r, g, b, a = px[x, y]
+                hh, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+                if s > 0.12 and 0.04 < hh < 0.2 and v > 0.12:
+                    nr, ng, nb = colorsys.hsv_to_rgb(0.651, 0.64 * min(1.0, s / 0.45), min(1.0, v * 1.22))
+                    px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
+        im.save(os.path.join(folder, dst), optimize=True)
 
 
 if __name__ == '__main__':

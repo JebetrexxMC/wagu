@@ -31,6 +31,11 @@ extern const unsigned char mp_neon_19[], mp_neon_19_end[];
 extern const unsigned char mp_neon_20[], mp_neon_20_end[];
 extern const unsigned char mp_neon_21[], mp_neon_21_end[];
 extern const unsigned char mp_neon_22[], mp_neon_22_end[];
+extern const unsigned char mp_neon_23[], mp_neon_23_end[];
+extern const unsigned char mp_neon_24[], mp_neon_24_end[];
+extern const unsigned char mp_neon_25[], mp_neon_25_end[];
+extern const unsigned char mp_neon_26[], mp_neon_26_end[];
+extern const unsigned char mp_neon_27[], mp_neon_27_end[];
 }
 
 namespace NeonEmbed
@@ -61,6 +66,12 @@ static const File kFiles[] = {
     // 5.01.15: the neon menu background (the Las Vegas night picture) + the country flags for Browse servers
     { "nb_bg.png", mp_neon_21, mp_neon_21_end },
     { "nb_flags.png", mp_neon_22, mp_neon_22_end },
+    // 5.01.16: the 1080p background + the blue-outlined button / featured card / dialog / pill
+    { "nb_bg1080.png", mp_neon_23, mp_neon_23_end },
+    { "nb_button.png", mp_neon_24, mp_neon_24_end },
+    { "nb_card.png", mp_neon_25, mp_neon_25_end },
+    { "nb_dialog.png", mp_neon_26, mp_neon_26_end },
+    { "nb_pill.png", mp_neon_27, mp_neon_27_end },
 };
 
 static bool Same(const std::string& p, const unsigned char* d, size_t n)

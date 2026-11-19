@@ -955,11 +955,13 @@ static void NeonPFrame(float x0, float y0, float x1, float y1, float t, NeonPain
     NeonPaint::Quad(x0, y0, x1, y0 + t, c); NeonPaint::Quad(x0, y1 - t, x1, y1, c);
     NeonPaint::Quad(x0, y0, x0 + t, y1, c); NeonPaint::Quad(x1 - t, y0, x1, y1, c);
 }
+// 5.01.16: the blue copies of the gold-framed images (nb_button / nb_card / nb_dialog / nb_pill), the old ones as a fallback
+static const NeonPaint::Tex* NeonPTex(const char* blue, const char* old) { const NeonPaint::Tex* t = NeonPaint::T(blue); return t ? t : NeonPaint::T(old); }
 static void NeonPBackdrop(float W, float H)
 {
     using namespace NeonPaint;
     Quad(0, 0, W, H, NC(0, 0, 0));
-    if(const Tex* bg = T("nb_bg.png"))
+    if(const Tex* bg = NeonPTex("nb_bg1080.png", "nb_bg.png"))   // 5.01.16: 1080p (1920x1080 upscale, stored 2048x1024)
     {   // 5.01.15: the new background (Screenshots/images (15).jpeg, the Las Vegas night), cover-fitted (739 x 415)
         const float ar = 739.0f / 415.0f;
         float w = W, h = W / ar; if(h < H) { h = H; w = H * ar; }
@@ -995,7 +997,8 @@ static bool NeonPButton(const char* label, float x0, float y0, float x1, float y
 {
     using namespace NeonPaint;
     const bool held = Held(x0, y0, x1, y1);
-    Img(T("button.png"), x0, y0, x1, y1, held ? NC(205, 212, 255) : NC(255, 255, 255));
+    Img(NeonPTex("nb_button.png", "button.png"), x0, y0, x1, y1, held ? NC(205, 212, 255) : NC(255, 255, 255));
+    NeonPFrame(x0, y0, x1, y1, 1.3f * u, NC(88, 101, 242));   // 5.01.16: every neon button (BACK TO MAIN MENU too) has a blue outline
     const float fs = 13 * u, w = TextW(F_CAPS, label, fs, 1.6f * u);
     NeonPText(F_CAPS, label, (x0 + x1 - w) * 0.5f, (y0 + y1 - fs) * 0.5f, fs, NC(226, 228, 232), 1.6f * u);
     return Tap(x0, y0, x1, y1);
@@ -1861,7 +1864,7 @@ static void NeonPDialog(float W, float H, float u)
     using namespace NeonPaint;
     Quad(0, 0, W, H, NC(0, 0, 0, 170));
     const float dw = 520 * u, dh = 230 * u, x0 = (W - dw) * 0.5f, y0 = (H - dh) * 0.5f;
-    Img(T("dialog.png"), x0, y0, x0 + dw, y0 + dh);
+    Img(NeonPTex("nb_dialog.png", "dialog.png"), x0, y0, x0 + dw, y0 + dh);
     const bool about = s_nNeonDlg == 1;
     NeonPText(F_GOTHIC, about ? "About" : "Quit game", x0 + 28 * u, y0 + 18 * u, 34 * u, NC(226, 228, 232), 0, true);
     char l[5][120]; int n = 0;
@@ -1980,7 +1983,8 @@ static void NeonPTitle(float W, float H)
     {   // Neon featured (bottom left): on the title it opens the server browser after the Multiplayer load
         const float ax = L - 8 * u, ay = 643 * u, bx = L + 379 * u, by = 723 * u;
         const bool held = !dlg && (Held(ax, ay, bx, by) || s_nNeonSel == 7);
-        Img(T("card_featured.png"), ax, ay, bx, by, held ? NC(205, 212, 255) : NC(255, 255, 255));
+        Img(NeonPTex("nb_card.png", "card_featured.png"), ax, ay, bx, by, held ? NC(205, 212, 255) : NC(255, 255, 255));
+        NeonPFrame(ax, ay, bx, by, 1.4f * u, NC(88, 101, 242));   // 5.01.16: the NEON FEATURED card has a blue outline
         if(s_nNeonSel == 7 && NeonPadUI()) NeonPFrame(ax - 2 * u, ay - 2 * u, bx + 2 * u, by + 2 * u, 1.6f * u, NC(88, 101, 242));
         NeonPText(F_CAPS, "NEON FEATURED", ax + 20 * u, ay + 18 * u, 10 * u, NC(150, 152, 158), 1.2f * u);
         NeonPText(F_CAPS, "BROWSE SERVERS", ax + 20 * u, ay + 32 * u, 18 * u, NC(226, 228, 232), 1.8f * u, true);
@@ -2046,7 +2050,7 @@ static void NeonPPill(float W, float H)
 {   // the game's own menu (Game settings): the way back to the neon menu
     using namespace NeonPaint;
     const float u = H / 804.0f, w = 230 * u, h = 46 * u, x0 = W * 0.02f, y0 = H - h - 20 * u;
-    Img(T("pill.png"), x0, y0, x0 + w, y0 + h);
+    Img(NeonPTex("nb_pill.png", "pill.png"), x0, y0, x0 + w, y0 + h);
     NeonPText(F_UI, "NEON MENU", x0 + 20 * u, y0 + 14 * u, 14 * u, NC(226, 228, 232), 3.0f * u);
     if(Tap(x0, y0, x0 + w, y0 + h)) s_bNeonHidden = false;
 }
