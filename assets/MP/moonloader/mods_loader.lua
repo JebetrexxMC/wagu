@@ -418,10 +418,20 @@ function main()
     end
   end
 
+  -- 5.02: mods switched off in MP's Script Manager (moon icon) stay off: config/mp_scripts_off.txt
+  local off = {}
+  do
+    local fo = io.open(root .. '/config/mp_scripts_off.txt', 'r')
+    if fo then
+      for l in fo:lines() do l = l:gsub('\r', ''):gsub('^%s+', ''):gsub('%s+$', ''):gsub('\\', '/'):lower() if l ~= '' and l:sub(1, 1) ~= '#' then off[l] = true end end
+      fo:close()
+    end
+  end
   local normal, cheats = 0, {}
   for _, f in ipairs(files) do
     local path = dir .. '/' .. f
-    if fileIsCheat(path) then cheats[#cheats + 1] = path
+    if off['mods/' .. f:lower()] then print('[Mods] mods/' .. f .. ' is switched off in the Script Manager')
+    elseif fileIsCheat(path) then cheats[#cheats + 1] = path
     elseif not isRunning(path) then
       loadOnce(path)
       normal = normal + 1

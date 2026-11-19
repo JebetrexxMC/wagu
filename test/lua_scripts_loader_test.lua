@@ -33,6 +33,23 @@ sh(('cp %q %q'):format(REPO .. '/Monet loader/tvplayer.zip', TMP .. '/lua_script
 -- a zip-slip entry must never be written outside .unpacked
 sh(('cd %q && python3 -c "import zipfile;z=zipfile.ZipFile(\'%s\',\'w\');z.writestr(\'../../escaped.txt\',\'x\');z.writestr(\'ok.lua\',\'function main() end\');z.close()"'):format(TMP, TMP .. '/lua_scripts/slip.zip'))
 
+-- a self-contained mod folder (its own lib/, config/, resource/ - like lua_scripts/Hasslehud)
+lfs.mkdir(TMP .. '/lua_scripts/pkgmod'); lfs.mkdir(TMP .. '/lua_scripts/pkgmod/lib'); lfs.mkdir(TMP .. '/lua_scripts/pkgmod/config')
+write(TMP .. '/lua_scripts/pkgmod/lib/pkghelper.lua', "return { wd = function() return getWorkingDirectory() end }\n")
+write(TMP .. '/lua_scripts/pkgmod/config/pkg.txt', 'pkgcfg')
+write(TMP .. '/lua_scripts/pkgmod/pkg.luac', [[
+local h = require 'pkghelper'
+local root = require 'rootprobe'
+local ffi = require 'ffi'
+local so = ffi.load(getWorkingDirectory() .. '/lib/libnope.so')
+function main()
+  local f = assert(io.open(getWorkingDirectory() .. '/config/pkg.txt'))
+  PKG_CFG = f:read('*a'); f:close()
+  PKG_HELPER_WD = h.wd(); PKG_ROOT_WD = root; PKG_SO = so.extractGif('a', 'b')
+end
+]])
+write(TMP .. '/lib/rootprobe.lua', "local wd = getWorkingDirectory() .. '' return wd\n")   -- like MoonMonet: ffi.load(getWorkingDirectory() .. ...)
+
 -- ---- MonetLoader mock
 local running, loads = {}, {}
 local function mk(path) local s = { path = path, name = path, dead = false } function s:unload() self.dead = true running[self.path] = nil end return s end
@@ -118,6 +135,54 @@ local env = runScript(radio)
 local okm, em = pcall(env.main)
 check("PC path getWorkingDirectory()..'\\\\radio\\\\list.txt' opens", okm, em)
 check('mp_pcpaths.fix', require('mp_pcpaths').fix('C/a\\b\\\\c.png') == 'C/a/b/c.png' and require('mp_pcpaths').fix('http://x\\y') == 'http://x\\y')
+
+-- ---- self-contained mod folder
+local pk = loaded('pkgmod/pkg') or loaded('pkgmod_pkg')
+check('mod folder script started through a runner', pk and pk:find('/.run/', 1, true), pk)
+check('mod folder data not copied into moonloader/', not lfs.attributes(TMP .. '/config/pkg.txt') and not lfs.attributes(TMP .. '/lib/pkghelper.lua'))
+check('Hasslehud folder started through a runner', loaded('Hasslehud_HassleHUD_Android'))
+check('Hasslehud data stays in its folder', not lfs.attributes(TMP .. '/resource/HassleHUD') and not lfs.attributes(TMP .. '/config/HassleHUD.json') and not lfs.attributes(TMP .. '/lib/libGIF.so'))
+if pk then
+  local env = setmetatable({}, { __index = _G })
+  env._G = env
+  env.getWorkingDirectory = function() return TMP end
+  env.package = { path = TMP .. '/lib/?.lua;' .. TMP .. '/?.lua', cpath = '', loaded = {} }
+  local fakeffi = { load = function(n) error('cannot load ' .. n) end }
+  env.require = function(m)
+    if env.package.loaded[m] ~= nil then return env.package.loaded[m] end
+    if m == 'ffi' then env.package.loaded.ffi = fakeffi return fakeffi end
+    local p = assert(package.searchpath(m, env.package.path))
+    local f = assert(loadfile(p)); setfenv(f, env)
+    local r = f(); env.package.loaded[m] = r == nil and true or r
+    return env.package.loaded[m]
+  end
+  env.loadfile = function(p) local f, e = loadfile(p) if f then setfenv(f, env) end return f, e end
+  env.print = function() end
+  local f = assert(loadfile(pk)); setfenv(f, env)
+  local okr, er = pcall(f)
+  check('mod folder runner runs (a .so that fails is a stub)', okr, er)
+  local okm2, em2 = pcall(env.main or error)
+  check('mod folder main runs', okm2, em2)
+  local pdir = TMP .. '/lua_scripts/pkgmod'
+  check('mod sees its folder as getWorkingDirectory() (config inside it)', env.PKG_CFG == 'pkgcfg', env.PKG_CFG)
+  check("mod's own lib sees the mod folder", env.PKG_HELPER_WD == pdir, env.PKG_HELPER_WD)
+  check('moonloader/lib code still sees moonloader/', env.PKG_ROOT_WD == TMP, env.PKG_ROOT_WD)
+  check('stubbed .so function returns 0', env.PKG_SO == 0, env.PKG_SO)
+end
+
+-- ---- Script Manager off list (config/mp_scripts_off.txt) + lua_scripts/.run/index.txt
+local idx = io.open(TMP .. '/lua_scripts/.run/index.txt') and io.open(TMP .. '/lua_scripts/.run/index.txt'):read('*a') or ''
+check('index.txt lists the scripts for the Script Manager', idx:find('hello.lua\t', 1, true) and idx:find('Hasslehud/HassleHUD Android.luac\t', 1, true), idx:sub(1, 200))
+local hello = loaded('/lua_scripts/hello.lua')
+write(TMP .. '/config/mp_scripts_off.txt', 'lua_scripts/hello.lua\n')
+for _ = 1, 3 do coroutine.resume(co) end
+check('switched off -> stopped', running[hello] == nil)
+local before = #loads
+for _ = 1, 3 do coroutine.resume(co) end
+check('stays off', #loads == before and running[hello] == nil)
+write(TMP .. '/config/mp_scripts_off.txt', '# nothing off\n')
+for _ = 1, 3 do coroutine.resume(co) end
+check('switched on again -> started', running[hello] ~= nil)
 
 -- pure-Lua inflate == zlib
 local zip = require 'mp_zip'

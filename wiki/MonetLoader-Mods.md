@@ -13,12 +13,26 @@
 - `lib/`, `config/`, `resource/`, `resources/` and a folder named like the script are copied into `moonloader/` (missing files only); a zip without a script is copied as data;
 - PC scripts with `\\` paths work (`lib/mp_pcpaths.lua`);
 - `lua_scripts/disabled.txt` keeps scripts from starting; `/luascripts list` shows what runs, `/luascripts rescan` starts them again.
+- a folder (or zip) with its own `lib/` is a self-contained mod: its files stay inside it, `getWorkingDirectory()` is that folder for the mod, and `moonloader/lib` is searched before its own `lib/` (example: `lua_scripts/Hasslehud/`, HassleHUD Android 1.0, `/hasslehud`).
+
+## Script Manager
+
+Tap the moon icon on the top bar (⋮ / chat / mic / moon). The Script Manager for MonetLoader has:
+
+- **Scripts:** Find, Reload all, Refresh list; every script of `moonloader/`, `mods/` and `lua_scripts/` with an On / Off switch and a running dot. Tap one for File, Path, Status, version, authors, Load / Unload, Reload and Open in Shell.
+- **Log:** the end of moonloader.log.
+- **Last crashes:** scripts that died and their error.
+- **Shell:** runs Lua inside the chosen running script (`return x` prints x).
+- **Settings:** the whole `lua_scripts/` or `mods/` folder on / off, switch every script on.
+
+The switches are saved in `moonloader/config/mp_scripts_off.txt` and stay after a restart or a rejoin.
 
 | Mod | What it does |
 |---|---|
 | `mods/tvplayer.lua` | Plays video on the TV model in houses |
 | `mods/hitmarker.lua` | Hit markers from MP's real hits (`MP_PopHit`) |
 | `mods/hg.lua` | HG menu, opened with `/hg` |
+| `lua_scripts/Hasslehud/` | HassleHUD Android 1.0: its own HUD panel style, opened with `/hasslehud` |
 
 ## When HG runs
 

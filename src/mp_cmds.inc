@@ -681,7 +681,11 @@ static void PageHelp(void* openPtr)
     ImGui::End();
 }
 
-// ---- 4.13.33: MonetLoader pill (top bar, moon icon) -> scripts, reload, the moonloader.log tail ------------
+// ---- 5.02: MonetLoader pill (top bar, moon icon) -> Script Manager for MonetLoader ---------------------------
+// Scripts / Log / Last crashes / Shell / Settings, in MP's own window style. Every script of moonloader/,
+// moonloader/mods/ and moonloader/lua_scripts/ (lua_scripts/.run/index.txt, written by lua_scripts_loader.lua)
+// with an On/Off switch that is saved in moonloader/config/mp_scripts_off.txt: a script switched off stays off
+// after a restart or a rejoin (MonetLoader, mods_loader.lua and lua_scripts_loader.lua all read that file).
 namespace MonetEmbed { void* Handle(); }
 static bool s_bMonetPage = false;
 static void BubbleMonet(void*)
@@ -690,67 +694,443 @@ static void BubbleMonet(void*)
     else FloatMenu::OpenPage(FloatMenu::PAGE_MONET);
     s_bMonetPage = FloatMenu::IsPageOpen(FloatMenu::PAGE_MONET);
 }
-static void PageMonet(void* openPtr)
+
+namespace ScriptMgr
 {
-    bool* open = (bool*)openPtr;
-    s_bMonetPage = *open;
-    const ImVec2 ds = ImGui::GetIO().DisplaySize;
-    ImGui::SetNextWindowPos(ImVec2(ds.x * 0.5f, ds.y * 0.5f), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(ds.x * 0.55f, ds.y * 0.74f), ImGuiCond_FirstUseEver);
-    if(!ImGui::Begin("MonetLoader##MPMonet", open, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings)) { ImGui::End(); return; }
-    void* h = MonetEmbed::Handle();
-    typedef int (*ScriptsFn)(char*, int);
-    typedef void (*ReloadFn)();
-    typedef const char* (*VerFn)();
-    ScriptsFn fnScripts = h ? (ScriptsFn)dlsym(h, "MonetMP_Scripts") : nullptr;
-    ReloadFn  fnReload  = h ? (ReloadFn)dlsym(h, "MonetMP_ReloadAll") : nullptr;
-    VerFn     fnVer     = h ? (VerFn)dlsym(h, "MonetMP_Version") : nullptr;
-    if(!h) ImGui::TextColored(ImVec4(1, 0.5f, 0.4f, 1), "MonetLoader is not running ([MP] MonetLoader = 0 in TYFMC.MP.ini?)");
-    else ImGui::Text("MonetLoader for MP %s", fnVer ? fnVer() : "");
-    ImGui::TextWrapped("Scripts folder: files/TYFMC/MP/moonloader  (.lua / .luac)");
-    if(fnReload && FloatMenu::BigButton("Reload all scripts")) { fnReload(); SysMsg(COL_YELLOW, "MonetLoader: reloading every script"); }
-    ImGui::Separator();
-    static char s_list[8192]; static uint64_t s_listAt = 0;
-    const uint64_t now = MP_NowMs();
-    if(fnScripts && now - s_listAt > 1000) { s_list[0] = 0; fnScripts(s_list, sizeof(s_list)); s_listAt = now; }
-    if(!fnScripts) ImGui::TextDisabled("(this MonetLoader build has no script list)");
-    else if(!s_list[0]) ImGui::TextDisabled("No scripts loaded");
+struct Item
+{
+    std::string rel;       // path inside moonloader/ ("foo.lua", "mods/x.lua", "lua_scripts/Hasslehud/HassleHUD Android.luac")
+    std::string runPath;   // the file MonetLoader runs (a lua_scripts runner for mod folders / PC-path scripts)
+    int group = 0;         // 0 moonloader/, 1 mods/, 2 lua_scripts/, 3 started some other way
+    bool cheat = false, folder = false, system = false;
+    int id = 0;            // running script id (0 = not loaded)
+    bool dead = false;
+    std::string name, version, authors, desc;
+};
+static std::vector<Item> s_items;
+static std::set<std::string> s_off;          // lower-case rel paths
+static int s_tab = 0, s_sel = -1;
+static uint64_t s_listAt = 0;
+static std::string s_find;
+static std::string s_selRel;
+static std::string s_shellOut;
+static int s_shellId = 0;
+
+typedef int  (*ListFn)(char*, int);
+typedef void (*PathFn)(const char*);
+typedef void (*IdFn)(int);
+typedef void (*VoidFn)();
+typedef int  (*ExecFn)(int, const char*, char*, int);
+typedef const char* (*VerFn)();
+struct Api { void* h = nullptr; ListFn list = nullptr, crashes = nullptr; PathFn load = nullptr; IdFn unload = nullptr, reload = nullptr;
+             VoidFn reloadAll = nullptr, clearCrashes = nullptr; ExecFn exec = nullptr; VerFn ver = nullptr; };
+static Api Get()
+{
+    Api a; a.h = MonetEmbed::Handle();
+    if(!a.h) return a;
+    a.list = (ListFn)dlsym(a.h, "MonetMP_ScriptsEx");
+    a.crashes = (ListFn)dlsym(a.h, "MonetMP_Crashes");
+    a.load = (PathFn)dlsym(a.h, "MonetMP_LoadPath");
+    a.unload = (IdFn)dlsym(a.h, "MonetMP_Unload");
+    a.reload = (IdFn)dlsym(a.h, "MonetMP_Reload");
+    a.reloadAll = (VoidFn)dlsym(a.h, "MonetMP_ReloadAll");
+    a.clearCrashes = (VoidFn)dlsym(a.h, "MonetMP_ClearCrashes");
+    a.exec = (ExecFn)dlsym(a.h, "MonetMP_Exec");
+    a.ver = (VerFn)dlsym(a.h, "MonetMP_Version");
+    return a;
+}
+static std::string Root() { return std::string(MP::DataDir()) + "/moonloader"; }
+static std::string Lower(std::string v) { for(auto& c : v) { if(c == '\\') c = '/'; else c = (char)tolower((unsigned char)c); } return v; }
+static std::string Norm(std::string v) { for(auto& c : v) if(c == '\\') c = '/'; std::string o; for(char c : v) { if(c == '/' && !o.empty() && o.back() == '/') continue; o += c; } return o; }
+static bool IsScriptFile(const char* n)
+{
+    size_t l = strlen(n);
+    return (l > 4 && !strcasecmp(n + l - 4, ".lua")) || (l > 5 && !strcasecmp(n + l - 5, ".luac"));
+}
+static void Split(const std::string& line, std::vector<std::string>& f)
+{
+    f.clear(); size_t a = 0;
+    while(true) { size_t t = line.find('\t', a); f.push_back(line.substr(a, t == std::string::npos ? std::string::npos : t - a)); if(t == std::string::npos) break; a = t + 1; }
+}
+static void ReadOff()
+{
+    s_off.clear();
+    FILE* f = fopen((Root() + "/config/mp_scripts_off.txt").c_str(), "rb");
+    if(!f) return;
+    char ln[1024];
+    while(fgets(ln, sizeof(ln), f))
+    {
+        std::string s = ln;
+        while(!s.empty() && (s.back() == '\n' || s.back() == '\r' || s.back() == ' ' || s.back() == '\t')) s.pop_back();
+        size_t b = s.find_first_not_of(" \t");
+        if(b == std::string::npos || s[b] == '#') continue;
+        s_off.insert(Lower(s.substr(b)));
+    }
+    fclose(f);
+}
+static void WriteOff()
+{
+    std::string dir = Root() + "/config";
+    mkdir(dir.c_str(), 0777);
+    std::string p = dir + "/mp_scripts_off.txt", tmp = p + ".tmp";
+    FILE* f = fopen(tmp.c_str(), "wb");
+    if(!f) { SysMsg(COL_YELLOW, "Script Manager: can't write %s", p.c_str()); return; }
+    fputs("# Scripts switched off in MP's Script Manager (moon icon). One path per line, inside moonloader/.\n", f);
+    for(auto& s : s_off) { fputs(s.c_str(), f); fputc('\n', f); }
+    fclose(f);
+    rename(tmp.c_str(), p.c_str());
+}
+static bool IsOff(const Item& it) { return s_off.count(Lower(it.rel)) != 0; }
+
+static void AddDir(const std::string& dir, const std::string& prefix, int group, bool luaOnly)
+{
+    DIR* d = opendir(dir.c_str());
+    if(!d) return;
+    while(dirent* e = readdir(d))
+    {
+        if(e->d_name[0] == '.' || !IsScriptFile(e->d_name)) continue;
+        size_t l = strlen(e->d_name);
+        if(luaOnly && !(l > 4 && !strcasecmp(e->d_name + l - 4, ".lua"))) continue;
+        std::string full = dir + "/" + e->d_name;
+        struct stat st; if(stat(full.c_str(), &st) != 0 || !S_ISREG(st.st_mode)) continue;
+        Item it; it.rel = prefix + e->d_name; it.runPath = full; it.group = group;
+        it.system = (group == 0 && (!strcasecmp(e->d_name, "lua_scripts_loader.lua") || !strcasecmp(e->d_name, "mods_loader.lua")));
+        s_items.push_back(it);
+    }
+    closedir(d);
+}
+static void Refresh(const Api& a)
+{
+    s_items.clear();
+    ReadOff();
+    const std::string root = Root();
+    AddDir(root, "", 0, false);
+    AddDir(root + "/mods", "mods/", 1, true);
+    if(FILE* f = fopen((root + "/lua_scripts/.run/index.txt").c_str(), "rb"))
+    {
+        char ln[2048]; std::vector<std::string> fl;
+        while(fgets(ln, sizeof(ln), f))
+        {
+            std::string s = ln; while(!s.empty() && (s.back() == '\n' || s.back() == '\r')) s.pop_back();
+            if(s.empty() || s[0] == '#') continue;
+            Split(s, fl); if(fl.size() < 2) continue;
+            Item it; it.rel = "lua_scripts/" + fl[0]; it.runPath = fl[1]; it.group = 2;
+            if(fl.size() > 2) { it.cheat = fl[2].find("cheat") != std::string::npos; it.folder = fl[2].find("folder") != std::string::npos; }
+            s_items.push_back(it);
+        }
+        fclose(f);
+    }
+    static char buf[32768];
+    buf[0] = 0;
+    if(a.list) a.list(buf, sizeof(buf));
+    std::vector<std::string> fl;
+    for(char* line = buf; line && *line;)
+    {
+        char* nl = strchr(line, '\n'); if(nl) *nl = 0;
+        Split(line, fl);
+        if(fl.size() >= 7)
+        {
+            const std::string path = Norm(fl[3]);
+            Item* hit = nullptr;
+            for(auto& it : s_items) if(Lower(Norm(it.runPath)) == Lower(path)) { hit = &it; break; }
+            if(!hit)
+            {
+                Item it; it.group = 3; it.runPath = path;
+                const std::string r = Norm(root) + "/";
+                it.rel = (Lower(path).compare(0, r.size(), Lower(r)) == 0) ? path.substr(r.size()) : path;
+                s_items.push_back(it); hit = &s_items.back();
+            }
+            if(!hit->id || hit->dead)   // a running copy wins over a dead one
+            {
+                hit->id = atoi(fl[0].c_str()); hit->name = fl[1]; hit->version = fl[4]; hit->authors = fl[5];
+                hit->dead = fl[6] == "dead"; hit->desc = fl.size() > 7 ? fl[7] : "";
+            }
+        }
+        line = nl ? nl + 1 : nullptr;
+    }
+    std::stable_sort(s_items.begin(), s_items.end(), [](const Item& x, const Item& y) {
+        if(x.group != y.group) return x.group < y.group;
+        return Lower(x.rel) < Lower(y.rel);
+    });
+    s_sel = -1;
+    for(int i = 0; i < (int)s_items.size(); ++i) if(s_items[i].rel == s_selRel) s_sel = i;
+}
+static bool Running(const Item& it) { return it.id && !it.dead; }
+static void SetOn(const Api& a, Item& it, bool on)
+{
+    const std::string key = Lower(it.rel);
+    if(on) s_off.erase(key); else s_off.insert(key);
+    WriteOff();
+    if(it.group == 2) return;   // lua_scripts_loader.lua starts / stops it within a second (it watches the file)
+    if(!on && Running(it) && a.unload) a.unload(it.id);
+    if(on && !Running(it) && a.load) a.load(it.runPath.c_str());
+    if(it.system && !on && a.unload)   // the lua_scripts / mods loader: its scripts stop with it
+        for(auto& o : s_items) if(Running(o) && o.group == ((Lower(it.rel) == "lua_scripts_loader.lua") ? 2 : 1)) a.unload(o.id);
+    s_listAt = 0;
+}
+
+static void OnFind(const char* t, void*) { s_find = t ? t : ""; }
+static void OnShell(const char* t, void*)
+{
+    Api a = Get();
+    if(!t || !*t) return;
+    static char out[8192];
+    int ok = a.exec ? a.exec(s_shellId, t, out, sizeof(out)) : 0;
+    if(!a.exec) snprintf(out, sizeof(out), "this MonetLoader build has no shell");
+    s_shellOut += std::string("> ") + t + "\n" + (ok ? "" : "error: ") + out + "\n";
+    if(s_shellOut.size() > 12000) s_shellOut.erase(0, s_shellOut.size() - 12000);
+}
+
+static bool TabButton(const char* label, int idx, float w)
+{
+    const bool on = s_tab == idx;
+    ImGui::PushStyleColor(ImGuiCol_Button, on ? ImVec4(0.26f, 0.52f, 0.95f, 0.95f) : ImVec4(0.18f, 0.18f, 0.18f, 0.95f));
+    bool hit = ImGui::Button(label, ImVec2(w, UI::S(56)));
+    ImGui::PopStyleColor();
+    if(hit) s_tab = idx;
+    return hit;
+}
+static void Dot(bool green, bool red)
+{
+    ImVec2 p = ImGui::GetCursorScreenPos(); float r = UI::S(9), h = ImGui::GetTextLineHeight();
+    ImU32 c = green ? IM_COL32(90, 230, 110, 255) : red ? IM_COL32(255, 95, 85, 255) : IM_COL32(120, 120, 120, 255);
+    ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(p.x + r, p.y + h * 0.5f), r, c);
+    ImGui::Dummy(ImVec2(r * 2 + UI::S(6), h)); ImGui::SameLine(0, 0);
+}
+static const char* GroupName(int g) { return g == 0 ? "moonloader/" : g == 1 ? "moonloader/mods/" : g == 2 ? "moonloader/lua_scripts/" : "started by a script"; }
+
+static void TabScripts(const Api& a)
+{
+    const float avail = ImGui::GetContentRegionAvail().x;
+    char fl[300]; snprintf(fl, sizeof(fl), "%s##smfind", s_find.empty() ? "Find..." : s_find.c_str());
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.12f, 0.12f, 0.12f, 0.95f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.5f));
+    if(ImGui::Button(fl, ImVec2(avail * 0.46f, UI::S(56)))) VKeyboard::Open("Find script", s_find.c_str(), 64, OnFind);
+    ImGui::PopStyleVar(); ImGui::PopStyleColor();
+    ImGui::SameLine();
+    if(!s_find.empty()) { if(ImGui::Button("X##smfx", ImVec2(UI::S(56), UI::S(56)))) s_find.clear(); ImGui::SameLine(); }
+    const float bw = (ImGui::GetContentRegionAvail().x - UI::S(12)) * 0.5f;
+    if(!a.reloadAll) ImGui::BeginDisabled();
+    if(ImGui::Button("Reload all##smra", ImVec2(bw, UI::S(56))) && a.reloadAll) { a.reloadAll(); s_listAt = 0; SysMsg(COL_YELLOW, "MonetLoader: reloading every script"); }
+    if(!a.reloadAll) ImGui::EndDisabled();
+    ImGui::SameLine();
+    if(ImGui::Button("Refresh list##smrl", ImVec2(bw, UI::S(56)))) s_listAt = 0;
+
+    const float h = ImGui::GetContentRegionAvail().y;
+    ImGui::BeginChild("##smlist", ImVec2(avail * 0.46f, h), true);
+    const std::string q = Lower(s_find);
+    int lastGroup = -1;
+    for(int i = 0; i < (int)s_items.size(); ++i)
+    {
+        Item& it = s_items[i];
+        if(!q.empty() && Lower(it.rel).find(q) == std::string::npos && Lower(it.name).find(q) == std::string::npos) continue;
+        if(it.group != lastGroup) { lastGroup = it.group; ImGui::TextDisabled("%s", GroupName(it.group)); }
+        ImGui::PushID(i);
+        bool on = !IsOff(it);
+        if(it.group != 3) { if(ImGui::Checkbox("##on", &on)) SetOn(a, it, on); ImGui::SameLine(); }
+        Dot(Running(it), it.dead);
+        const char* shown = strrchr(it.rel.c_str(), '/'); shown = shown ? shown + 1 : it.rel.c_str();
+        if(!on) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.55f, 0.55f, 1));
+        if(ImGui::Selectable(shown, s_sel == i)) { s_sel = i; s_selRel = it.rel; }
+        if(!on) ImGui::PopStyleColor();
+        ImGui::PopID();
+    }
+    if(s_items.empty()) ImGui::TextDisabled("No scripts");
+    ImGui::EndChild();
+    ImGui::SameLine();
+    ImGui::BeginChild("##smdetail", ImVec2(0, h), true);
+    if(s_sel < 0 || s_sel >= (int)s_items.size()) ImGui::TextWrapped("Pick a script. The switch next to a name turns it on or off - it stays that way after a restart or a rejoin.");
     else
     {
-        char* line = s_list;
-        while(line && *line)
+        Item& it = s_items[s_sel];
+        const bool off = IsOff(it), run = Running(it);
+        const char* fn = strrchr(it.rel.c_str(), '/'); fn = fn ? fn + 1 : it.rel.c_str();
+        ImGui::TextWrapped("File: %s", fn);
+        ImGui::TextWrapped("Path: %s", (Root() + "/" + it.rel).c_str());
+        if(it.runPath != Root() + "/" + it.rel && it.group != 3) ImGui::TextDisabled("Runs through: %s", it.runPath.c_str());
+        ImGui::Text("Status:"); ImGui::SameLine();
+        if(run) ImGui::TextColored(kGreenTxt, "Running");
+        else if(it.dead) ImGui::TextColored(kRedTxt, "Stopped (error - see Last crashes)");
+        else ImGui::TextColored(kGreyTxt, "Not loaded");
+        if(off) { ImGui::SameLine(); ImGui::TextColored(kYellowTxt, " - switched off"); }
+        if(!it.name.empty() && it.name != fn) ImGui::TextWrapped("Name: %s", it.name.c_str());
+        if(!it.version.empty()) ImGui::TextWrapped("Version: %s", it.version.c_str());
+        if(!it.authors.empty()) ImGui::TextWrapped("Authors: %s", it.authors.c_str());
+        if(!it.desc.empty()) ImGui::TextWrapped("%s", it.desc.c_str());
+        if(it.folder) ImGui::TextDisabled("Mod folder: its lib/, config/ and resource/ stay inside its own folder.");
+        if(it.cheat) ImGui::TextColored(kYellowTxt, "Cheat script: runs only where the server allows MonetLoader cheats.");
+        if(it.system) ImGui::TextDisabled("%s", Lower(it.rel) == "lua_scripts_loader.lua" ? "Starts every script in lua_scripts/. Off = none of them run." : "Starts every script in mods/. Off = none of them run.");
+        ImGui::Spacing();
+        const float w2 = (ImGui::GetContentRegionAvail().x - UI::S(12)) * 0.5f;
+        if(it.group != 3)
         {
-            char* nl = strchr(line, '\n'); if(nl) *nl = 0;
-            char f[5][256] = {}; int k = 0; const char* q = line;
-            while(k < 5) { const char* t = strchr(q, '\t'); size_t n = t ? (size_t)(t - q) : strlen(q); if(n > 255) n = 255; memcpy(f[k], q, n); f[k][n] = 0; ++k; if(!t) break; q = t + 1; }
-            const bool run = !strcmp(f[4], "running");
-            ImGui::TextColored(run ? ImVec4(0.45f, 0.9f, 0.5f, 1) : ImVec4(1, 0.45f, 0.4f, 1), "%s", run ? "RUN " : "DEAD");
-            ImGui::SameLine(); ImGui::Text("%s  %s", f[0][0] ? f[0] : f[1], f[2]);
-            if(f[3][0]) { ImGui::SameLine(); ImGui::TextDisabled("by %s", f[3]); }
-            if(nl) { *nl = '\n'; line = nl + 1; } else line = nullptr;
+            ImGui::PushStyleColor(ImGuiCol_Button, off ? ImVec4(0.22f, 0.55f, 0.28f, 0.95f) : ImVec4(0.70f, 0.20f, 0.20f, 0.95f));
+            if(ImGui::Button(off ? "Switch on##smon" : "Switch off##smoff", ImVec2(-1, UI::S(60)))) SetOn(a, it, off);
+            ImGui::PopStyleColor();
         }
+        const bool canLoad = !run && !off && a.load;
+        if(!run)
+        {
+            if(!canLoad) ImGui::BeginDisabled();
+            if(ImGui::Button("Load##smld", ImVec2(w2, UI::S(60))) && canLoad) { a.load(it.runPath.c_str()); s_listAt = 0; }
+            if(!canLoad) ImGui::EndDisabled();
+        }
+        else
+        {
+            if(!a.unload) ImGui::BeginDisabled();
+            if(ImGui::Button("Unload##smul", ImVec2(w2, UI::S(60))) && a.unload) { a.unload(it.id); s_listAt = 0; }
+            if(!a.unload) ImGui::EndDisabled();
+        }
+        ImGui::SameLine();
+        const bool canRe = (run && a.reload) || (it.group == 2 && it.dead && !off && a.load);
+        if(!canRe) ImGui::BeginDisabled();
+        if(ImGui::Button("Reload##smre", ImVec2(w2, UI::S(60))) && canRe)
+        {
+            if(run) a.reload(it.id); else a.load(it.runPath.c_str());
+            s_listAt = 0;
+        }
+        if(!canRe) ImGui::EndDisabled();
+        if(run && ImGui::Button("Open in Shell##smsh", ImVec2(-1, UI::S(56)))) { s_shellId = it.id; s_tab = 3; }
     }
-    ImGui::Separator();
-    ImGui::TextUnformatted("moonloader.log (last lines)");
+    ImGui::EndChild();
+}
+
+static void TabLog()
+{
     static std::string s_log; static uint64_t s_logAt = 0;
+    const uint64_t now = MP_NowMs();
     if(now - s_logAt > 1500)
     {
         s_logAt = now; s_log.clear();
-        char lp[600]; snprintf(lp, sizeof(lp), "%s/moonloader/moonloader.log", MP::DataDir());
-        if(FILE* f = fopen(lp, "rb"))
+        if(FILE* f = fopen((Root() + "/moonloader.log").c_str(), "rb"))
         {
-            fseek(f, 0, SEEK_END); long sz = ftell(f); long from = sz > 6000 ? sz - 6000 : 0;
+            fseek(f, 0, SEEK_END); long sz = ftell(f); long from = sz > 12000 ? sz - 12000 : 0;
             fseek(f, from, SEEK_SET); s_log.resize((size_t)(sz - from));
             size_t got = fread(&s_log[0], 1, s_log.size(), f); s_log.resize(got); fclose(f);
             if(from > 0) { size_t p = s_log.find('\n'); if(p != std::string::npos) s_log.erase(0, p + 1); }
         }
-        else s_log = "(no log yet)";
+        else s_log = "(no moonloader.log yet)";
     }
-    ImGui::BeginChild("##monetlog", ImVec2(0, 0), true);
+    ImGui::BeginChild("##smlog", ImVec2(0, 0), true);
     ImGui::PushTextWrapPos(0);
     ImGui::TextUnformatted(s_log.c_str());
     ImGui::PopTextWrapPos();
+    static size_t s_lastLen = 0;
+    if(s_log.size() != s_lastLen) { s_lastLen = s_log.size(); ImGui::SetScrollHereY(1.0f); }
     ImGui::EndChild();
+}
+
+static void TabCrashes(const Api& a)
+{
+    if(!a.crashes) { ImGui::TextWrapped("This MonetLoader build keeps no crash list (a separate libmonetloader.so in the mods folder?). See the Log tab."); return; }
+    static char buf[16384];
+    buf[0] = 0; int n = a.crashes(buf, sizeof(buf));
+    if(a.clearCrashes && n > 0 && ImGui::Button("Clear##smcc", ImVec2(UI::S(200), UI::S(56)))) { a.clearCrashes(); return; }
+    ImGui::BeginChild("##smcr", ImVec2(0, 0), true);
+    if(n == 0) ImGui::TextDisabled("No script crashed since the game started.");
+    std::vector<std::string> fl;
+    for(char* line = buf; line && *line;)
+    {
+        char* nl = strchr(line, '\n'); if(nl) *nl = 0;
+        Split(line, fl);
+        if(fl.size() >= 4)
+        {
+            time_t t = (time_t)atoll(fl[0].c_str()); struct tm lt; localtime_r(&t, &lt);
+            ImGui::TextColored(kRedTxt, "%02d:%02d:%02d  %s", lt.tm_hour, lt.tm_min, lt.tm_sec, fl[1].c_str());
+            ImGui::TextDisabled("%s", fl[2].c_str());
+            ImGui::PushTextWrapPos(0); ImGui::TextUnformatted(fl[3].empty() ? "(no error text)" : fl[3].c_str()); ImGui::PopTextWrapPos();
+            ImGui::Separator();
+        }
+        line = nl ? nl + 1 : nullptr;
+    }
+    ImGui::EndChild();
+}
+
+static void TabShell(const Api& a)
+{
+    if(!a.exec) { ImGui::TextWrapped("This MonetLoader build has no shell."); return; }
+    const Item* target = nullptr;
+    for(auto& it : s_items) if(Running(it) && it.id == s_shellId) target = &it;
+    if(!target) for(auto& it : s_items) if(Running(it)) { target = &it; s_shellId = it.id; break; }
+    ImGui::TextWrapped("Runs Lua inside: %s", target ? (target->name.empty() ? target->rel.c_str() : target->name.c_str()) : "(no running script)");
+    if(ImGui::Button("Other script##smsn", ImVec2(UI::S(240), UI::S(56))))
+    {
+        int first = 0, next = 0; bool pass = false;
+        for(auto& it : s_items) if(Running(it)) { if(!first) first = it.id; if(pass && !next) next = it.id; if(it.id == s_shellId) pass = true; }
+        s_shellId = next ? next : first;
+    }
+    ImGui::SameLine();
+    if(!target) ImGui::BeginDisabled();
+    if(ImGui::Button("Type Lua...##smsi", ImVec2(UI::S(260), UI::S(56))) && target) VKeyboard::Open("Lua (return x shows x)", "", 400, OnShell);
+    if(!target) ImGui::EndDisabled();
+    ImGui::SameLine();
+    if(ImGui::Button("Clear##smsc", ImVec2(UI::S(160), UI::S(56)))) s_shellOut.clear();
+    ImGui::BeginChild("##smshell", ImVec2(0, 0), true);
+    ImGui::PushTextWrapPos(0);
+    ImGui::TextUnformatted(s_shellOut.empty() ? "Example: return thisScript().name   or   sampAddChatMessage('hi', -1)" : s_shellOut.c_str());
+    ImGui::PopTextWrapPos();
+    ImGui::EndChild();
+}
+
+static void TabSettings(const Api& a)
+{
+    ImGui::TextWrapped("Switches are saved in moonloader/config/mp_scripts_off.txt and stay after a restart or a rejoin.");
+    ImGui::Spacing();
+    for(int pass = 0; pass < 2; ++pass)
+    {
+        const char* file = pass == 0 ? "lua_scripts_loader.lua" : "mods_loader.lua";
+        Item* it = nullptr;
+        for(auto& o : s_items) if(o.group == 0 && Lower(o.rel) == file) it = &o;
+        if(!it) continue;
+        bool on = !IsOff(*it);
+        if(ImGui::Checkbox(pass == 0 ? "Lua scripts folder (moonloader/lua_scripts/)##smls" : "Mods folder (moonloader/mods/)##smmd", &on)) SetOn(a, *it, on);
+    }
+    int offN = (int)s_off.size();
+    ImGui::Spacing();
+    ImGui::Text("%d script(s) switched off", offN);
+    if(offN > 0 && ImGui::Button("Switch every script on##smallon", ImVec2(-1, UI::S(60))))
+    {
+        std::vector<Item*> was;
+        for(auto& it : s_items) if(IsOff(it)) was.push_back(&it);
+        s_off.clear(); WriteOff();
+        for(Item* it : was) if(it->group != 2 && !Running(*it) && a.load) a.load(it->runPath.c_str());
+        s_listAt = 0;
+    }
+    ImGui::Spacing();
+    ImGui::TextDisabled("lua_scripts/: drop .lua / .luac / .zip there. A folder with its own lib/ (like lua_scripts/Hasslehud) keeps all its files inside itself.");
+}
+} // namespace ScriptMgr
+
+static void PageMonet(void* openPtr)
+{
+    using namespace ScriptMgr;
+    bool* open = (bool*)openPtr;
+    s_bMonetPage = *open;
+    const ImVec2 ds = ImGui::GetIO().DisplaySize;
+    ImGui::SetNextWindowPos(ImVec2(ds.x * 0.5f, ds.y * 0.5f), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(ds.x * 0.62f, ds.y * 0.78f), ImGuiCond_FirstUseEver);
+    Api a = Get();
+    char title[96];
+    snprintf(title, sizeof(title), "Script Manager for MonetLoader %s##MPMonet", a.ver ? a.ver() : "");
+    if(!ImGui::Begin(title, open, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings)) { ImGui::End(); return; }
+    if(!a.h) ImGui::TextColored(kRedTxt, "MonetLoader is not running ([MP] MonetLoader = 0 in TYFMC.MP.ini?) - switches still save.");
+    else if(!a.list) ImGui::TextColored(kYellowTxt, "Older MonetLoader build: load / unload / shell need MonetLoader for MP 5.02 (switches still save).");
+    const uint64_t now = MP_NowMs();
+    if(now - s_listAt > 1000) { Refresh(a); s_listAt = now; }
+    const float tw = (ImGui::GetContentRegionAvail().x - UI::S(12) * 4) / 5.f;
+    TabButton("Scripts##smt0", 0, tw); ImGui::SameLine();
+    TabButton("Log##smt1", 1, tw); ImGui::SameLine();
+    TabButton("Last crashes##smt2", 2, tw); ImGui::SameLine();
+    TabButton("Shell##smt3", 3, tw); ImGui::SameLine();
+    TabButton("Settings##smt4", 4, tw);
+    switch(s_tab)
+    {
+        case 0: TabScripts(a); break;
+        case 1: TabLog(); break;
+        case 2: TabCrashes(a); break;
+        case 3: TabShell(a); break;
+        default: TabSettings(a); break;
+    }
     ImGui::End();
     s_bMonetPage = *open;
 }
