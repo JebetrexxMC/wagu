@@ -2,7 +2,7 @@
 //
 // ServerBrowserMode= in files/TYFMC/TYFMC.MP.ini ([MP]):
 //   neon     (set by hand) the neon title menu: Resume / New game / Browse servers / Quick connect / Settings / About /
-//            Quit game, the Neon Identity card (Discord), NEON FEATURED card, the version label; Browse servers is
+//            Quit game, NEON FEATURED card (5.01.13: no Neon Identity card, only the Discord pop-up), the version label; Browse servers is
 //            the neon server browser (its own layout - not the launcher panel). Also shown on the black screen
 //            after leaving a server.
 //   mp       the old [Multiplayer] tile on the game's menu + the MP launcher panel (4.13.4 - 4.13.21)
@@ -733,44 +733,7 @@ static void NeonMain(ImDrawList* dl, ImVec2 ds)
         NeonText(dl, uf, 12.5f * u, ImVec2(ix + 10 * u, ty), IM_COL32(205, 208, 214, 255), l1.c_str(), 1.0f * u);
         NeonText(dl, uf, 12.5f * u, ImVec2(ix + 10 * u, ty + 16 * u), IM_COL32(205, 208, 214, 255), nl + 1, 1.0f * u);
     }
-    UI::TitleStep("neon identity");
-    {   // Neon Identity (top right)
-        const ImVec2 a(ds.x - 445 * u, 40 * u), b(ds.x - 68 * u, 103 * u);
-        dl->AddRectFilled(a, b, IM_COL32(12, 12, 14, 232), 2 * u);
-        dl->AddRect(a, b, IM_COL32(40, 40, 44, 255), 2 * u, 0, 1.0f * u);
-        dl->AddRectFilled(ImVec2(a.x, a.y), ImVec2(a.x + 2.5f * u, b.y), IM_COL32(184, 154, 90, 255));
-        const ImVec2 ia(a.x + 11 * u, a.y + 13 * u), ib(ia.x + 37 * u, ia.y + 37 * u);
-        dl->AddRectFilled(ia, ib, IM_COL32(26, 27, 31, 255), 2 * u); dl->AddRect(ia, ib, IM_COL32(70, 72, 78, 255), 2 * u, 0, 1.0f * u);
-        {   // the Discord mark (simplified: a rounded controller face with two eyes)
-            const ImVec2 c((ia.x + ib.x) * 0.5f, (ia.y + ib.y) * 0.5f);
-            dl->AddRectFilled(ImVec2(c.x - 10 * u, c.y - 7 * u), ImVec2(c.x + 10 * u, c.y + 7 * u), IM_COL32(225, 228, 236, 255), 6 * u);
-            dl->AddTriangleFilled(ImVec2(c.x - 10 * u, c.y + 2 * u), ImVec2(c.x - 6 * u, c.y + 7 * u), ImVec2(c.x - 12 * u, c.y + 9 * u), IM_COL32(225, 228, 236, 255));
-            dl->AddTriangleFilled(ImVec2(c.x + 10 * u, c.y + 2 * u), ImVec2(c.x + 6 * u, c.y + 7 * u), ImVec2(c.x + 12 * u, c.y + 9 * u), IM_COL32(225, 228, 236, 255));
-            dl->AddCircleFilled(ImVec2(c.x - 4 * u, c.y), 2.2f * u, IM_COL32(26, 27, 31, 255), 10);
-            dl->AddCircleFilled(ImVec2(c.x + 4 * u, c.y), 2.2f * u, IM_COL32(26, 27, 31, 255), 10);
-        }
-        std::vector<std::string> acc = AuthAccounts();
-        const std::string who = !s_AuthUser.empty() ? s_AuthUser : (!acc.empty() ? acc[0] : std::string());
-        const bool linked = !who.empty() || !s_Auth.discordName.empty();
-        NeonText(dl, cf, 8.5f * u, ImVec2(a.x + 59 * u, a.y + 11 * u), IM_COL32(150, 152, 158, 255), "Neon Identity", 1.2f * u);
-        NeonText(dl, cf, 14 * u, ImVec2(a.x + 59 * u, a.y + 24 * u), kNText, linked ? "Discord connected" : "Discord not connected", 1.6f * u);
-        char sub[96];
-        if(linked) snprintf(sub, sizeof(sub), "Neon account connected%s%s", who.empty() ? "" : " - ", who.c_str());
-        else snprintf(sub, sizeof(sub), "Log in on a server to link your Discord");
-        dl->AddCircleFilled(ImVec2(a.x + 62 * u, a.y + 49 * u), 2.2f * u, linked ? IM_COL32(110, 200, 120, 255) : IM_COL32(120, 120, 126, 255), 8);
-        NeonText(dl, cf, 7.5f * u, ImVec2(a.x + 70 * u, a.y + 44 * u), IM_COL32(140, 142, 148, 255), sub, 1.0f * u);
-        if(linked)
-        {
-            NeonTextR(dl, cf, 7.5f * u, ImVec2(b.x - 22 * u, a.y + 43 * u), IM_COL32(150, 152, 158, 255), "Sign out", 1.2f * u);
-            dl->AddCircleFilled(ImVec2(b.x - 15 * u, a.y + 47 * u), 1.2f * u, IM_COL32(150, 152, 158, 255), 6);
-            if(NeonHit("##niOut", ImVec2(b.x - 110 * u, a.y + 34 * u), b))
-            {
-                if(!who.empty()) AuthAccountsRemove(who);
-                AuthLogout(nullptr, false);
-                logger->Info("Neon menu: signed out");
-            }
-        }
-    }
+    // 5.01.12: no Neon Identity card here any more (only the "DISCORD CONNECTED" pop-up, see the painter path)
     UI::TitleStep("neon featured");
     {   // NEON FEATURED (bottom left)
         static LRow feat; static bool haveFeat = false; static uint64_t at = 0;
@@ -1584,15 +1547,14 @@ static void NeonPTitle(float W, float H)
             case 5: s_nNeonDlg = 1; break;
             case 6: s_nNeonDlg = 2; s_nNeonDlgSel = 1; break;
             case 7: NeonTOpenBrowse(); break;            // NEON FEATURED
-            case 8: s_nNeonAct = NA_DISCORD; break;      // Neon identity
         }
     };
     if(!dlg && s_nNK)
     {   // 5.01.11: the controller (PCMenu's ControllerNav): up / down = the item (then the two cards), A = press, B = Quit game
-        if(s_nNeonSel < 0 || s_nNeonSel > 8) s_nNeonSel = 0;
-        if(s_nNK & NK_UP) s_nNeonSel = (s_nNeonSel + 8) % 9;
-        if(s_nNK & NK_DOWN) s_nNeonSel = (s_nNeonSel + 1) % 9;
-        if((s_nNK & NK_RIGHT) && s_nNeonSel < 7) s_nNeonSel = 8;
+        if(s_nNeonSel < 0 || s_nNeonSel > 7) s_nNeonSel = 0;
+        if(s_nNK & NK_UP) s_nNeonSel = (s_nNeonSel + 7) % 8;   // 5.01.12: no identity card (8) any more
+        if(s_nNK & NK_DOWN) s_nNeonSel = (s_nNeonSel + 1) % 8;
+        if((s_nNK & NK_RIGHT) && s_nNeonSel < 7) s_nNeonSel = 7;
         if((s_nNK & NK_LEFT) && s_nNeonSel >= 7) s_nNeonSel = 2;
         if(s_nNK & (NK_A | NK_START)) activate(s_nNeonSel);
         else if(s_nNK & NK_B) { s_nNeonDlg = 2; s_nNeonDlgSel = 0; }
@@ -1616,11 +1578,8 @@ static void NeonPTitle(float W, float H)
         NeonPText(F_UI, "FIND A WORLD AND JOIN THE STREETS OF SAN", ix + 10 * u, ty, 12.5f * u, NC(205, 208, 214), 1.0f * u);
         NeonPText(F_UI, "ANDREAS.", ix + 10 * u, ty + 16 * u, 12.5f * u, NC(205, 208, 214), 1.0f * u);
     }
-    {   // Neon Identity (top right)
-        const float ax = W - 445 * u, ay = 40 * u, bx = W - 68 * u, by = 103 * u;
-        Img(T("card_identity.png"), ax, ay, bx, by, (!dlg && (Held(ax, ay, bx, by) || s_nNeonSel == 8)) ? NC(255, 236, 190) : NC(255, 255, 255));
-        if(s_nNeonSel == 8 && NeonPadUI()) NeonPFrame(ax - 2 * u, ay - 2 * u, bx + 2 * u, by + 2 * u, 1.6f * u, NC(201, 169, 92));
-        Img(T("discord.png"), ax + 11 * u, ay + 13 * u, ax + 48 * u, ay + 50 * u);
+    {   // Neon Identity: 5.01.12: no card on the menu any more. It showed "DISCORD CONNECTED" all the time right above the
+        // pop-up (two notifications). Only the slide-in pop-up is left: once a run, when Discord is linked.
         const uint64_t nowMs = MP_NowMs();
         if(!s_AuthUser.empty()) { s_NeonWhoCache = s_AuthUser; s_nNeonWhoAt = nowMs; }
         else if(!s_nNeonWhoAt || nowMs - s_nNeonWhoAt > 1000)
@@ -1645,22 +1604,6 @@ static void NeonPTitle(float W, float H)
             }
             s_nNeonLinkedSeen = s_nNeonLinkedCand;
         }
-        const bool linked = s_nNeonLinkedSeen >= 0 ? s_nNeonLinkedSeen == 1 : linkedNow;
-        NeonPText(F_CAPS, "NEON IDENTITY", ax + 59 * u, ay + 9 * u, 10 * u, NC(150, 152, 158), 1.2f * u);
-        NeonPText(F_CAPS, linked ? "DISCORD CONNECTED" : "DISCORD NOT CONNECTED", ax + 59 * u, ay + 22 * u, 15 * u, NC(226, 228, 232), 1.4f * u);
-        char sub[96];
-        if(linked) snprintf(sub, sizeof(sub), "Neon account connected%s%s", who.empty() ? "" : " - ", who.c_str());
-        else snprintf(sub, sizeof(sub), "Log in on a server to link your Discord");
-        Img(T("dot.png"), ax + 59 * u, ay + 46 * u, ax + 65 * u, ay + 52 * u, linked ? NC(110, 200, 120) : NC(120, 120, 126));
-        NeonPText(F_UI, sub, ax + 70 * u, ay + 42 * u, 10 * u, NC(140, 142, 148));
-        if(linked)
-        {
-            const float sw = TextW(F_CAPS, "SIGN OUT", 9 * u, 1.2f * u);
-            NeonPText(F_CAPS, "SIGN OUT", bx - 14 * u - sw, ay + 42 * u, 9 * u, NC(150, 152, 158), 1.2f * u);
-            if(!dlg && !tapUsed && Tap(bx - 110 * u, ay + 34 * u, bx, by)) { tapUsed = true; s_nNeonAct = NA_SIGNOUT; }
-        }
-        // 5.01.10: the card is a real button: not linked = open Discord to link it, linked = Discord too (SIGN OUT is its own spot)
-        if(!dlg && !tapUsed && Tap(ax, ay, linked ? bx - 110 * u : bx, by)) { tapUsed = true; s_nNeonAct = NA_DISCORD; }
     }
     {   // Neon featured (bottom left): on the title it opens the server browser after the Multiplayer load
         const float ax = L - 8 * u, ay = 643 * u, bx = L + 379 * u, by = 723 * u;
