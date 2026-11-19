@@ -1323,6 +1323,7 @@ static std::string NeonNSValue(const GameSettings::Item& it)
             if(settings.region >= 0 && settings.region < REGION_COUNT) { NeonPAscii(b, sizeof(b), g_MPRegionNames[settings.region], true); return b; }
             return "AUTO";
     }
+    if(it.kind == GameSettings::K_BUTTON || it.kind == GameSettings::K_HEADER || it.kind == GameSettings::K_INFO) return it.value;   // 5.01.13
     std::string v = GameSettings::ValueText(it.id);
     char a[64]; NeonPAscii(a, sizeof(a), v.c_str(), true);
     return a[0] ? a : "-";
@@ -1335,6 +1336,8 @@ static float NeonNSFrac(const GameSettings::Item& it)
 }
 static void NeonNSStep(const GameSettings::Item& it, int dir)
 {
+    if(it.kind == GameSettings::K_HEADER || it.kind == GameSettings::K_INFO) return;   // 5.01.13: titles / mods folder rows
+    if(it.kind == GameSettings::K_BUTTON) { if(dir > 0) { GameSettings::Press(it.ref); s_nNSBuiltAt = 0; } return; }   // a mod's button: its action
     switch(it.id)
     {
         case NS_MUSIC: settings.neonMusic = !settings.neonMusic; s_bNSMpDirty = true; return;
@@ -1432,8 +1435,32 @@ static void NeonPSettings(float W, float H)
         Quad(px0 + 8 * u, ry0, px1 - 8 * u, ry1, sel ? NC(255, 236, 190, 22) : NC(255, 255, 255, (k & 1) ? 6 : 2));
         if(sel) { Quad(px0 + 8 * u, ry0, px0 + 11 * u, ry1, NC(201, 169, 92)); if(!s_nNSFocus && NeonPadUI()) NeonPFrame(px0 + 8 * u, ry0, px1 - 8 * u, ry1, 1.2f * u, NC(201, 169, 92)); }
         char lb[64]; NeonPAscii(lb, sizeof(lb), it.label[0] ? it.label : "Mod option", true);
-        NeonPText(F_CAPS, NeonFit(F_CAPS, lb, 13.5f * u, vx0 - px0 - 40 * u, 1.4f * u).c_str(), px0 + 26 * u, mid - 7 * u, 13.5f * u, NC(226, 228, 232), 1.4f * u);
         const std::string val = NeonNSValue(it);
+        if(it.kind == GameSettings::K_HEADER)
+        {   // 5.01.13: a mod's settings tab / the mods folder (PCMenu's Mods list)
+            Quad(px0 + 12 * u, ry1 - 2 * u, px1 - 12 * u, ry1 - 1 * u, NC(90, 76, 46));
+            NeonPText(F_CAPS, NeonFit(F_CAPS, lb, 12.5f * u, vx0 - px0 - 40 * u, 2.0f * u).c_str(), px0 + 22 * u, mid - 6 * u, 12.5f * u, NC(222, 200, 140), 2.0f * u);
+            const float w = TextW(F_UI, val.c_str(), 12 * u);
+            NeonPText(F_UI, val.c_str(), vx1 - w, mid - 7 * u, 12 * u, NC(130, 134, 142));
+            continue;
+        }
+        NeonPText(F_CAPS, NeonFit(F_CAPS, lb, 13.5f * u, vx0 - px0 - 40 * u, 1.4f * u).c_str(), px0 + 26 * u, mid - 7 * u, 13.5f * u, NC(226, 228, 232), 1.4f * u);
+        if(it.kind == GameSettings::K_INFO)
+        {
+            const float w = TextW(F_UI, val.c_str(), 13 * u);
+            NeonPText(F_UI, val.c_str(), vx1 - w, mid - 8 * u, 13 * u, NC(140, 144, 152));
+            if(Tap(px0 + 8 * u, ry0, px1 - 8 * u, ry1)) { s_nNSSel = k; s_nNSFocus = 0; }
+            continue;
+        }
+        if(it.kind == GameSettings::K_BUTTON)
+        {
+            const float bx0 = vx1 - 130 * u, hb = Held(bx0, ry0 + 6 * u, vx1, ry1 - 6 * u);
+            Quad(bx0, ry0 + 8 * u, vx1, ry1 - 8 * u, hb ? NC(201, 169, 92, 90) : NC(201, 169, 92, 40));
+            const float w = TextW(F_CAPS, val.c_str(), 12 * u, 1.6f * u);
+            NeonPText(F_CAPS, val.c_str(), (bx0 + vx1 - w) * 0.5f, mid - 6 * u, 12 * u, NC(236, 226, 196), 1.6f * u);
+            if(Tap(px0 + 8 * u, ry0, px1 - 8 * u, ry1)) { s_nNSSel = k; s_nNSFocus = 0; NeonNSStep(it, +1); }
+            continue;
+        }
         if(it.kind == GameSettings::K_SLIDER)
         {
             const float bx0 = vx0 + 14 * u, bx1 = vx1 - 78 * u, f = NeonNSFrac(it);
@@ -1471,7 +1498,7 @@ static void NeonPSettings(float W, float H)
     }
     if(!n)
     {
-        const char* m = kNSTabs[s_nNSTab].tab == 5 ? "NO MOD SETTINGS - MODS ADD THEM THROUGH SAUTILS" : (GameSettings::Ready() ? "NOTHING TO SET HERE" : "THE GAME'S SETTINGS COULD NOT BE READ");
+        const char* m = kNSTabs[s_nNSTab].tab == 5 ? (GameSettings::SAUtilsFound() ? "NO MOD SETTINGS - MODS ADD THEM THROUGH SAUTILS" : "NO MODS FOUND - INSTALL SAUTILS FOR MOD SETTINGS") : (GameSettings::Ready() ? "NOTHING TO SET HERE" : "THE GAME'S SETTINGS COULD NOT BE READ");
         const float fs = 13 * u, w = TextW(F_CAPS, m, fs, 1.6f * u);
         NeonPText(F_CAPS, m, (px0 + px1 - w) * 0.5f, (ly0 + ly1) * 0.5f - fs, fs, NC(160, 164, 172), 1.6f * u);
     }

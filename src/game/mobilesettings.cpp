@@ -10,6 +10,12 @@
 #include <sys/uio.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <link.h>
+#include <ctype.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <string>
+#include <algorithm>
 #include "game/mobilesettings.h"
 
 #ifdef AML32
@@ -54,7 +60,8 @@ namespace
         void (*fnOnValueChange)(int, int, void*); const char* (*fnOnValueDraw)(int, void*); void* fnOnButtonPressed;
         int nInitVal, nSavedVal, nMaxVal; void* pOwnData;
     };
-    void** s_pSauVec = nullptr; int s_nSauTries = 0;
+    void** s_pSauVec = nullptr; int s_nSauTries = 0; int s_nModCount = 0;
+    template<size_t N> void MP_SafeStr(char (&d)[N], const char* t) { snprintf(d, N, "%s", t); }
 
     bool SafeCopy(const void* addr, void* out, size_t len)
     {
@@ -79,15 +86,87 @@ namespace
         uint8_t* b = Base(); if(!b) return false;
         return SafeCopy(b + (size_t)id * MS_STRIDE, buf, MS_STRIDE);
     }
+    // 5.01.13: SAUtils is found by what it exports, not by its file name: AML loads mods by their full path and some
+    // builds are named libSAUtils64.so / libsautils.so - dlopen("libSAUtils.so", RTLD_NOLOAD) then found nothing and
+    // the MODS tab stayed empty ("NO MOD SETTINGS"). Every loaded library is asked for gMoreSettings (PCMenu's way).
+    void** s_pSauBtns = nullptr;   // std::vector<AdditionalSettingsButton*> gMoreSettingButtons[4] (3 = STB_Settings)
+    int SauPhdr(struct dl_phdr_info* info, size_t, void*)
+    {
+        if(s_pSauVec || !info->dlpi_name || !info->dlpi_name[0]) return 0;
+        const char* n = info->dlpi_name; const char* b = strrchr(n, '/'); b = b ? b + 1 : n;
+        std::string l = b; for(auto& c : l) c = (char)tolower((unsigned char)c);
+        if(l.find("sautils") == std::string::npos) return 0;
+        void* h = dlopen(n, RTLD_NOW | RTLD_NOLOAD);
+        if(!h) return 0;
+        s_pSauVec = (void**)dlsym(h, "gMoreSettings");
+        s_pSauBtns = (void**)dlsym(h, "gMoreSettingButtons");
+        dlclose(h);
+        if(s_pSauVec) logger->Info("Neon settings: SAUtils mod settings in %s (gMoreSettings %p, tabs %p)", n, (void*)s_pSauVec, (void*)s_pSauBtns);
+        return s_pSauVec ? 1 : 0;
+    }
+    void SauLookup()
+    {
+        static const char* const kNames[] = { "libSAUtils.so", "libSAUtils64.so", "libsautils.so", "libSAUtils32.so" };
+        for(const char* nm : kNames)
+        {
+            void* h = dlopen(nm, RTLD_NOW | RTLD_NOLOAD);
+            if(!h) continue;
+            s_pSauVec = (void**)dlsym(h, "gMoreSettings"); s_pSauBtns = (void**)dlsym(h, "gMoreSettingButtons");
+            dlclose(h);
+            if(s_pSauVec) { logger->Info("Neon settings: SAUtils mod settings (%s, gMoreSettings %p, tabs %p)", nm, (void*)s_pSauVec, (void*)s_pSauBtns); return; }
+        }
+        dl_iterate_phdr(SauPhdr, nullptr);
+        if(!s_pSauVec && s_nSauTries >= 8) logger->Info("Neon settings: SAUtils not found (no mod settings)");
+    }
+    // the name of a mod's own settings tab (SAUtils AddSettingsTab: tab ids 6, 7, ... = gMoreSettingButtons[STB_Settings][id - 6])
+    std::string SauTabName(int eType)
+    {
+        if(!s_pSauBtns || eType < 6) return std::string();
+        void** vec = s_pSauBtns + 3 * 3;   // [STB_Settings]: begin, end, capacity per vector
+        void** b = nullptr; void** e = nullptr;
+        if(!SafeCopy(vec, &b, sizeof(b)) || !SafeCopy(vec + 1, &e, sizeof(e)) || !b || e < b || e - b > 256) return std::string();
+        if(eType - 6 >= e - b) return std::string();
+        void* btn = nullptr; char nm[33] = { 0 };
+        if(!SafeCopy(b + (eType - 6), &btn, sizeof(btn)) || !btn || !SafeCopy(btn, nm, 32)) return std::string();
+        nm[32] = 0;
+        for(int i = 0; i < 32; ++i) if(nm[i] && (nm[i] < 32 || nm[i] > 126)) { nm[i] = 0; break; }
+        return nm;
+    }
+    // the mods folder (PCMenu's MODS list): Android/data/<pkg>/mods/
+    std::string ModsDir()
+    {
+        const char* d = aml ? aml->GetAndroidDataPath() : nullptr;
+        if(!d || !d[0]) return std::string();
+        std::string r = d; while(!r.empty() && r.back() == '/') r.pop_back();
+        if(r.size() > 6 && r.compare(r.size() - 6, 6, "/files") == 0) r.erase(r.size() - 6);
+        return r + "/mods";
+    }
+    std::string ModName(std::string n, bool dir)
+    {
+        if(!dir)
+        {
+            const size_t dot = n.rfind('.');
+            if(dot != std::string::npos && dot > 0)
+            {
+                std::string ext = n.substr(dot); for(auto& c : ext) c = (char)toupper((unsigned char)c);
+                n = n.substr(0, dot);
+                if(ext == ".SO" && n.size() > 3 && (n.compare(0, 3, "lib") == 0 || n.compare(0, 3, "Lib") == 0)) n = n.substr(3);
+            }
+        }
+        for(auto& c : n) { c = (char)toupper((unsigned char)c); if(c == '_' || c == '-') c = ' '; }
+        return n;
+    }
     SAUSetting* SauFind(int id, SAUSetting* copy)
     {
-        if(id < 37) return nullptr;
+        // 5.01.13: the lookup runs first. Before, SauFind(-1) (Items) returned here at once, gMoreSettings was never looked up,
+        // and the MODS tab always said "NO MOD SETTINGS" even with SAUtils mods installed.
         if(!s_pSauVec && s_nSauTries < 8)
         {
             ++s_nSauTries;
-            void* h = dlopen("libSAUtils.so", RTLD_NOW | RTLD_NOLOAD);
-            if(h) { s_pSauVec = (void**)dlsym(h, "gMoreSettings"); dlclose(h); if(s_pSauVec) logger->Info("Neon settings: SAUtils mod settings (gMoreSettings %p)", (void*)s_pSauVec); }
+            SauLookup();
         }
+        if(id < 37 && id != -1) return nullptr;
+        if(id == -1) return nullptr;
         if(!s_pSauVec) return nullptr;
         SAUSetting** b = nullptr; SAUSetting** e = nullptr;
         if(!SafeCopy(s_pSauVec, &b, sizeof(b)) || !SafeCopy(s_pSauVec + 1, &e, sizeof(e)) || !b || e < b || e - b > 1200) return nullptr;
@@ -263,26 +342,98 @@ void GameSettings::Items(std::vector<Item>& out)
         snprintf(it.label, sizeof(it.label), "%s", s.label);
         out.push_back(it);
     }
-    if(MaxId() < 37) return;   // SAUtils is not there (or did not move the table)
+    // 5.01.13: the MODS tab like PCMenu's Mods list: SAUtils' own Mods page, then every mod's own settings tab (with its
+    // name), the mods' buttons (they run the mod's action), then what is in the mods folder.
     SAUSetting tmp; SauFind(-1, &tmp);   // looks gMoreSettings up
-    if(!s_pSauVec) return;
-    SAUSetting** b = nullptr; SAUSetting** e = nullptr;
-    if(!SafeCopy(s_pSauVec, &b, sizeof(b)) || !SafeCopy(s_pSauVec + 1, &e, sizeof(e)) || !b || e < b || e - b > 1200) return;
-    for(SAUSetting** p = b; p < e; ++p)
+    std::vector<Item> mods[64]; std::string tabName[64]; int nMods = 0;
+    if(s_pSauVec && MaxId() >= 37)
     {
-        SAUSetting* a = nullptr; SAUSetting cp;
-        if(!SafeCopy(p, &a, sizeof(a)) || !a || !SafeCopy(a, &cp, sizeof(cp))) continue;
-        if(cp.byteItemType == 2 || cp.nSettingId < 37 || cp.nSettingId > 1199) continue;   // buttons open the mod's own screen: not here
-        View v; if(!Read(cp.nSettingId, v)) continue;
-        Item it; it.id = cp.nSettingId;
-        it.tab = cp.eType == 0 ? 0 : cp.eType == 1 ? 1 : cp.eType == 2 ? 2 : cp.eType == 3 ? 3 : cp.eType == 4 ? 1 : 5;
-        it.kind = cp.byteItemType == 1 ? K_SLIDER : K_TOGGLE;
-        cp.szName[31] = 0;
-        std::string l = Gxt(cp.szName);
-        snprintf(it.label, sizeof(it.label), "%s", l.c_str());
-        out.push_back(it);
+        SAUSetting** b = nullptr; SAUSetting** e = nullptr;
+        if(SafeCopy(s_pSauVec, &b, sizeof(b)) && SafeCopy(s_pSauVec + 1, &e, sizeof(e)) && b && e >= b && e - b <= 1200)
+            for(SAUSetting** p = b; p < e; ++p)
+            {
+                SAUSetting* a = nullptr; SAUSetting cp;
+                if(!SafeCopy(p, &a, sizeof(a)) || !a || !SafeCopy(a, &cp, sizeof(cp))) continue;
+                cp.szName[31] = 0;
+                Item it; it.tab = cp.eType == 0 ? 0 : cp.eType == 1 ? 1 : cp.eType == 2 ? 2 : cp.eType == 3 ? 3 : cp.eType == 4 ? 1 : 5;
+                if(cp.byteItemType == 2)
+                {   // AddButton: no value, the mod's own action
+                    if(!cp.fnOnButtonPressed) continue;
+                    it.id = -1000 - (int)(p - b); it.kind = K_BUTTON; it.ref = (int)(p - b);
+                    MP_SafeStr(it.value, "OPEN");
+                }
+                else
+                {
+                    if(cp.nSettingId < 37 || cp.nSettingId > 1199) continue;
+                    View v; if(!Read(cp.nSettingId, v)) continue;
+                    it.id = cp.nSettingId; it.kind = cp.byteItemType == 1 ? K_SLIDER : K_TOGGLE;
+                }
+                std::string l = Gxt(cp.szName);
+                snprintf(it.label, sizeof(it.label), "%s", l.c_str());
+                if(it.tab != 5) { out.push_back(it); continue; }
+                const int g = cp.eType < 5 ? 0 : (cp.eType - 5 > 63 ? 63 : cp.eType - 5);   // 0 = SAUtils' Mods page, 1.. = a mod's tab
+                if(tabName[g].empty()) tabName[g] = g == 0 ? std::string("MODS SETTINGS") : SauTabName(cp.eType);
+                if(tabName[g].empty()) { char t[24]; snprintf(t, sizeof(t), "MOD TAB %d", g); tabName[g] = t; }
+                mods[g].push_back(it); ++nMods;
+            }
     }
+    for(int g = 0; g < 64; ++g)
+    {
+        if(mods[g].empty()) continue;
+        Item h; h.id = -1; h.tab = 5; h.kind = K_HEADER; snprintf(h.label, sizeof(h.label), "%s", Gxt(tabName[g].c_str()).c_str());
+        snprintf(h.value, sizeof(h.value), "%d OPTION%s", (int)mods[g].size(), mods[g].size() == 1 ? "" : "S");
+        out.push_back(h);
+        out.insert(out.end(), mods[g].begin(), mods[g].end());
+    }
+    s_nModCount = nMods;
+    {   // the mods folder
+        const std::string dir = ModsDir();
+        std::vector<Item> files;
+        if(DIR* d = dir.empty() ? nullptr : opendir(dir.c_str()))
+        {
+            while(dirent* e = readdir(d))
+            {
+                if(e->d_name[0] == '.') continue;
+                const std::string full = dir + "/" + e->d_name;
+                bool isDir = e->d_type == DT_DIR;
+                struct stat st; memset(&st, 0, sizeof(st));
+                if(stat(full.c_str(), &st) == 0) isDir = S_ISDIR(st.st_mode);
+                Item it; it.id = -2; it.tab = 5; it.kind = K_INFO;
+                snprintf(it.label, sizeof(it.label), "%s", ModName(e->d_name, isDir).c_str());
+                if(isDir) MP_SafeStr(it.value, "FOLDER");
+                else if(st.st_size >= 1024 * 1024) snprintf(it.value, sizeof(it.value), "%.1f MB", st.st_size / (1024.0 * 1024.0));
+                else snprintf(it.value, sizeof(it.value), "%d KB", (int)((st.st_size + 1023) / 1024));
+                files.push_back(it);
+                if(files.size() >= 200) break;
+            }
+            closedir(d);
+        }
+        std::sort(files.begin(), files.end(), [](const Item& x, const Item& y) { return strcmp(x.label, y.label) < 0; });
+        if(!files.empty())
+        {
+            Item h; h.id = -1; h.tab = 5; h.kind = K_HEADER; MP_SafeStr(h.label, "MODS FOLDER");
+            snprintf(h.value, sizeof(h.value), "%d FILE%s", (int)files.size(), files.size() == 1 ? "" : "S");
+            out.push_back(h);
+            out.insert(out.end(), files.begin(), files.end());
+        }
+    }
+    static int s_nLogged = 0;
+    if(s_nLogged < 3) { ++s_nLogged; logger->Info("Neon settings: %d row(s), %d mod option(s) (SAUtils %s)", (int)out.size(), nMods, s_pSauVec ? "found" : "not found"); }
 }
+bool GameSettings::Press(int ref)
+{
+    if(!s_pSauVec || ref < 0) return false;
+    SAUSetting** b = nullptr; SAUSetting** e = nullptr;
+    if(!SafeCopy(s_pSauVec, &b, sizeof(b)) || !SafeCopy(s_pSauVec + 1, &e, sizeof(e)) || !b || ref >= e - b) return false;
+    SAUSetting* a = nullptr; SAUSetting cp;
+    if(!SafeCopy(b + ref, &a, sizeof(a)) || !a || !SafeCopy(a, &cp, sizeof(cp)) || cp.byteItemType != 2 || !cp.fnOnButtonPressed) return false;
+    cp.szName[31] = 0;
+    logger->Info("Neon settings: mod button \"%s\"", cp.szName);
+    ((void (*)(uintptr_t))cp.fnOnButtonPressed)(0);
+    return true;
+}
+int  GameSettings::ModCount() { return s_nModCount; }
+bool GameSettings::SAUtilsFound() { return s_pSauVec != nullptr; }
 void GameSettings::Save()
 {
     if(fnSave) { fnSave(); logger->Info("Neon settings: saved (%s)", s_szSave); }
