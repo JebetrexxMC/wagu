@@ -8,6 +8,7 @@
 #include <math.h>
 #include <dlfcn.h>
 #include <strings.h>
+#include <stdlib.h>
 #include "hudlayout.h"
 
 namespace
@@ -47,9 +48,21 @@ void Push(int p, bool alphaOnly = false) { if(s_nDepth < 4) { s_Stack[s_nDepth].
 // screen, so it fits every screen shape; the icon size comes from DrawWeaponIcon's rect (last frame).
 int   s_nPreset = HudLayout::PRESET_COMPACT;
 float s_fIconH = 0;
+float s_fHudScale = 100;     // 5.01.04: HUD size %, on top of the preset
+bool  s_bScreenSet = false;  // 5.01.04: SetScreen() had a real size (the Advanced Settings ini uses it)
+// 5.01.04: how much the right side block (player info + wanted stars) shrinks into the top right corner
+float CornerK()
+{
+    if(s_nPreset == HudLayout::PRESET_GAME) return 1.0f;
+    const float base = s_nPreset == HudLayout::PRESET_PC ? 0.68f : 1.0f;   // PC small: ~2/3 of the mobile HUD
+    return base * s_fHudScale * 0.01f;
+}
+inline bool CornerPart(int p) { return p == HudLayout::PLAYERINFO || p == HudLayout::WANTED || p == HudLayout::BAR_HEALTH || p == HudLayout::BAR_ARMOR
+                                       || p == HudLayout::BAR_BREATH || p == HudLayout::WEAPON_ICON || p == HudLayout::AMMO || p == HudLayout::MONEY
+                                       || p == HudLayout::MONEY_CHANGE || p == HudLayout::CLOCK; }
 float CompactDy(int part)
 {
-    if(s_nPreset != HudLayout::PRESET_COMPACT) return 0;
+    if(s_nPreset != HudLayout::PRESET_COMPACT && s_nPreset != HudLayout::PRESET_PC) return 0;   // 5.01.04: PC small = the Compact stack, smaller
     float k = 0;
     switch(part)
     {
@@ -78,6 +91,12 @@ void Xform(float& x, float& y)
         x = c.ax + (x - c.ax) * sx + g.x * 0.01f * s_fW;
         y = c.ay + (y - c.ay) * sy + g.y * 0.01f * s_fH + CompactDy(c.part);
     }
+    // 5.01.04: PC small / HUD size: the whole right side block shrinks into the top right corner (once per point)
+    if(n > 0 && !s_Stack[0].alphaOnly && CornerPart(s_Stack[0].part))
+    {
+        const float k = CornerK();
+        if(k != 1.0f) { x = s_fW - (s_fW - x) * k; y = y * k; }
+    }
 }
 void Scale(float& sx, float& sy)
 {
@@ -88,6 +107,7 @@ void Scale(float& sx, float& sy)
         const HudLayout::Cfg& g = s_Cfg[s_Stack[i].part];
         const float k = g.size * g.z * 0.0001f; sx *= k * g.w * 0.01f; sy *= k * g.h * 0.01f;
     }
+    if(n > 0 && !s_Stack[0].alphaOnly && CornerPart(s_Stack[0].part)) { const float k = CornerK(); sx *= k; sy *= k; }   // 5.01.04
 }
 float Alpha()
 {
@@ -172,6 +192,16 @@ CRect MoveRect(const CRect& r, const HudLayout::Cfg& g)
     const float hx = (r.right - r.left) * 0.5f * sx, hy = (r.bottom - r.top) * 0.5f * sy;
     return { cx - hx, cy + hy, cx + hx, cy - hy };
 }
+// 5.01.04: PC small = the radar in the bottom left corner (the same distance from the corner as the mobile one
+// has from the top left, + room for the MP status line), 80 % x HUD size. Compact only scales it into its corner.
+// The rect keeps its orientation (top stays above bottom), else the map would be drawn upside down.
+CRect RadarCorner(const CRect& r)
+{
+    const float s = s_fHudScale * 0.01f;
+    if(s_nPreset != HudLayout::PRESET_PC) return { r.left * s, r.bottom * s, r.right * s, r.top * s };
+    const float k = 0.80f * s, pad = s_fH * 0.035f;
+    return { r.left * k, s_fH - r.top * k - pad, r.right * k, s_fH - r.bottom * k - pad };
+}
 void hRadarUpd(void* w)
 {
     oRadarUpd(w);
@@ -182,11 +212,14 @@ void hRadarUpd(void* w)
     if(s_bRadarSet && w == s_pRadarW && SameRect(rc, s_RadarSet)) { rc = s_RadarBase; if(SameRect(pd, s_RadarSetPad)) pd = s_RadarBasePad; }
     s_bRadarSet = false;
     const HudLayout::Cfg& g = s_Cfg[HudLayout::RADAR];
-    if(!s_bOn || (g.x == 0 && g.y == 0 && g.z == 100 && g.size == 100 && g.w == 100 && g.h == 100)) return;
+    const bool ident = g.x == 0 && g.y == 0 && g.z == 100 && g.size == 100 && g.w == 100 && g.h == 100;
+    const bool corner = s_nPreset == HudLayout::PRESET_PC || (s_nPreset == HudLayout::PRESET_COMPACT && s_fHudScale != 100);   // 5.01.04
+    if(!s_bOn || (ident && !corner)) return;
     const float wd = rc.right - rc.left, ht = rc.bottom - rc.top;
     if(!(wd == wd) || !(ht == ht) || fabsf(wd) < 4 || fabsf(ht) < 4 || fabsf(wd) > s_fW || fabsf(ht) > s_fH) return;   // no sane rect: leave it
     s_RadarBase = rc; s_RadarBasePad = pd; s_pRadarW = w;
-    rc = MoveRect(rc, g); pd = MoveRect(pd, g);
+    if(corner) { rc = RadarCorner(rc); pd = RadarCorner(pd); }
+    if(!ident) { rc = MoveRect(rc, g); pd = MoveRect(pd, g); }
     s_RadarSet = rc; s_RadarSetPad = pd; s_bRadarSet = true;
 }
 void hArea() { PART_TOP(HudLayout::AREA_NAME, oArea()); }
@@ -342,20 +375,22 @@ bool HudLayout::Conflict() { return AdvancedSettingsLoaded(); }
 // the clock is ~0.27 lower, the bars ~0.19 higher; the weapon icon is ~11.5 % of the screen height.
 const char* HudLayout::PresetName(int preset)
 {
-    static const char* const k[PRESET_COUNT] = { "Game default", "Compact" };
+    static const char* const k[PRESET_COUNT] = { "Game default", "Compact", "PC small" };
     return preset >= 0 && preset < PRESET_COUNT ? k[preset] : "";
 }
 void HudLayout::ApplyPreset(int preset)
 {
     for(int p = 0; p < PART_COUNT; ++p) Defaults(s_Cfg[p]);
-    s_nPreset = preset == PRESET_COMPACT ? PRESET_COMPACT : PRESET_GAME;   // 5.00.06: Compact = CompactDy(), not % offsets
-    SetEnabled(s_nPreset == PRESET_COMPACT);
+    s_nPreset = (preset == PRESET_COMPACT || preset == PRESET_PC) ? preset : PRESET_GAME;   // 5.00.06: Compact = CompactDy(), not % offsets
+    SetEnabled(s_nPreset != PRESET_GAME);
     Save();
 }
 int HudLayout::CurrentPreset() { return s_nPreset; }
+float HudLayout::HudScale() { return s_fHudScale; }
+void HudLayout::SetHudScale(float pct) { s_fHudScale = Clamp(pct, 50, 150); }
 void HudLayout::SetScreen(float w, float h)
 {
-    if(w > 16 && h > 16) { s_fW = w; s_fH = h; }
+    if(w > 16 && h > 16) { s_fW = w; s_fH = h; s_bScreenSet = true; }
     static bool once = false; if(!once) { once = true; AdvsAutoApply(); }   // 5.00.08: every mod is loaded by the first frame
 }
 void HudLayout::Init(void* gtasa) { s_hGame = gtasa; if(s_bWant) InstallHooks(); }
@@ -387,8 +422,9 @@ void HudLayout::Load()
         if(old54 || !on || !any) { preset = PRESET_COMPACT; on = true; }
         else preset = PRESET_GAME;   // their own custom HUD stays as it was
     }
-    s_nPreset = preset == PRESET_COMPACT ? PRESET_COMPACT : PRESET_GAME;
-    SetEnabled(on && (any || s_nPreset == PRESET_COMPACT));   // all default + the game layout = nothing hooked
+    s_nPreset = (preset == PRESET_COMPACT || preset == PRESET_PC) ? preset : PRESET_GAME;
+    s_fHudScale = Clamp(::cfg->GetFloat("HudScale", 100, "GTAHUD"), 50, 150);   // 5.01.04
+    SetEnabled(on && (any || s_nPreset != PRESET_GAME));   // all default + the game layout = nothing hooked
     s_bOn = on && !AdvancedSettingsLoaded();
     AdvsAutoApply();   // 5.00.08
 }
@@ -400,6 +436,7 @@ void HudLayout::Save()
     auto F = [](const char* k, float v) { ConfigEntry* e = ::cfg->Bind(k, v, "GTAHUD"); e->SetFloat(v); delete e; };
     B("CustomHud", s_bOn);
     { ConfigEntry* e = ::cfg->Bind("Preset", s_nPreset, "GTAHUD"); e->SetInt(s_nPreset); delete e; }   // 5.00.06
+    F("HudScale", s_fHudScale);   // 5.01.04
     for(int p = 0; p < PART_COUNT; ++p)
     {
         const Cfg& c = s_Cfg[p]; char k[64];
@@ -534,6 +571,131 @@ SizeX = 0.500000
 SizeY = 1.500000
 Vertical = 0
 )MPINI";
+// 5.01.04: PC small (Screenshots/Screenshot_20261119-120430.png): the same stack as Compact at ~2/3 of its size,
+// tight in the top right corner (clock, money, health / armor / breath bars left of a small weapon icon, wanted
+// stars under them) and the radar moved down to the bottom left corner. HUD_Radar = centre PosX / PosY, half
+// SizeX / SizeY (libAdvancedSettings.SA.so 7.3.1: CWidgetRadar::Update -> rect = pos -/+ size). Measured on a
+// 20:9 screen; when MP writes it the weapon icon / radar SizeX is fitted to the phone's own screen shape (round).
+static const char kAdvsIniPC[] = R"MPINI([About]
+PresetBy = MP PC small (radar bottom left)
+
+[HUD_PlayerInfo]
+ForceDrawing = 0
+
+[HUD_WeaponIcon]
+DrawBehind = 0
+PosX = 92.000000
+PosY = 12.400000
+SizeX = 2.550000
+SizeY = 5.700000
+
+[HUD_Ammo]
+DisplayAbove9999 = 0
+BGColor = 0 0 0 0
+Color = 172 203 241 255
+CalcWeaponRect = 1
+Proportional = 1
+FontStyle = 6
+Orientation = 0
+FontEdge = 1
+AnimatedMult = 1
+PosX = 92.000000
+PosY = 18.600000
+SizeX = 0.320000
+SizeY = 0.850000
+
+[HUD_Clock]
+Format = %02d:%02d
+BGColor = 0 0 0 0
+Color = 225 225 225 255
+Proportional = 0
+Orientation = 2
+FontStyle = 5
+FontEdge = 1
+PosX = 89.400000
+PosY = 5.400000
+SizeX = 0.400000
+SizeY = 1.100000
+
+[HUD_Money]
+ColorMinus = 180 25 29 255
+ColorPlus = 54 104 44 255
+BGColor = 0 0 0 0
+FontStyle = 5
+Proportional = 0
+Orientation = 2
+FontEdge = 1
+DropShadow = 0
+PosX = 89.400000
+PosY = 9.600000
+SizeX = 0.400000
+SizeY = 1.080000
+
+[HUD_BarHealth]
+BorderMult = 0.200000
+BorderSide = 30
+Color = 180 25 29 255
+ConstWidth = 0
+DrawMode = 0
+FlashItem = 1
+PCBehaviour = 0
+Percent = 0
+PosX = 89.000000
+PosY = 15.200000
+SizeX = 10.000000
+SizeY = 1.500000
+Vertical = 0
+
+[HUD_BarArmor]
+AlwaysShow = 0
+BorderMult = 0.200000
+BorderSide = 30
+Color = 225 225 225 255
+ConstWidth = 0
+DrawMode = 0
+FlashItem = 1
+Percent = 0
+PosX = 89.000000
+PosY = 17.500000
+SizeX = 10.000000
+SizeY = 1.500000
+Vertical = 0
+
+[HUD_BarBreath]
+AlwaysShow = 0
+BorderMult = 0.200000
+BorderSide = 30
+Color = 137 162 192 255
+DrawMode = 0
+FlashItem = 1
+Percent = 0
+PosX = 89.000000
+PosY = 19.800000
+SizeX = 10.000000
+SizeY = 1.500000
+Vertical = 0
+
+[HUD_WantedStar]
+AlwaysShowShadow = 0
+Color = 144 98 16 255
+BGColor = 0 0 0 255
+FontStyle = 4
+FontEdge = 1
+Orientation = 2
+Proportional = 1
+Padding = 0.120000
+PosX = 96.000000
+PosY = 22.400000
+SizeX = 0.360000
+SizeY = 1.000000
+Vertical = 0
+
+[HUD_Radar]
+PosX = 6.600000
+PosY = 83.000000
+SizeX = 4.700000
+SizeY = 10.500000
+)MPINI";
 #include <string>
 #include <vector>
 #include <sys/stat.h>
@@ -584,6 +746,44 @@ void ParseIni(const std::string& t, std::vector<AdvsKey>& out)
 }   // namespace
 
 const char* HudLayout::AdvsIniText() { return kAdvsIni; }
+const char* HudLayout::AdvsIniTextPC() { return kAdvsIniPC; }
+namespace
+{
+int s_nAdvsPreset = -1;   // 5.01.04: -1 = follow the GTA HUD preset (PC small -> PC, else Compact)
+int AdvsPresetNow() { return s_nAdvsPreset >= 0 ? s_nAdvsPreset : (s_nPreset == HudLayout::PRESET_PC ? HudLayout::PRESET_PC : HudLayout::PRESET_COMPACT); }
+// 5.01.04: the keys MP writes = the preset's ini x HUD size. The right side block shrinks into the top right corner
+// (100, 0), the radar into the bottom left one (0, 100). Round parts (weapon icon, radar): SizeX from SizeY and the
+// phone's real screen shape, so they stay round on 16:9 and 21:9 alike.
+std::vector<AdvsKey> AdvsWanted()
+{
+    std::vector<AdvsKey> want; const bool pc = AdvsPresetNow() == HudLayout::PRESET_PC;
+    ParseIni(pc ? kAdvsIniPC : kAdvsIni, want);
+    const float k = s_fHudScale * 0.01f;
+    const float aspect = (s_bScreenSet && s_fW > 16 && s_fH > 16) ? s_fH / s_fW : 0;
+    for(auto& w : want)
+    {
+        const bool radar = SameI(w.sec, "HUD_Radar"), round = radar || SameI(w.sec, "HUD_WeaponIcon");
+        const float ax = radar ? 0 : 100, ay = radar ? 100 : 0;
+        const bool px = SameI(w.key, "PosX"), py = SameI(w.key, "PosY"), sx = SameI(w.key, "SizeX"), sy = SameI(w.key, "SizeY");
+        if(!px && !py && !sx && !sy) continue;
+        float v = (float)atof(w.val.c_str());
+        if(px) v = ax + (v - ax) * k;
+        else if(py) v = ay + (v - ay) * k;
+        else v *= k;
+        char b[32]; snprintf(b, sizeof(b), "%.6f", v); w.val = b;
+    }
+    // SizeX of the round parts after SizeY is known (SizeY comes after SizeX in the text)
+    if(aspect > 0 && pc)
+        for(auto& w : want)
+        {
+            if(!SameI(w.key, "SizeX") || !(SameI(w.sec, "HUD_Radar") || SameI(w.sec, "HUD_WeaponIcon"))) continue;
+            for(auto& y : want) if(SameI(y.sec, w.sec) && SameI(y.key, "SizeY")) { char b[32]; snprintf(b, sizeof(b), "%.6f", (float)atof(y.val.c_str()) * aspect); w.val = b; break; }
+        }
+    return want;
+}
+}   // namespace
+void HudLayout::SetAdvsPreset(int preset) { s_nAdvsPreset = (preset == PRESET_PC || preset == PRESET_COMPACT) ? preset : -1; }
+int  HudLayout::AdvsPreset() { return AdvsPresetNow(); }
 const char* HudLayout::AdvsIniPath()
 {
     static char path[512];
@@ -607,7 +807,7 @@ bool HudLayout::AdvsApplyCompact()
     std::string cur; const bool had = ReadAll(ini, cur);
     const std::string orig = std::string(ini) + ".mp_orig";
     if(!Exists(orig.c_str()) && !WriteAll(orig.c_str(), had ? cur : std::string())) { logger->Info("GTA HUD: cannot back up %s", ini); return false; }
-    std::vector<AdvsKey> want; ParseIni(kAdvsIni, want);
+    std::vector<AdvsKey> want = AdvsWanted();   // 5.01.04: Compact or PC small, x HUD size
     std::vector<std::string> lines; SplitLines(cur, lines);
     while(!lines.empty() && Trim(lines.back()).empty()) lines.pop_back();
     // 1) replace the keys that are there already (in their section)
@@ -638,7 +838,7 @@ bool HudLayout::AdvsApplyCompact()
     }
     std::string out; for(auto& l : lines) { out += l; out += '\n'; }
     if(!WriteAll(ini, out)) { logger->Info("GTA HUD: cannot write %s", ini); return false; }
-    logger->Info("GTA HUD: Compact HUD written to Advanced Settings (%s, your own ini kept as .mp_orig)", ini);
+    logger->Info("GTA HUD: %s HUD (%.0f %%) written to Advanced Settings (%s, your own ini kept as .mp_orig)", AdvsPresetNow() == PRESET_PC ? "PC small" : "Compact", s_fHudScale, ini);
     return true;
 }
 bool HudLayout::AdvsRestore()
@@ -654,7 +854,7 @@ bool HudLayout::AdvsRestore()
 }
 void HudLayout::AdvsAutoApply()
 {
-    if(!::cfg || !AdvancedSettingsLoaded() || s_nPreset != PRESET_COMPACT) return;
+    if(!::cfg || !AdvancedSettingsLoaded() || s_nPreset == PRESET_GAME || !s_bScreenSet) return;   // 5.01.04: + PC small, after the first frame
     if(::cfg->GetBool("AdvsCompactDone", false, "GTAHUD")) return;   // once; after that only the GTA HUD buttons
     if(AdvsApplied() || AdvsApplyCompact())
     {

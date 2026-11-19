@@ -28,10 +28,16 @@ namespace HudLayout
     // 5.00.04: presets (Settings > Display > GTA HUD). 0 = the game's own HUD (all parts reset),
     // 1 = Compact: clock right above the money, health / armor / breath bars right under it (the PC-like
     // stacked look) instead of the mobile layout's big gaps. Turns Custom GTA HUD on (preset 1) and saves.
-    enum Preset { PRESET_GAME = 0, PRESET_COMPACT, PRESET_COUNT };
+    // 5.01.04: 2 = PC small: the Compact stack at ~2/3 size in the top right corner and the radar moved down to the
+    // bottom left (the PC look, Screenshots/Screenshot_20261119-120430.png instead of -120322.png).
+    enum Preset { PRESET_GAME = 0, PRESET_COMPACT, PRESET_PC, PRESET_COUNT };
     const char* PresetName(int preset);
     void  ApplyPreset(int preset);
     int   CurrentPreset();             // 5.00.06: Compact is the default (measured in weapon-icon heights)
+    // 5.01.04: HUD size (Settings > Display > GTA HUD), 50..150 %, on top of the preset: the right side block shrinks
+    // into the top right corner, the radar into its corner. Also used for the Advanced Settings ini.
+    float HudScale();
+    void  SetHudScale(float pct);
 
     // 5.00.08: with ARM's Advanced Settings installed MP's own HUD hooks stay off (double hooks = spaghetti), so
     // "Custom GTA HUD" + Compact used to change nothing. Now MP writes the Compact layout (the "correct" HUD photo,
@@ -39,7 +45,10 @@ namespace HudLayout
     // keys from research/libAdvancedSettings.SA.so 7.3.1). Advanced Settings sees the new file time and reloads
     // it by itself. The player's own ini is kept once as <ini>.mp_orig; AdvsRestore() puts it back.
     const char* AdvsIniText();         // the whole Compact AdvancedSettings.SA.ini (docs/hud/AdvancedSettings.SA.ini)
-    bool  AdvsApplyCompact();          // merge the Compact HUD_* keys into the ini (other keys / sections are kept)
+    const char* AdvsIniTextPC();       // 5.01.04: PC small (docs/hud/AdvancedSettings.SA.PC.ini), radar bottom left
+    bool  AdvsApplyCompact();          // merge the current preset's HUD_* keys (Compact or PC small, x HUD size) into the ini
+    void  SetAdvsPreset(int preset);   // 5.01.04: which layout AdvsApplyCompact() writes (Compact / PC small)
+    int   AdvsPreset();
     bool  AdvsRestore();               // the player's own ini back (from .mp_orig)
     bool  AdvsApplied();               // a .mp_orig backup exists = MP's Compact is in the ini
     const char* AdvsIniPath();         // the ini MP writes ("" = no AML config folder)

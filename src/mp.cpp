@@ -7599,7 +7599,34 @@ static void GtaHudSettings()
         ImGui::PushTextWrapPos(0.0f);
         ImGui::TextDisabled("Advanced Settings (libAdvancedSettings.SA.so) is installed, so it draws the HUD. MP puts its Compact HUD (clock right above the money, health and armor bars right under it, next to the weapon icon) into Advanced Settings' own settings file.");
         ImGui::PopTextWrapPos();
-        if(FloatMenu::ToggleSwitch("Custom GTA HUD (Compact)", &applied))
+        {   // 5.01.04: which layout goes into Advanced Settings' ini + the HUD size
+            ImGui::TextUnformatted("HUD layout");
+            const float pw = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+            const int lay[2] = { HudLayout::PRESET_COMPACT, HudLayout::PRESET_PC };
+            for(int i = 0; i < 2; ++i)
+            {
+                if(i) ImGui::SameLine();
+                const bool cur = HudLayout::AdvsPreset() == lay[i];
+                if(cur) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+                if(ImGui::Button(HudLayout::PresetName(lay[i]), ImVec2(pw, UI::S(52))))
+                {
+                    HudLayout::ApplyPreset(lay[i]); HudLayout::SetAdvsPreset(lay[i]);
+                    snprintf(s_szAdvsMsg, sizeof(s_szAdvsMsg), "%s", HudLayout::AdvsApplyCompact() ? "HUD written to Advanced Settings. It changes in a moment (restart the game if it does not)." : "Could not write the Advanced Settings ini (see the MP log).");
+                }
+                if(cur) ImGui::PopStyleColor();
+            }
+            ImGui::TextUnformatted("HUD size");
+            static float s_fScale = -1; if(s_fScale < 0) s_fScale = HudLayout::HudScale();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::SliderFloat("##advscale", &s_fScale, 50, 150, "%.0f %%");
+            if(ImGui::IsItemDeactivatedAfterEdit())
+            {
+                HudLayout::SetHudScale(s_fScale); HudLayout::Save();
+                snprintf(s_szAdvsMsg, sizeof(s_szAdvsMsg), "%s", HudLayout::AdvsApplyCompact() ? "HUD size written to Advanced Settings." : "Could not write the Advanced Settings ini.");
+            }
+            ImGui::PushTextWrapPos(0.0f); ImGui::TextDisabled("PC small: a small clock, money and bars in the top right corner and the radar down in the bottom left, like the PC game."); ImGui::PopTextWrapPos();
+        }
+        if(FloatMenu::ToggleSwitch("Custom GTA HUD (Advanced Settings)", &applied))
         {
             const bool ok = applied ? HudLayout::AdvsApplyCompact() : HudLayout::AdvsRestore();
             snprintf(s_szAdvsMsg, sizeof(s_szAdvsMsg), "%s", !ok ? "Could not write the Advanced Settings ini (see the MP log)."
@@ -7608,8 +7635,8 @@ static void GtaHudSettings()
             if(::cfg) { ConfigEntry* e = ::cfg->Bind("AdvsCompactDone", true, "GTAHUD"); e->SetBool(true); delete e; }
         }
         const float hw = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
-        if(ImGui::Button("Apply Compact again", ImVec2(hw, UI::S(52))))
-            snprintf(s_szAdvsMsg, sizeof(s_szAdvsMsg), "%s", HudLayout::AdvsApplyCompact() ? "Compact HUD written to Advanced Settings." : "Could not write the Advanced Settings ini.");
+        if(ImGui::Button("Apply again", ImVec2(hw, UI::S(52))))
+            snprintf(s_szAdvsMsg, sizeof(s_szAdvsMsg), "%s", HudLayout::AdvsApplyCompact() ? "HUD written to Advanced Settings." : "Could not write the Advanced Settings ini.");
         ImGui::SameLine();
         const bool noBackup = !HudLayout::AdvsApplied();
         if(noBackup) ImGui::BeginDisabled();
@@ -7628,7 +7655,7 @@ static void GtaHudSettings()
                            : "Off: the game's own HUD (nothing is changed).");
     {   // 5.00.04: one tap layouts (Compact = clock, money and bars stacked tight next to the weapon icon)
         ImGui::TextUnformatted("HUD layout");
-        const float pw = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+        const float pw = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * (HudLayout::PRESET_COUNT - 1)) / HudLayout::PRESET_COUNT;   // 5.01.04: 3 layouts
         for(int pr = 0; pr < HudLayout::PRESET_COUNT; ++pr)
         {
             if(pr) ImGui::SameLine();
@@ -7637,7 +7664,19 @@ static void GtaHudSettings()
             if(ImGui::Button(HudLayout::PresetName(pr), ImVec2(pw, UI::S(52)))) { HudLayout::ApplyPreset(pr); dirty = false; on = HudLayout::Enabled(); }
             if(cur) ImGui::PopStyleColor();
         }
-        ImGui::PushTextWrapPos(0.0f); ImGui::TextDisabled("Compact (default): the clock right above the money, the health and armor bars right under it, next to the weapon icon - the same sizes, no Advanced Settings needed. Fine-tune below."); ImGui::PopTextWrapPos();
+        ImGui::PushTextWrapPos(0.0f); ImGui::TextDisabled("Compact (default): the clock right above the money, the health and armor bars right under it, next to the weapon icon. PC small: the same, smaller, in the top right corner, and the radar in the bottom left. Fine-tune below."); ImGui::PopTextWrapPos();
+        // 5.01.04: HUD size on top of the layout (right side block into its corner, the radar into its own)
+        ImGui::TextUnformatted("HUD size");
+        static float s_fScale = -1; if(s_fScale < 0) s_fScale = HudLayout::HudScale();
+        const bool noLayout = HudLayout::CurrentPreset() == HudLayout::PRESET_GAME || !on;
+        if(noLayout) ImGui::BeginDisabled();
+        const float bw = UI::S(56), sp = ImGui::GetStyle().ItemSpacing.x;
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 2 * (bw + sp));
+        bool sc = ImGui::SliderFloat("##ghscale", &s_fScale, 50, 150, "%.0f %%");
+        ImGui::SameLine(); if(ImGui::Button("-##ghsc", ImVec2(bw, 0))) { s_fScale = s_fScale - 5 < 50 ? 50 : s_fScale - 5; sc = true; }
+        ImGui::SameLine(); if(ImGui::Button("+##ghsc", ImVec2(bw, 0))) { s_fScale = s_fScale + 5 > 150 ? 150 : s_fScale + 5; sc = true; }
+        if(noLayout) ImGui::EndDisabled();
+        if(sc) { HudLayout::SetHudScale(s_fScale); dirty = true; }
     }
     if(!on) ImGui::BeginDisabled();
     ImGui::TextUnformatted("HUD part");

@@ -13,6 +13,10 @@
 
 # 1 = if every region broker is down, use the free public lobby (broker.hivemq.com, ...). Keep on.
 public=1
+# 5.01.04: where a public server you host is listed. auto = the global public lobby (Mosquitto / HiveMQ / EMQX)
+# when every region host above is the same machine (one home PC), else the region; region = always the
+# region broker; public = always the global lobby. Joining a listed server always uses the broker it came from.
+host_lobby=auto
 
 [Asia]
 host=mpsamp.duckdns.org
