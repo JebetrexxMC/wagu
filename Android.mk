@@ -50,6 +50,22 @@ ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
 endif
 include $(BUILD_STATIC_LIBRARY)
 
+# 5.02: open.mp's RakNet (RakNet 2.52 as changed by open.mp, third_party/omp-raknet) + the built-in
+# open.mp / SA-MP crossplay gate (src/net/sampgate.cpp) - libMP joins PC servers and lets PC players in
+include $(CLEAR_VARS)
+LOCAL_MODULE := mp_raknet
+LOCAL_CPP_EXTENSION := .cpp
+RAK_SRC := $(wildcard $(LOCAL_PATH)/third_party/omp-raknet/Source/*.cpp) $(LOCAL_PATH)/third_party/omp-raknet/SAMPRakNet.cpp $(LOCAL_PATH)/src/net/sampgate.cpp
+LOCAL_SRC_FILES := $(RAK_SRC:$(LOCAL_PATH)/%=%)
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/third_party/omp-raknet/Include/raknet $(LOCAL_PATH)/third_party/omp-raknet $(LOCAL_PATH)/src $(LOCAL_PATH)/third_party/mbedtls/include
+LOCAL_CFLAGS := -O2 -DNDEBUG -D__stdcall= -DRAKNET_LEGACY -DPACKETS_PER_TICK=3 -fvisibility=hidden -ffunction-sections -fdata-sections -Wno-everything
+LOCAL_CPPFLAGS := -std=c++17
+LOCAL_CPP_FEATURES := exceptions rtti
+ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
+    LOCAL_CFLAGS += -mfloat-abi=softfp
+endif
+include $(BUILD_STATIC_LIBRARY)
+
 include $(CLEAR_VARS)
 LOCAL_CPP_EXTENSION := .cpp
 ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)
@@ -68,7 +84,7 @@ LOCAL_SRC_FILES := \
     include/mod/logger.cpp include/mod/config.cpp \
     imgui/imgui.cpp imgui/imgui_draw.cpp imgui/imgui_tables.cpp imgui/imgui_widgets.cpp \
     imgui/backends/imgui_impl_renderware.cpp imgui/RW/RenderWare.cpp
-LOCAL_STATIC_LIBRARIES := mp_mbedtls mp_opus mp_samp mp_unrar
+LOCAL_STATIC_LIBRARIES := mp_raknet mp_mbedtls mp_opus mp_samp mp_unrar
 # 4.13.32: MonetLoader for MP built in (src/embed/monetloader_blob.S)
 LOCAL_ASFLAGS += -I$(abspath $(LOCAL_PATH)/assets/MP/neon)   # 4.13.33: src/embed/neon_blob.S
 LOCAL_ASFLAGS += -I$(abspath $(LOCAL_PATH)/assets/MP/moonloader)   # 5.01.06: src/embed/moonloader_core_blob.S

@@ -32,3 +32,4 @@ tools/bg_cache/
 bin/ViceLoader.apk
 release/MP-*-Package.zip
 release/MP-*-full.zip
+test/sampgate_test

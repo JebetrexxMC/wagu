@@ -24,10 +24,18 @@ obj/libsamp.a: $(AMX_SRC) ../third_party/sqlite/sqlite3.c ../third_party/puff/pu
 	$(CC) -O2 -DSQLITE_THREADSAFE=1 -DSQLITE_OMIT_LOAD_EXTENSION -c ../third_party/sqlite/sqlite3.c -o obj/samp/sqlite3.o
 	$(CC) -O2 -c ../third_party/puff/puff.c -o obj/samp/puff.o
 	$(AR) rcs $@ obj/samp/*.o
-SRC = mp_server.cpp ../src/net/server.cpp ../src/net/lan.cpp ../src/net/online.cpp ../src/net/authcrypto.cpp ../src/net/samp_import.cpp
+SRC = mp_server.cpp ../src/net/server.cpp ../src/net/lan.cpp ../src/net/online.cpp ../src/net/authcrypto.cpp ../src/net/samp_import.cpp ../src/net/sampgate.cpp
+# 5.02: open.mp's RakNet (RakNet 2.52 as changed by open.mp, SA-MP 0.3.7 network) for the built-in PC crossplay (net/sampgate.cpp)
+RAK = ../third_party/omp-raknet
+RAK_SRC = $(wildcard $(RAK)/Source/*.cpp) $(RAK)/SAMPRakNet.cpp
+RAK_FLAGS = -D__stdcall= -DRAKNET_LEGACY -DPACKETS_PER_TICK=3 -I$(RAK)/Include/raknet -I$(RAK)
+obj/libraknet.a: $(RAK_SRC)
+	@mkdir -p obj/raknet
+	for f in $(RAK_SRC); do $(CXX) -O2 -std=c++17 -w $(RAK_FLAGS) -c $$f -o obj/raknet/$$(basename $$f .cpp).o || exit 1; done
+	$(AR) rcs $@ obj/raknet/*.o
 
-mp_server: $(SRC) ../src/net/server.h ../src/net/protocol.h ../src/net/lan.h ../src/net/online.h ../src/net/authcrypto.h obj/libmbedtls.a obj/libsamp.a obj/libunrar.a ../src/net/server_samp.inc ../src/net/server_bridge.inc ../src/net/server_samp_sql.inc ../src/net/server_samp_sscanf.inc ../src/net/server_samp_more.inc ../src/net/samp.h
-	$(CXX) -O2 -std=c++17 -pthread -I../src -I$(MBED)/include $(AMX_FLAGS) $(SRC) obj/libmbedtls.a obj/libsamp.a obj/libunrar.a $(EXTRA) -ldl -lm -o mp_server
+mp_server: $(SRC) ../src/net/server.h ../src/net/protocol.h ../src/net/lan.h ../src/net/online.h ../src/net/authcrypto.h obj/libmbedtls.a obj/libsamp.a obj/libunrar.a obj/libraknet.a ../src/net/sampgate.h ../src/net/server_gate.inc ../src/net/server_samp.inc ../src/net/server_bridge.inc ../src/net/server_samp_sql.inc ../src/net/server_samp_sscanf.inc ../src/net/server_samp_more.inc ../src/net/samp.h
+	$(CXX) -O2 -std=c++17 -pthread -I../src -I$(MBED)/include $(AMX_FLAGS) $(RAK_FLAGS) $(SRC) obj/libmbedtls.a obj/libsamp.a obj/libunrar.a obj/libraknet.a $(EXTRA) -ldl -lm -o mp_server
 
 obj/mbedtls/%.o: $(MBED)/library/%.c
 	@mkdir -p obj/mbedtls

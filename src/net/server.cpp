@@ -1,6 +1,7 @@
 #include <cmath>
 #include <time.h>
 #include "server.h"
+#include "sampgate.h"
 #include "safezone.h"
 #include "admin.h"
 #include "authcrypto.h"   // 3.21.6: login tickets
@@ -1406,6 +1407,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             p.id = (uint8_t)slot;
             p.text[MP_CHAT_LEN - 1] = 0;
             Log("[chat] %s: %s", m_Slots[slot].name, p.text);
+            if(m_pGate && !m_Slots[slot].ghost && m_pGate->OnChat(slot, p.text)) break;   // 5.02: on a PC server: the chat goes there
             if(m_bBridge && !m_Slots[slot].ghost && p.text[0] != '/') m_BridgeChatOut.emplace_back(slot, std::string(p.text));   // 4.12
             if(IsDayzServer() && DzChat(slot, p.text)) break;
             if(IsLgServer() && LgChat(slot, p.text)) break;   // 4.13.4   // 3.58: party chat colours / commands
@@ -1710,6 +1712,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
         {
             if(slot < 0 || len < (int)sizeof(PktDialogResp)) return;
             PktDialogResp r; memcpy(&r, data, sizeof(r));
+            if(m_pGate) { r.input[sizeof(r.input) - 1] = 0; if(m_pGate->OnDialog(slot, r.dialogId, r.response, r.listItem, r.input)) break; }   // 5.02
             if(AcDialog(slot, r)) { if(CgOn()) CgDialog(slot, r); if(m_bSampLoaded) SampOnDialog(slot, r); }   // 3.50: dialog hack; 4.09: CGRP dialogs (ids 0x6000-0x60FF); 4.11: SA-MP
             break;
         }
@@ -1733,6 +1736,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             if(slot >= 0) CoopHandle(slot, (const uint8_t*)data, len);
             break;
         case PKT_SAMP:   // 4.11: SA-MP gamemode (commands, textdraw clicks, checkpoints)
+            if(m_pGate && slot >= 0 && m_pGate->OnSamp(slot, (const uint8_t*)data, len)) break;   // 5.02: a PC server
             SampHandle(slot, (const uint8_t*)data, len);
             break;
         case PKT_JACK:   // 2.19: carjack another player
@@ -2192,6 +2196,7 @@ void MPServer::RaceQueueTick(uint64_t now, bool changed)
 #include "server_cgrp.inc"  // 4.09: CGRP systems
 #include "server_samp.inc"  // 4.11: SA-MP gamemodes (Pawn AMX + SA-MP natives)
 #include "server_bridge.inc" // 4.12: open.mp cross-play bridge
+#include "server_gate.inc"   // 5.02: open.mp / SA-MP crossplay built in (net/sampgate.cpp)
 #include "server_hostmap.inc" // 4.13.15: host map editor + Co-op story pairs
 #include "server_vcmp.inc"    // 4.13.40: VC:MP-style gamemode (Vice City servers)
 #include "server_notify.inc"  // 5.00.07: notification system (/notify)

@@ -38,8 +38,10 @@ static std::atomic<bool> g_bQuit(false);
 static void OnSignal(int) { g_bQuit = true; }
 
 static char dCC[MP_CC_LEN] = "", dMode[MP_MODE_LEN] = "", dTags[MP_TAGS_LEN] = "", dDesc[MP_DESC_LEN] = ""; static int dModeCol = 0;   // 4.03
+// 5.02: --samp-port 7777 [--samp-max 50]: PC players (SA-MP 0.3.7 / open.mp launcher) join this server too
 // 4.11: --samp / --samp-test take a folder, or a .rar / .zip / .amx (unpacked next to it, <file>_samp/)
 #include "net/samp_import.h"
+#include "net/sampgate.h"   // 5.02: open.mp / SA-MP PC crossplay
 static std::string SampResolve(const char* path)
 {
     struct stat st; if(stat(path, &st) == 0 && S_ISDIR(st.st_mode)) { std::string r = SampFindRoot(path); return r.empty() ? path : r; }
@@ -158,6 +160,15 @@ int main(int argc, char** argv)
     for(int i = 1; i + 1 < argc; ++i) if(!strcasecmp(argv[i], "--lg-file")) MPServerSetLgFile(argv[i + 1]);   // 4.13.4
     if(!server.Start((uint16_t)port, name, nullptr, maxPlayers, region)) return 1;
     server.SetIcon(icon);   // 2.24
+    // 5.02: --samp-port N [--samp-max N]: PC players with the SA-MP 0.3.7 / open.mp launcher join this
+    // server on UDP port N (built in, open.mp's RakNet). They show up as "Name (PC)" for the phones.
+    static SampGate gate;
+    {
+        int sp = 0, smax = 50;
+        for(int i = 1; i + 1 < argc; ++i) if(!strcasecmp(argv[i], "--samp-port") || !strcasecmp(argv[i], "--omp-port")) sp = atoi(argv[i + 1]);
+        for(int i = 1; i + 1 < argc; ++i) if(!strcasecmp(argv[i], "--samp-max")) smax = atoi(argv[i + 1]);
+        if(sp > 0 && sp < 65536) gate.StartServer(&server, (uint16_t)sp, server.GetName(), smax);
+    }
     {   // 3.04.6: old MP versions are refused and logged
         const char* ol = "outdated_clients.log";
         for(int i = 1; i + 1 < argc; ++i) if(!strcasecmp(argv[i], "--outdated-log")) ol = argv[i + 1];
@@ -356,6 +367,7 @@ int main(int argc, char** argv)
         if(!offline) { Online::SetHostStart(server.GetStartUnix()); Online::SetHosted(true, server.GetName(), server.GetPort(), server.GetPlayerCount(), server.GetMaxPlayers(), server.GetRegion()); }   // 2.27: + start time
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
+    gate.Stop();   // 5.02
     server.Stop();
     if(!offline) { Online::SetHosted(false, "", 0, 0, 0, 0); std::this_thread::sleep_for(std::chrono::milliseconds(500)); }
     return 0;

@@ -112,6 +112,21 @@ public:
     void BridgeRemove(int slot);
     void BridgePeers(std::vector<BridgePeer>& out);                   // the real (phone) players
     void BridgeTakeChat(std::vector<std::pair<int, std::string>>& out);   // their chat since last call
+    // 5.02: open.mp / SA-MP 0.3.7 crossplay built in (net/sampgate.h). The gate gets the phones' chat,
+    // PKT_SAMP and dialog answers first (hooks), and drives the phones with these (slot -1 = every real player).
+    // All of them lock m_Mutex (any thread).
+    void SetGate(class SampGate* g);
+    class SampGate* GetGate() const { return m_pGate; }
+    void GateAct(int slot, uint8_t act, int a = 0, int b = 0, int32_t val = 0, const float* pos = nullptr, float h = 0, const char* text = nullptr);
+    void GateOp(int slot, uint8_t op, uint8_t a, uint8_t b, int32_t val, const float* f = nullptr, const char* text = nullptr);
+    void GateLabel(int slot, int id, bool add, const float* p, float dist, uint32_t color, const char* text);
+    void GateMsg(int slot, uint32_t color, const char* text);
+    void GateChat(int fromSlot, const char* text);
+    void GateDialog(int slot, int id, int style, const char* cap, const char* info, const char* b1, const char* b2);
+    void GateTextDraw(int slot, const PktTextDraw& t);
+    void GateObject(uint32_t row, uint16_t model, const float* p, const float* r, bool add);
+    bool GatePos(int slot, float* pos, float* heading, int* health);
+    int  GateWorldHour();
     // 3.23.5: the 3 featured servers (default 100, Brief Case War 20, MW3 64) always have the bot
     // "Broker" in them (id MP_BOT_ID): 1/100, 1/20, 1/64 with nobody else, on the VPS or a phone copy
     // 5.00.04: + the 24/7 VICE City LAN server (Vice City, port 7777): 1/100 with nobody else, 2/100 with one VICE Loader player
@@ -322,6 +337,7 @@ private:
     std::string m_sWelcome;
     std::atomic<uint8_t> m_nGame{0};   // 4.13.35
     std::atomic<bool> m_bBridge{false};                       // 4.12
+    class SampGate* m_pGate = nullptr;                        // 5.02 (set / cleared under m_Mutex)
     std::vector<std::pair<int, std::string>> m_BridgeChatOut;   // 4.12 (under m_Mutex)
     uint32_t m_nBridgeSeq = 1;
     void SetPermsLocked(uint8_t perms);                                         // 2.37, m_Mutex held

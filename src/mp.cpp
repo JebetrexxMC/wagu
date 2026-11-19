@@ -30,6 +30,9 @@ extern "C" unsigned long crc32(unsigned long crc, const unsigned char* buf, unsi
 #include "net/serverlist.h"
 #include "net/lan.h"
 #include "net/online.h"
+#include "net/sampgate.h"   // 5.02: open.mp / SA-MP crossplay
+#include <atomic>
+#include <thread>
 #include "net/authclient.h"   // 3.21.6: login system
 #include "net/authcrypto.h"
 #include <map>
@@ -164,6 +167,7 @@ static bool OnLostServer();   // defined below; true when a takeover search was 
 static int  s_nFeatWaitTries = 0;   // 3.53
 static bool DupFallBack();    // 3.23.5
 static void ProcessLan(uint64_t now);
+static void CrossplayTick(uint64_t now);   // 5.02 (mp_crossplay.inc)
 static void RunHostRequest();   // 3.21.2: host / stop from the Add server page, run on the game frame
 
 using namespace MP;
@@ -5748,6 +5752,7 @@ static void ProcessLan(uint64_t now)
 {
     RunHostRequest();
     ProcessBrokerStandby(now);
+    CrossplayTick(now);   // 5.02: open.mp / SA-MP crossplay
     // online lobby: announce the server this phone hosts (player count refreshed every 0.5 s)
     {
         static uint64_t lastCount = 0; static int count = 0;
@@ -5952,7 +5957,7 @@ void MP::SaveConfig()
     F("NametagSize", settings.nametagSize); F("NametagDistance", settings.nametagDistance);
     B("ShowOwnNametag", settings.showOwnTag); B("ShowHealthBars", settings.showHealthBars); B("ShowRadarIcons", settings.showRadarIcons);
     B("ShowChat", settings.showChat); B("ShowKillFeed", settings.showKillFeed); B("ShowStatus", settings.showStatus);
-    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); B("HostWelcomeOn", settings.hostWelcomeOn); S("HostWelcome", settings.hostWelcome); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
+    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); B("HostWelcomeOn", settings.hostWelcomeOn); S("HostWelcome", settings.hostWelcome); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); B("HostPcGate", settings.hostPcGate); { char m[12]; snprintf(m, sizeof(m), "%d", settings.hostPcPort); S("HostPcPort", m); } S("PcServer", settings.pcServer); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
     F("ChatX", settings.chatX); F("ChatY", settings.chatY); I("Skin", settings.skin);
     I("ChatLines", settings.chatLines); F("ChatSize", settings.chatSize); F("ChatScale", settings.chatScale); F("ChatWidth", settings.chatWidth);   // 2.19.6
     I("ChatFade", settings.chatFade); B("ChatFadeOn", settings.chatFadeOn); B("ChatBackground", settings.chatBg);
@@ -6017,6 +6022,9 @@ static void LoadConfig()
     settings.phoneKeyboard   = ::cfg->GetBool("PhoneKeyboard", false, "MP");   // 4.12.3
     VKeyboard::SetPhoneKeyboard(settings.phoneKeyboard);
     settings.hostAc          = ::cfg->GetBool("HostAntiCheat", false, "MP");   // 3.50
+    settings.hostPcGate      = ::cfg->GetBool("HostPcGate", false, "MP");      // 5.02
+    { char m[12] = ""; ::cfg->GetString(m, sizeof(m), "HostPcPort", "7777", "MP"); settings.hostPcPort = atoi(m) > 0 && atoi(m) < 65536 ? atoi(m) : 7777; }
+    ::cfg->GetString(settings.pcServer, sizeof(settings.pcServer), "PcServer", "", "MP");
     { char m[24] = ""; ::cfg->GetString(m, sizeof(m), "HostAntiCheatMask", "FFFFFFFFFF", "MP"); settings.hostAcMask = strtoull(m, nullptr, 16) & AC_ALL_MASK; }
     settings.hitSound = ::cfg->GetBool("HitSound", true, "MP");               // 3.00
     settings.chatBubbles = ::cfg->GetBool("ChatBubbles", false, "MP");   // 3.01: off by default
@@ -7213,6 +7221,8 @@ static void ServerDetailsEditor()
     }
 }
 
+#include "mp_crossplay.inc"   // 5.02
+
 static void SectionAddServer(void*)
 {
     AddFormPrefill();
@@ -7237,6 +7247,7 @@ static void SectionAddServer(void*)
     GamemodeSwitches(s_szNewName);   // 3.02 (+ 3.50 Anti-cheat; 3.50.1 the default server: all ON)
     RulesSection();              // 3.39
     PluginsSection(s_szNewName);   // 3.50: Plugins > Textdraw
+    CrossplaySection();            // 5.02: open.mp / SA-MP (PC crossplay)
     ImGui::Separator();
 
     bool hasHost = s_szNewHost[0] != 0;

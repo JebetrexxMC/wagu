@@ -97,7 +97,10 @@ struct MPSettings
     bool  disableCheats     = false;   // 2.35: host setting: no MP chat cheats + no CLEO menu for everyone
     int   hostModes         = 0;       // 3.02: gamemodes (GM_*) of the custom server I host; new custom servers: none
     bool  hostAc            = false;   // 3.50: Add server > Gamemodes > Anti-cheat (custom servers; featured servers: always on)
-    unsigned long long hostAcMask = 0xFFFFFFFFFFull;   // 3.50: which anti-cheat checks (eAcCheck bits)
+    unsigned long long hostAcMask = 0xFFFFFFFFFFull;
+    bool  hostPcGate        = false;   // 5.02: Add server > open.mp crossplay: PC SA-MP 0.3.7 / open.mp players join your server
+    int   hostPcPort        = 7777;    // 5.02: its UDP port (the SA-MP default)
+    char  pcServer[80]      = "";      // 5.02: the last PC server (ip:port) you joined   // 3.50: which anti-cheat checks (eAcCheck bits)
     bool  phoneKeyboard     = false;   // 4.12.3: Settings > Display > Keyboard: false = MP keyboard, true = the phone's own
     bool  hostDevStage      = false;   // 4.13.2: Add server > Development stage notice (custom servers you host)
     bool  hostWelcomeOn     = false;   // 5.00.08: Add server > Custom welcome message (off = "Welcome to <server>")
