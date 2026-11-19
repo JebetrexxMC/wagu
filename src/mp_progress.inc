@@ -3,13 +3,15 @@
 // keeps it for my account (logged in) and gives it back after the next login - also after a game
 // restart, another phone or a server restart. Brief Case War / MW3 / Mega Vil keep their own saves.
 
-static struct { bool got = false, applied = false; PktProgress p = {}; uint64_t gotAt = 0, sendAt = 0, settledAt = 0; } s_Prog;
+static struct { bool got = false, applied = false; PktProgress p = {}; uint64_t gotAt = 0, sendAt = 0, settledAt = 0;
+                // 5.01.12: the weapons come back one by one while their models stream in (no LOAD_ALL_MODELS_NOW)
+                uint8_t wep[13] = {}; uint16_t ammo[13] = {}; int nWep = 0, given = 0; uint64_t wepUntil = 0; } s_Prog;
 
-static void ProgReset() { s_Prog.got = false; s_Prog.applied = false; s_Prog.gotAt = 0; s_Prog.sendAt = 0; s_Prog.settledAt = 0; }
+static void ProgReset() { s_Prog.got = false; s_Prog.applied = false; s_Prog.gotAt = 0; s_Prog.sendAt = 0; s_Prog.settledAt = 0; s_Prog.nWep = 0; s_Prog.given = 0; s_Prog.wepUntil = 0; }
 static bool ProgActive()
 {
     if(client.GetState() != NET_CONNECTED || client.GetServerBuild() < 33910) return false;
-    if(BcwOnServer() || Mw3OnServer() || RpOnServer() || DzOnServer()) return false;
+    if(BcwOnServer() || Mw3OnServer() || RpOnServer() || DzOnServer() || LgOnServer()) return false;   // 5.01.12: + Rocket League (its lobby owns your place)
     if(s_bAuthReq && s_Auth.state != AuthClient::DONE) return false;
     return true;
 }
@@ -66,12 +68,26 @@ static void ProgProcess(int ped, uint64_t now)
         { int ar = Game::GetCharArmour(ped); if(g.armour > ar) Game::AddArmour(ped, g.armour - ar); }
         Game::RemoveAllWeapons(ped);
         int nw = 0;
-        for(int k = 0; k < 13; ++k) if(g.wep[k] && Game::GiveWeaponAmmo(ped, g.wep[k], g.ammo[k])) ++nw;
+        s_Prog.nWep = 0; s_Prog.given = 0; s_Prog.wepUntil = now + 12000;
+        for(int k = 0; k < 13; ++k) if(g.wep[k]) { s_Prog.wep[s_Prog.nWep] = g.wep[k]; s_Prog.ammo[s_Prog.nWep] = g.ammo[k]; ++s_Prog.nWep; ++nw; }
         Game::SetCurrentWeapon(ped, 0);
         if(g.hunger || g.energy) { s_Need.hunger = g.hunger; s_Need.energy = g.energy; }
         s_Prog.applied = true; s_Prog.sendAt = now;
         SysMsg(COL_GREEN, "Your progress is back: %s$%d, %d weapon%s, health and hunger.", keepPlace ? "" : "your place, ", g.money, nw, nw == 1 ? "" : "s");
         return;
+    }
+    if(s_Prog.nWep > 0)
+    {   // 5.01.12: the saved weapons, as their models arrive (12 s max, then the rest is dropped)
+        int left = 0;
+        for(int k = 0; k < s_Prog.nWep; ++k)
+        {
+            if(!s_Prog.wep[k]) continue;
+            const int r = Game::GiveWeaponAmmoLight(ped, s_Prog.wep[k], s_Prog.ammo[k]);
+            if(r != 0) { if(r > 0) ++s_Prog.given; s_Prog.wep[k] = 0; }
+            else ++left;
+        }
+        if(!left || now > s_Prog.wepUntil) { s_Prog.nWep = 0; Game::SetCurrentWeapon(ped, 0); }
+        return;   // no save while the weapons are still coming back (it would save fewer)
     }
     if(s_Prog.applied && now - s_Prog.sendAt > 15000) ProgSendNow();
 }

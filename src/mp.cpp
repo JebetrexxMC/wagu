@@ -738,6 +738,7 @@ static bool LgJoinTakeover(int ped);   // mp_league.inc
 static void LgProcess(int ped, uint64_t now);
 static void LgOnPacket(const uint8_t* d, int len);
 static void RenderLg();
+static bool LgOnServer();   // 5.01.12: forward (NpcProcess / ProgActive)
 static bool DzOnServer();
 static bool DzHideCorner();   // 3.60
 static void DzModelsTick();   // 3.61: mp_dayz.inc
@@ -3706,6 +3707,8 @@ static uint8_t  s_nNpcSeq = 0;
 //  - what was already on my phone before I joined is never sent as "mine" (that showed it twice)
 #define NPC_JOIN_GRACE_MS   5000
 static uint64_t s_nNpcJoinAt = 0;                  // first NpcProcess after connecting
+static uint64_t s_nNpcJumpAt = 0;                  // 5.01.12: the last spawn / teleport of my player (a jump > 80 m)
+static Vec3     s_NpcLastMe = { 0, 0, 0 }; static bool s_bNpcLastMe = false;
 static uint64_t s_nNpcHostSince = 0;               // when I became host
 static uint64_t s_nNpcFollowSince = 0;             // when I started following s_nNpcHostId
 static uint64_t s_NpcPktFrom[MP_MAX_PLAYERS];      // last PKT_NPC from that player (any kind)
@@ -3869,6 +3872,7 @@ static void NpcStop()
     else if(Game::IsAmbientPopulationOff()) Game::SetAmbientPopulation(true);
     s_bNpcFollow = s_bNpcHost = false; s_nNpcHostId = -1; s_nNpcFollowers = 0;
     s_nNpcJoinAt = 0; s_nNpcHostSince = 0;   // 3.52
+    s_nNpcJumpAt = 0; s_bNpcLastMe = false;   // 5.01.12
     memset(s_NpcPktFrom, 0, sizeof(s_NpcPktFrom)); memset(s_NpcAmbFrom, 0, sizeof(s_NpcAmbFrom));
     memset(s_NpcBothHosts, 0, sizeof(s_NpcBothHosts)); memset(s_NpcNotServing, 0, sizeof(s_NpcNotServing));
 }
@@ -3969,6 +3973,11 @@ static bool NpcIsMine(int h, bool car, const Vec3& pos, const Vec3& me, int myCa
     // 3.52: what was around me before I joined (my single-player world) is not "mine": every phone has
     // its own copy of it, sharing it showed the same car / person twice and they blinked against each other
     if(s_nNpcJoinAt && now - s_nNpcJoinAt < NPC_JOIN_GRACE_MS) mine = false;
+    // 5.01.12: the same right after a spawn / teleport (the < Spawn > picker at Grove Street, the Rocket League
+    // lobby): the whole area streams in around me at once - the game's own Grove people, parked cars and script
+    // cars that every phone already has. They were "mine" (first seen close to me), every phone sent its copy to
+    // the others, the copies were made on top of the real ones and the game froze in the pile-up.
+    if(s_nNpcJumpAt && now - s_nNpcJumpAt < NPC_JOIN_GRACE_MS) mine = false;
     if(s_nOwn >= 192)
     {   // forget the oldest / gone ones
         int k = 0;
@@ -3977,6 +3986,16 @@ static bool NpcIsMine(int h, bool car, const Vec3& pos, const Vec3& me, int myCa
     }
     s_Own[s_nOwn++] = { h, car, mine, now };
     return mine;
+}
+
+// 5.01.12: a copy of another phone's NPC is never mine, also after it was let go / its slot was reused: it can't
+// echo back to the others as a new spawned entity (each echo made one more copy = "the NPCs keep creating more")
+static void NpcMarkNotMine(int h, bool car, uint64_t now)
+{
+    if(h <= 0) return;
+    for(int i = 0; i < s_nOwn; ++i) if(s_Own[i].h == h && s_Own[i].car == car) { s_Own[i].mine = false; s_Own[i].seen = now; return; }
+    if(s_nOwn >= 192) s_nOwn = 96;
+    s_Own[s_nOwn++] = { h, car, false, now };
 }
 
 static void NpcSend(int ped, uint64_t now)
@@ -4279,6 +4298,7 @@ static void NpcUpdateCopies(int lp, uint64_t now)
     // 4.13.15: nothing new is built while a save / the world loads, on the join screen, or in the first
     // 6 s on a server (the other players' street copies came all at once on top of the loading world)
     if(!Game::IsReady() || Game::IsLoadPending() || JoinFlowActive() || !s_nNpcJoinAt || now - s_nNpcJoinAt < 6000) created = 99;
+    if(s_nNpcJumpAt && now - s_nNpcJumpAt < 6000) created = 99;   // 5.01.12: nor in the first 6 s after a spawn / teleport
     int area = Game::GetAreaVisible();
     int myCarUsing = Game::GetCarCharIsUsing(lp);
     int myCar = Game::IsCharInAnyCar(lp) ? Game::GetCarCharIsIn(lp) : 0;
@@ -4319,6 +4339,7 @@ static void NpcUpdateCopies(int lp, uint64_t now)
             c.car = Game::CreateNpcCar(c.model, c.driverModel, want, 0.0f, &drv);
             c.driver = drv; ++created;
             if(!c.car) continue;
+            NpcMarkNotMine(c.car, true, now); if(drv > 0) NpcMarkNotMine(drv, false, now);   // 5.01.12
             Game::SetCarArea(c.car, area);
             Vec3 got; Game::GetCarPos(c.car, got);
             float off = got.z - want.z; c.base = (off > -0.5f && off < 2.5f) ? off : 0.0f;   // as for players' cars
@@ -4393,6 +4414,7 @@ static void NpcUpdateCopies(int lp, uint64_t now)
             if(!Game::ModelReady(c.model)) continue;
             c.ped = Game::CreateNpcPed(c.model, want, c.heading); ++created;
             if(!c.ped) continue;
+            NpcMarkNotMine(c.ped, false, now);   // 5.01.12
             Game::SetCharArea(c.ped, area);
             c.weaponApplied = 0; c.deadApplied = c.duckApplied = false; c.lastMoveTask = -1;
         }
@@ -4443,13 +4465,26 @@ static void NpcProcess(int ped, uint64_t now)
     // of the car (zombies only spawn on foot) and came close, the other phone got the host's whole horde
     // as copies on top of its own zombies (create / delete every frame, zombie tasks on copies) and froze.
     // In a car the host had no zombies -> no freeze. Same rule now on every phone: zombies stay local.
-    if(DzOnServer())
+    // 5.01.12: Rocket League too. Every phone makes the same 6 lobby cars at Grove Street (and the arena car / ball):
+    // they were shared as "my spawned cars", so each phone also got the others' lobby cars as copies on the same spots
+    // (2 phones = 12 cars in 6 places, 3 phones = 18...) - the pile-up froze the game right after the spawn. The
+    // match is the server's; the lobby is the same on every phone: no NPC sync there.
+    if(DzOnServer() || LgOnServer())
     {
         static uint64_t s_nDzNpcOff = 0;
         if(s_bNpcFollow || s_bNpcHost || (NpcHasSpawnedCopies() && now - s_nDzNpcOff > 1000)) { s_nDzNpcOff = now; NpcStop(); NpcClearCopies(); }
         return;
     }
     if(!s_nNpcJoinAt) s_nNpcJoinAt = now;   // 3.52
+    {   // 5.01.12: a spawn / teleport = a jump of more than 80 m between two ticks
+        Vec3 me;
+        if(Game::GetCharPos(ped, me))
+        {
+            if(s_bNpcLastMe) { const float dx = me.x - s_NpcLastMe.x, dy = me.y - s_NpcLastMe.y, dz = me.z - s_NpcLastMe.z; if(dx * dx + dy * dy + dz * dz > 80.0f * 80.0f) s_nNpcJumpAt = now; }
+            s_NpcLastMe = me; s_bNpcLastMe = true;
+        }
+    }
+    if(JoinFlowActive()) s_nNpcJumpAt = now;   // the join screen / spawn picker: the grace starts when you spawn
     if(now - s_nNpcLastRole >= 500) { s_nNpcLastRole = now; NpcDecideRole(ped, now); }
     NpcSend(ped, now);   // 2.28: host traffic and / or my spawned entities
     if(!s_bNpcFollow && NpcHasSpawnedCopies()) NpcUpdateCopies(ped, now);   // 2.28: other players' spawned ones

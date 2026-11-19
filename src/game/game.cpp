@@ -523,6 +523,25 @@ bool Game::GiveWeaponAmmo(int ped, int weapon, int ammo)
     CALLSCM(GIVE_WEAPON_TO_CHAR, ped, weapon, ammo > 0 ? ammo : 1);
     return true;
 }
+// 5.01.12: the saved progress gives the weapons back right after a spawn. LoadModelNow() runs LOAD_ALL_MODELS_NOW,
+// which loads EVERYTHING the game has asked for - just after a spawn that is the whole area (Grove Street with an
+// HD modpack) - up to 13 times in one frame: the game stood still. Now the model streams in like other players' guns.
+int Game::GiveWeaponAmmoLight(int ped, int weapon, int ammo)
+{
+    if(ped <= 0 || !PedPtr(ped) || weapon <= 0 || weapon > 46 || (weapon >= 19 && weapon <= 21)) return -1;
+    if(weapon >= 44 && ped != LocalPed()) return -1;
+    uint32_t model = 0;
+    CALLSCM(GET_WEAPONTYPE_MODEL, weapon, &model);
+    if((int)model > 0)
+    {
+        const int st = ModelStatus((int)model);
+        if(st == 0) return 0;
+        if(st < 0) return -1;
+    }
+    if(!PedPtr(ped)) return -1;
+    CALLSCM(GIVE_WEAPON_TO_CHAR, ped, weapon, ammo > 0 ? ammo : 1);
+    return 1;
+}
 void Game::SetInterior(int ped, int area)
 {
     if(area < 0 || area > 255) return;
