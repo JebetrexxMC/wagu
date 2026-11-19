@@ -1,6 +1,6 @@
 script_name('MP Mods Loader')
 script_author('ThirtyFoxMCx00E1')
-script_version('1.2-mp')
+script_version('1.3-mp')
 script_description('Starts every script in moonloader/mods/ (MP 4.13.56)')
 
 -- MonetLoader only starts the .lua files right in moonloader/. This starts moonloader/mods/*.lua too (only the

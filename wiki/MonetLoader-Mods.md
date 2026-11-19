@@ -27,6 +27,8 @@ Tap the moon icon on the top bar (⋮ / chat / mic / moon). The Script Manager f
 
 The switches are saved in `moonloader/config/mp_scripts_off.txt` and stay after a restart or a rejoin.
 
+A script that died shows **Crashed** and its error. When `lua_scripts_loader.lua` is missing or not running the Scripts tab says so (MP writes `lua_scripts_loader.lua`, `mods_loader.lua`, `lib/mp_zip.lua` and `lib/mp_pcpaths.lua` by itself when they are missing). When `lua_scripts/Hasslehud/` isn't on the phone, **Download HassleHUD (20 MB)** gets it.
+
 | Mod | What it does |
 |---|---|
 | `mods/tvplayer.lua` | Plays video on the TV model in houses |

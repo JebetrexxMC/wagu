@@ -705,7 +705,9 @@ struct Item
     bool cheat = false, folder = false, system = false;
     int id = 0;            // running script id (0 = not loaded)
     bool dead = false;
+    bool waiting = false;  // 5.01.06: found on disk, not (yet) in lua_scripts_loader.lua's index
     std::string name, version, authors, desc;
+    std::string crash;     // 5.01.06: its last error (Last crashes), shown in the detail pane
 };
 static std::vector<Item> s_items;
 static std::set<std::string> s_off;          // lower-case rel paths
@@ -715,6 +717,16 @@ static std::string s_find;
 static std::string s_selRel;
 static std::string s_shellOut;
 static int s_shellId = 0;
+static bool s_loaderRun = false, s_loaderFile = false;   // 5.01.06: lua_scripts_loader.lua running / on disk
+static bool s_hhHere = false;                            // 5.01.06: lua_scripts/Hasslehud is on the phone
+
+// 5.01.06: HassleHUD download (raw.githubusercontent.com, no redirect) -> moonloader/lua_scripts/Hasslehud/
+static const char* const kHassleUrls[] = {
+    "https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/main/Host/Mods/Hasslehud.zip" };
+static std::atomic<int> s_hhDl{ 0 };          // 0 idle, 1 downloading, 2 unpacking, 3 done, 4 failed
+static std::atomic<size_t> s_hhGot{ 0 };
+static std::mutex s_hhMx;
+static std::string s_hhMsg;
 
 typedef int  (*ListFn)(char*, int);
 typedef void (*PathFn)(const char*);
@@ -781,6 +793,7 @@ static void WriteOff()
     rename(tmp.c_str(), p.c_str());
 }
 static bool IsOff(const Item& it) { return s_off.count(Lower(it.rel)) != 0; }
+static bool Running(const Item& it) { return it.id && !it.dead; }
 
 static void AddDir(const std::string& dir, const std::string& prefix, int group, bool luaOnly)
 {
@@ -799,6 +812,39 @@ static void AddDir(const std::string& dir, const std::string& prefix, int group,
     }
     closedir(d);
 }
+// 5.01.06: lua_scripts/ on disk. Scripts inside a mod folder (a folder with its own lib/, like Hasslehud/) are always
+// listed, so they show even before lua_scripts_loader.lua wrote its index; without an index every script is listed.
+static bool IsDir(const std::string& p) { struct stat st; return stat(p.c_str(), &st) == 0 && S_ISDIR(st.st_mode); }
+static void ScanLua(const std::string& dir, const std::string& rel, int depth, bool pkg, bool all, std::vector<Item>& out)
+{
+    if(depth > 8 || out.size() > 600) return;
+    DIR* d = opendir(dir.c_str());
+    if(!d) return;
+    std::vector<std::string> files, dirs;
+    while(dirent* e = readdir(d))
+    {
+        if(e->d_name[0] == '.') continue;   // . .. .run .unpacked
+        const std::string full = dir + "/" + e->d_name;
+        struct stat st; if(stat(full.c_str(), &st) != 0) continue;
+        if(S_ISDIR(st.st_mode)) dirs.push_back(e->d_name);
+        else if(S_ISREG(st.st_mode) && IsScriptFile(e->d_name)) files.push_back(e->d_name);
+    }
+    closedir(d);
+    if(!pkg && depth > 0 && IsDir(dir + "/lib")) pkg = true;
+    if(pkg || all)
+        for(auto& f : files)
+        {
+            Item it; it.rel = "lua_scripts/" + (rel.empty() ? f : rel + "/" + f); it.runPath = dir + "/" + f;
+            it.group = 2; it.folder = pkg; it.waiting = true;
+            out.push_back(it);
+        }
+    for(auto& sd : dirs)
+    {
+        const std::string l = Lower(sd);
+        if(l == "lib" || l == "config" || l == "resource" || l == "resources" || l == "luajit" || l == "luarocks" || l == "libstd" || l == "__macosx") continue;
+        ScanLua(dir + "/" + sd, rel.empty() ? sd : rel + "/" + sd, depth + 1, pkg, all, out);
+    }
+}
 static void Refresh(const Api& a)
 {
     s_items.clear();
@@ -806,8 +852,10 @@ static void Refresh(const Api& a)
     const std::string root = Root();
     AddDir(root, "", 0, false);
     AddDir(root + "/mods", "mods/", 1, true);
+    bool haveIndex = false;
     if(FILE* f = fopen((root + "/lua_scripts/.run/index.txt").c_str(), "rb"))
     {
+        haveIndex = true;
         char ln[2048]; std::vector<std::string> fl;
         while(fgets(ln, sizeof(ln), f))
         {
@@ -819,6 +867,23 @@ static void Refresh(const Api& a)
             s_items.push_back(it);
         }
         fclose(f);
+    }
+    {   // 5.01.06: what is on disk but not in the index (mod folders always; everything when there is no index)
+        static std::vector<Item> s_disk; static uint64_t s_diskAt = 0; static bool s_diskAll = false;
+        const uint64_t now = MP_NowMs();
+        if(now - s_diskAt > 5000 || s_diskAt == 0 || s_diskAll != !haveIndex)
+        {
+            s_disk.clear(); s_diskAll = !haveIndex; s_diskAt = now;
+            ScanLua(root + "/lua_scripts", "", 0, false, !haveIndex, s_disk);
+        }
+        for(const Item& d : s_disk)
+        {
+            bool dup = false;
+            for(const Item& it : s_items) if(Lower(it.rel) == Lower(d.rel)) { dup = true; break; }
+            if(!dup) s_items.push_back(d);
+        }
+        s_hhHere = IsDir(root + "/lua_scripts/Hasslehud") || IsDir(root + "/lua_scripts/HassleHUD");
+        struct stat st; s_loaderFile = stat((root + "/lua_scripts_loader.lua").c_str(), &st) == 0;
     }
     static char buf[32768];
     buf[0] = 0;
@@ -848,6 +913,22 @@ static void Refresh(const Api& a)
         }
         line = nl ? nl + 1 : nullptr;
     }
+    s_loaderRun = false;
+    for(auto& it : s_items) if(it.group == 0 && Lower(it.rel) == "lua_scripts_loader.lua" && Running(it)) s_loaderRun = true;
+    if(a.crashes)
+    {   // 5.01.06: "unixtime<TAB>name<TAB>path<TAB>error", newest first: the newest error of each script that is not running
+        static char cb[16384]; cb[0] = 0; a.crashes(cb, sizeof(cb));
+        std::vector<std::string> cf;
+        for(char* line = cb; line && *line;)
+        {
+            char* nl = strchr(line, '\n'); if(nl) *nl = 0;
+            Split(line, cf);
+            if(cf.size() >= 4)
+                for(auto& it : s_items)
+                    if(it.crash.empty() && !Running(it) && Lower(Norm(it.runPath)) == Lower(Norm(cf[2]))) it.crash = cf[3];
+            line = nl ? nl + 1 : nullptr;
+        }
+    }
     std::stable_sort(s_items.begin(), s_items.end(), [](const Item& x, const Item& y) {
         if(x.group != y.group) return x.group < y.group;
         return Lower(x.rel) < Lower(y.rel);
@@ -855,7 +936,6 @@ static void Refresh(const Api& a)
     s_sel = -1;
     for(int i = 0; i < (int)s_items.size(); ++i) if(s_items[i].rel == s_selRel) s_sel = i;
 }
-static bool Running(const Item& it) { return it.id && !it.dead; }
 static void SetOn(const Api& a, Item& it, bool on)
 {
     const std::string key = Lower(it.rel);
@@ -899,6 +979,65 @@ static void Dot(bool green, bool red)
 }
 static const char* GroupName(int g) { return g == 0 ? "moonloader/" : g == 1 ? "moonloader/mods/" : g == 2 ? "moonloader/lua_scripts/" : "started by a script"; }
 
+static void HassleDownload()
+{
+    int idle = s_hhDl.load();
+    if(idle == 1 || idle == 2) return;
+    s_hhDl = 1; s_hhGot = 0;
+    std::thread([]{
+        const std::string dir = Root() + "/lua_scripts"; mkdir(Root().c_str(), 0777); mkdir(dir.c_str(), 0777);
+        const std::string zip = dir + "/.Hasslehud_download.zip";
+        std::string body, why;
+        for(const char* u : kHassleUrls)
+        {
+            body.clear(); s_hhGot = 0;
+            if(Online::HttpsFetch(u, body, 600000, why, 64u * 1024 * 1024, &s_hhGot) && body.size() > 1024 && body[0] == 'P' && body[1] == 'K') break;
+            logger->Error("5.01.06: HassleHUD download %s: %s", u, why.c_str()); body.clear();
+        }
+        if(body.empty()) { std::lock_guard<std::mutex> l(s_hhMx); s_hhMsg = "Download failed: " + (why.empty() ? std::string("no answer") : why); s_hhDl = 4; return; }
+        FILE* f = fopen(zip.c_str(), "wb");
+        if(!f || fwrite(body.data(), 1, body.size(), f) != body.size()) { if(f) fclose(f); std::lock_guard<std::mutex> l(s_hhMx); s_hhMsg = "Can't write " + zip; s_hhDl = 4; return; }
+        fclose(f); body.clear(); body.shrink_to_fit();
+        s_hhDl = 2;
+        std::string msg;
+        bool ok = MP_UnZip(zip, dir, msg);   // the zip holds Hasslehud/...
+        unlink(zip.c_str());
+        if(ok && !IsDir(dir + "/Hasslehud")) { ok = false; msg = "no Hasslehud folder in the zip"; }
+        { std::lock_guard<std::mutex> l(s_hhMx); s_hhMsg = ok ? "HassleHUD saved in moonloader/lua_scripts/Hasslehud - it starts in a few seconds, /hasslehud opens it." : ("Unpacking failed: " + msg); }
+        logger->Info("5.01.06: HassleHUD download %s: %s", ok ? "done" : "failed", msg.c_str());
+        s_hhDl = ok ? 3 : 4;
+    }).detach();
+}
+// 5.01.06: notes above the list: lua_scripts_loader.lua not running, HassleHUD not on this phone (download)
+static void Notices(const Api& a)
+{
+    if(!s_loaderRun)
+    {
+        Item* ld = nullptr;
+        for(auto& it : s_items) if(it.group == 0 && Lower(it.rel) == "lua_scripts_loader.lua") ld = &it;
+        if(!s_loaderFile) ImGui::TextColored(kYellowTxt, "lua_scripts_loader.lua is missing in moonloader/ - restart the game once (MP puts it back), or copy it from MP's zip.");
+        else if(ld && IsOff(*ld)) ImGui::TextColored(kYellowTxt, "lua_scripts_loader.lua is switched off: nothing in lua_scripts/ starts. Switch it on (Settings tab).");
+        else
+        {
+            ImGui::TextColored(kYellowTxt, "lua_scripts_loader.lua is not running: nothing in lua_scripts/ starts.");
+            if(ld && ld->crash.size()) ImGui::TextColored(kRedTxt, "Its error: %s", ld->crash.c_str());
+            if(ld && a.load && ImGui::Button("Start lua_scripts_loader.lua##smstl", ImVec2(-1, UI::S(52)))) { a.load(ld->runPath.c_str()); s_listAt = 0; }
+        }
+    }
+    const int st = s_hhDl.load();
+    if(!s_hhHere || st != 0)
+    {
+        if(st == 1) ImGui::ProgressBar(fminf(1.0f, (float)(s_hhGot / 1048576.0) / 20.0f), ImVec2(-1, UI::S(26)), (std::string("HassleHUD ") + std::to_string((int)(s_hhGot / 1048576)) + " / 20 MB").c_str());
+        else if(st == 2) ImGui::TextUnformatted("HassleHUD: unpacking...");
+        else if(st == 3 || st == 4) { std::lock_guard<std::mutex> l(s_hhMx); ImGui::TextColored(st == 3 ? kGreenTxt : kRedTxt, "%s", s_hhMsg.c_str()); }
+        if(!s_hhHere && st != 1 && st != 2)
+        {
+            ImGui::TextColored(kYellowTxt, "HassleHUD Android is not on this phone (moonloader/lua_scripts/Hasslehud).");
+            if(ImGui::Button("Download HassleHUD (20 MB)##smhh", ImVec2(-1, UI::S(52)))) HassleDownload();
+        }
+    }
+}
+
 static void TabScripts(const Api& a)
 {
     const float avail = ImGui::GetContentRegionAvail().x;
@@ -915,6 +1054,7 @@ static void TabScripts(const Api& a)
     if(!a.reloadAll) ImGui::EndDisabled();
     ImGui::SameLine();
     if(ImGui::Button("Refresh list##smrl", ImVec2(bw, UI::S(56)))) s_listAt = 0;
+    Notices(a);
 
     const float h = ImGui::GetContentRegionAvail().y;
     ImGui::BeginChild("##smlist", ImVec2(avail * 0.46f, h), true);
@@ -951,12 +1091,15 @@ static void TabScripts(const Api& a)
         ImGui::Text("Status:"); ImGui::SameLine();
         if(run) ImGui::TextColored(kGreenTxt, "Running");
         else if(it.dead) ImGui::TextColored(kRedTxt, "Stopped (error - see Last crashes)");
+        else if(!it.crash.empty()) ImGui::TextColored(kRedTxt, "Crashed");
+        else if(it.waiting && it.group == 2) ImGui::TextColored(kGreyTxt, s_loaderRun ? "Not loaded (lua_scripts_loader.lua starts it within 5 s)" : "Not loaded (lua_scripts_loader.lua is not running)");
         else ImGui::TextColored(kGreyTxt, "Not loaded");
         if(off) { ImGui::SameLine(); ImGui::TextColored(kYellowTxt, " - switched off"); }
         if(!it.name.empty() && it.name != fn) ImGui::TextWrapped("Name: %s", it.name.c_str());
         if(!it.version.empty()) ImGui::TextWrapped("Version: %s", it.version.c_str());
         if(!it.authors.empty()) ImGui::TextWrapped("Authors: %s", it.authors.c_str());
         if(!it.desc.empty()) ImGui::TextWrapped("%s", it.desc.c_str());
+        if(!it.crash.empty() && !run) ImGui::TextColored(kRedTxt, "Error: %s", it.crash.c_str());
         if(it.folder) ImGui::TextDisabled("Mod folder: its lib/, config/ and resource/ stay inside its own folder.");
         if(it.cheat) ImGui::TextColored(kYellowTxt, "Cheat script: runs only where the server allows MonetLoader cheats.");
         if(it.system) ImGui::TextDisabled("%s", Lower(it.rel) == "lua_scripts_loader.lua" ? "Starts every script in lua_scripts/. Off = none of them run." : "Starts every script in mods/. Off = none of them run.");
@@ -968,7 +1111,7 @@ static void TabScripts(const Api& a)
             if(ImGui::Button(off ? "Switch on##smon" : "Switch off##smoff", ImVec2(-1, UI::S(60)))) SetOn(a, it, off);
             ImGui::PopStyleColor();
         }
-        const bool canLoad = !run && !off && a.load;
+        const bool canLoad = !run && !off && a.load && !(it.waiting && it.folder);   // a mod folder runs through the loader's runner
         if(!run)
         {
             if(!canLoad) ImGui::BeginDisabled();
@@ -982,7 +1125,7 @@ static void TabScripts(const Api& a)
             if(!a.unload) ImGui::EndDisabled();
         }
         ImGui::SameLine();
-        const bool canRe = (run && a.reload) || (it.group == 2 && it.dead && !off && a.load);
+        const bool canRe = (run && a.reload) || (it.group == 2 && (it.dead || !it.crash.empty()) && !off && a.load && !(it.waiting && it.folder));
         if(!canRe) ImGui::BeginDisabled();
         if(ImGui::Button("Reload##smre", ImVec2(w2, UI::S(60))) && canRe)
         {

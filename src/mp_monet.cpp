@@ -8,6 +8,7 @@
 #include <mod/config.h>
 #include "game/game.h"
 #include <dlfcn.h>
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,6 +19,10 @@
 
 extern "C" const unsigned char mp_monetloader_blob[];
 extern "C" const unsigned char mp_monetloader_blob_end[];
+// 5.01.06: MP's own moonloader entry scripts (src/embed/moonloader_core_blob.S)
+extern "C" const unsigned char mp_core_lsl[], mp_core_lsl_end[], mp_core_mods[], mp_core_mods_end[];
+extern "C" const unsigned char mp_core_zip[], mp_core_zip_end[], mp_core_pcp[], mp_core_pcp_end[];
+namespace MP { const char* DataDir(); }
 
 namespace MonetEmbed
 {
@@ -131,12 +136,78 @@ static int MoveSeparateAway()
 }
 bool SeparateMoved() { return s_bSeparateMoved; }
 
+// 5.01.06: moonloader/lua_scripts_loader.lua, mods_loader.lua, lib/mp_zip.lua and lib/mp_pcpaths.lua come with libMP.
+// Players who only replaced libMP32.so / libMP64.so had no lua_scripts_loader.lua, so nothing in moonloader/lua_scripts/
+// (HassleHUD...) started and the Script Manager listed none of it. Each file is written when it is missing, or when
+// the phone has an older MP copy of it (same signature, lower version). A file without MP's signature is never touched.
+static std::string CoreVersion(const std::string& s, const char* sig)
+{
+    const std::string head = s.substr(0, 4096);
+    if(head.find(sig) == std::string::npos) return "";
+    size_t p = head.find("script_version('");
+    if(p != std::string::npos) { p += 16; size_t e = head.find('\'', p); return e == std::string::npos ? "0" : head.substr(p, e - p); }
+    p = head.find(sig) + strlen(sig);   // "-- mp_zip 1.0:"
+    while(p < head.size() && head[p] == ' ') ++p;
+    size_t e = p; while(e < head.size() && (isdigit((unsigned char)head[e]) || head[e] == '.')) ++e;
+    return e > p ? head.substr(p, e - p) : "0";
+}
+static int CoreVerCmp(const std::string& a, const std::string& b)   // 1.10-mp > 1.9-mp
+{
+    size_t i = 0, j = 0;
+    while(i < a.size() || j < b.size())
+    {
+        long x = 0, y = 0;
+        while(i < a.size() && isdigit((unsigned char)a[i])) x = x * 10 + (a[i++] - '0');
+        while(j < b.size() && isdigit((unsigned char)b[j])) y = y * 10 + (b[j++] - '0');
+        if(x != y) return x < y ? -1 : 1;
+        if(i < a.size() && a[i] == '.') ++i; else i = a.size();
+        if(j < b.size() && b[j] == '.') ++j; else j = b.size();
+    }
+    return 0;
+}
+static void InstallCore()
+{
+    const char* dd = MP::DataDir();
+    if(!dd || !dd[0]) return;
+    const std::string root = std::string(dd) + "/moonloader";
+    mkdir(root.c_str(), 0777); mkdir((root + "/lib").c_str(), 0777); mkdir((root + "/lua_scripts").c_str(), 0777);
+    mkdir((root + "/mods").c_str(), 0777); mkdir((root + "/config").c_str(), 0777);
+    struct Core { const char* rel; const unsigned char* a; const unsigned char* b; const char* sig; };
+    const Core cores[] = {
+        { "lua_scripts_loader.lua", mp_core_lsl, mp_core_lsl_end, "script_name('MP Lua Scripts Loader')" },
+        { "mods_loader.lua",        mp_core_mods, mp_core_mods_end, "script_name('MP Mods Loader')" },
+        { "lib/mp_zip.lua",         mp_core_zip, mp_core_zip_end, "-- mp_zip " },
+        { "lib/mp_pcpaths.lua",     mp_core_pcp, mp_core_pcp_end, "-- mp_pcpaths " } };
+    for(const Core& c : cores)
+    {
+        const std::string mine((const char*)c.a, (size_t)(c.b - c.a));
+        const std::string path = root + "/" + c.rel;
+        std::string have; bool exists = false;
+        if(FILE* f = fopen(path.c_str(), "rb"))
+        {
+            exists = true; char buf[8192]; size_t n;
+            while((n = fread(buf, 1, sizeof(buf), f)) > 0) have.append(buf, n);
+            fclose(f);
+        }
+        if(exists && have == mine) continue;
+        if(exists)
+        {
+            const std::string hv = CoreVersion(have, c.sig), mv = CoreVersion(mine, c.sig);
+            if(hv.empty()) { logger->Info("MonetLoader: moonloader/%s is not MP's - left as it is", c.rel); continue; }
+            if(CoreVerCmp(hv, mv) >= 0) continue;   // the phone has the same or a newer MP copy (assets/MP update)
+        }
+        if(WriteFile(path.c_str(), c.a, (size_t)(c.b - c.a)))
+            logger->Info("MonetLoader: moonloader/%s %s (built into MP)", c.rel, exists ? "updated" : "installed");
+    }
+}
+
 void Start()
 {
     if(s_hLib) return;
     ConfigEntry* e = cfg->Bind("MonetLoader", true, "MP");   // written to TYFMC.MP.ini so it can be switched off
     const bool on = e->GetBool(); delete e; cfg->Save();
     if(!on) { logger->Info("MonetLoader: off (MonetLoader = 0 in TYFMC.MP.ini)"); return; }
+    InstallCore();   // 5.01.06: lua_scripts_loader.lua + mods_loader.lua before MonetLoader loads moonloader/
     if(aml->HasMod("com.monetloader.aml") || dlopen("libmonetloader.so", RTLD_NOW | RTLD_NOLOAD))
     {
         // 4.13.64: no separate MonetLoader any more - MonetLoader for MP 4.0.0-mp (mimgui fix) is built into libMP.
