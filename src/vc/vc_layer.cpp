@@ -418,6 +418,8 @@ static uint8_t s_PlayerTeam[256];
 struct KillLine { std::string killer, victim, weapon; uint32_t kc, vc; uint64_t at; };
 static std::vector<KillLine> s_KillFeed;
 static void VcmpDrop(); static void ShowClasses(); static void SpawnClass(int idx);
+struct SpawnJob { int idx = -1; int stage = 0; uint64_t at = 0, until = 0; bool forced = false; };
+static SpawnJob s_Spawn;
 
 static uint32_t RgbaToAbgr(uint32_t c) { return 0xFF000000u | ((c >> 24) & 0xFF) | (((c >> 16) & 0xFF) << 8) | (((c >> 8) & 0xFF) << 16); }
 static int MapWeather(int sa)
@@ -1582,7 +1584,7 @@ static void VcmpDrop()
     const int mineRef = (mine && GetVehicleRef) ? GetVehicleRef(mine) : -1;
     for(auto& c : s_VcCars) if(c.handle >= 0 && c.handle != mineRef && GetVehicle && GetVehicle(c.handle)) Cmd(OP_DELETE_CAR, "i", c.handle);
     s_VcCars.clear(); s_VcClasses.clear(); s_bVcmp = false; memset(&s_VcInfo, 0, sizeof(s_VcInfo));
-    s_nMyClass = -1; s_nMyTeam = VCMP_TEAM_NONE; s_bClassAsked = false; s_nRespawnAt = 0;
+    s_nMyClass = -1; s_nMyTeam = VCMP_TEAM_NONE; s_bClassAsked = false; s_nRespawnAt = 0; s_Spawn = SpawnJob();
     memset(s_PlayerTeam, VCMP_TEAM_NONE, sizeof(s_PlayerTeam)); s_KillFeed.clear();
 }
 static const char* VcTeamName(int t)
@@ -1606,37 +1608,70 @@ static void ShowClasses()
     char init[8]; snprintf(init, sizeof(init), "%d", s_nMyClass >= 0 ? s_nMyClass + 1 : 1);
     Ask(ASK_CLASS, "Class - type the number", init, 3, true);
 }
+// 5.01.07: the class spawn runs in steps on the game thread (VcmpProcess, after CGame::Process) instead of all at once.
+// The old one swapped the player's skin (CPed::SetModelIndex = a new clump) while the weapon model was still attached
+// to the old clump's hand, then removed the weapons (RemoveWeaponModel on a freed frame), and could do it while still in
+// a car: picking any class / team crashed. Now: 1) out of the car + every weapon off, 2) skin model + its anims loaded,
+// then the skin is changed with nothing attached, 3) the class weapons (only the ones whose model + anims loaded).
 static void SpawnClass(int idx)
 {
     if(idx < 0 || idx >= (int)s_VcClasses.size()) return;
+    s_Spawn = SpawnJob(); s_Spawn.idx = idx; s_Spawn.stage = 1;
+}
+static bool SkinUsable(int skin) { return PedSetModelIndex && skin >= 1 && skin <= 106 && skin != 8; }
+static void SpawnStep(uint64_t now)
+{
+    if(!s_Spawn.stage || now < s_Spawn.at) return;
+    if(s_Spawn.idx < 0 || s_Spawn.idx >= (int)s_VcClasses.size()) { s_Spawn = SpawnJob(); return; }
     void* ped = FindPlayerPed ? FindPlayerPed() : nullptr;
-    if(!ped || s_nMyChar < 0) return;
-    const PktVcmpClass& k = s_VcClasses[idx];
+    if(!ped || s_nMyChar < 0 || s_bDead) { s_Spawn.at = now + 250; return; }   // wait until the player is there
+    const PktVcmpClass k = s_VcClasses[s_Spawn.idx];
     void* car = FindPlayerVehicle ? FindPlayerVehicle() : nullptr;
-    if(car) Cmd(OP_WARP_CHAR_FROM_CAR_TO_COORD, "ifff", s_nMyChar, k.pos[0], k.pos[1], k.pos[2]);
-    else Cmd(OP_SET_PLAYER_COORDINATES, "ifff", 0, k.pos[0], k.pos[1], k.pos[2]);
-    Cmd(OP_SET_PLAYER_HEADING, "if", 0, k.angle);
-    // the skin: default.ide peds 1..106 (VC:MP: CPlayerPed::SetModel; 8 is not a valid one)
-    const int cur = *(int16_t*)((uint8_t*)ped + ENT_MODEL);
-    if(PedSetModelIndex && k.skin >= 0 && k.skin <= 106 && k.skin != 8 && k.skin != cur && LoadModel(k.skin) && LoadAnimBlock(VcSkinAnimBlock(k.skin))) PedSetModelIndex(ped, (unsigned)k.skin);
-    Cmd(OP_REMOVE_ALL_CHAR_WEAPONS, "i", s_nMyChar);
+    if(s_Spawn.stage == 1)
+    {
+        if(car) Cmd(OP_WARP_CHAR_FROM_CAR_TO_COORD, "ifff", s_nMyChar, k.pos[0], k.pos[1], k.pos[2]);
+        else Cmd(OP_SET_PLAYER_COORDINATES, "ifff", 0, k.pos[0], k.pos[1], k.pos[2]);
+        Cmd(OP_SET_PLAYER_HEADING, "if", 0, k.angle);
+        Cmd(OP_REMOVE_ALL_CHAR_WEAPONS, "i", s_nMyChar);   // the weapon model leaves the hand before the body changes
+        if(SkinUsable(k.skin)) Cmd(OP_REQUEST_MODEL, "i", k.skin);
+        for(int i = 0; i < 3; ++i) { const int m = WeaponModel(k.weapon[i]); if(k.weapon[i] > 0 && k.weapon[i] <= 33 && m > 0) Cmd(OP_REQUEST_MODEL, "i", m); }
+        s_Spawn.stage = 2; s_Spawn.at = now + 100; s_Spawn.until = now + 4000;
+        return;
+    }
+    if(s_Spawn.stage == 2)
+    {
+        if(car) { if(now < s_Spawn.until) { s_Spawn.at = now + 100; return; } }   // still getting out of the car
+        const int cur = *(int16_t*)((uint8_t*)ped + ENT_MODEL);
+        if(!car && SkinUsable(k.skin) && k.skin != cur)
+        {
+            bool ok = Cmd(OP_HAS_MODEL_LOADED, "i", k.skin);
+            if(!ok && !s_Spawn.forced && now >= s_Spawn.until - 2000) { s_Spawn.forced = true; ok = LoadModel(k.skin); }
+            if(!ok && now < s_Spawn.until) { s_Spawn.at = now + 100; return; }
+            if(ok && LoadAnimBlock(VcSkinAnimBlock(k.skin))) PedSetModelIndex(ped, (unsigned)k.skin);
+            else logger->Info("Vice City: class skin %d did not load - the spawn keeps the current skin", k.skin);
+        }
+        s_Spawn.stage = 3; s_Spawn.at = now + 100;   // weapons on the next frame, on the new body
+        return;
+    }
     int first = 0;
     for(int i = 0; i < 3; ++i)
     {
         const int w = k.weapon[i];
         if(w <= 0 || w > 33) continue;
-        const int m = WeaponModel(w); if(m > 0) LoadModel(m);
+        const int m = WeaponModel(w);
+        if(m > 0 && !LoadModel(m)) continue;
         if(!LoadAnimBlock(VcWeaponAnimBlock(w))) continue;   // 5.00.04: class M4 / Ruger etc. need their anims first
         Cmd(OP_GIVE_WEAPON_TO_CHAR, "iii", s_nMyChar, w, k.ammo[i] ? k.ammo[i] : 1);
         if(!first) first = w;
     }
     if(first) Cmd(OP_SET_CURRENT_CHAR_WEAPON, "ii", s_nMyChar, first);
-    if(s_nMyClass != idx || s_nMyTeam != k.team)
+    if(s_nMyClass != s_Spawn.idx || s_nMyTeam != k.team)
     {
-        PktVcmpCmd c = { PKT_VCMP, VCMP_PICK, (uint8_t)idx, k.team };
+        PktVcmpCmd c = { PKT_VCMP, VCMP_PICK, (uint8_t)s_Spawn.idx, k.team };
         s_Client.Send(&c, sizeof(c));
     }
-    s_nMyClass = idx; s_nMyTeam = k.team;
+    s_nMyClass = s_Spawn.idx; s_nMyTeam = k.team;
+    s_Spawn = SpawnJob();
 }
 // server cars: every phone streams the parked ones within 160 m as its own script cars
 static void VcmpCars(uint64_t now)
@@ -1694,6 +1729,7 @@ static void VcmpProcess(uint64_t now)
         s_bClassAsked = true; ShowClasses();
     }
     if(s_nRespawnAt && now >= s_nRespawnAt && !s_bDead) { s_nRespawnAt = 0; SpawnClass(s_nMyClass); }
+    SpawnStep(now);   // 5.01.07
     VcmpCars(now);
 }
 

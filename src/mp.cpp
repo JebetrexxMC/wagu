@@ -4518,10 +4518,14 @@ static void EnforceServerModes()
     if(fixed) { MP::SaveConfig(); SysMsg(COL_YELLOW, "Server modes stay on here - only the server owner, [ADMIN] or [MOD] can change them."); }
 }
 
+static void LuaCmdTick(uint64_t now);   // 5.01.07 mp_cmds.inc: /hasslehud retry
+static void NeonFileTick(uint64_t now);   // 5.01.07 mp_menu.inc: neon_mode.txt
 void MP::Process()
 {
     uint64_t now = MP_NowMs();
     EnforceServerModes();   // 3.35
+    LuaCmdTick(now);
+    NeonFileTick(now);
     {   // 2.18.3: remember where the MP MENU | CHAT buttons were dropped
         float bx, by;
         if(FloatMenu::GetBarPos(&bx, &by))

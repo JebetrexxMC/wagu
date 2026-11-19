@@ -1,0 +1,9 @@
+MP neon main menu switch (5.01.07)
+
+Put this file in the MP folder:
+  Android/data/com.rockstargames.gtasa/files/TYFMC/MP/neon_mode.txt
+
+While it is there, the title screen shows the neon main menu and the [MultiPlayer] button is gone.
+Delete it and the game goes back to the normal main menu with the [MultiPlayer] button
+(ServerBrowserMode from TYFMC.MP.ini). No restart needed: MP checks it every 2 seconds.
+The text inside does not matter - only the file name.

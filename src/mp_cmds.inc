@@ -236,6 +236,7 @@ static void CmdTp(const char* arg)
 
 // true = it was a command (handled here, not sent as chat)
 static bool GamesCommand(const char* cmd, const char* arg);   // 2.21 mp_games.inc
+static bool LuaCmdFallback(const char* cmd, const char* arg);   // 5.01.07: after namespace ScriptMgr
 static void GamesHelp();
 static bool HandleCommand(const char* text)
 {
@@ -301,7 +302,7 @@ static bool HandleCommand(const char* text)
         else SysMsg(COL_SYSTEM, "/report [id] [what happened]  -  tell the staff");
         SysMsg(COL_SYSTEM, "/pay [id] [amount]  -  give your money to a player");   // 4.12.3
     }
-    else SysMsg(COL_RED, "Unknown command /%s. Type /help.", cmd);
+    else if(!LuaCmdFallback(cmd, arg)) SysMsg(COL_RED, "Unknown command /%s. Type /help.", cmd);   // 5.01.07
     return true;
 }
 
@@ -1243,6 +1244,93 @@ static void TabSettings(const Api& a)
     ImGui::TextDisabled("lua_scripts/: drop .lua / .luac / .zip there. A folder with its own lib/ (like lua_scripts/Hasslehud) keeps all its files inside itself.");
 }
 } // namespace ScriptMgr
+
+// 5.01.07: "/hasslehud" said "Unknown command": MonetLoader had no such command, so MP's own handler got it. A command
+// of a lua_scripts/ mod is now checked here before that message: why the mod is not running (folder missing -> it is
+// downloaded, switched off -> switched on, lua_scripts_loader.lua missing / off / stopped -> started, the mod crashed
+// -> its error + it is loaded again, not started yet -> it is loaded now), then the command is sent again to MonetLoader
+// for up to 20 s, so it opens by itself as soon as the mod registered it.
+struct LuaModCmd { const char* cmd; const char* folder; const char* script; const char* title; };
+static const LuaModCmd kLuaModCmds[] = {
+    { "hasslehud", "Hasslehud", "HassleHUD Android.luac", "HassleHUD" } };
+static std::string s_pendCmd; static uint64_t s_pendUntil = 0, s_pendNext = 0; static bool s_pendQuiet = false;
+static unsigned s_pendSent = 0, s_pendSeen = 0;   // retry number sent / last one MP got back (= not taken by a script)
+static bool LuaCmdFallback(const char* cmd, const char* arg)
+{
+    using namespace ScriptMgr;
+    const LuaModCmd* m = nullptr;
+    for(const auto& c : kLuaModCmds) if(!strcmp(cmd, c.cmd)) m = &c;
+    if(!m) return false;
+    if(s_pendQuiet) { s_pendSeen = s_pendSent; return true; }   // a retry below: no script has the command yet
+    const uint64_t now = MP_NowMs();
+    auto Retry = [&](const char* why) {
+        s_pendCmd = std::string("/") + cmd + (arg && *arg ? std::string(" ") + arg : std::string());
+        s_pendUntil = now + 20000; s_pendNext = now + 1500; s_pendSent = s_pendSeen = 0;
+        SysMsg(COL_YELLOW, "%s: %s - /%s opens it as soon as it is running.", m->title, why, cmd);
+    };
+    Api a = Get();
+    if(!a.h)
+    {
+        SysMsg(COL_RED, "%s needs MonetLoader for MP: it is not running ([MP] MonetLoader = 0 in TYFMC.MP.ini, or GTA Vice City - MonetLoader and %s are San Andreas only).", m->title, m->title);
+        return true;
+    }
+    Refresh(a); s_listAt = 0;
+    const std::string root = Root();
+    const std::string dir = root + "/lua_scripts/" + m->folder;
+    if(!IsDir(dir) && !IsDir(root + "/lua_scripts/" + Lower(m->folder)))
+    {
+        if(s_hhDl.load() == 1 || s_hhDl.load() == 2) { Retry("still downloading (moon icon shows the progress)"); return true; }
+        HassleDownload();
+        Retry("not on this phone (moonloader/lua_scripts/Hasslehud) - downloading it now (20 MB)");
+        s_pendUntil = now + 240000;
+        return true;
+    }
+    Item* it = nullptr; Item* ld = nullptr;
+    const std::string want = Lower(std::string("lua_scripts/") + m->folder + "/" + m->script);
+    for(auto& i : s_items)
+    {
+        if(Lower(i.rel) == want) it = &i;
+        if(i.group == 0 && Lower(i.rel) == "lua_scripts_loader.lua") ld = &i;
+    }
+    if(it && IsOff(*it)) { SetOn(a, *it, true); Retry("was switched off in the Script Manager - switched on"); return true; }
+    if(!s_loaderRun)
+    {
+        if(!ld) { SysMsg(COL_RED, "%s: moonloader/lua_scripts_loader.lua is missing - restart the game once (MP puts it back).", m->title); return true; }
+        if(IsOff(*ld)) { SetOn(a, *ld, true); Retry("lua_scripts_loader.lua was switched off - switched on"); return true; }
+        if(ld->crash.size()) SysMsg(COL_RED, "lua_scripts_loader.lua stopped: %s", ld->crash.c_str());
+        if(a.load) a.load(ld->runPath.c_str());
+        Retry("lua_scripts_loader.lua was not running - started");
+        return true;
+    }
+    if(it && Running(*it)) { Retry("is still starting (it waits for the game)"); return true; }
+    if(it && it->crash.size())
+    {
+        SysMsg(COL_RED, "%s stopped with an error: %s", m->title, it->crash.c_str());
+        if(a.load && !it->waiting) { a.load(it->runPath.c_str()); Retry("loading it again"); }
+        else SysMsg(COL_YELLOW, "Moon icon > Last crashes has the full error.");
+        return true;
+    }
+    if(it && !it->waiting && a.load) { a.load(it->runPath.c_str()); Retry("was not loaded - loading it now"); return true; }
+    Retry("lua_scripts_loader.lua starts it within 5 s");
+    return true;
+}
+static void LuaCmdTick(uint64_t now)
+{
+    if(s_pendCmd.empty() || now < s_pendNext) return;
+    if(now > s_pendUntil)
+    {
+        SysMsg(COL_RED, "%s did not start - moon icon > Last crashes / Log shows why.", s_pendCmd.c_str());
+        s_pendCmd.clear(); return;
+    }
+    s_pendNext = now + 1000;
+    if(ScriptMgr::s_hhDl.load() == 1 || ScriptMgr::s_hhDl.load() == 2) return;   // still downloading
+    if(s_pendSent && s_pendSeen != s_pendSent) { s_pendCmd.clear(); return; }   // the last retry was not handed back: the mod ran it
+    const std::string c = s_pendCmd;
+    ++s_pendSent;
+    s_pendQuiet = true;
+    if(!LuaOutChat(c.c_str())) s_pendSeen = s_pendSent;   // no MonetLoader bridge: keep trying until the time is up
+    s_pendQuiet = false;
+}
 
 static void PageMonet(void* openPtr)
 {

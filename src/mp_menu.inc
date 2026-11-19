@@ -139,6 +139,7 @@ static int ModeFromString(char* m)
     MP_CopyStr(m, "default", 24); return NEON_MODE_DEFAULT;
 }
 static bool s_bTitleHookOn = false;
+extern "C" void MP_InstallTitleHook();   // main.cpp
 static void ApplyMode(int mode)
 {
     s_nNeonMode = mode;
@@ -147,6 +148,37 @@ static void ApplyMode(int mode)
     // 4.13.51: the [MultiPlayer] button is always on (TYFMC.MP.ini kept going back to its defaults, so a 0 there
     // hid the button for good)
     s_bMenuMpCfg = true; s_bMenuMpOn = true;
+}
+// 5.01.07: files/TYFMC/MP/neon_mode.txt = the neon title menu (no [MultiPlayer] button) for as long as the file is
+// there; remove it and the menu goes back to TYFMC.MP.ini's ServerBrowserMode (default = the game's menu + the
+// [MultiPlayer] button). The ini is never changed by the file, it is checked every 2 s, so no restart is needed.
+static int  s_nIniMode = NEON_MODE_DEFAULT;   // the mode TYFMC.MP.ini / MP Settings asked for
+static bool s_bNeonFile = false;
+static bool NeonFileThere()
+{
+    const char* dd = MP::DataDir();
+    if(!dd || !dd[0]) return false;
+    static const char* const kNames[] = { "neon_mode.txt", "Neon_mode.txt", "NEON_MODE.txt", "neon_mode.txt.txt", "neon_mode" };
+    char p[600]; struct stat st;
+    for(const char* n : kNames) { snprintf(p, sizeof(p), "%s/%s", dd, n); if(stat(p, &st) == 0 && S_ISREG(st.st_mode)) return true; }
+    return false;
+}
+static void SetMode(int iniMode)   // what the ini / Settings want, neon_mode.txt on top
+{
+    s_nIniMode = iniMode;
+    ApplyMode(s_bNeonFile ? NEON_MODE_NEON : iniMode);
+}
+static void NeonFileTick(uint64_t now)
+{
+    static uint64_t s_at = 0;
+    if(now - s_at < 2000) return;
+    s_at = now;
+    const bool there = NeonFileThere();
+    if(there == s_bNeonFile) return;
+    s_bNeonFile = there;
+    SetMode(s_nIniMode);
+    if(there && !s_bTitleHookOn) MP_InstallTitleHook();
+    logger->Info("Main menu: neon_mode.txt %s - %s", there ? "found" : "removed", there ? "the neon title menu, no [MultiPlayer] button" : "back to ServerBrowserMode from TYFMC.MP.ini");
 }
 // 4.13.49: MainMenuMultiplayer = 1 / 0 (also on / off / true / false, a "// comment" after the value is fine)
 static bool ParseOnOff(const char* v, bool def)
@@ -184,7 +216,7 @@ static void CfgBeforeSave(Config* c)
         (mode == NEON_MODE_NEON && !s_bTitleHookOn) ? " (restart the game to see it)" : "");
     MP_CopyStr(s_szModeKnown, low, sizeof(s_szModeKnown));
     ConfigEntry* e = ::cfg->Bind("ServerBrowserMode", low, "MP"); e->SetString(low); delete e;
-    if(mode != NEON_MODE_NEON || s_bTitleHookOn) ApplyMode(mode);
+    if(mode != NEON_MODE_NEON || s_bTitleHookOn) SetMode(mode);
 }
 void MP::SetTitleHookInstalled(bool on) { s_bTitleHookOn = on; }
 // 4.13.34: MP Settings > Display > Main menu
@@ -194,7 +226,8 @@ void MP::SetMainMenuMode(int mode)
 {
     static const char* const kN[] = { "default", "mp", "neon" };
     const char* n = mode == NEON_MODE_NEON ? kN[2] : mode == NEON_MODE_MP ? kN[1] : kN[0];
-    ApplyMode(mode == NEON_MODE_NEON ? NEON_MODE_NEON : mode == NEON_MODE_MP ? NEON_MODE_MP : NEON_MODE_DEFAULT);
+    SetMode(mode == NEON_MODE_NEON ? NEON_MODE_NEON : mode == NEON_MODE_MP ? NEON_MODE_MP : NEON_MODE_DEFAULT);
+    if(s_bNeonFile && mode != NEON_MODE_NEON) MP::AddSystemMessage(0xFFDD33FF, "neon_mode.txt is in the MP folder: the neon menu stays until you delete it.");
     MP_CopyStr(s_szModeKnown, n, sizeof(s_szModeKnown));
     {   // 4.13.35: 4.13.34's save read the old value back from the disk and put it back (the switch "did nothing")
         s_bModeSelfWrite = true;
@@ -247,7 +280,9 @@ void MP::InitMainMenu()
         else logger->Info("Main menu: no ServerBrowserMode in %s yet - written as %s", ini.c_str(), m);
         if(::cfg->GetInt("ServerBrowserModeReset", 0, "MP") < 41330) { ConfigEntry* r = ::cfg->Bind("ServerBrowserModeReset", 0, "MP"); r->SetInt(41330); delete r; }
         if(!m[0]) MP_CopyStr(m, "default", sizeof(m));
-        ApplyMode(ModeFromString(m));
+        s_bNeonFile = NeonFileThere();   // 5.01.07
+        SetMode(ModeFromString(m));
+        if(s_bNeonFile) logger->Info("Main menu: neon_mode.txt in the MP folder - the neon title menu (no [MultiPlayer] button) until it is deleted");
         MP_CopyStr(s_szModeKnown, m, sizeof(s_szModeKnown));
         { ConfigEntry* e = ::cfg->Bind("ServerBrowserMode", m, "MP"); e->SetString(m); delete e; ::cfg->Save(); }   // written to TYFMC.MP.ini
         Config::s_fnBeforeSave = CfgBeforeSave;

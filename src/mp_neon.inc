@@ -1147,6 +1147,7 @@ void MP::NeonTouch(int kind, int finger, float x, float y) { if(s_nNeonMode == N
 // game thread (MobileMenu::Update)
 void MP::NeonMenuTick()
 {
+    NeonFileTick(MP_NowMs());   // 5.01.07: neon_mode.txt added / removed while the title menu is up
     if(s_nNeonMode == NEON_MODE_DEFAULT) return;   // 4.13.30
     const int a = s_nNeonAct.exchange(NA_NONE);
     if(a == NA_NONE) return;
