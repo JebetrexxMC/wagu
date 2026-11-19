@@ -424,6 +424,7 @@ static void MenuMpProcess(int ped, uint64_t now)
 }
 
 static bool MenuMpActive() { return s_bMenuMp.load(); }
+static bool MenuMpHolding() { return s_bMenuMpHeld; }   // 5.01.12
 
 // 4.13.9: the game's menu, every frame it is up (MobileMenu::Update, after the game's own update): a
 // Multiplayer load puts you back into the pause menu when it is done - it is closed like [Resume]
