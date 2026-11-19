@@ -103,4 +103,5 @@ namespace Online
     // 3.61: plain HTTPS GET (TLS 1.2, system CAs, no redirects), body up to maxBytes. Blocking.
     // got (optional): bytes received so far, updated while it downloads (3.62)
     bool HttpsFetch(const std::string& url, std::string& body, int timeoutMs, std::string& why, size_t maxBytes, std::atomic<size_t>* got = nullptr);
+    bool HttpsLastShort();   // 5.01.16: the last HttpsFetch on this thread got less than its Content-Length (a cut / timed-out download)
 }

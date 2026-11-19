@@ -1994,6 +1994,7 @@ static int TcpConnectTimed(const std::string& host, uint16_t port, int timeoutMs
 }
 
 static thread_local std::atomic<size_t>* t_HttpsProg = nullptr;   // 3.62: bytes received so far (Day Z download bar)
+static thread_local bool t_HttpsShort = false;   // 5.01.16: the last body is shorter than its Content-Length (timeout / cut)
 static bool HttpsGet(const std::string& url, std::string& body, int timeoutMs, std::string& why, size_t maxBytes = 256 * 1024)
 {
     body.clear();
@@ -2084,7 +2085,7 @@ static bool HttpsGet(const std::string& url, std::string& body, int timeoutMs, s
         else
         {
             size_t cl = hl.find("content-length:");
-            if(cl != std::string::npos) { size_t n = (size_t)atol(hl.c_str() + cl + 15); if(b.size() > n) b.resize(n); }
+            if(cl != std::string::npos) { size_t n = (size_t)atol(hl.c_str() + cl + 15); if(b.size() > n) b.resize(n); t_HttpsShort = b.size() < n; }
             body = b;
         }
         ok = true;
@@ -3086,9 +3087,10 @@ bool Online::SocLinkRecv(std::string& topic, std::string& payload)
 }
 
 // 3.61: Day Z model pack (dff / txd from GitHub, src/game/dzmodels.cpp). Blocking, background threads only.
+bool Online::HttpsLastShort() { return t_HttpsShort; }
 bool Online::HttpsFetch(const std::string& url, std::string& body, int timeoutMs, std::string& why, size_t maxBytes, std::atomic<size_t>* got)
 {
-    t_HttpsProg = got;
+    t_HttpsProg = got; t_HttpsShort = false;
     bool ok = HttpsGet(url, body, timeoutMs, why, maxBytes);
     t_HttpsProg = nullptr;
     return ok;
