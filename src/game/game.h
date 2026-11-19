@@ -221,6 +221,8 @@ namespace Game
     void  SetAmmo(int ped, int weapon, int ammo);   // 4.13.53
     bool  GetWeaponInSlot(int ped, int slot, int& weapon, int& ammo);   // 3.39.1: slot 1..13
     bool  GiveWeaponAmmo(int ped, int weapon, int ammo);             // 3.39.1
+    // 5.01.12: the same without LOAD_ALL_MODELS_NOW: 1 given, 0 the weapon model is still streaming in (call again), -1 failed
+    int   GiveWeaponAmmoLight(int ped, int weapon, int ammo);
     void  SetInterior(int ped, int area);                            // 3.39.1
     void  SetDropsWeapons(int ped, bool on);
 

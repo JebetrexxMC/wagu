@@ -11,6 +11,7 @@
 // Background: neon_bg.jpg (the San Andreas fan art), logo: title.png. Fonts: imgui/neonfonts.h (OFL).
 
 enum { NP_MAIN = 0, NP_BROWSER, NP_SETTINGS, NP_ABOUT, NP_QUIT };
+static bool NeonPadUI();   // 5.01.12: the controller hints (SELECT / A CONFIRM, B BACK, LB RB ...) only while a pad is in use
 static int  s_nNeonPage = NP_MAIN, s_nNeonSel = 2;   // Browse servers
 static bool s_bNeonHidden = false;                   // "Game settings": the game's own menu for now
 static LRow s_NeonPending;
@@ -813,15 +814,24 @@ static void NeonMain(ImDrawList* dl, ImVec2 ds)
         char v[64]; snprintf(v, sizeof(v), "V%s \xE2\x80\x94 NEON PREVIEW", MP_VERSION_STR);
         NeonText(dl, uf, 9.5f * u, ImVec2(L - 8 * u, 761 * u), IM_COL32(100, 104, 112, 255), v, 2.6f * u);
         const float hy = 761 * u; float hx = ds.x * (998.0f / 1430.0f);
-        NeonTri(dl, ImVec2(hx + 2 * u, hy + 4 * u), 2.4f * u, IM_COL32(120, 124, 132, 255), 2);
-        NeonTri(dl, ImVec2(hx + 8 * u, hy + 8 * u), 2.4f * u, IM_COL32(120, 124, 132, 255), 1);
-        NeonText(dl, uf, 9 * u, ImVec2(hx + 16 * u, hy), IM_COL32(120, 124, 132, 255), "SELECT", 2.4f * u);
-        NeonText(dl, uf, 9 * u, ImVec2(hx + 80 * u, hy), IM_COL32(170, 172, 178, 255), "ENTER", 2.0f * u);
-        NeonText(dl, uf, 9 * u, ImVec2(hx + 80 * u + NeonTextW(uf, 9 * u, "ENTER", 2.0f * u) + 7 * u, hy), IM_COL32(120, 124, 132, 255), "CONFIRM", 2.4f * u);
+        if(NeonPadUI())
+        {
+            NeonTri(dl, ImVec2(hx + 2 * u, hy + 4 * u), 2.4f * u, IM_COL32(120, 124, 132, 255), 2);
+            NeonTri(dl, ImVec2(hx + 8 * u, hy + 8 * u), 2.4f * u, IM_COL32(120, 124, 132, 255), 1);
+        }
+        if(NeonPadUI())
+        {   // 5.01.12: controller hints only with a controller
+            NeonText(dl, uf, 9 * u, ImVec2(hx + 16 * u, hy), IM_COL32(120, 124, 132, 255), "SELECT", 2.4f * u);
+            NeonText(dl, uf, 9 * u, ImVec2(hx + 80 * u, hy), IM_COL32(170, 172, 178, 255), "A", 2.0f * u);
+            NeonText(dl, uf, 9 * u, ImVec2(hx + 80 * u + NeonTextW(uf, 9 * u, "A", 2.0f * u) + 7 * u, hy), IM_COL32(120, 124, 132, 255), "CONFIRM", 2.4f * u);
+        }
         const char* ln = NeonLangName();
         const float lx = ds.x - 160 * u;
-        dl->AddRect(ImVec2(lx, hy - 3 * u), ImVec2(lx + 15 * u, hy + 13 * u), IM_COL32(200, 202, 208, 255), 2 * u, 0, 1.1f * u);
-        NeonText(dl, uf, 8 * u, ImVec2(lx + 3 * u, hy - 1 * u), IM_COL32(200, 202, 208, 255), "A");
+        if(NeonPadUI())
+        {
+            dl->AddRect(ImVec2(lx, hy - 3 * u), ImVec2(lx + 15 * u, hy + 13 * u), IM_COL32(200, 202, 208, 255), 2 * u, 0, 1.1f * u);
+            NeonText(dl, uf, 8 * u, ImVec2(lx + 3 * u, hy - 1 * u), IM_COL32(200, 202, 208, 255), "A");
+        }
         NeonText(dl, uf, 9.5f * u, ImVec2(lx + 24 * u, hy), IM_COL32(220, 222, 228, 255), ln, 1.6f * u);
         NeonTri(dl, ImVec2(lx + 32 * u + NeonTextW(uf, 9.5f * u, ln, 1.6f * u), hy + 5 * u), 2.2f * u, IM_COL32(200, 202, 208, 255), 1);
         if(NeonHit("##nLang", ImVec2(lx - 6 * u, hy - 10 * u), ImVec2(ds.x - 10 * u, hy + 22 * u)))
@@ -1027,6 +1037,15 @@ static uint64_t s_nNeonToastAt = 0;
 static char s_szNeonToast[2][96];
 static int  s_nNeonLinkedSeen = -1;
 static bool s_bNeonToastSound = false;
+// 5.01.12: one Discord pop-up per link. Before, two came: the first when the menu showed up (the account file was
+// read while the auto login rewrote it, so "linked" went true -> false -> true in the first seconds) and the second
+// for the real connect. Now the state must stay the same for 1.5 s before it counts, the pop-up shows once a game
+// run, and only SIGN OUT (then a new link) shows it again.
+static int      s_nNeonLinkedCand = -1;
+static uint64_t s_nNeonLinkedCandAt = 0;
+static bool     s_bNeonToastShown = false;
+static std::string s_NeonWhoCache;        // AuthAccounts() reads a file: once a second, not every paint
+static uint64_t s_nNeonWhoAt = 0;
 static void NeonToast(const char* a, const char* b)
 {
     MP_CopyStr(s_szNeonToast[0], a, sizeof(s_szNeonToast[0])); MP_CopyStr(s_szNeonToast[1], b, sizeof(s_szNeonToast[1]));
@@ -1145,6 +1164,7 @@ static void NeonPHeader(const char* title, const char* sub, float L, float u)
 static void NeonPHints(const char* const* kv, int n, float W, float u, float L)
 {
     using namespace NeonPaint;
+    if(!NeonPadUI()) return;   // 5.01.12: pad hints only with a controller
     const float hy = 758 * u, fs = 11.5f * u;
     float x = W - L;
     for(int i = n - 1; i >= 0; --i)
@@ -1601,20 +1621,31 @@ static void NeonPTitle(float W, float H)
         Img(T("card_identity.png"), ax, ay, bx, by, (!dlg && (Held(ax, ay, bx, by) || s_nNeonSel == 8)) ? NC(255, 236, 190) : NC(255, 255, 255));
         if(s_nNeonSel == 8 && NeonPadUI()) NeonPFrame(ax - 2 * u, ay - 2 * u, bx + 2 * u, by + 2 * u, 1.6f * u, NC(201, 169, 92));
         Img(T("discord.png"), ax + 11 * u, ay + 13 * u, ax + 48 * u, ay + 50 * u);
-        std::vector<std::string> acc = AuthAccounts();
-        const std::string who = !s_AuthUser.empty() ? s_AuthUser : (!acc.empty() ? acc[0] : std::string());
-        const bool linked = !who.empty() || !s_Auth.discordName.empty();
-        if(s_nNeonLinkedSeen != (int)linked)
+        const uint64_t nowMs = MP_NowMs();
+        if(!s_AuthUser.empty()) { s_NeonWhoCache = s_AuthUser; s_nNeonWhoAt = nowMs; }
+        else if(!s_nNeonWhoAt || nowMs - s_nNeonWhoAt > 1000)
+        {
+            std::vector<std::string> acc = AuthAccounts();
+            if(!acc.empty()) s_NeonWhoCache = acc[0];
+            else if(s_NeonWhoCache.empty() || nowMs - s_nNeonWhoAt > 3000) s_NeonWhoCache.clear();   // a file being rewritten reads empty for a moment
+            s_nNeonWhoAt = nowMs;
+        }
+        const std::string who = s_NeonWhoCache;
+        const bool linkedNow = !who.empty() || !s_Auth.discordName.empty();
+        if((int)linkedNow != s_nNeonLinkedCand) { s_nNeonLinkedCand = (int)linkedNow; s_nNeonLinkedCandAt = nowMs; }
+        if(s_nNeonLinkedSeen != s_nNeonLinkedCand && nowMs - s_nNeonLinkedCandAt >= 1500)
         {   // 5.01.11: Discord connected = the pop-up slides in from the right (notify.mp3) and back out
-            if(linked)
+            if(s_nNeonLinkedCand == 1 && !s_bNeonToastShown)
             {
                 char b[96]; char wa[48]; NeonPAscii(wa, sizeof(wa), who.c_str(), false);
                 snprintf(b, sizeof(b), "Neon account connected%s%s", wa[0] ? " - " : "", wa);
                 NeonToast("DISCORD CONNECTED", b);
+                s_bNeonToastShown = true;
                 logger->Info("Neon menu: Discord connected pop-up (%s)", wa);
             }
-            s_nNeonLinkedSeen = (int)linked;
+            s_nNeonLinkedSeen = s_nNeonLinkedCand;
         }
+        const bool linked = s_nNeonLinkedSeen >= 0 ? s_nNeonLinkedSeen == 1 : linkedNow;
         NeonPText(F_CAPS, "NEON IDENTITY", ax + 59 * u, ay + 9 * u, 10 * u, NC(150, 152, 158), 1.2f * u);
         NeonPText(F_CAPS, linked ? "DISCORD CONNECTED" : "DISCORD NOT CONNECTED", ax + 59 * u, ay + 22 * u, 15 * u, NC(226, 228, 232), 1.4f * u);
         char sub[96];
@@ -1646,20 +1677,26 @@ static void NeonPTitle(float W, float H)
         const float hy = 758 * u;
         NeonPText(F_UI, v, L - 8 * u, hy, 12 * u, NC(100, 104, 112), 2.4f * u);
         float hx = W * (998.0f / 1430.0f);
-        Img(T("arrow_down.png"), hx, hy + 2 * u, hx + 9 * u, hy + 11 * u, NC(120, 124, 132));
-        NeonPText(F_UI, "SELECT", hx + 16 * u, hy, 12 * u, NC(120, 124, 132), 2.2f * u);
-        const float ex = hx + 84 * u;   // 5.01.11: the controller's A (the menu takes the pad now)
-        NeonPFrame(ex, hy - 3 * u, ex + 18 * u, hy + 14 * u, 1.1f * u, NC(150, 152, 158));
-        NeonPText(F_UI, "A", ex + 5 * u, hy, 12 * u, NC(200, 202, 208));
-        NeonPText(F_UI, "CONFIRM", ex + 26 * u, hy, 12 * u, NC(120, 124, 132), 2.2f * u);
+        if(NeonPadUI())
+        {   // 5.01.12: SELECT / A CONFIRM only while a controller is in use (touch = no pad hints)
+            Img(T("arrow_down.png"), hx, hy + 2 * u, hx + 9 * u, hy + 11 * u, NC(120, 124, 132));
+            NeonPText(F_UI, "SELECT", hx + 16 * u, hy, 12 * u, NC(120, 124, 132), 2.2f * u);
+            const float ex = hx + 84 * u;   // 5.01.11: the controller's A (the menu takes the pad now)
+            NeonPFrame(ex, hy - 3 * u, ex + 18 * u, hy + 14 * u, 1.1f * u, NC(150, 152, 158));
+            NeonPText(F_UI, "A", ex + 5 * u, hy, 12 * u, NC(200, 202, 208));
+            NeonPText(F_UI, "CONFIRM", ex + 26 * u, hy, 12 * u, NC(120, 124, 132), 2.2f * u);
+        }
         const char* ln = "ENGLISH";
         {   // the atlas is ASCII: other languages show their code
             static char up[16]; const char* c = settings.uiLanguage[0] ? settings.uiLanguage : "en";
             if(strcasecmp(c, "en")) { NeonUpper(up, sizeof(up), c); ln = up; }
         }
         const float lx = W - 160 * u;
-        NeonPFrame(lx, hy - 2 * u, lx + 16 * u, hy + 14 * u, 1.2f * u, NC(200, 202, 208));
-        NeonPText(F_UI, "A", lx + 4 * u, hy, 11 * u, NC(200, 202, 208));
+        if(NeonPadUI())
+        {
+            NeonPFrame(lx, hy - 2 * u, lx + 16 * u, hy + 14 * u, 1.2f * u, NC(200, 202, 208));
+            NeonPText(F_UI, "A", lx + 4 * u, hy, 11 * u, NC(200, 202, 208));
+        }
         NeonPText(F_UI, ln, lx + 24 * u, hy, 12 * u, NC(220, 222, 228), 1.6f * u);
     }
     if(dlg) NeonPDialog(W, H, u);
@@ -1708,7 +1745,12 @@ void MP::NeonPaintMenu(int what)
     NeonPaint::End();
     if(s_nNeonPaintFrames < 3 && ++s_nNeonPaintFrames == 3) logger->Info("Neon menu: native frames ok");
 }
-void MP::NeonTouch(int kind, int finger, float x, float y) { if(s_nNeonMode == NEON_MODE_DEFAULT) return; NeonPaint::OnTouch(kind, finger, x, y); }   // 4.13.30
+void MP::NeonTouch(int kind, int finger, float x, float y)   // 4.13.30
+{
+    if(s_nNeonMode == NEON_MODE_DEFAULT) return;
+    if(kind == 1) s_nNeonPadAt = 0;   // 5.01.12: a finger on the screen = touch mode: the controller hints and focus frames go
+    NeonPaint::OnTouch(kind, finger, x, y);
+}
 // game thread (MobileMenu::Update)
 void MP::NeonMenuTick()
 {
@@ -1765,6 +1807,7 @@ void MP::NeonMenuTick()
             const std::string who = !s_AuthUser.empty() ? s_AuthUser : (!acc.empty() ? acc[0] : std::string());
             if(!who.empty()) AuthAccountsRemove(who);
             AuthLogout(nullptr, false);
+            s_bNeonToastShown = false; s_NeonWhoCache.clear(); s_nNeonWhoAt = 0;   // 5.01.12: a new link shows the pop-up again
             logger->Info("Neon menu: signed out");
             break;
         }

@@ -38,6 +38,8 @@ struct LgClient
     int      lobbyCar[LG_CAR_COUNT] = { 0 };
     int      myCar = 0; int carIdx = -1;
     uint64_t engagedAt = 0, nightAt = 0, keepAt = 0, touchAt = 0, lastFrame = 0, viewAt = 0;
+    uint64_t lobbyReadyAt = 0, lobbyCarAt = 0;   // 5.01.12: the lobby ground is in since / the last lobby car made
+    uint8_t  lobbyTries[LG_CAR_COUNT] = { 0 };   // 5.01.12: lobby cars made per spot (one that keeps vanishing stops)
     // server state
     PktLgState st; bool hasState = false; uint64_t stateAt = 0;
     LgBall   ball;                // predicted (server) or local (free play)
@@ -408,8 +410,12 @@ static void LgToLobby(int ped)
     if(ped > 0)
     {
         Game::SetCharVisible(ped, true); Game::FreezeChar(ped, false); Game::SetCharGodMode(ped, true);
-        Game::Teleport(ped, kLgLobby, kLgLobbyHeading);
+        // 5.01.12: no LOAD_SCENE (Game::Teleport) here. It streamed the whole of Grove Street in on the game thread
+        // while the server's players were being made around you (and with an HD Grove modpack) = the freeze after
+        // the spawn in the lobby. SpawnLight streams it in the background and holds you until the ground is in.
+        SpawnLight(ped, kLgLobby, kLgLobbyHeading, true);
     }
+    s_Lg.lobbyReadyAt = 0; s_Lg.lobbyCarAt = 0; memset(s_Lg.lobbyTries, 0, sizeof(s_Lg.lobbyTries));
     Game::RestoreCamera();
     Game::SetPlayerControl(true); Game::ShowGameHud(true);
     Game::SetTimeOfDay(23, 30);
@@ -651,14 +657,29 @@ static void LgLobbyProcess(int ped, uint64_t now)
 {
     // 4.13.14: the night is held by the world lock (MP::LgClockMinute) - no more SetTimeOfDay every 4 s
     // the parked cars (they stream in: CreateCar gives 0 until the model is loaded)
+    // 5.01.12: only once the lobby's ground is in (+1 s), one car every 300 ms, max 4 tries a spot. Before, the 6 cars
+    // were made in the first frame on a street whose collision wasn't loaded yet: they fell through the map, the game
+    // removed them, and the lobby made them again every frame (more and more cars + the game stuck at Grove Street).
+    if(!s_Lg.lobbyReadyAt)
+    {
+        const float g = Game::GroundBelow(kLgLobby.x, kLgLobby.y, kLgLobby.z + 3.0f);
+        if(g > -999.0f && g > kLgLobby.z - 4.0f) s_Lg.lobbyReadyAt = now;
+        else if(now - s_Lg.viewAt > 15000) s_Lg.lobbyReadyAt = now;   // never hang on it
+    }
+    if(s_Lg.lobbyReadyAt && now - s_Lg.lobbyReadyAt > 1000 && now - s_Lg.lobbyCarAt > 300)
     for(int i = 0; i < LG_CAR_COUNT; ++i)
     {
         int& c = s_Lg.lobbyCar[i];
         if(c > 0 && !Game::CarExists(c)) c = 0;
-        if(!c)
+        if(!c && s_Lg.lobbyTries[i] < 4)
         {
             c = Game::CreateCar(g_LgCars[i].model, kLgLobbyCars[i]);
-            if(c > 0) { Game::SetCarHeading(c, kLgLobbyCarHead[i]); LgSetupCar(c, 255); Game::SetCarEngineOn(c, false); }
+            if(c > 0)
+            {
+                ++s_Lg.lobbyTries[i]; s_Lg.lobbyCarAt = now;
+                Game::SetCarHeading(c, kLgLobbyCarHead[i]); LgSetupCar(c, 255); Game::SetCarEngineOn(c, false);
+                break;   // one a round
+            }
         }
     }
     if(s_Lg.view == 1 && Game::IsCharInAnyCar(ped))
@@ -714,7 +735,10 @@ static void LgProcess(int ped, uint64_t now)
     if(s_Lg.view == 1 || s_Lg.view == 2)
     {
         LgLobbyProcess(ped, now);
-        if(now - s_Lg.engagedAt > 3000) LgArenaBuild(now);   // 4.13.33: the arena is built in the lobby (no wait on Free play / Ranked)
+        // 4.13.33: the arena is built in the lobby (no wait on Free play / Ranked)
+        // 5.01.12: only after the lobby has settled (ground in + every lobby car made, or 10 s), not while Grove Street streams in
+        bool carsIn = true; for(int i = 0; i < LG_CAR_COUNT; ++i) if(!s_Lg.lobbyCar[i] && s_Lg.lobbyTries[i] < 4) carsIn = false;
+        if(s_Lg.lobbyReadyAt && now - s_Lg.engagedAt > 3000 && (carsIn || now - s_Lg.lobbyReadyAt > 10000)) LgArenaBuild(now);
     }
     else if(s_Lg.view == 3) { LgArenaBuild(now); LgFxTick(now); LgArenaProcess(ped, now, dt); LgBallObjTick(); }
 }
