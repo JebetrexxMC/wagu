@@ -1250,10 +1250,161 @@ static void TabSettings(const Api& a)
 // downloaded, switched off -> switched on, lua_scripts_loader.lua missing / off / stopped -> started, the mod crashed
 // -> its error + it is loaded again, not started yet -> it is loaded now), then the command is sent again to MonetLoader
 // for up to 20 s, so it opens by itself as soon as the mod registered it.
+// 5.01.08: how a runner loads the script: loadfile, then a plain read + load (a BOM / #! line / a file loadfile can't
+// open by name), and the real reason when both fail
+static const char* const kLuaRunnerLoad = R"LUA(local __mp_f, __mp_e = loadfile(__mp_src)
+if not __mp_f then
+  local h, he = io.open(__mp_src, 'rb')
+  if h then
+    local d = h:read('*a'); h:close()
+    if d then
+      d = d:gsub('^\239\187\191', ''):gsub('^#[^\n]*', '')
+      local f2, e2 = load(d, '@' .. __mp_src)
+      if f2 then __mp_f = f2 else __mp_e = e2 or __mp_e end
+    end
+  else
+    __mp_e = tostring(__mp_e) .. ' (' .. tostring(he) .. ')'
+  end
+end
+if not __mp_f then error('[LuaScripts] cannot load ' .. __mp_src .. ': ' .. tostring(__mp_e), 0) end
+__mp_f(...)
+)LUA";
 struct LuaModCmd { const char* cmd; const char* folder; const char* script; const char* title; };
 static const LuaModCmd kLuaModCmds[] = {
     { "hasslehud", "Hasslehud", "HassleHUD Android.luac", "HassleHUD" } };
 static std::string s_pendCmd; static uint64_t s_pendUntil = 0, s_pendNext = 0; static bool s_pendQuiet = false;
+static const LuaModCmd* s_pendMod = nullptr; static std::string s_pendCrash;   // 5.01.08: the mod being waited for / its error seen
+static bool s_pendDirect = false;                                              // 5.01.08: MP started it itself already
+// 5.01.08: the mod's script wherever the loader found it (lua_scripts/Hasslehud/, lua_scripts/HassleHUD-1/,
+// a Hasslehud.zip unpacked into lua_scripts/.unpacked/...), not only the one exact path
+static ScriptMgr::Item* LuaModItem(const LuaModCmd* m)
+{
+    using namespace ScriptMgr;
+    const std::string tail = "/" + Lower(m->script), exact = Lower(std::string("lua_scripts/") + m->folder + "/" + m->script);
+    Item* best = nullptr;
+    for(auto& i : s_items)
+    {
+        const std::string l = Lower(i.rel);
+        if(l != exact && !(l.size() > tail.size() && l.compare(l.size() - tail.size(), tail.size(), tail) == 0)) continue;
+        if(!best || (best->waiting && !i.waiting) || (!Running(*best) && Running(i)) || (l == exact && Lower(best->rel) != exact && Running(i) == Running(*best))) best = &i;
+    }
+    return best;
+}
+// 5.01.08: the mod's script on disk when the loader has not indexed it yet (moonloader/lua_scripts/<folder>/<script>,
+// any case, or one folder deeper: lua_scripts/Hasslehud/Hasslehud/...)
+static std::string LuaModFind(const LuaModCmd* m)
+{
+    using namespace ScriptMgr;
+    const std::string base = Root() + "/lua_scripts";
+    std::vector<std::string> dirs;
+    if(DIR* d = opendir(base.c_str()))
+    {
+        while(dirent* e = readdir(d)) if(e->d_name[0] != '.' && Lower(e->d_name).find(Lower(m->folder)) != std::string::npos) dirs.push_back(base + "/" + e->d_name);
+        closedir(d);
+    }
+    for(size_t k = 0; k < dirs.size() && k < 16; ++k)
+    {
+        if(DIR* d = opendir(dirs[k].c_str()))
+        {
+            std::string hit;
+            while(dirent* e = readdir(d))
+            {
+                if(e->d_name[0] == '.') continue;
+                const std::string full = dirs[k] + "/" + e->d_name;
+                if(Lower(e->d_name) == Lower(m->script)) hit = full;
+                else if(IsDir(full) && dirs.size() < 16) dirs.push_back(full);
+            }
+            closedir(d);
+            if(!hit.empty()) return hit;
+        }
+    }
+    return std::string();
+}
+static std::string LuaQ(const std::string& v)   // Lua %q
+{
+    std::string o = "\"";
+    for(char c : v) { if(c == '"' || c == '\\') { o += '\\'; o += c; } else if(c == '\n') o += "\\n"; else if(c == '\r') o += "\\r"; else if(c == 0) o += "\\0"; else o += c; }
+    return o + "\"";
+}
+// 5.01.08: the same runner lua_scripts_loader.lua writes (runnerFor) - MP writes it and starts the mod itself, so
+// /hasslehud no longer waits on the loader's next scan
+static std::string LuaModRunner(const std::string& src)
+{
+    using namespace ScriptMgr;
+    const std::string luaDir = Norm(Root() + "/lua_scripts");
+    std::string rel = Norm(src);
+    if(rel.compare(0, luaDir.size() + 1, luaDir + "/") == 0) rel = rel.substr(luaDir.size() + 1);
+    std::string id = rel;
+    { size_t sl = id.rfind('/'), dt = id.rfind('.'); if(dt != std::string::npos && (sl == std::string::npos || dt > sl)) id.resize(dt); }
+    for(auto& c : id) if(!isalnum((unsigned char)c) && c != '-' && c != '_' && c != '.') c = '_';
+    mkdir((luaDir + "/.run").c_str(), 0777);
+    const std::string path = luaDir + "/.run/" + id + ".lua";
+    std::string pkg = Norm(src); { size_t sl = pkg.rfind('/'); if(sl != std::string::npos) pkg.resize(sl); }
+    std::string body = "-- made by lua_scripts_loader.lua (MP): runs lua_scripts/" + rel + ". Do not edit.\nlocal __mp_src = " + LuaQ(Norm(src)) + "\n";
+    body += "local __mp_pkg = " + LuaQ(pkg) + "\n";
+    body += R"LUA(do
+  local function n(p) return (p:gsub('\\', '/'):gsub('/+', '/')):lower() end
+  local real = getWorkingDirectory
+  local rootLib = n(real() .. '/lib/')
+  -- moonloader/lib/ code (mimgui, MoonMonet...) keeps moonloader/, everything else (the mod and its own lib/)
+  -- sees the mod folder, so its config/, resource/, fonts and .so files are found there
+  getWorkingDirectory = function()
+    local i = debug.getinfo(2, 'S')
+    local s = i and i.source or ''
+    if s:sub(1, 1) == '@' and n(s:sub(2)):sub(1, #rootLib) == rootLib then return real() end
+    return __mp_pkg
+  end
+  local L = __mp_pkg .. '/lib/'
+  package.path = package.path .. ';' .. L .. '?.lua;' .. L .. '?/init.lua;' .. L .. '?.luac;' .. L .. '?/init.luac;' ..
+    __mp_pkg .. '/?.lua;' .. __mp_pkg .. '/?/init.lua'
+  package.cpath = package.cpath .. ';' .. L .. '?.so'
+  -- a .so of the mod that can't load here (HassleHUD's libGIF.so is 32-bit only: on a 64-bit game) no longer kills
+  -- the whole mod: its functions return 0 and the rest of the mod runs
+  local okf, ffi = pcall(require, 'ffi')
+  if okf and type(ffi) == 'table' and ffi.load then
+    local load, pkgn = ffi.load, n(__mp_pkg .. '/')
+    ffi.load = function(name, ...)
+      local ok, lib = pcall(load, name, ...)
+      if ok then return lib end
+      if type(name) == 'string' and n(name):sub(1, #pkgn) == pkgn then
+        print('[LuaScripts] ' .. name .. ' does not load on this game (' .. tostring(lib) .. ') - its functions return 0')
+        return setmetatable({}, { __index = function() return function() return 0 end end })
+      end
+      error(lib, 2)
+    end
+  end
+end
+)LUA";
+    body += kLuaRunnerLoad;
+    std::string cur;
+    if(FILE* f = fopen(path.c_str(), "rb")) { char b[4096]; size_t r; while((r = fread(b, 1, sizeof b, f)) > 0) cur.append(b, r); fclose(f); }
+    if(cur != body) if(FILE* f = fopen(path.c_str(), "wb")) { fwrite(body.data(), 1, body.size(), f); fclose(f); }
+    logger->Info("5.01.08: %s runner written: %s", rel.c_str(), path.c_str());
+    return path;
+}
+// 5.01.08: the last moonloader.log line about the mod (its real error when it stops before Last crashes has one)
+static std::string LuaModLogLine(const LuaModCmd* m)
+{
+    std::string t;
+    if(FILE* f = fopen((ScriptMgr::Root() + "/moonloader.log").c_str(), "rb"))
+    {
+        fseek(f, 0, SEEK_END); long sz = ftell(f); long from = sz > 24576 ? sz - 24576 : 0; fseek(f, from, SEEK_SET);
+        t.resize((size_t)(sz - from)); t.resize(fread(&t[0], 1, t.size(), f)); fclose(f);
+    }
+    const std::string key = ScriptMgr::Lower(m->title);
+    std::string last; size_t p = 0;
+    while(p < t.size())
+    {
+        size_t e = t.find('\n', p); if(e == std::string::npos) e = t.size();
+        std::string ln = t.substr(p, e - p); p = e + 1;
+        const std::string l = ScriptMgr::Lower(ln);
+        if(l.find(key) != std::string::npos && (l.find("error") != std::string::npos || l.find("cannot") != std::string::npos || l.find("fail") != std::string::npos
+            || l.find("died") != std::string::npos || l.find("terminat") != std::string::npos || l.find("attempt") != std::string::npos)) last = ln;
+    }
+    while(!last.empty() && (last.back() == '\r' || last.back() == ' ')) last.pop_back();
+    if(last.size() > 200) last = last.substr(0, 200) + "...";
+    return last;
+}
 static unsigned s_pendSent = 0, s_pendSeen = 0;   // retry number sent / last one MP got back (= not taken by a script)
 static bool LuaCmdFallback(const char* cmd, const char* arg)
 {
@@ -1277,41 +1428,37 @@ static bool LuaCmdFallback(const char* cmd, const char* arg)
     Refresh(a); s_listAt = 0;
     const std::string root = Root();
     const std::string dir = root + "/lua_scripts/" + m->folder;
-    if(!IsDir(dir) && !IsDir(root + "/lua_scripts/" + Lower(m->folder)))
+    Item* it = LuaModItem(m); Item* ld = nullptr;
+    for(auto& i : s_items) if(i.group == 0 && Lower(i.rel) == "lua_scripts_loader.lua") ld = &i;
+    const std::string onDisk = it ? std::string() : LuaModFind(m);
+    if(!it && onDisk.empty())
     {
         if(s_hhDl.load() == 1 || s_hhDl.load() == 2) { Retry("still downloading (moon icon shows the progress)"); return true; }
+        if(IsDir(dir) || IsDir(root + "/lua_scripts/" + Lower(m->folder)))
+            SysMsg(COL_YELLOW, "%s: moonloader/lua_scripts/%s has no \"%s\" - downloading it again.", m->title, m->folder, m->script);
         HassleDownload();
         Retry("not on this phone (moonloader/lua_scripts/Hasslehud) - downloading it now (20 MB)");
         s_pendUntil = now + 240000;
         return true;
     }
-    Item* it = nullptr; Item* ld = nullptr;
-    const std::string want = Lower(std::string("lua_scripts/") + m->folder + "/" + m->script);
-    for(auto& i : s_items)
-    {
-        if(Lower(i.rel) == want) it = &i;
-        if(i.group == 0 && Lower(i.rel) == "lua_scripts_loader.lua") ld = &i;
-    }
+    s_pendMod = m; s_pendCrash.clear(); s_pendDirect = false;
     if(it && IsOff(*it)) { SetOn(a, *it, true); Retry("was switched off in the Script Manager - switched on"); return true; }
-    if(!s_loaderRun)
-    {
-        if(!ld) { SysMsg(COL_RED, "%s: moonloader/lua_scripts_loader.lua is missing - restart the game once (MP puts it back).", m->title); return true; }
-        if(IsOff(*ld)) { SetOn(a, *ld, true); Retry("lua_scripts_loader.lua was switched off - switched on"); return true; }
-        if(ld->crash.size()) SysMsg(COL_RED, "lua_scripts_loader.lua stopped: %s", ld->crash.c_str());
-        if(a.load) a.load(ld->runPath.c_str());
-        Retry("lua_scripts_loader.lua was not running - started");
-        return true;
-    }
     if(it && Running(*it)) { Retry("is still starting (it waits for the game)"); return true; }
     if(it && it->crash.size())
     {
         SysMsg(COL_RED, "%s stopped with an error: %s", m->title, it->crash.c_str());
-        if(a.load && !it->waiting) { a.load(it->runPath.c_str()); Retry("loading it again"); }
-        else SysMsg(COL_YELLOW, "Moon icon > Last crashes has the full error.");
-        return true;
+        s_pendCrash = it->crash;
     }
-    if(it && !it->waiting && a.load) { a.load(it->runPath.c_str()); Retry("was not loaded - loading it now"); return true; }
-    Retry("lua_scripts_loader.lua starts it within 5 s");
+    // 5.01.08: MP starts the mod itself - it no longer waits on lua_scripts_loader.lua's next scan ("starts it within 5 s")
+    const std::string src = it ? Norm(root + "/" + it->rel) : onDisk;
+    std::string run = (it && !it->waiting && !it->runPath.empty()) ? it->runPath : std::string();
+    if(run.empty()) run = LuaModRunner(src);
+    if(!a.load) { SysMsg(COL_RED, "%s: this MonetLoader can't start scripts from MP - update MP.", m->title); return true; }
+    if(ld && !s_loaderRun && !IsOff(*ld)) a.load(ld->runPath.c_str());   // the loader too, for the other mods
+    a.load(run.c_str());
+    s_pendDirect = true;
+    logger->Info("5.01.08: /%s -> started %s", cmd, run.c_str());
+    Retry(s_pendCrash.empty() ? "starting it now" : "loading it again");
     return true;
 }
 static void LuaCmdTick(uint64_t now)
@@ -1319,12 +1466,31 @@ static void LuaCmdTick(uint64_t now)
     if(s_pendCmd.empty() || now < s_pendNext) return;
     if(now > s_pendUntil)
     {
-        SysMsg(COL_RED, "%s did not start - moon icon > Last crashes / Log shows why.", s_pendCmd.c_str());
-        s_pendCmd.clear(); return;
+        std::string why = s_pendMod ? LuaModLogLine(s_pendMod) : std::string();
+        if(why.empty()) why = s_pendCrash;
+        if(why.empty()) SysMsg(COL_RED, "%s did not open: the mod is running but has not added the command yet - moon icon > Log shows what it is doing.", s_pendCmd.c_str());
+        else SysMsg(COL_RED, "%s did not start: %s", s_pendCmd.c_str(), why.c_str());
+        s_pendCmd.clear(); s_pendMod = nullptr; return;
     }
     s_pendNext = now + 1000;
     if(ScriptMgr::s_hhDl.load() == 1 || ScriptMgr::s_hhDl.load() == 2) return;   // still downloading
-    if(s_pendSent && s_pendSeen != s_pendSent) { s_pendCmd.clear(); return; }   // the last retry was not handed back: the mod ran it
+    if(s_pendSent && s_pendSeen != s_pendSent) { s_pendCmd.clear(); s_pendMod = nullptr; return; }   // the last retry was not handed back: the mod ran it
+    // 5.01.08: the mod stopped while MP waited -> its real error now, not after 20 s
+    if(s_pendMod && s_pendDirect && s_pendSent >= 2)
+    {
+        ScriptMgr::Api a = ScriptMgr::Get();
+        if(a.h)
+        {
+            ScriptMgr::Refresh(a); ScriptMgr::s_listAt = 0;
+            ScriptMgr::Item* it = LuaModItem(s_pendMod);
+            if(it && !ScriptMgr::Running(*it) && it->crash.size() && it->crash != s_pendCrash)
+            {
+                SysMsg(COL_RED, "%s stopped: %s", s_pendMod->title, it->crash.c_str());
+                SysMsg(COL_YELLOW, "Moon icon > Last crashes has the full error.");
+                s_pendCmd.clear(); s_pendMod = nullptr; return;
+            }
+        }
+    }
     const std::string c = s_pendCmd;
     ++s_pendSent;
     s_pendQuiet = true;

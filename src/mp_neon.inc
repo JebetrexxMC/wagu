@@ -934,12 +934,24 @@ static bool NeonPaintLoad()
     return NeonPaint::Load(MP::DataDir());
 }
 // what the game's menu pass gets painted with: 0 nothing, 1 the neon title menu, 2 the [Multiplayer] tile (mp), 3 the NEON MENU pill
+static const char* s_szNeonWhy = "the title menu has not been drawn yet";   // 5.01.08: why it is (not) painted (neon_mode_status.txt)
+static int s_nNeonWantCalls = 0;
+static void NeonUnhide() { s_bNeonHidden = false; }
 int MP::NeonPaintWanted()
 {
-    if(s_nNeonMode == NEON_MODE_DEFAULT) return 0;   // 4.13.30
-    if(HUD::TitleMenuBroken()) return 0;             // 4.13.35: crashed once (caught): the ImGui [Multiplayer] button instead
-    if(!Game::IsMainMenuShown() || Game::LocalPed() > 0 || s_bMenuMp.load()) return 0;
-    if(NeonOn()) { if(!NeonPaintLoad()) return 0; return s_bNeonHidden ? 3 : 1; }
+    ++s_nNeonWantCalls;
+    if(s_nNeonMode == NEON_MODE_DEFAULT) { s_szNeonWhy = "mode is default (no neon_mode.txt, ServerBrowserMode = default)"; return 0; }   // 4.13.30
+    if(HUD::TitleMenuBroken()) { s_szNeonWhy = "the title menu crashed (caught) - see mp_log.txt \"CRASHED\""; return 0; }   // 4.13.35
+    if(!Game::IsMainMenuShown()) { s_szNeonWhy = "the game's main menu is not on screen"; return 0; }
+    if(Game::LocalPed() > 0) { s_szNeonWhy = "in game (not the title screen)"; return 0; }
+    if(s_bMenuMp.load()) { s_szNeonWhy = "the MP server list is open"; return 0; }
+    if(NeonOn())
+    {
+        if(!NeonPaint::Inited()) { s_szNeonWhy = "this game build lacks the drawing functions MP uses"; return 0; }
+        if(!NeonPaintLoad()) { s_szNeonWhy = "files/TYFMC/MP/neon/ textures could not be read"; return 0; }
+        s_szNeonWhy = s_bNeonHidden ? "painted (the NEON MENU pill - Game settings was tapped)" : "painted";
+        return s_bNeonHidden ? 3 : 1;
+    }
     // 4.13.35: ServerBrowserMode = mp is the 4.13.20 [Multiplayer] button again (ImGui, MP::DrawMenuMpFront):
     // no MobileMenu::Render hook, no native painting
     return 0;
@@ -1176,4 +1188,40 @@ void MP::NeonMenuTick()
         }
         case NA_QUIT: logger->Info("Neon menu: Quit game"); MP::SaveConfig(); exit(0); break;
     }
+}
+
+// 5.01.08: files/TYFMC/MP/neon_mode_status.txt - what MP did with neon_mode.txt, readable in a file manager (no log
+// digging): where the file was found, whether the title hook is on, the textures, why it is (not) painted
+static void NeonStatusWrite(bool force)
+{
+    static uint64_t s_at = 0; static std::string s_last;
+    const char* dd = MP::DataDir();
+    if(!dd || !dd[0]) return;
+    const uint64_t now = MP_NowMs();
+    if(!force && now - s_at < 4000) return;
+    s_at = now;
+    if(!s_bNeonFile && s_last.empty() && !force) return;   // never had the file: no report
+    char b[2048];
+    const char* err = NeonPaint::LastError();
+    snprintf(b, sizeof(b),
+        "MP %s - neon_mode.txt status (MP rewrites this file, delete it any time)\n"
+        "neon_mode.txt   : %s%s\n"
+        "menu mode       : %s\n"
+        "title hook      : %s\n"
+        "drawing         : %s\n"
+        "textures        : %s%s%s\n"
+        "title frames    : %d checked, %d painted\n"
+        "now             : %s\n",
+        MP_VERSION_STR,
+        s_bNeonFile ? "found at " : "not found (put it in files/TYFMC/MP/)", s_bNeonFile ? s_szNeonFileAt.c_str() : "",
+        s_nNeonMode == NEON_MODE_NEON ? "neon" : (s_nNeonMode == NEON_MODE_DEFAULT ? "default" : "mp"),
+        s_bTitleHookOn ? "on" : "OFF (MobileMenu::Render could not be hooked - mp_log.txt \"Main menu:\" lines say why)",
+        NeonPaint::Inited() ? "ok" : "game functions missing",
+        NeonPaint::Ready() ? "loaded" : (NeonPaint::Failed() ? "FAILED" : "not loaded yet"),
+        err && *err ? " - missing / unreadable: " : "", err ? err : "",
+        s_nNeonWantCalls, s_nNeonPaintFrames, s_szNeonWhy);
+    if(s_last == b) return;
+    s_last = b;
+    char p[600]; snprintf(p, sizeof(p), "%s/neon_mode_status.txt", dd);
+    if(FILE* f = fopen(p, "wb")) { fputs(b, f); fclose(f); }
 }

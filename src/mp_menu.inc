@@ -154,15 +154,56 @@ static void ApplyMode(int mode)
 // [MultiPlayer] button). The ini is never changed by the file, it is checked every 2 s, so no restart is needed.
 static int  s_nIniMode = NEON_MODE_DEFAULT;   // the mode TYFMC.MP.ini / MP Settings asked for
 static bool s_bNeonFile = false;
+static std::string s_szNeonFileAt;   // 5.01.08: where neon_mode.txt was found
+// 5.01.08: neon_mode.txt in files/TYFMC/MP/ under any spelling a file manager makes (Neon_Mode.TXT, neon_mode (1).txt,
+// neon_mode.txt.txt, neon-mode.txt, "neon mode.txt", neon_mode), also in MP/neon/, files/TYFMC/, files/ and files/MP/
+static bool NeonNameOk(const char* n)
+{
+    char l[96]; size_t k = 0;
+    for(; n[k] && k + 1 < sizeof(l); ++k) l[k] = (char)tolower((unsigned char)n[k]);
+    l[k] = 0;
+    for(char* c = l; *c; ++c) if(*c == '-' || *c == ' ') *c = '_';
+    return !strncmp(l, "neon_mode", 9) || !strncmp(l, "neonmode", 8);
+}
+static bool NeonFileIn(const std::string& dir)
+{
+    DIR* d = opendir(dir.c_str());
+    if(!d) return false;
+    bool hit = false;
+    while(dirent* e = readdir(d))
+    {
+        if(e->d_name[0] == '.' || !NeonNameOk(e->d_name)) continue;
+        if(strstr(e->d_name, "status")) continue;   // neon_mode_status.txt is MP's own report
+        const std::string p = dir + "/" + e->d_name;
+        struct stat st;
+        if(stat(p.c_str(), &st) == 0 && S_ISREG(st.st_mode)) { hit = true; s_szNeonFileAt = p; break; }
+    }
+    closedir(d);
+    return hit;
+}
 static bool NeonFileThere()
 {
     const char* dd = MP::DataDir();
     if(!dd || !dd[0]) return false;
-    static const char* const kNames[] = { "neon_mode.txt", "Neon_mode.txt", "NEON_MODE.txt", "neon_mode.txt.txt", "neon_mode" };
-    char p[600]; struct stat st;
-    for(const char* n : kNames) { snprintf(p, sizeof(p), "%s/%s", dd, n); if(stat(p, &st) == 0 && S_ISREG(st.st_mode)) return true; }
+    const std::string mp = dd;
+    if(NeonFileIn(mp) || NeonFileIn(mp + "/neon")) return true;
+    std::string up = mp; size_t sl = up.rfind('/');
+    if(sl != std::string::npos)
+    {
+        up.resize(sl);                                   // files/TYFMC
+        if(NeonFileIn(up)) return true;
+        size_t s2 = up.rfind('/');
+        if(s2 != std::string::npos)
+        {
+            const std::string files = up.substr(0, s2);  // files
+            if(NeonFileIn(files) || NeonFileIn(files + "/MP")) return true;
+        }
+    }
+    s_szNeonFileAt.clear();
     return false;
 }
+static void NeonStatusWrite(bool force);   // mp_neon.inc
+static void NeonUnhide();                  // mp_neon.inc
 static void SetMode(int iniMode)   // what the ini / Settings want, neon_mode.txt on top
 {
     s_nIniMode = iniMode;
@@ -174,11 +215,20 @@ static void NeonFileTick(uint64_t now)
     if(now - s_at < 2000) return;
     s_at = now;
     const bool there = NeonFileThere();
-    if(there == s_bNeonFile) return;
+    if(there == s_bNeonFile) { NeonStatusWrite(false); return; }
     s_bNeonFile = there;
     SetMode(s_nIniMode);
-    if(there && !s_bTitleHookOn) MP_InstallTitleHook();
-    logger->Info("Main menu: neon_mode.txt %s - %s", there ? "found" : "removed", there ? "the neon title menu, no [MultiPlayer] button" : "back to ServerBrowserMode from TYFMC.MP.ini");
+    if(there)
+    {
+        // 5.01.08: an earlier failed texture load / caught title crash no longer keeps the neon menu off for the run
+        NeonPaint::Retry();
+        HUD::TitleMenuRetry();
+        NeonUnhide();
+        if(!s_bTitleHookOn) MP_InstallTitleHook();
+    }
+    logger->Info("Main menu: neon_mode.txt %s%s%s - %s", there ? "found" : "removed", there ? " at " : "", there ? s_szNeonFileAt.c_str() : "",
+        there ? "the neon title menu, no [MultiPlayer] button" : "back to ServerBrowserMode from TYFMC.MP.ini");
+    NeonStatusWrite(true);
 }
 // 4.13.49: MainMenuMultiplayer = 1 / 0 (also on / off / true / false, a "// comment" after the value is fine)
 static bool ParseOnOff(const char* v, bool def)

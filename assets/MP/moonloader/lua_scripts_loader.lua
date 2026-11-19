@@ -1,6 +1,6 @@
 script_name('MP Lua Scripts Loader')
 script_author('ThirtyFoxMCx00E1')
-script_version('1.1-mp')
+script_version('1.2-mp')
 script_description('Starts every .lua / .luac script in moonloader/lua_scripts/, loose or inside .zip files')
 
 -- Entry point of moonloader/lua_scripts/. MonetLoader only starts the scripts right in moonloader/; this one starts:
@@ -345,7 +345,25 @@ do
 end
 ]]
   end
-  body = body .. 'local __mp_f, __mp_e = loadfile(__mp_src)\nif not __mp_f then error(__mp_e, 0) end\n__mp_f(...)\n'
+  -- 1.2-mp: loadfile, then a plain read + load (BOM / #! line / a file loadfile can't open by name), and the real reason
+  body = body .. [==[
+local __mp_f, __mp_e = loadfile(__mp_src)
+if not __mp_f then
+  local h, he = io.open(__mp_src, 'rb')
+  if h then
+    local d = h:read('*a'); h:close()
+    if d then
+      d = d:gsub('^\239\187\191', ''):gsub('^#[^\n]*', '')
+      local f2, e2 = load(d, '@' .. __mp_src)
+      if f2 then __mp_f = f2 else __mp_e = e2 or __mp_e end
+    end
+  else
+    __mp_e = tostring(__mp_e) .. ' (' .. tostring(he) .. ')'
+  end
+end
+if not __mp_f then error('[LuaScripts] cannot load ' .. __mp_src .. ': ' .. tostring(__mp_e), 0) end
+__mp_f(...)
+]==]
   if readall(path) ~= body then
     local w = io.open(path, 'wb')
     if w then w:write(body); w:close() end

@@ -1493,6 +1493,17 @@ void UI::TitleStep(const char* s)
     if(s_nTitleFrames <= 2) logger->Info("Neon title frame %d: %s", s_nTitleFrames, s);   // flushed to mp_log.txt
 }
 bool HUD::TitleMenuBroken() { return s_bTitleBroken; }
+// 5.01.08: neon_mode.txt put (back) in the MP folder: the title menu is tried again (the crash guard still catches a
+// crash, at most 3 tries a run)
+bool HUD::TitleMenuRetry()
+{
+    static int s_nTries = 0;
+    if(!s_bTitleBroken) return true;
+    if(s_nTries >= 3) return false;
+    ++s_nTries; s_bTitleBroken = false;
+    logger->Info("Neon menu: the title menu crashed before - trying it again (%d/3)", s_nTries);
+    return true;
+}
 static void TitleFrameBody(ImGuiIO& io)
 {
     UI::TitleStep("fonts");

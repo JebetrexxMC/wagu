@@ -14,6 +14,9 @@ namespace NeonPaint
     bool Load(const char* mpDir);          // textures + font atlases (first title frame). false = not usable
     bool Ready();                          // Init + Load went through
     bool Failed();                         // Load was tried and failed (the stock menu stays)
+    bool Inited();                         // 5.01.08: Init found the game functions
+    const char* LastError();               // 5.01.08: the neon/ files that did not load ("" = all loaded)
+    void Retry();                          // 5.01.08: Load may be tried again (neon_mode.txt put back)
     float W();                             // screen size (RsGlobal)
     float H();
 

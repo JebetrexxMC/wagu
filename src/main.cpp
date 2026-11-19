@@ -1154,6 +1154,17 @@ extern "C" void MP_InstallTitleHook()
             return;
         }
     }
+    if(sym)
+    {   // 5.01.08: another libGTASA.so build: look the .got.plt slot up (like the loading screen hooks), chained with
+        // PCMenu / other mods - before this, PCMenu on such a build meant no hook at all and neon_mode.txt did nothing
+        void** s = Game::FindPltSlot((void*)sym, "_ZN10MobileMenu6RenderEv");
+        if(s && *s)
+        {
+            const bool ok = aml->HookPLT((void*)s, (void*)&HookOf_MobileMenu_Render, (void**)&MobileMenu_Render);
+            logger->Info("Neon menu: MobileMenu::Render slot hook (found slot, other build) %s", ok ? "on" : "FAILED");
+            if(ok) { MP::SetTitleHookInstalled(true); return; }
+        }
+    }
     if(sym && !pcmenu)
     {   // 4.13.33: another libGTASA.so build: a normal (inline) hook on MobileMenu::Render, so neon / mp still show
         HOOK(MobileMenu_Render, (void*)sym);

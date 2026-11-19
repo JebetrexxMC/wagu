@@ -79,8 +79,10 @@ namespace NeonEmbed { std::string Builtin(const std::string& dir, const char* na
 namespace {
     // 4.13.34: your own PNG in neon/ first; when it is missing or the game can't read it (a palette / 16-bit /
     // interlaced PNG, a JPEG renamed to .png, ...) the built-in one, so the neon / mp menus always show
+    std::string s_szErr;   // 5.01.08: what did not load (neon_mode_status.txt)
     bool LoadTex(const std::string& dir, const char* name)
     {
+        for(int i = 0; i < s_nTex; ++i) if(!strcmp(s_Tex[i].name, name)) return true;   // 5.01.08: loaded on an earlier try
         if(LoadTexOld(dir, name)) return true;
         const std::string b = NeonEmbed::Builtin(dir, name);
         if(b.empty()) return false;
@@ -154,21 +156,31 @@ bool NeonPaint::Load(const char* mpDir)
     NeonEmbed::Ensure(dir);   // 4.13.33: missing / old files come from the copy built into MP
     static const char* const kTex[] = { "art.png", "logo.png", "shade_left.png", "shade_bottom.png", "shade_top.png", "card_identity.png",
         "card_featured.png", "dialog.png", "button.png", "pill.png", "discord.png", "arrow.png", "arrow_down.png", "dot.png", "white.png" };
-    bool ok = true;
-    for(const char* n : kTex) if(!LoadTex(dir, n)) ok = false;
-    if(!LoadFont(dir, F_GOTHIC, "font_gothic")) ok = false;
-    if(!LoadFont(dir, F_CAPS, "font_caps")) ok = false;
-    if(!LoadFont(dir, F_UI, "font_ui")) ok = false;
-    if(!ok)
+    // 5.01.08: a texture that does not load no longer turns the whole neon menu off (it is just not drawn); only no
+    // font at all does. What failed goes to mp_log.txt + neon_mode_status.txt.
+    s_szErr.clear();
+    int texOk = 0, fontOk = 0;
+    for(const char* n : kTex) { if(LoadTex(dir, n)) ++texOk; else s_szErr += std::string(s_szErr.empty() ? "" : ", ") + n; }
+    static const char* const kFont[] = { "font_gothic", "font_caps", "font_ui" };
+    for(int i = 0; i < F_COUNT; ++i)
+    {
+        if(s_Font[i].tex || LoadFont(dir, i, kFont[i])) ++fontOk;
+        else s_szErr += std::string(s_szErr.empty() ? "" : ", ") + kFont[i] + ".png/.txt";
+    }
+    if(!fontOk)
     {
         s_bFailed = true;
-        logger->Error("Neon menu: files/TYFMC/MP/neon/ is incomplete - copy the TYFMC folder of the MP package again. The game's own menu is shown.");
+        logger->Error("Neon menu: files/TYFMC/MP/neon/ could not be read (%s) - copy the TYFMC folder of the MP package again. The game's own menu is shown.", s_szErr.c_str());
         return false;
     }
+    if(!s_szErr.empty()) logger->Error("Neon menu: not loaded (drawn without them): %s", s_szErr.c_str());
     s_bLoaded = true;
-    logger->Info("Neon menu: %d textures + 3 font atlases loaded from %s", s_nTex, dir.c_str());
+    logger->Info("Neon menu: %d/%d textures + %d/3 font atlases loaded from %s", texOk, (int)(sizeof(kTex) / sizeof(kTex[0])), fontOk, dir.c_str());
     return true;
 }
+const char* NeonPaint::LastError() { return s_szErr.c_str(); }
+bool NeonPaint::Inited() { return s_bInit; }
+void NeonPaint::Retry() { if(s_bFailed) { s_bFailed = false; logger->Info("Neon menu: trying the neon/ textures again"); } }
 
 const NeonPaint::Tex* NeonPaint::T(const char* name)
 {
