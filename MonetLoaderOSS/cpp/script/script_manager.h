@@ -3,6 +3,7 @@
 #include "script.h"
 #include <filesystem>
 #include <list>
+#include <unordered_set>
 
 namespace lua {
 class script_manager {
@@ -124,6 +125,23 @@ class script_manager {
 
   // MonetLoader for MP 3.8.1: MP's MonetLoader page
   static void reload_all_later() { _reload_all_later = true; }
+  // MonetLoader for MP 5.02: MP's Script Manager
+  static void mp_queue_load(const std::string& path)
+  {
+    std::filesystem::path p { path };
+    if (p.is_relative()) {
+      p = _root_path / p;
+    }
+    _queued_actions.push_back(script_action { 0, p.string(), script_action::action_type::load });
+  }
+  static void mp_queue(std::size_t id, bool reload)
+  {
+    if (_scripts.find(id) == _scripts.end()) {
+      return;
+    }
+    _queued_actions.push_back(script_action { id, "", reload ? script_action::action_type::reload : script_action::action_type::unload });
+  }
+  static std::unordered_set<std::string> mp_scripts_off();
   template <typename F>
   static void for_each_script(F fn)
   {

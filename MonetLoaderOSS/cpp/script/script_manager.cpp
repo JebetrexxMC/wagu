@@ -1,3 +1,5 @@
+#include <fstream>
+#include <unordered_set>
 #include <dlfcn.h>
 #include <cmath>
 #include "game/CEntity.h"
@@ -288,6 +290,29 @@ void lua::script_manager::one_off_load(std::filesystem::path path)
   }
 }
 
+// MonetLoader for MP: Script Manager off list
+static std::string mp_lower(std::string v)
+{
+  for (auto& c : v) {
+    if (c == '\\') c = '/';
+    else if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+  }
+  return v;
+}
+std::unordered_set<std::string> lua::script_manager::mp_scripts_off()
+{
+  std::unordered_set<std::string> out;
+  std::ifstream f { _root_path / "config" / "mp_scripts_off.txt" };
+  std::string line;
+  while (std::getline(f, line)) {
+    while (!line.empty() && (line.back() == '\r' || line.back() == ' ' || line.back() == '\t')) line.pop_back();
+    std::size_t b = line.find_first_not_of(" \t");
+    if (b == std::string::npos || line[b] == '#') continue;
+    out.insert(mp_lower(line.substr(b)));
+  }
+  return out;
+}
+
 void lua::script_manager::load_all()
 {
   std::filesystem::path path { _root_path };
@@ -302,9 +327,16 @@ void lua::script_manager::load_all()
   if (ec) {
     return;   // MP: no readable moonloader folder = no scripts (never throw into the game)
   }
+  // MonetLoader for MP: scripts switched off in MP's Script Manager (moon icon) stay off after a restart or a
+  // rejoin. config/mp_scripts_off.txt: one path per line, relative to moonloader/ ("foo.lua").
+  std::unordered_set<std::string> off = mp_scripts_off();
   for (auto& i : it) {
     std::error_code fe;
     if (i.is_regular_file(fe) && (i.path().extension() == ext_lua || i.path().extension() == ext_luac)) {
+      if (off.count(mp_lower(i.path().filename().string()))) {
+        logger::log<logger::LV_SYSTEM>(nullptr, "{} '{}'", "Switched off in the Script Manager:", i.path().string());
+        continue;
+      }
       load(i.path());
     }
   }
@@ -1502,4 +1534,116 @@ extern "C" __attribute__((visibility("default"))) void MonetMP_ReloadAll()
 extern "C" __attribute__((visibility("default"))) const char* MonetMP_Version()
 {
   return PROJECT_VERSION;
+}
+
+// ---- MonetLoader for MP 5.02: MP's Script Manager (moon icon: Scripts / Log / Last crashes / Shell / Settings) ----
+// All of these run on the game thread like the ones above. Load / unload / reload are queued and happen on the
+// next MonetLoader frame (the same queue script.load() and thisScript():unload() use).
+static void mp_clean(std::string& v)
+{
+  for (auto& c : v) {
+    if (c == '\t' || c == '\n' || c == '\r') c = ' ';
+  }
+}
+// One line per script: "id\tname\tfilename\tpath\tversion\tauthors\tstatus\tdescription\n" (status running|dead).
+extern "C" __attribute__((visibility("default"))) int MonetMP_ScriptsEx(char* buf, int n)
+{
+  if (!buf || n <= 0) {
+    return 0;
+  }
+  buf[0] = 0;
+  if (!lua::script_manager::initialized()) {
+    return 0;
+  }
+  std::string out;
+  int count = 0;
+  lua::script_manager::for_each_script([&](lua::script& s) {
+    std::string authors;
+    for (auto& a : s.info.authors) {
+      authors += (authors.empty() ? "" : ", ") + a;
+    }
+    std::string f[6] = { s.info.name.empty() ? s.info.filename : s.info.name, s.info.filename, s.info.path, s.info.version, authors, s.info.description };
+    for (auto& v : f) mp_clean(v);
+    out += std::to_string(s.id) + "\t" + f[0] + "\t" + f[1] + "\t" + f[2] + "\t" + f[3] + "\t" + f[4] + (s.dead || s.dying ? "\tdead\t" : "\trunning\t") + f[5] + "\n";
+    ++count;
+  });
+  std::snprintf(buf, static_cast<std::size_t>(n), "%s", out.c_str());
+  return count;
+}
+extern "C" __attribute__((visibility("default"))) void MonetMP_LoadPath(const char* path)
+{
+  if (path && *path && lua::script_manager::initialized()) {
+    lua::script_manager::mp_queue_load(path);
+  }
+}
+extern "C" __attribute__((visibility("default"))) void MonetMP_Unload(int id)
+{
+  if (lua::script_manager::initialized()) {
+    lua::script_manager::mp_queue(static_cast<std::size_t>(id), false);
+  }
+}
+extern "C" __attribute__((visibility("default"))) void MonetMP_Reload(int id)
+{
+  if (lua::script_manager::initialized()) {
+    lua::script_manager::mp_queue(static_cast<std::size_t>(id), true);
+  }
+}
+// Last crashes, newest first: "unix time\tname\tpath\terror\n".
+extern "C" __attribute__((visibility("default"))) int MonetMP_Crashes(char* buf, int n)
+{
+  if (!buf || n <= 0) {
+    return 0;
+  }
+  std::string out;
+  for (auto it = logger::mp_crashes.rbegin(); it != logger::mp_crashes.rend(); ++it) {
+    out += *it + "\n";
+  }
+  std::snprintf(buf, static_cast<std::size_t>(n), "%s", out.c_str());
+  return static_cast<int>(logger::mp_crashes.size());
+}
+extern "C" __attribute__((visibility("default"))) void MonetMP_ClearCrashes()
+{
+  logger::mp_crashes.clear();
+}
+// Shell: runs Lua code inside script <id> (its globals, its libs). "return x" shows x. Returns 1 ok, 0 error.
+extern "C" __attribute__((visibility("default"))) int MonetMP_Exec(int id, const char* code, char* out, int n)
+{
+  if (!out || n <= 0) {
+    return 0;
+  }
+  out[0] = 0;
+  lua::script* s = lua::script_manager::initialized() ? lua::script_manager::get_script(static_cast<std::size_t>(id)) : nullptr;
+  if (!s || s->dead || s->dying) {
+    std::snprintf(out, static_cast<std::size_t>(n), "%s", "pick a running script first");
+    return 0;
+  }
+  if (!code || !*code) {
+    return 1;
+  }
+  lua_State* L = s->state.lua_state();
+  int top = lua_gettop(L);
+  std::string src = code;
+  // like the MoonLoader console: try "return <code>" first so "playerPed" or "1+1" print their value
+  if (luaL_loadbuffer(L, ("return " + src).c_str(), src.size() + 7, "=shell") != 0) {
+    lua_pop(L, 1);
+    if (luaL_loadbuffer(L, src.c_str(), src.size(), "=shell") != 0) {
+      std::snprintf(out, static_cast<std::size_t>(n), "%s", lua_tostring(L, -1) ? lua_tostring(L, -1) : "syntax error");
+      lua_settop(L, top);
+      return 0;
+    }
+  }
+  int ok = lua_pcall(L, 0, LUA_MULTRET, 0) == 0;
+  std::string res;
+  int got = lua_gettop(L);
+  for (int i = top + 1; i <= got; ++i) {
+    lua_getglobal(L, "tostring");
+    lua_pushvalue(L, i);
+    const char* t = (lua_pcall(L, 1, 1, 0) == 0) ? lua_tostring(L, -1) : nullptr;
+    res += (res.empty() ? "" : "\t") + std::string(t ? t : "?");
+    lua_pop(L, 1);
+  }
+  if (!ok && res.empty()) res = "error";
+  std::snprintf(out, static_cast<std::size_t>(n), "%s", res.c_str());
+  lua_settop(L, top);
+  return ok;
 }

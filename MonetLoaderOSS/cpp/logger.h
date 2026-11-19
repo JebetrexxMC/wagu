@@ -1,6 +1,8 @@
 #pragma once
 #include "script/script.h"
 #include <spdlog/spdlog.h>
+#include <ctime>
+#include <deque>
 
 
 namespace logger {
@@ -14,6 +16,28 @@ enum levels {
   LV_SYSTEM = 5
 };
 void init();
+
+// MonetLoader for MP: the last crashes (newest last) for MP's Script Manager. One entry:
+// "unix time\tscript name\tscript path\terror text".
+inline std::deque<std::string> mp_crashes {};
+inline void mp_note_error(lua::script* script, const std::string& msg)
+{
+  if (!script) {
+    return;
+  }
+  if (msg != "Script died due to an error.") {
+    script->mp_last_error = msg;
+    return;
+  }
+  std::string e = script->mp_last_error;
+  for (auto& c : e) {
+    if (c == '\t') c = ' ';
+  }
+  mp_crashes.push_back(std::to_string(static_cast<long long>(std::time(nullptr))) + "\t" + script->info.name + "\t" + script->info.path + "\t" + e);
+  while (mp_crashes.size() > 30) {
+    mp_crashes.pop_front();
+  }
+}
 
 void invoke_message_callbacks(int level, lua::script* script, const std::string& msg);
 void invoke_script_message_callbacks(lua::script& script, const std::string& msg);
@@ -36,6 +60,7 @@ void log(lua::script* script, fmt::format_string<Args...> fmt, Args&&... args)
       spdlog::debug("{}", msg);
     }
   } else if constexpr (Level == LV_ERROR) {
+    mp_note_error(script, msg);
     if (script) {
       spdlog::error("{}: {}", script->info.name, msg);
     } else {

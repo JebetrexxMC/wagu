@@ -72,6 +72,7 @@ private:
   // if set to true, the script is going to die immediately and so all errors from event handlers are suppressed
   bool dying {};
   lua_info info {}; // info about script from lua functions, exported using script api
+  std::string mp_last_error {}; // MonetLoader for MP: last error text (MP's Script Manager "Last crashes" tab)
   // map of event handlers by name
   std::unordered_map<std::string, std::vector<sol::protected_function>> event_handlers {};
   std::unordered_set<std::string> commands {}; // names of registered commands (used to unregister them on unload)
