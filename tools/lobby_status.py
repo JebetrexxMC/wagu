@@ -13,7 +13,8 @@ retained/saved one), and writes:
   out/lobbies.json  - 5.01.04: public lobby brokers that answered (Mosquitto / HiveMQ / EMQX)
   out/regions.json  - 5.01.04: region brokers (regions.txt hosts) reachable from the internet on 1883
   out/peak.json     - 5.01.04: most players online today (UTC)
-  out/top.json      - 5.01.04: the busiest server right now
+  out/top.json      - 5.01.04: the busiest server right now (real players, not the Broker bot)
+  out/live.json     - 5.01.04: when the status was last refreshed
 
 Run by .github/workflows/live-status.yml every 10 minutes; the files are
 force-pushed to the `live-status` branch so main's history stays clean.
@@ -298,8 +299,12 @@ def main():
     today = now.isoformat()[:10]
     pk = max([0] + [int(h.get("players", 0)) for h in hist if h["t"][:10] == today])
     badge("peak.json", "peak today", "%d players" % pk, "blue")
-    top = max(servers, key=lambda s: s["players"], default=None)
-    badge("top.json", "busiest server", ("%s %d/%d" % (top["name"][:28], top["players"], top["max"])) if top and top["players"] else "none", "e2554b" if top and top["players"] else "lightgrey")
+    # 5.01.04: real players only - the default server always has its Broker bot (1/100 with nobody on it)
+    def real(s): return max(0, s["players"] - (1 if is_default(s) else 0))
+    top = max(servers, key=real, default=None)
+    badge("top.json", "busiest server", ("%s %d/%d" % (top["name"][:28], top["players"], top["max"])) if top and real(top) else "no players right now", "e2554b" if top and real(top) else "lightgrey")
+    # 5.01.04: "live status" badge from the data itself (a cancelled 6 h run made the workflow badge say failing)
+    badge("live.json", "live status", "updated %s UTC" % now.strftime("%b %d %H:%M"), "brightgreen")
     # Discord members / online (the invite API, no bot / widget needed)
     try:
         import urllib.request
