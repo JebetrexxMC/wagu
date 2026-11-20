@@ -33,3 +33,6 @@ bin/ViceLoader.apk
 release/MP-*-Package.zip
 release/MP-*-full.zip
 test/sampgate_test
+tools/pawn/bin/
+tools/pawn/build/
+tools/pawn/examples/*.amx

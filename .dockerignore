@@ -9,3 +9,5 @@
 !server/Makefile
 !server/mp_server.cpp
 !server/run_24_7.sh
+# 5.02.04: open.mp scripting submodules (not needed to build mp_server)
+third_party/omp-dev

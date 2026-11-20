@@ -1,0 +1,55 @@
+[submodule "third_party/omp-dev/sampctl"]
+	path = third_party/omp-dev/sampctl
+	url = https://github.com/mpsamp-open/sampctl.git
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp-stdlib"]
+	path = third_party/omp-dev/omp-stdlib
+	url = https://github.com/mpsamp-open/omp-stdlib.git
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/compiler"]
+	path = third_party/omp-dev/compiler
+	url = https://github.com/ThirtyFoxMCx00E1/compiler.git
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/qawno"]
+	path = third_party/omp-dev/qawno
+	url = https://github.com/ThirtyFoxMCx00E1/qawno.git
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/sampctl2"]
+	path = third_party/omp-dev/sampctl2
+	url = https://github.com/mpsamp-open/sampctl2.git
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/YSI-Includes"]
+	path = third_party/omp-dev/YSI-Includes
+	url = https://github.com/ThirtyFoxMCx00E1/YSI-Includes.git
+	branch = 5.x
+	shallow = true
+[submodule "third_party/omp-dev/amx_assembly"]
+	path = third_party/omp-dev/amx_assembly
+	url = https://github.com/ThirtyFoxMCx00E1/amx_assembly.git
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/code-parse.inc"]
+	path = third_party/omp-dev/code-parse.inc
+	url = https://github.com/ThirtyFoxMCx00E1/code-parse.inc.git
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/indirection"]
+	path = third_party/omp-dev/indirection
+	url = https://github.com/ThirtyFoxMCx00E1/indirection.git
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/md-sort"]
+	path = third_party/omp-dev/md-sort
+	url = https://github.com/ThirtyFoxMCx00E1/md-sort.git
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/open.mp-gdk"]
+	path = third_party/omp-dev/open.mp-gdk
+	url = https://github.com/ThirtyFoxMCx00E1/open.mp-gdk.git
+	branch = master
+	shallow = true

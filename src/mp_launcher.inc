@@ -2361,6 +2361,38 @@ static void LPageAbout(float W)
                "newest and safest version - and let the author know where you found the copy on Discord. Thank you for "
                "respecting the work and supporting the original creator.");
 
+    // 5.02.04: the official open.mp scripting repositories wagu uses (third_party/omp-dev submodules) - tap to open
+    LAboutHeading("OPEN.MP DEVELOPMENT (CROSSPLAY)");
+    LAboutPara("MP joins open.mp / SA-MP PC servers and the MP server runs open.mp Pawn gamemodes. Scripts are written "
+               "and compiled with the official open.mp tools below, so the same .amx runs on open.mp and on MP. "
+               "Tap a name to open its page.");
+    {
+        static const char* kOmpDev[][3] = {
+            { "compiler",       "Pawn compiler (pawncc)",          "https://github.com/ThirtyFoxMCx00E1/compiler" },
+            { "omp-stdlib",     "open.mp standard includes",       "https://github.com/mpsamp-open/omp-stdlib" },
+            { "qawno",          "open.mp Pawn editor",             "https://github.com/ThirtyFoxMCx00E1/qawno" },
+            { "sampctl",        "package manager / build tool",    "https://github.com/mpsamp-open/sampctl" },
+            { "sampctl2",       "package manager (second fork)",   "https://github.com/mpsamp-open/sampctl2" },
+            { "YSI-Includes",   "YSI 5 libraries",                 "https://github.com/ThirtyFoxMCx00E1/YSI-Includes" },
+            { "amx_assembly",   "AMX assembly helpers",            "https://github.com/ThirtyFoxMCx00E1/amx_assembly" },
+            { "code-parse.inc", "pre-processor parsing",           "https://github.com/ThirtyFoxMCx00E1/code-parse.inc" },
+            { "indirection",    "function pointers",               "https://github.com/ThirtyFoxMCx00E1/indirection" },
+            { "md-sort",        "array sorting",                   "https://github.com/ThirtyFoxMCx00E1/md-sort" },
+            { "open.mp-gdk",    "server component SDK",            "https://github.com/ThirtyFoxMCx00E1/open.mp-gdk" },
+            { "open.mp",        "open.mp server (crossplay)",      "https://github.com/openmultiplayer/open.mp" },
+        };
+        const int cols = 3; const float gw = (W - UI::S(12) * (cols - 1)) / cols, gh = UI::S(64);
+        ImVec2 o = ImGui::GetCursorScreenPos(); int n = (int)(sizeof(kOmpDev) / sizeof(kOmpDev[0]));
+        for(int i = 0; i < n; ++i)
+        {
+            ImGui::SetCursorScreenPos(ImVec2(o.x + (i % cols) * (gw + UI::S(12)), o.y + (i / cols) * (gh + UI::S(8))));
+            char id[24]; snprintf(id, sizeof(id), "abomp%d", i);
+            if(VBtn(id, kOmpDev[i][0], gw, gh, 0, true, IC_GLOBE)) Voice::OpenUrl(kOmpDev[i][2]);
+        }
+        ImGui::SetCursorScreenPos(ImVec2(o.x, o.y + ((n + cols - 1) / cols) * (gh + UI::S(8))));
+        for(int i = 0; i < n; ++i) ImGui::TextDisabled("%s  -  %s:  %s", kOmpDev[i][0], kOmpDev[i][1], kOmpDev[i][2]);
+    }
+
     LAboutHeading("THIRD-PARTY COMPONENTS");
     LAboutPara("GTA San Andreas and GTA Vice City are the property of Rockstar Games; MP is a fan-made mod and is not affiliated "
                "with or endorsed by Rockstar Games or Take-Two Interactive. MP uses AndroidModLoader, MonetLoader (OSS), Dear ImGui, "

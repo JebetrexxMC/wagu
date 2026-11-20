@@ -480,6 +480,18 @@ N(frename) { std::string a = SfPath(Str(amx, params[1])), b = SfPath(Str(amx, pa
 N(ftemp) { UNUSED_AMX; FILE* f = tmpfile(); if(!f) return 0; g_Samp->files.push_back(f); return (cell)g_Samp->files.size(); }
 N(dir_exists) { std::string p = SfPath(Str(amx, params[1])); struct stat st; return !p.empty() && stat(p.c_str(), &st) == 0 && S_ISDIR(st.st_mode); }
 N(dir_create) { std::string p = SfPath(Str(amx, params[1])); if(p.empty()) return 0; MkDirs(p + "/"); return 1; }
+// 5.02.04: open.mp file.inc natives used by omp-stdlib / YSI (fcreatedir is called by YSI at start-up)
+N(fcreatedir) { std::string p = SfPath(Str(amx, params[1])); if(p.empty()) return 0; MkDirs(p + "/"); struct stat st; return stat(p.c_str(), &st) == 0 && S_ISDIR(st.st_mode); }
+N(fflush) { FILE* f = FH(params[1]); return f && fflush(f) == 0; }
+N(ftell) { FILE* f = FH(params[1]); return f ? (cell)ftell(f) : -1; }
+N(ftouch) { std::string p = SfPath(Str(amx, params[1])); if(p.empty()) return 0; MkDirs(p); FILE* f = fopen(p.c_str(), "ab"); if(!f) return 0; fclose(f); return 1; }
+N(fcopy)
+{
+    std::string a = SfPath(Str(amx, params[1])), b = SfPath(Str(amx, params[2])); if(a.empty() || b.empty()) return 0;
+    FILE* i = fopen(a.c_str(), "rb"); if(!i) return 0; MkDirs(b); FILE* o = fopen(b.c_str(), "wb"); if(!o) { fclose(i); return 0; }
+    char buf[4096]; size_t n; while((n = fread(buf, 1, sizeof(buf), i)) > 0) fwrite(buf, 1, n, o);
+    fclose(i); fclose(o); return 1;
+}
 
 // ---- players --------------------------------------------------------------------------------------
 N(IsPlayerConnected) { return PlOk(params[1]); }
@@ -871,7 +883,7 @@ static const AMX_NATIVE_INFO g_SampNatives[] =
     R(SetTimer), R(SetTimerEx), R(KillTimer), R(IsValidTimer),
     R(SetPVarInt), R(GetPVarInt), R(SetPVarFloat), R(GetPVarFloat), R(SetPVarString), R(GetPVarString), R(DeletePVar), R(GetPVarType), R(GetPVarsUpperIndex), R(GetPVarNameAtIndex),
     R(SetSVarInt), R(GetSVarInt), R(SetSVarFloat), R(GetSVarFloat), R(SetSVarString), R(GetSVarString), R(DeleteSVar), R(GetSVarType),
-    R(fopen), R(fclose), R(fwrite), R(fread), R(fputchar), R(fgetchar), R(fblockwrite), R(fblockread), R(fseek), R(flength), R(fexist), R(fremove), R(frename), R(ftemp), R(dir_exists), R(dir_create),
+    R(fopen), R(fclose), R(fwrite), R(fread), R(fputchar), R(fgetchar), R(fblockwrite), R(fblockread), R(fseek), R(flength), R(fexist), R(fremove), R(frename), R(ftemp), R(dir_exists), R(dir_create), R(fcreatedir), { "fmkdir", n_fcreatedir }, R(fflush), R(ftell), R(ftouch), R(fcopy),
     R(IsPlayerConnected), R(IsPlayerNPC), R(IsPlayerAdmin), R(GetPlayerName), R(SetPlayerName), R(GetPlayerPing), R(GetPlayerState), R(GetPlayerPos), R(SetPlayerPos), R(SetPlayerPosFindZ),
     R(GetPlayerFacingAngle), R(SetPlayerFacingAngle), R(IsPlayerInRangeOfPoint), R(GetPlayerDistanceFromPoint), R(GetPlayerHealth), R(SetPlayerHealth), R(GetPlayerArmour), R(SetPlayerArmour),
     R(GetPlayerMoney), R(GivePlayerMoney), R(ResetPlayerMoney), R(GetPlayerScore), R(SetPlayerScore), R(GetPlayerSkin), R(SetPlayerSkin), R(GetPlayerInterior), R(SetPlayerInterior),
