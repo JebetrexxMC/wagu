@@ -1,5 +1,6 @@
 name: Pawn toolchain (open.mp compiler + omp-stdlib + YSI)
-# 5.02.04: builds pawncc from third_party/omp-dev/compiler, compiles tools/pawn/examples/*.pwn against
+# 5.02.04: builds pawncc from third_party/omp-dev/compiler, compiles tools/pawn/examples/*.pwn (5.02.05: and
+# third_party/omp-dev/examples/*/*.pwn, the YSI foreach + timers gamemode) against
 # omp-stdlib / YSI-Includes, then runs each .amx on the MP server (--samp-test) and on a real omp-server,
 # so the same script is known to work on both sides of the crossplay.
 on:
@@ -33,14 +34,14 @@ jobs:
         run: sh tools/pawn/build_pawncc.sh
       - name: Compile the examples
         run: |
-          for f in tools/pawn/examples/*.pwn; do sh tools/pawn/compile.sh "$f"; done
-          for a in tools/pawn/examples/*.amx; do
+          for f in tools/pawn/examples/*.pwn third_party/omp-dev/examples/*/*.pwn; do sh tools/pawn/compile.sh "$f"; done
+          for a in tools/pawn/examples/*.amx third_party/omp-dev/examples/*/*.amx; do
             m=$(od -An -tx1 -j4 -N2 "$a" | tr -d ' '); echo "$a magic $m"; [ "$m" = "e0f1" ] || exit 1
           done
       - name: Run on the MP server (--samp-test)
         run: |
           make -C server -j"$(nproc)" mp_server >/dev/null
-          for a in tools/pawn/examples/*.amx; do
+          for a in tools/pawn/examples/*.amx third_party/omp-dev/examples/*/*.amx; do
             out=$(timeout 60 server/mp_server --samp-test "$a" 2>&1); echo "$out" | tail -8
             echo "$out" | grep -q " is running (1 script(s), 0 objects, 0 missing natives)" || exit 1
           done
@@ -50,7 +51,7 @@ jobs:
           sudo dpkg --add-architecture i386 && sudo apt-get update -qq && sudo apt-get install -y -qq libc6:i386 libstdc++6:i386 libatomic1:i386 libgcc-s1:i386 >/dev/null
           curl -fL --retry 5 -o /tmp/omp.tgz "https://github.com/openmultiplayer/open.mp/releases/download/${OMP_VERSION}/open.mp-linux-x86.tar.gz"
           tar xzf /tmp/omp.tgz -C /tmp
-          for a in tools/pawn/examples/*.amx; do
+          for a in tools/pawn/examples/*.amx third_party/omp-dev/examples/*/*.amx; do
             n=$(basename "$a" .amx); cp "$a" /tmp/Server/gamemodes/
             python3 -c "import json,sys;p='/tmp/Server/config.json';c=json.load(open(p));c.setdefault('pawn',{})['main_scripts']=[sys.argv[1]+' 1'];c.setdefault('network',{})['port']=7799;json.dump(c,open(p,'w'),indent=1)" "$n"
             (cd /tmp/Server && timeout 10 ./omp-server > /tmp/$n.log 2>&1 || true)

@@ -26,6 +26,7 @@
 #include <deque>
 #include <array>
 #include <algorithm>
+#include <random>
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -89,7 +90,10 @@ uint16_t KeysFromFlags(uint8_t fl) { uint16_t k = 0; if(fl & SYNC_SHOOTING) k |=
 // one SA-MP / open.mp gpci: a random number * 1001 in upper-case hex (open.mp checks % 1001)
 std::string Gpci()
 {
-    uint8_t n[24] = { 0 }; for(int i = 0; i < 16; ++i) n[i] = (uint8_t)rand();
+    // 5.02.05: rand() was never seeded, so every MP phone sent the SAME serial (one gpci ban on a PC server
+    // = every MP player banned). Seed once per run from the OS.
+    static std::mt19937 rng{ std::random_device{}() ^ (unsigned)NowMs() };
+    uint8_t n[24] = { 0 }; for(int i = 0; i < 16; ++i) n[i] = (uint8_t)(rng() & 255);
     unsigned c = 0; for(int i = 0; i < 24; ++i) { unsigned v = n[i] * 1001u + c; n[i] = (uint8_t)(v & 255); c = v >> 8; }
     std::string out; bool lead = true;
     for(int i = 23; i >= 0; --i) for(int h = 1; h >= 0; --h) { int d = (n[i] >> (h * 4)) & 15; if(lead && !d) continue; lead = false; out += "0123456789ABCDEF"[d]; }
@@ -709,8 +713,17 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
     BitStream bs(r.data.data(), (unsigned)r.data.size(), false);
     const int s = I.phoneSlot;
     float v[3], w3[3]; uint8_t u8a = 0, u8b = 0; uint16_t u16a = 0; uint32_t u32a = 0, u32b = 0; int32_t i32 = 0; float fa = 0;
+    static const bool dbg = getenv("MP_GATE_DEBUG") != nullptr;   // 5.02.05: host test, print every RPC from the PC server
+    if(dbg) printf("[crossplay rpc] %d (%u bytes)\n", r.id, (unsigned)r.data.size());
     switch(r.id)
     {
+        case 103:  // 5.02.05: ClientCheck (SendClientCheck). The PC 0.3.7 client always answers; scripts that get
+        {          // no answer to 0x48 treat the player as an Android client / bot and many PC servers kick them.
+            uint8_t type = 0; uint32_t addr = 0; uint16_t off = 0, cnt = 0;
+            if(!bs.Read(type) || !bs.Read(addr)) break; bs.Read(off); bs.Read(cnt);
+            BitStream o; o.Write(type); o.Write(addr); o.Write((uint8_t)0); CliRpc(I, 103, o);
+            break;
+        }
         case 139:  // InitGame
         {
             bool b; float f;

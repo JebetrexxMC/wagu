@@ -36,3 +36,5 @@ test/sampgate_test
 tools/pawn/bin/
 tools/pawn/build/
 tools/pawn/examples/*.amx
+third_party/omp-dev/examples/**/*.amx
+third_party/omp-dev/examples/**/*_samp/

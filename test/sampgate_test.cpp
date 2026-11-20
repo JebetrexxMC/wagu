@@ -82,7 +82,8 @@ int main(int argc, char** argv)
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     };
-    pump(6000, true);
+    // 5.02.05: big PC servers (500+ players) can take longer: MP_GATE_WAIT=<ms> (default 6000)
+    pump(getenv("MP_GATE_WAIT") ? atoi(getenv("MP_GATE_WAIT")) : 6000, true);
     CHECK(ev.ok, "phone joined the private MP server");
     CHECK(gate.RemoteJoined(), "gate joined the PC server (InitGame)");
     printf("  status: %s\n", gate.Status().c_str());

@@ -100,6 +100,11 @@ namespace RakNet
 		/// \param[in] MTUSize maximum datagram size
 		/// \retval true Success
 		/// \retval false Modified packet
+		/// MP 5.02.05: true on the phone's connection to a PC server. The SA-MP flood limits
+		/// (messageslimit / ackslimit / messageholelimit) are server-side checks on clients; a PC server's
+		/// join burst (objects, textdraws: 500-900 messages a second) must not make the phone drop it.
+		bool clientSide = false;
+
 		bool HandleSocketReceiveFromConnectedPlayer( const char *buffer, int length, PlayerID playerId, DataStructures::List<PluginInterface*> &messageHandlerList, int MTUSize, bool &shouldBanPeer );
 
 		/// This allocates bytes and writes a user-level message to those bytes.

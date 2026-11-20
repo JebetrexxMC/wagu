@@ -4184,6 +4184,7 @@ namespace RakNet
 
 			// Handle regular incoming data
 			// HandleSocketReceiveFromConnectedPlayer is only safe to be called from the same thread as Update, which is this thread
+			remoteSystem->reliabilityLayer.clientSide = SAMPRakNet::IsClientSocket(rakPeer->connectionSocket);
 			if ( remoteSystem->reliabilityLayer.HandleSocketReceiveFromConnectedPlayer( data, length, playerId, rakPeer->messageHandlerList, rakPeer->MTUSize, shouldBanPeer ) == false )
 			{
 				// These kinds of packets may have been duplicated and incorrectly determined to be

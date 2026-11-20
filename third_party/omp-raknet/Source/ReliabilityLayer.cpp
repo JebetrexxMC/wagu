@@ -378,6 +378,10 @@ bool ReliabilityLayer::HandleSocketReceiveFromConnectedPlayer( const char *buffe
 	acksLimit = SAMPRakNet::GetAcksLimit();
 	messageHoleLimit = SAMPRakNet::GetMessageHoleLimit();
 	messagesLimit = SAMPRakNet::GetMessagesLimit();
+	if (clientSide)
+	{	// MP 5.02.05: never flood-check the PC server we joined (see ReliabilityLayer.h)
+		acksLimit = 0xFFFFFFFFu; messageHoleLimit = 0xFFFFFFFFu; messagesLimit = 0xFFFFFFFFu;
+	}
 
 	DataStructures::RangeList<MessageNumberType> incomingAcks;
 	socketData.Read(hasAcks);

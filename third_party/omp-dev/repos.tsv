@@ -1,0 +1,117 @@
+# category	repository	pinned commit	branch	upstream	description
+sdk	ThirtyFoxMCx00E1/open.mp-capi	d952ccb75511fe50880d9bd1fe0648bb2a172d30	master	openmultiplayer/open.mp-capi	C-API SDK for open.mp
+sdk	ThirtyFoxMCx00E1/open.mp-sdk	08cc69a32d96c0eb8fe063d26c78259e54ca853f	master	openmultiplayer/open.mp-sdk	The open.mp SDK
+sdk	ThirtyFoxMCx00E1/samp-plugin-boilerplate	a3896660c5e4e7688cf38b3b8833925f4270ab8b	master	Southclaws/samp-plugin-boilerplate	Boilerplate setup for a SA:MP plugin - uses CMake, plugin-natives, Docker and sampctl
+sdk	ThirtyFoxMCx00E1/glm	6f14f4792a0cde5d0cf2c910506724d61cb95834	master	g-truc/glm	OpenGL Mathematics (GLM)
+editors	ThirtyFoxMCx00E1/pawn-sublime-language	b83dab341b1da7af10937a61d49349009c30f1ee	master	Southclaws/pawn-sublime-language	Pawn language settings for Sublime Text 3. Copied from C++ but with Pawn language and SA:MP specific modifications.
+sdk	ThirtyFoxMCx00E1/samp-plugin-sdk	a5ce36a9b6ebbea6ad36705603f653bf3d4f41c5	master	maddinat0r/samp-plugin-sdk	This provides an interface to call AMX library functions within SA-MP server.
+sdk	ThirtyFoxMCx00E1/samp-ptl	06b5e2b9c51879532368dd9e468b5e259ce5d7ce	master	katursis/samp-ptl	SA:MP Plugin Template Library (C++17)
+sdk	ThirtyFoxMCx00E1/samp-plugin-runner	aa643c0ce84b5581ac63d1fa3f1ea2b6ecc903f8	master	Y-Less/samp-plugin-runner	Utility program to run tests against plugins
+sdk	ThirtyFoxMCx00E1/sampgdk-backup	572bd26af26e674ecbb13be603b392ed2533cab4	main	Foundation-PAWN/sampgdk-backup	Backup of GDK SA-MP by Zeex 
+stdlib	ThirtyFoxMCx00E1/pawn-stdlib	e96507d9a6ddaae5bb0f3ec31479ba805aeff964	master	pawn-lang/pawn-stdlib	The Pawn Standard Library Package, not including any files related to SA:MP - designed for the sampctl package management system.
+sdk	ThirtyFoxMCx00E1/robin-hood-hashing	7697343363af4cc3f42cab17be49e6af9ab181e2	master	martinus/robin-hood-hashing	Fast & memory efficient hashtable based on robin hood hashing for C++11/14/17/20
+stdlib	ThirtyFoxMCx00E1/samp-stdlib	8ffb055624308b25521665b60e78b5e6e6b3717f	master	pawn-lang/samp-stdlib	The San Andreas Multiplayer Pawn Standard Library Package - designed for the sampctl package management system.
+editors	ThirtyFoxMCx00E1/vscode-pawn	748913cd015700b5bea2fb88decbf823e38c02c4	master	Southclaws/vscode-pawn	Pawn tools for vscode, powered by sampctl.
+includes	ThirtyFoxMCx00E1/pawn-requests	b69ce65eb7242da6d5b706487fc1db59eda5e281	master	Southclaws/pawn-requests	pawn-requests provides an API for interacting with HTTP(S) JSON APIs.
+includes	ThirtyFoxMCx00E1/PawnPlus	84d4c98def99657e261715da084318a486505813	master	IS4Code/PawnPlus	A SA-MP plugin enhancing the capabilities of the Pawn programming language
+includes	ThirtyFoxMCx00E1/pawn-test-scripts	20053314d7e313a64a01ece1d14e42b381df30ab	master	openmultiplayer/pawn-test-scripts	Pawn test scripts to check open.mp natives implementation
+includes	ThirtyFoxMCx00E1/sa-mp-fixes	b19c48eff81ad18cf04608cfefe908a8e4abe361	master	pawn-lang/sa-mp-fixes	Includes and plugins to fix various issues in the SA:MP server that can be fixed externally, leaving the devs time for other things.
+includes	ThirtyFoxMCx00E1/samp-geoip	cf29658f08dccac12632455ca3d983640a657e0c	master	Southclaws/samp-geoip	A simple library that provides information from IPHub for connected players.
+includes	ThirtyFoxMCx00E1/foreach	51bf9559076486444bb09fcd8eb0b5a0d3f1a89d	master	Open-GTO/foreach	foreach standalone include (non y_iterate version)
+includes	ThirtyFoxMCx00E1/progress2	c36a769380595318b9389292207747b922d6c7d2	master	Southclaws/progress2	A SA:MP UI library for rendering progress bars used to visualise all manner of data from health to a countdown timer.
+includes	ThirtyFoxMCx00E1/sqlitei	966dd66282628c4fb713369a25f951281343a230	master	oscar-broman/sqlitei	High-level API for the SA-MP SQLite functions.
+includes	ThirtyFoxMCx00E1/samp-weapon-config	9ad47718321c1887745f3cbac50478f2680e6300	master	oscar-broman/samp-weapon-config	A more consistent and responsive damage system with many new features
+includes	ThirtyFoxMCx00E1/GameText-Plus	be1c14aa514f95387a9cfc3af7f293ccf2167299	main	itsneufox/GameText-Plus	GameText+ enhances GameText features
+includes	ThirtyFoxMCx00E1/samp-weapon-data	ef38564168a04041d50ea8416794d80ce2335f4a	master	Southclaws/samp-weapon-data	With this library you can finely tune weapon damage based on distance. Using min/max range values, a weapon's damage varies depending on the distance between the shooter and the target.
+includes	ThirtyFoxMCx00E1/sa-mp-extended-vehicle-information	4e4d6a05df143e99a87322251817366343758be8	master	Vince0789/sa-mp-extended-vehicle-information	SQLite database of Grand Theft Auto San Andreas' vehicles for use with San Andreas Multiplayer modification.
+includes	ThirtyFoxMCx00E1/samp-server-weapons	fe387d741733fd261026695c7c8872e6fff0af41	main	Brunoo16/samp-server-weapons	Weapons totally controlled by the server.
+includes	ThirtyFoxMCx00E1/samp-aviation	e5114612133cb9a709576a1b3eecbe4727535a50	master	Southclaws/samp-aviation	A basic pitch-based altitude and roll-based heading autopilot for SA-MP. Based on real autopilot behaviour with some adjustments made for the simple physics of San Andreas.
+includes	ThirtyFoxMCx00E1/actor_robbery	2cc4434b0de004d80b7ae076af91f389761b28eb	master	PatrickGTR/actor_robbery	
+includes	ThirtyFoxMCx00E1/MV_Youtube	a9227e8afb5ec125c2decb9507d7e014cfffbe1e	master	MichaelBelgium/MV_Youtube	[MV]_Youtube, Stream youtube links into your SA:MP Server
+includes	ThirtyFoxMCx00E1/MySQL-Prepared-Statements	81dc642ce15c6478ec0daec91380460159b9dfb5	master	PatrickGTR/MySQL-Prepared-Statements	Prepared Statement implementation for PAWN MySQL
+includes	ThirtyFoxMCx00E1/mdialog	cfe94dacc08a2814bbbbcabf4baa405975c0ac09	master	Open-GTO/mdialog	Modern dialog system
+includes	ThirtyFoxMCx00E1/samp-include-rscan	46c9b345748ad090d0243d3b3bc35b733df03d46	master	tdworg/samp-include-rscan	
+includes	ThirtyFoxMCx00E1/easyDialog	165f251222802bd5450a4b0dc2ae785ea75e8878	master	Awsomedude/easyDialog	easyDialog include by Emmet_
+includes	ThirtyFoxMCx00E1/samp-logger	bec0c945a59c79366b2a04294bdd818cc086741d	master	Southclaws/samp-logger	Structured logging for Pawn.
+includes	ThirtyFoxMCx00E1/Model-Sizes-Plus	0f5efe7d85b10bcd8b12e10143b446ec0c87c388	master	Crayder/Model-Sizes-Plus	Updated, advanced, more precise version of the old modelsizes include.
+includes	ThirtyFoxMCx00E1/samp-async-dialogs	bd4aacd59f5c7170d234bb973b07d60ca66f7caf	master	AGraber/samp-async-dialogs	Task-based SA-MP dialogs
+includes	ThirtyFoxMCx00E1/physics.inc	f70958064fda2f2e42135d33932a2a83a2d79cd2	master	uPeppe/physics.inc	physics.inc - SA-MP library to simulate 2D and 3D physics (realistic movements, collisions, and more)
+includes	ThirtyFoxMCx00E1/strlib	d48c74a65f03131381404fdc8e64873384e4c9b8	master	oscar-broman/strlib	String functions for SA-MP Pawn scripting.
+includes	ThirtyFoxMCx00E1/vending	02c5514436195714b7dab0f507012c49792fa0e2	master	wuzi/vending	Server-side vending machines for SA-MP
+includes	ThirtyFoxMCx00E1/archive	08a450d21c8f118cb72c034b5821cc822eee50df	master	openmultiplayer/archive	Archived material from the old community forums. 🕯 4/11 😔
+includes	ThirtyFoxMCx00E1/New-SA-MP-callbacks	26cb50a39c240d05f9669cad2b6725582b17b4d1	master	emmet-jones/New-SA-MP-callbacks	A collection of useful and custom scripted SA-MP callbacks.
+includes	ThirtyFoxMCx00E1/rotations.inc	0beecb709c196e3ee64dee41d001009cf0f33495	master	sampctl/rotations.inc	This include gives you the possibility to convert rotations
+includes	ThirtyFoxMCx00E1/samp-command-guess	0785dd4fab8731340812037fff4cded3f614284d	2.x	Se8870/samp-command-guess	SA-MP Command guesser to correct player mistakes when typing a command.
+includes	ThirtyFoxMCx00E1/mathutil	c7da0b5e056ef08456e8b0521164a6e2eac963c7	master	ScavengeSurvive/mathutil	A collection of useful mathematical functions. Documentation in source code.
+includes	mpsamp-open/eSelection	69df394fe8e43c27fed46c2387b3699c168c8978	master	TommyB123/eSelection	Dynamic model selection library for SA-MP servers
+includes	ThirtyFoxMCx00E1/samp-distance	eecf503ee95a271ac475509863591dd38afe22f5	master	Y-Less/samp-distance	
+includes	ThirtyFoxMCx00E1/Alternative-Dialogs	60457ec4fe2106d1a92c9b8c67d398066cfa37c5	master	NexiusTailer/Alternative-Dialogs	Dialogs with a new design
+includes	ThirtyFoxMCx00E1/mSelection	1034f6a4e4ceda23bc90c70e817fc10aa0b76680	master	alextwothousand/mSelection	mSelection converted over to sampctl
+includes	ThirtyFoxMCx00E1/SAMP-RGB-Textdraw	b266ef368c2f5d104bd1582d82ec071e12377f8e	main	adib-yg/SAMP-RGB-Textdraw	rgb-textdraw is an include for sa-mp.  You can add RGB to textdraw, textdraw colour will change smoothly.
+includes	ThirtyFoxMCx00E1/I-ZCMD	02f01a760d471f2edb5b74bc097ddfb09f5df779	master	YashasSamaga/I-ZCMD	Improved ZCMD
+includes	ThirtyFoxMCx00E1/IsPlayerUsingAndroid	69a9ab7f22edf8707d1429ef001b0536ccb64288	master	Fairuz-Afdhal/IsPlayerUsingAndroid	A filterscript that checks if a player is using android
+plugins	ThirtyFoxMCx00E1/Pawn.CMD	8b4505d95b641f2485fb1ce6d535d27f126bfb94	master	katursis/Pawn.CMD	🚀 Plugin-powered command processor for SA:MP server
+plugins	ThirtyFoxMCx00E1/samp-plugin-crashdetect	a537639234afcd16aa7b2bedb2d09927df4105ac	master	AmyrAhmady/samp-plugin-crashdetect	Crash/error reporting plugin for SA-MP server 
+plugins	ThirtyFoxMCx00E1/samp-plugin-jit-backup	f60bfa0297fcab45405097fbdd1106c73dbb5dd7	main	Foundation-PAWN/samp-plugin-jit-backup	Backup of JIT plugin for SA-MP server (JIT compiler for Pawn 3.2)  by Zeex
+plugins	ThirtyFoxMCx00E1/samp-plugin-profiler-backup	009c43653fce279dab05da628115783012be6d4e	main	Foundation-PAWN/samp-plugin-profiler-backup	Backup of performance profiler plugin for SA-MP server by Zeex
+plugins	ThirtyFoxMCx00E1/FCNPC	e6a9311e002c174f5f0238e0eae26354182de521	master	ziggi/FCNPC	FCNPC - Fully Controllable NPC
+plugins	ThirtyFoxMCx00E1/SA-MP-MySQL	9524fcc9088004948770ddd6e05a6074581d3095	master	pBlueG/SA-MP-MySQL	MySQL plugin for San Andreas Multiplayer
+plugins	ThirtyFoxMCx00E1/SA-MP-FileManager	3910fa5eeaaf2282b95615ceac1ef169d3519c02	master	JaTochNietDan/SA-MP-FileManager	A file management plugin for SA-MP servers
+plugins	ThirtyFoxMCx00E1/samp-precise-timers	c1f1ba3823240bb2c02b822a9f8d038a00a582ee	main	bmisiak/samp-precise-timers	A plugin for SA-MP providing precise timers, written in Rust.
+plugins	ThirtyFoxMCx00E1/Pawn.RakNet	dacb88d1c05d56614e6d2c6cd760d7dd6bba0df8	omp	katursis/Pawn.RakNet	🛡 Plugin for SA:MP 0.3.7 server that allows you to capture and analyze RakNet traffic
+plugins	ThirtyFoxMCx00E1/samp-streamer-plugin	49d48e515b9a095f016fb6a208a2cd94c42acda5	master	samp-incognito/samp-streamer-plugin	 Streamer Plugin for SA-MP (San Andreas Multiplayer)
+plugins	ThirtyFoxMCx00E1/pawn-memory	13803dfb689392543c2887350aff71e5739d3a8d	master	BigETI/pawn-memory	PAWN memory access plugin
+plugins	ThirtyFoxMCx00E1/pawn-scraper	8c26660be5b8fbeb9b9e2085aa54df16e8946d3f	master	Sreyas-Sreelal/pawn-scraper	Web scraping with HTML parsers and querying with CSS selectors in pawn (WIP)
+plugins	ThirtyFoxMCx00E1/SKY	2f8e9b1f27b825369430c946134ff43c33618e90	master	oscar-broman/SKY	SKY - Slice's fork of kurta999's fork of YSF
+plugins	ThirtyFoxMCx00E1/samp-plugin-totp	19a501f82d074c0625df21b8ac6fdaa7ce7ab6a5	master	philip1337/samp-plugin-totp	TOTP Authentication API (Google Authenticator)
+plugins	ThirtyFoxMCx00E1/samp-dns-plugin	2f34a5fbd0c53e70a300293753edbde3077e1a63	master	samp-incognito/samp-dns-plugin	DNS Plugin for SA-MP (San Andreas Multiplayer)
+plugins	ThirtyFoxMCx00E1/samp-custom-query-flood-check	f60e1e4742ebd2a1d09eb8b1172f8eddb22511a9	master	spmn/samp-custom-query-flood-check	Write custom protections against query flood in PAWN
+plugins	ThirtyFoxMCx00E1/ColAndreas	afe3da7e6ba170777fdb021f8b8d5b7e20752523	master	Pottus/ColAndreas	Collision Plugin For San Andreas Multiplayer
+plugins	ThirtyFoxMCx00E1/YSF	a0ecd5fc3b3e3af1c185ea575052bbae3cee22a5	master	IS4Code/YSF	YSF Server Functions
+plugins	ThirtyFoxMCx00E1/Pawn.Regex	92b3d72cb95d914a907fd239cf14b5ba497e2122	master	katursis/Pawn.Regex	🔎 Plugin that adds support for regular expressions in Pawn
+plugins	ThirtyFoxMCx00E1/NativeFallback	0311d91ed2a3ee10dc44681cce03818c93290b74	master	IS4Code/NativeFallback	SA-MP plugin that provides fallback implementation to unregistered natives
+plugins	ThirtyFoxMCx00E1/samp-tsconnector	fbc4fc5c470a9ed6f9aca5d55dc0b0fb9d233545	master	maddinat0r/samp-tsconnector	A plugin for SA-MP to control a Teamspeak3 Server from the gamemode
+plugins	ThirtyFoxMCx00E1/sampml	dc84110b53b120caeeb4c0234fcfd6ab16793c59	master	YashasSamaga/sampml	Aimbot Detection
+plugins	ThirtyFoxMCx00E1/samp-plugin-mapandreas	3d9ae944356ea1d5976dc6721c6a3a2132ac5c09	master	Southclaws/samp-plugin-mapandreas	
+plugins	ThirtyFoxMCx00E1/samp-irc-plugin	ae5fd47a5135e593755ef11809970be76f066eab	master	samp-incognito/samp-irc-plugin	IRC Plugin for SA-MP (San Andreas Multiplayer)
+plugins	ThirtyFoxMCx00E1/samp-chatbot	f80bbbc31f2a9d68e2f9a8df073dc17dc6d97839	main	SimoSbara/samp-chatbot	Chat Bot API for GTA SAMP
+plugins	ThirtyFoxMCx00E1/SAMPSON	3b391725c320a135a11ccf51e72bb94fa65f289b	master	Hual/SAMPSON	SAMPSON - A JSON plugin for SA-MP
+plugins	ThirtyFoxMCx00E1/samp-discord-connector	c4797c25bf9f8749db5a4033b895906784bcd727	master	maddinat0r/samp-discord-connector	SA:MP plugin which controls a Discord bot
+plugins	ThirtyFoxMCx00E1/samp-bscrashfix	2a54cc5caeca0c9a5ead0f7d33bf4884e5a63aa0	master	AmyrAhmady/samp-bscrashfix	
+plugins	ThirtyFoxMCx00E1/pawn-json	9ff7d351bab133c4ce511efeb83f7cead838df43	master	Southclaws/pawn-json	JSON for Pawn.
+plugins	ThirtyFoxMCx00E1/pawn-chrono	f066b40ef9ee5c7fc6d984c33fef6bb35795fbce	master	Southclaws/pawn-chrono	A modern Pawn library for working with dates and times.
+plugins	ThirtyFoxMCx00E1/keylistener	6b12d09961ecb0b87ccdf89e3a360a0937c2d701	master	CyberMor/keylistener	Client-server plugin to track the pressing of any key.
+plugins	ThirtyFoxMCx00E1/tgconnector	81d3a9a68747d31cf58d4bbb3d5c369eeba55686	master	Sreyas-Sreelal/tgconnector	Telegram connector for samp
+plugins	mpsamp-open/sampvoice	90e08665e17749e07df2b95662edca89756ba6c4	master	CyberMor/sampvoice	Software Development Kit for implementing Pawn voice systems for SA:MP servers.
+plugins	ThirtyFoxMCx00E1/rustext	1a9b037bc704e6443d69ffdf883ca9bc5de44144	master	ziggi/rustext	Fix Russian text plugin for SA-MP: GameText's, TextDraw's and Menu's
+plugins	ThirtyFoxMCx00E1/samp-cef	f14fe4fa7f0d036edf445ba02b4bddd4cccac377	master	zottce/samp-cef	Client and server plugins for SA:MP to embed CEF.
+plugins	ThirtyFoxMCx00E1/SAMP_AC_v2	6d28f7d0798825dd61c8a4f8f8b1c1ffb01dff49	master	Whitetigerswt/SAMP_AC_v2	Version 2.0 of SAMP Anti-Cheat. Supported from 2014-2017
+crypto	mpsamp-open/bcrypt-samp2	9cd50ff2f0b79a236a558d11d78b544441dcb256	master	lassir/bcrypt-samp	An implementation of the bcrypt hashing algorithm for SA-MP
+langs	ThirtyFoxMCx00E1/.NET-plugin	cfd9b7bdc386f24de9275e727f84274d5cbf4344	master	Seregamil/.NET-plugin	
+plugins	ThirtyFoxMCx00E1/Advanced-SA-NickName	a350cd97bd5b3433ae994e56474d933a20cee9a8	master	KrYpToDeN/Advanced-SA-NickName	
+crypto	ThirtyFoxMCx00E1/samp-crypto	00ac1b101724a651c2f7e75ad86c30812daaf8b8	master	alextwothousand/samp-crypto	A SAMP cryptography plugin written in Rust
+langs	ThirtyFoxMCx00E1/sampgo	c5356607bc8782a0f073be4faf1bcd521b1e82ac	experimental	sampgo/sampgo	sampgo is a SDK that allows you to write samp gomodes (aka gamemodes) in Go.
+langs	ThirtyFoxMCx00E1/ompgo	939c5b736fdea6d4bb9dd1edd0a0e5140ef20420	main	ompgo-dev/ompgo	ompgo is an sdk/framework for building gamemodes/components for open.mp in golang
+plugins	ThirtyFoxMCx00E1/pawn-redis	b1fc93e25bdef00e0049ec522b033bc03db8e842	master	Southclaws/pawn-redis	Redis client for the Pawn language
+plugins	ThirtyFoxMCx00E1/SA-MP-Plus	81a329175f9992a88a56591b38b2a7576ac9040c	master	Hual/SA-MP-Plus	A client modification for GTA:San Andreas that uses SA-MP's plugin SDK to interact with the SA-MP server and add new features
+langs	ThirtyFoxMCx00E1/SampSharp	e3aa1ea74b9cdc263eb8712250b109ab04559692	main	ikkentim/SampSharp	A framework for writing game modes for open.mp and SA-MP in C#. SA-MP is a free Massively Multiplayer Online game mod for the PC version of Rockstar Games Grand Theft Auto: San Andreas.
+langs	ThirtyFoxMCx00E1/ShoebillPlugin	2c47c015a080de34a82c230caf306f7ff80ad9fa	master	Shoebill/ShoebillPlugin	
+plugins	ThirtyFoxMCx00E1/chandling	6ade726e174fe3fc1793d96791f1b32adc1d4b33	master	dotSILENT/chandling	SA:MP client plugin allowing per-vehicle handling modifications
+langs	ThirtyFoxMCx00E1/samp-node	671643925c824c4be1d84f722ce4a0fcc4551814	master	AmyrAhmady/samp-node	a SA-MP plugin to run nodejs scripts
+crypto	ThirtyFoxMCx00E1/samp-bcrypt	c60e68d483a95d109855fdd7517425c0363fd10c	master	Sreyas-Sreelal/samp-bcrypt	A bcrypt plugin for samp. 
+langs	ThirtyFoxMCx00E1/kamp	af07b6048210ed6990e8b430b3a091dc6f64c6d9	master	Double-O-Seven/kamp	A Kotlin API for San Andreas Multiplayer (SA-MP)
+langs	ThirtyFoxMCx00E1/SAMPHP	d4524a1997722d12549039ca25e20ce06eda74a9	master	Lapayo/SAMPHP	
+gamemodes	ThirtyFoxMCx00E1/omp-base-script	9c9512166896d1a3659f36851034c9b0f46dff83	master	midosvt/omp-base-script	Simple and solid base script for open.mp/SA:MP.  Uses MySQL for data handling and BCrypt for password hashing.  Good starting point for writing your own gamemode.
+gamemodes	ThirtyFoxMCx00E1/ScavengeSurvive	399ba8e8fd164243b32fb694f4bb6ce37fe40c35	master	Southclaws/ScavengeSurvive	A PvP SA:MP survival gamemode. The aim of the game is to find supplies such as tools or weapons to help you survive, either alone or in a group.
+langs	ThirtyFoxMCx00E1/YALP	78965ec8b779a9e930ce6be2fd3ad7e9e8cc0619	master	IS4Code/YALP	Yet Another Lua Plugin for SA-MP
+langs	ThirtyFoxMCx00E1/PySAMP	2847f34272e94d437a8b14f44105173b9f50ff9c	main	pysamp/PySAMP	Create SA-MP gamemodes with Python
+tools	ThirtyFoxMCx00E1/TextDraw-Editor	095b2e557d3e51c294ec84d60a412bef3af05431	master	Nickk888SAMP/TextDraw-Editor	A TextDraw editor for SA-MP with rich features.
+gamemodes	ThirtyFoxMCx00E1/SC-RP	66233ebce12d4b3c7a77218b5effb73b64fed79b	master	seanny/SC-RP	South Central Roleplay.
+tools	ThirtyFoxMCx00E1/Ultimate-Creator	be224544e650803ab078428c5a084e6cf7aebf8a	master	NexiusTailer/Ultimate-Creator	Advanced map editor
+gamemodes	mpsamp-open/gta-open	c7630a5751827c23cf06308fd7b2d0095801e76e	master	PatrickGTR/gta-open	A gamemode made for open.mp, using open.mp naming conventions and best coding practices!
+gamemodes	ThirtyFoxMCx00E1/MapFix	e92a6662ac6e834a77ae97222dfa13a0572a919b	master	NexiusTailer/MapFix	Texture bug fixes
+tools	ThirtyFoxMCx00E1/Texture-Studio	954e0cca6b2024a712751e657fa6236dfd44bef8	master	Pottus/Texture-Studio	
+gamemodes	ThirtyFoxMCx00E1/SA-MP-Development	a059abaebda0f2dff3c2e0f95ee4c9c5696406c7	master	NextGenerationGamingLLC/SA-MP-Development	The Next Generation Gaming, LLC SA:MP Gamemode
+tools	ThirtyFoxMCx00E1/samp-animbrowse	058fc1578bb3ad542a5c0d5735fbf308e347ba1f	master	Southclaws/samp-animbrowse	Browse and search through the entire GTA:SA animation library with ease.
+tools	ThirtyFoxMCx00E1/Map-Editor-V3	aac9015b63fb8c6a49c1bf0fda2a0c5518aec838	master	simonseidel/Map-Editor-V3	Fusez Map Editor Version 3 - This is a map editor for SA:MP
+plugins	bitbucket:Pamdex/pathfinder	3bfbdc15de4613f1ee19ede07305c9c2261d96b7	master		Pathfinder plugin (Pamdex): GPS paths on the SA road nodes

@@ -13,6 +13,7 @@
 // =============================================================================================
 
 #include "ui/server_style.h"   // 4.03: country flags + gamemode colours
+#include "ui/omp_repos.h"      // 5.02.05: open.mp development repositories (About page)
 
 enum { LT_INTERNET = 0, LT_FAVORITES, LT_HOSTED, LT_ADD, LT_PLAYERS, LT_BANS, LT_SRVMGMT,   // 3.53: + Server Management
        LT_FRIENDS, LT_CHATS, LT_PARTY, LT_COMMUNITY, LT_INBOX,                           // 3.63: social (mp_social.inc)
@@ -2311,6 +2312,49 @@ static void LAboutBullet(const char* t)
     ImGui::Bullet(); ImGui::SameLine(); ImGui::TextWrapped("%s", t);
     ImGui::PopStyleColor();
 }
+// 5.02.05: OPEN.MP DEVELOPMENT on the About page - every open.mp / SA-MP repository wagu carries
+// (third_party/omp-dev, src/ui/omp_repos.h), grouped and folded by category; tap a name to open its real address.
+static void LAboutOmpDev(float W)
+{
+    LAboutHeading("OPEN.MP DEVELOPMENT (CROSSPLAY)");
+    char intro[320];
+    snprintf(intro, sizeof(intro), "MP joins open.mp / SA-MP PC servers and the MP server runs open.mp Pawn gamemodes. "
+             "These %d repositories (compiler, includes, plugins, SDKs, gamemodes and tools) are what scripts for both "
+             "sides are built with. Tap a category to open it, tap a name to open its page.", kOmpRepoCount);
+    LAboutPara(intro);
+    static bool open[sizeof(kOmpRepoCats) / sizeof(kOmpRepoCats[0])] = { true };   // Core tools open at first
+    const int ncat = (int)(sizeof(kOmpRepoCats) / sizeof(kOmpRepoCats[0]));
+    const float hh = UI::S(56), rh = UI::S(52), nameW = std::min(W * 0.34f, UI::S(420));
+    for(int c = 0; c < ncat; ++c)
+    {
+        int cnt = 0; for(int i = 0; i < kOmpRepoCount; ++i) if(!strcmp(kOmpRepos[i].cat, kOmpRepoCats[c].id)) ++cnt;
+        if(!cnt) continue;
+        char lbl[128], id[24]; snprintf(lbl, sizeof(lbl), "%s  %s  (%d)", open[c] ? "-" : "+", kOmpRepoCats[c].title, cnt);
+        snprintf(id, sizeof(id), "abompc%d", c);
+        if(VBtn(id, lbl, W, hh, open[c] ? 2 : 0, true, IC_GLOBE)) open[c] = !open[c];
+        ImGui::Dummy(ImVec2(1, UI::S(4)));
+        if(!open[c]) continue;
+        for(int i = 0; i < kOmpRepoCount; ++i)
+        {
+            const OmpRepo& r = kOmpRepos[i]; if(strcmp(r.cat, kOmpRepoCats[c].id)) continue;
+            ImVec2 o = ImGui::GetCursorScreenPos();
+            snprintf(id, sizeof(id), "abomp%d", i);
+            if(VBtn(id, r.name, nameW, rh, 0, true, -1)) Voice::OpenUrl(r.url);
+            const float tx = o.x + nameW + UI::S(14);
+            ImGui::SetCursorScreenPos(ImVec2(tx, o.y + UI::S(2)));
+            ImGui::PushTextWrapPos(o.x + W);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(kVText));
+            ImGui::TextUnformatted(r.what && *r.what ? r.what : r.name);
+            ImGui::PopStyleColor();
+            ImGui::SetCursorScreenPos(ImVec2(tx, ImGui::GetCursorScreenPos().y));
+            ImGui::TextDisabled("%s", r.url);
+            ImGui::PopTextWrapPos();
+            float y = std::max(ImGui::GetCursorScreenPos().y, o.y + rh + UI::S(6));
+            ImGui::SetCursorScreenPos(ImVec2(o.x, y));
+        }
+        ImGui::Dummy(ImVec2(1, UI::S(6)));
+    }
+}
 static void LPageAbout(float W)
 {
     ImDrawList* dl = ImGui::GetWindowDrawList();
@@ -2336,6 +2380,9 @@ static void LPageAbout(float W)
     ImGui::SetCursorScreenPos(ImVec2(r.x, r.y + bh + UI::S(6)));
     ImGui::TextDisabled("Website: %s     YouTube: %s     Discord: %s", MP_ABOUT_WEBSITE, MP_ABOUT_YOUTUBE, MP_ABOUT_DISCORD);
 
+    // 5.02.05: right under the links (it was at the very bottom, under the long credit text, and easy to miss on a phone)
+    LAboutOmpDev(W);
+
     LAboutHeading("ABOUT THIS MOD");
     LAboutPara("MP Multiplayer is an independent, non-commercial project designed, programmed and maintained by one developer, "
                "ThirtyFoxMC. Every part of it - the networking and sync, the server browser and launcher, the game modes, the "
@@ -2360,38 +2407,6 @@ static void LPageAbout(float W)
     LAboutPara("If you downloaded MP from somewhere else, please get it from the official source instead - it is always the "
                "newest and safest version - and let the author know where you found the copy on Discord. Thank you for "
                "respecting the work and supporting the original creator.");
-
-    // 5.02.04: the official open.mp scripting repositories wagu uses (third_party/omp-dev submodules) - tap to open
-    LAboutHeading("OPEN.MP DEVELOPMENT (CROSSPLAY)");
-    LAboutPara("MP joins open.mp / SA-MP PC servers and the MP server runs open.mp Pawn gamemodes. Scripts are written "
-               "and compiled with the official open.mp tools below, so the same .amx runs on open.mp and on MP. "
-               "Tap a name to open its page.");
-    {
-        static const char* kOmpDev[][3] = {
-            { "compiler",       "Pawn compiler (pawncc)",          "https://github.com/ThirtyFoxMCx00E1/compiler" },
-            { "omp-stdlib",     "open.mp standard includes",       "https://github.com/mpsamp-open/omp-stdlib" },
-            { "qawno",          "open.mp Pawn editor",             "https://github.com/ThirtyFoxMCx00E1/qawno" },
-            { "sampctl",        "package manager / build tool",    "https://github.com/mpsamp-open/sampctl" },
-            { "sampctl2",       "package manager (second fork)",   "https://github.com/mpsamp-open/sampctl2" },
-            { "YSI-Includes",   "YSI 5 libraries",                 "https://github.com/ThirtyFoxMCx00E1/YSI-Includes" },
-            { "amx_assembly",   "AMX assembly helpers",            "https://github.com/ThirtyFoxMCx00E1/amx_assembly" },
-            { "code-parse.inc", "pre-processor parsing",           "https://github.com/ThirtyFoxMCx00E1/code-parse.inc" },
-            { "indirection",    "function pointers",               "https://github.com/ThirtyFoxMCx00E1/indirection" },
-            { "md-sort",        "array sorting",                   "https://github.com/ThirtyFoxMCx00E1/md-sort" },
-            { "open.mp-gdk",    "server component SDK",            "https://github.com/ThirtyFoxMCx00E1/open.mp-gdk" },
-            { "open.mp",        "open.mp server (crossplay)",      "https://github.com/openmultiplayer/open.mp" },
-        };
-        const int cols = 3; const float gw = (W - UI::S(12) * (cols - 1)) / cols, gh = UI::S(64);
-        ImVec2 o = ImGui::GetCursorScreenPos(); int n = (int)(sizeof(kOmpDev) / sizeof(kOmpDev[0]));
-        for(int i = 0; i < n; ++i)
-        {
-            ImGui::SetCursorScreenPos(ImVec2(o.x + (i % cols) * (gw + UI::S(12)), o.y + (i / cols) * (gh + UI::S(8))));
-            char id[24]; snprintf(id, sizeof(id), "abomp%d", i);
-            if(VBtn(id, kOmpDev[i][0], gw, gh, 0, true, IC_GLOBE)) Voice::OpenUrl(kOmpDev[i][2]);
-        }
-        ImGui::SetCursorScreenPos(ImVec2(o.x, o.y + ((n + cols - 1) / cols) * (gh + UI::S(8))));
-        for(int i = 0; i < n; ++i) ImGui::TextDisabled("%s  -  %s:  %s", kOmpDev[i][0], kOmpDev[i][1], kOmpDev[i][2]);
-    }
 
     LAboutHeading("THIRD-PARTY COMPONENTS");
     LAboutPara("GTA San Andreas and GTA Vice City are the property of Rockstar Games; MP is a fan-made mod and is not affiliated "

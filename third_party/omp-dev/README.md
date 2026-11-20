@@ -1,4 +1,4 @@
-# open.mp development libraries (5.02.04)
+# open.mp development libraries (5.02.04, 5.02.05)
 
 MP crossplays with open.mp / SA-MP 0.3.7 PC servers, and the MP server runs SA-MP / open.mp Pawn gamemodes
 itself (`mp_server --samp <folder|.zip|.rar|.amx>`, Pawn AMX in `third_party/pawn-amx`). These are the official
@@ -29,6 +29,22 @@ git submodule update --init --depth 1 third_party/omp-dev/YSI-Includes third_par
 # everything (sampctl / sampctl2 are about 145 MB each)
 git submodule update --init --depth 1
 ```
+
+## All repositories (5.02.05)
+
+Besides the 11 folders above, 116 more open.mp / SA-MP repositories are git submodules (real addresses, pinned
+commits, empty until fetched) under `third_party/omp-dev/<category>/<name>`: `stdlib`, `sdk`, `editors`,
+`includes`, `plugins`, `crypto`, `langs`, `gamemodes`, `tools`. The full list with addresses and commits is
+[REPOS.md](REPOS.md); the source is [repos.tsv](repos.tsv), and `python3 tools/pawn/gen_omp_repos.py` makes REPOS.md
+and `src/ui/omp_repos.h` (the app's About page > open.mp development section) from it.
+
+```sh
+git submodule update --init --depth 1 third_party/omp-dev/plugins/Pawn.RakNet   # one repository
+git submodule foreach --quiet 'echo $sm_path'                                    # list them
+```
+
+Example gamemode: [examples/ysi_freeroam](examples/ysi_freeroam/) (YSI foreach, custom iterator, task / ptask /
+defer / repeat timers, commands).
 
 ## Compile a gamemode
 
