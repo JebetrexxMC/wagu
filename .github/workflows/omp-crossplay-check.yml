@@ -1,4 +1,4 @@
-# 5.02.13: open.mp / SA-MP crossplay check. On every push to the network code and every day:
+# 5.02.13: open.mp / SA-MP crossplay check. On every push to main and every day:
 #  - a local open.mp server (omp-server 1.6.7): two pretend phones join through the RakNet gate, press < Spawn >,
 #    see each other's chat; then the server is killed + restarted and the gate must reconnect and spawn again
 #  - the 12 busiest servers on the open.mp list (tools/omp_sweep/sweep.sh): stayed / kicked / launcher / no_answer
@@ -6,8 +6,7 @@
 name: open.mp crossplay check
 on:
   push:
-    branches: [main]
-    paths: ['src/net/**', 'test/sampgate_test.cpp', 'tools/omp_sweep/**', '.github/workflows/omp-crossplay-check.yml']
+    branches: [main]   # 5.02.13: every push to main (was only src/net/** etc.) - a newer push cancels the older check
   schedule:
     - cron: '17 1 * * *'
   workflow_dispatch:
