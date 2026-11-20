@@ -606,18 +606,46 @@ bool MP::NeonCoversGameMenu()
     }
     return r;
 }
+// 5.02.01: Resume / New game / a save slot from the neon menu: after the game's loading screen the game put you on its
+// pause menu (the load runs from the menu, and the menu comes back when it is done). Like the Multiplayer load
+// (MenuMpMenuTick), the game's menu is now closed for you once the game is loaded: you land in the game.
+static std::atomic<bool>     s_bNeonCloseMenu{false};
+static std::atomic<uint64_t> s_nNeonCloseReqAt{0};
+static uint64_t              s_nNeonPedSeenAt = 0;
+static void NeonCloseAfterLoad() { s_nNeonPedSeenAt = 0; s_nNeonCloseReqAt = MP_NowMs(); s_bNeonCloseMenu = true; }
+static void NeonCloseTick(uint64_t now)
+{   // game thread (MobileMenu::Update)
+    if(!s_bNeonCloseMenu.load()) return;
+    if(now - s_nNeonCloseReqAt.load() > 180000) { s_bNeonCloseMenu = false; logger->Info("Neon menu: no game after 3 min - menu left alone"); return; }
+    if(Game::IsLoadPending() || !Game::HasPlayerPed() || Game::LocalPed() <= 0) { s_nNeonPedSeenAt = 0; return; }   // still loading
+    if(!s_nNeonPedSeenAt) { s_nNeonPedSeenAt = now; return; }
+    if(now - s_nNeonPedSeenAt < 350) return;                     // the loading screen's fade
+    if(!Game::IsFrontendMenu()) { s_bNeonCloseMenu = false; logger->Info("Neon menu: loaded straight into the game"); return; }
+    s_bNeonCloseMenu = false;
+    const bool ok = Game::ExitFrontendMenu();
+    logger->Info("Neon menu: game loaded -> pause menu closed (%s)", ok ? "ok" : "no MobileMenu::Exit");
+}
 static void NeonResume()
 {
     if(!NeonTitleCtx()) { s_bMenuMpExit = true; return; }   // the black screen: the game is loaded - back to it
     const int slot = Game::NewestSaveSlot();
     const bool ok = slot >= 0 ? Game::RequestLoadSlot(slot) : Game::RequestNewGame();
+    if(ok) NeonCloseAfterLoad();
     logger->Info("Neon menu: Resume -> %s %d (%s)", slot >= 0 ? "load slot" : "new game", slot + 1, ok ? "ok" : "failed");
 }
 static void NeonNewGame()
 {
     if(!NeonTitleCtx()) s_bMenuMpExit = true;
     const bool ok = Game::RequestNewGame();
+    if(ok) NeonCloseAfterLoad();
     logger->Info("Neon menu: New game (%s)", ok ? "ok" : "failed");
+}
+static void NeonLoadSlot(int slot)
+{
+    if(!NeonTitleCtx()) return;
+    const bool ok = Game::RequestLoadSlot(slot);
+    if(ok) NeonCloseAfterLoad();
+    logger->Info("Neon menu: Start game -> load slot %d (%s)", slot + 1, ok ? "ok" : "failed");
 }
 static void NeonJoinRow(const LRow& r)
 {
@@ -1011,7 +1039,7 @@ static bool NeonPButton(const char* label, float x0, float y0, float x1, float y
 // + full controller support (D-pad / left stick, A, B, LB / RB, X / Y), the Discord connected pop-up (slides in from the
 // right with notify.mp3, slides back out) and the menu music (Host/Media/neon_mainmenu.mp3, loops while the menu is up)
 // ================================================================================================
-enum { NT_MAIN = 0, NT_BROWSE, NT_SETTINGS };
+enum { NT_MAIN = 0, NT_BROWSE, NT_SETTINGS, NT_START };   // 5.02.01: + Start game (New game / save slots)
 static int s_nNT = NT_MAIN;
 enum { NK_UP = 1, NK_DOWN = 2, NK_LEFT = 4, NK_RIGHT = 8, NK_A = 16, NK_B = 32, NK_LB = 64, NK_RB = 128, NK_X = 256, NK_Y = 512, NK_START = 1024 };
 static std::atomic<int> s_nNeonKeysQ{0};
@@ -1859,14 +1887,147 @@ static void NeonPSettings(float W, float H)
     else if(doBack) NeonNSLeave();
 }
 
+static void NeonPDialog(float W, float H, float u);
+
+// ---- Start game (5.02.01) ----
+// New game on the neon title opens this page, like PCMenu's START GAME: NEW GAME (asks first) and your save slots with
+// the last mission passed, the story progress (the game's own PROGRESS_MADE / TOTAL_PROGRESS stats from the save) and
+// when it was saved. Tap a slot (or LOAD) to load it. Read on the game thread every 2 s while the page is open.
+struct NGSlot { bool used = false; char title[48] = ""; float pct = -1; char when[32] = ""; };
+static std::mutex s_NGMutex;
+static NGSlot     s_NGSlots[8];
+static uint64_t   s_nNGBuiltAt = 0;
+static int        s_nNGSel = 0, s_nNGFocus = 0;   // focus: 0 slots, 1 BACK, 2 NEW GAME, 3 LOAD
+static std::atomic<int> s_nNGLoadReq{-1};
+static void NeonTOpenStart()
+{
+    s_nNT = NT_START; s_nNGBuiltAt = 0; s_nNGFocus = 0;
+    const int nw = Game::NewestSaveSlot(); s_nNGSel = nw >= 0 ? nw : 0;
+}
+static bool NeonNGRead(int slot, NGSlot& o)
+{
+    char path[420]; if(!Game::SaveSlotPath(slot, path, sizeof(path))) return false;
+    FILE* f = fopen(path, "rb"); if(!f) return false;
+    std::vector<uint8_t> d; d.resize(1 << 20);
+    const size_t n = fread(d.data(), 1, d.size(), f); fclose(f);
+    if(n < 1024 || memcmp(d.data(), "BLOCK", 5)) return false;
+    d.resize(n);
+    o.used = true;
+    {   // block 0 (simple variables): +4 version, +9 the save name = the GXT key of the last mission passed,
+        // or 0xFC + the name itself
+        char raw[101]; memcpy(raw, d.data() + 9, 100); raw[100] = 0;
+        std::string t;
+        if((uint8_t)raw[0] == 0xFC) t = raw + 1;
+        else if(raw[0] && raw[1] == 0) { for(int i = 0; i < 100 && raw[i]; i += 2) t += raw[i]; }   // a 16-bit name
+        else if(raw[0]) t = strlen(raw) <= 8 ? GameSettings::GxtText(raw) : std::string(raw);
+        char a[48]; NeonPAscii(a, sizeof(a), t.c_str(), true);
+        MP_CopyStr(o.title, a[0] ? a : "SAVED GAME", sizeof(o.title));
+    }
+    {   // block 16 (stats) starts with the float stats: [0] PROGRESS_MADE, [1] TOTAL_PROGRESS_IN_GAME
+        std::vector<size_t> blk;
+        for(size_t i = 0; i + 5 <= n && blk.size() < 40; ++i) if(d[i] == 'B' && !memcmp(&d[i], "BLOCK", 5)) blk.push_back(i);
+        auto pctAt = [&](size_t b) -> float {
+            if(b + 13 > n) return -1;
+            float made, total; memcpy(&made, &d[b + 5], 4); memcpy(&total, &d[b + 9], 4);
+            if(!(total >= 50.0f && total <= 10000.0f) || !(made >= 0.0f && made <= total * 1.001f)) return -1;
+            return made / total * 100.0f;
+        };
+        if(blk.size() > 16) o.pct = pctAt(blk[16]);
+        for(size_t k = 14; o.pct < 0 && k < blk.size() && k < 20; ++k) o.pct = pctAt(blk[k]);   // a build with one block more / less
+    }
+    struct stat st; if(stat(path, &st) == 0)
+    {
+        time_t t = st.st_mtime; struct tm tmv; localtime_r(&t, &tmv);
+        strftime(o.when, sizeof(o.when), "%d %b %Y  %H:%M", &tmv);
+        for(char* c = o.when; *c; ++c) if(*c >= 'a' && *c <= 'z') *c -= 32;
+    }
+    return true;
+}
+static void NeonNGBuild()
+{
+    NGSlot tmp[8];
+    for(int i = 0; i < 8; ++i) if(!NeonNGRead(i, tmp[i])) tmp[i] = NGSlot();
+    std::lock_guard<std::mutex> lk(s_NGMutex);
+    for(int i = 0; i < 8; ++i) s_NGSlots[i] = tmp[i];
+}
+static void NeonPStart(float W, float H)
+{
+    using namespace NeonPaint;
+    const float u = H / 804.0f;
+    const float L = fminf(W * 0.07f, 100 * u * (W / H) / (1430.0f / 804.0f));
+    NeonPBackdrop(W, H);
+    NeonPHeader("Start game", "NEW GAME - LOAD GAME - YOUR STORY PROGRESS", L, u);
+    NGSlot sl[8]; { std::lock_guard<std::mutex> lk(s_NGMutex); for(int i = 0; i < 8; ++i) sl[i] = s_NGSlots[i]; }
+    const bool dlg = s_nNeonDlg != 0;
+    const int K = dlg ? 0 : s_nNK;
+    bool doBack = (K & NK_B) != 0, doNew = false, doLoad = false;
+    if(K & NK_UP)   { if(s_nNGFocus) s_nNGFocus = 0; else if(s_nNGSel > 0) --s_nNGSel; }
+    if(K & NK_DOWN) { if(!s_nNGFocus && s_nNGSel < 7) ++s_nNGSel; else if(!s_nNGFocus) s_nNGFocus = 3; }
+    if(s_nNGFocus && (K & NK_LEFT))  s_nNGFocus = s_nNGFocus > 1 ? s_nNGFocus - 1 : 1;
+    if(s_nNGFocus && (K & NK_RIGHT)) s_nNGFocus = s_nNGFocus < 3 ? s_nNGFocus + 1 : 3;
+    if(K & (NK_A | NK_START)) { if(s_nNGFocus == 1) doBack = true; else if(s_nNGFocus == 2) doNew = true; else doLoad = true; }
+    if(K & NK_X) doNew = true;
+    // the slots
+    const float px0 = L - 14 * u, px1 = W - L + 14 * u, py0 = 140 * u, py1 = 700 * u;
+    NeonPPanel(px0, py0, px1, py1, u);
+    NeonPText(F_CAPS, "SAVED GAMES", px0 + 22 * u, py0 + 14 * u, 12 * u, NC(130, 134, 142), 2.0f * u);
+    NeonPText(F_CAPS, "STORY PROGRESS", px1 - 420 * u, py0 + 14 * u, 12 * u, NC(130, 134, 142), 2.0f * u);
+    Quad(px0 + 12 * u, py0 + 36 * u, px1 - 12 * u, py0 + 37 * u, NC(40, 46, 96));
+    const float ly0 = py0 + 46 * u, rh = (py1 - 8 * u - ly0) / 8.0f;
+    for(int i = 0; i < 8; ++i)
+    {
+        const NGSlot& s = sl[i];
+        const float ry0 = ly0 + i * rh, ry1 = ry0 + rh - 4 * u, mid = (ry0 + ry1) * 0.5f;
+        const bool sel = i == s_nNGSel;
+        Quad(px0 + 8 * u, ry0, px1 - 8 * u, ry1, sel ? NC(205, 212, 255, 22) : NC(255, 255, 255, (i & 1) ? 6 : 2));
+        if(sel) { Quad(px0 + 8 * u, ry0, px0 + 11 * u, ry1, NB_BLUE()); if(!s_nNGFocus && NeonPadUI()) NeonPFrame(px0 + 8 * u, ry0, px1 - 8 * u, ry1, 1.2f * u, NB_BLUE()); }
+        char nb[16]; snprintf(nb, sizeof(nb), "SLOT %d", i + 1);
+        NeonPText(F_CAPS, nb, px0 + 26 * u, mid - 7 * u, 12 * u, NC(130, 134, 142), 1.6f * u);
+        const float tx = px0 + 120 * u, bx0 = px1 - 420 * u, bx1 = px1 - 170 * u;
+        if(!s.used) { NeonPText(F_CAPS, "EMPTY SLOT", tx, mid - 8 * u, 14 * u, NC(110, 114, 122), 1.4f * u); }
+        else
+        {
+            NeonPText(F_CAPS, NeonFit(F_CAPS, s.title, 14 * u, bx0 - tx - 20 * u, 1.4f * u).c_str(), tx, mid - 15 * u, 14 * u, NC(226, 228, 232), 1.4f * u);
+            NeonPText(F_UI, s.when, tx, mid + 4 * u, 11.5f * u, NC(140, 144, 152), 1.0f * u);
+            if(s.pct >= 0)
+            {
+                const float f = s.pct > 100 ? 1.0f : s.pct / 100.0f;
+                Quad(bx0, mid - 3 * u, bx1, mid + 3 * u, NC(40, 42, 48));
+                Quad(bx0, mid - 3 * u, bx0 + (bx1 - bx0) * f, mid + 3 * u, NB_BLUE());
+                char pc[16]; snprintf(pc, sizeof(pc), "%.1f%%", s.pct);
+                NeonPText(F_UI, pc, bx1 + 16 * u, mid - 8 * u, 14 * u, NB_BLUE_LT());
+            }
+            else NeonPText(F_UI, "-", bx0, mid - 8 * u, 14 * u, NC(110, 114, 122));
+        }
+        if(!dlg && Tap(px0 + 8 * u, ry0, px1 - 8 * u, ry1))
+        {   // tap = select, tap the selected one again = load it
+            if(s_nNGSel == i && s.used) doLoad = true;
+            s_nNGSel = i; s_nNGFocus = 0;
+        }
+    }
+    const float by0 = 712 * u, by1 = 748 * u;
+    const bool pad = NeonPadUI() && !dlg;
+    if(NeonPBtn("BACK", L - 14 * u, by0, L + 150 * u, by1, u, pad && s_nNGFocus == 1) && !dlg) doBack = true;
+    if(NeonPBtn("NEW GAME", L + 164 * u, by0, L + 380 * u, by1, u, pad && s_nNGFocus == 2) && !dlg) doNew = true;
+    char ll[24]; snprintf(ll, sizeof(ll), "LOAD SLOT %d", s_nNGSel + 1);
+    if(NeonPBtn(ll, L + 394 * u, by0, L + 640 * u, by1, u, pad && s_nNGFocus == 3) && !dlg) doLoad = true;
+    static const char* const kHints[] = { "A", "LOAD", "X", "NEW GAME", "B", "BACK" };
+    NeonPHints(kHints, 3, W, u, L);
+    if(doLoad && !sl[s_nNGSel].used) { doLoad = false; NeonToast("EMPTY SLOT", "Pick a saved game, or NEW GAME"); }
+    if(doLoad) s_nNGLoadReq = s_nNGSel;
+    else if(doNew) { s_nNeonDlg = 3; s_nNeonDlgSel = 1; }
+    else if(doBack) s_nNT = NT_MAIN;
+    if(dlg) NeonPDialog(W, H, u);
+}
+
 static void NeonPDialog(float W, float H, float u)
 {
     using namespace NeonPaint;
     Quad(0, 0, W, H, NC(0, 0, 0, 170));
     const float dw = 520 * u, dh = 230 * u, x0 = (W - dw) * 0.5f, y0 = (H - dh) * 0.5f;
     Img(NeonPTex("nb_dialog.png", "dialog.png"), x0, y0, x0 + dw, y0 + dh);
-    const bool about = s_nNeonDlg == 1;
-    NeonPText(F_GOTHIC, about ? "About" : "Quit game", x0 + 28 * u, y0 + 18 * u, 34 * u, NC(226, 228, 232), 0, true);
+    const bool about = s_nNeonDlg == 1, ng = s_nNeonDlg == 3;   // 5.02.01: 3 = New game (Start game page)
+    NeonPText(F_GOTHIC, about ? "About" : ng ? "New game" : "Quit game", x0 + 28 * u, y0 + 18 * u, 34 * u, NC(226, 228, 232), 0, true);
     char l[5][120]; int n = 0;
     if(about)
     {
@@ -1875,6 +2036,7 @@ static void NeonPDialog(float W, float H, float u)
         snprintf(l[n++], 120, "Discord: %s", MP_AUTH_DISCORD_URL);
         snprintf(l[n++], 120, "Fonts: UnifrakturMaguntia, Cinzel, Fredoka (SIL OFL 1.1).");
     }
+    else if(ng) { snprintf(l[n++], 120, "Start a new game from the first mission?"); snprintf(l[n++], 120, "Your saved games stay in their slots."); }
     else snprintf(l[n++], 120, "Close GTA San Andreas now? Unsaved progress is lost.");
     for(int i = 0; i < n; ++i) NeonPText(F_UI, l[i], x0 + 30 * u, y0 + (72 + i * 22) * u, 15 * u, NC(190, 194, 202));
     const float by0 = y0 + dh - 62 * u, by1 = by0 + 40 * u;
@@ -1888,7 +2050,8 @@ static void NeonPDialog(float W, float H, float u)
         if(s_nNK & NK_LEFT) s_nNeonDlgSel = 0;
         if(s_nNK & NK_RIGHT) s_nNeonDlgSel = 1;
         if(NeonPBtn("CANCEL", x0 + dw - 340 * u, by0, x0 + dw - 190 * u, by1, u, pad && s_nNeonDlgSel == 0) || (s_nNK & NK_B) || ((s_nNK & NK_A) && s_nNeonDlgSel == 0)) s_nNeonDlg = 0;
-        else if(NeonPBtn("QUIT", x0 + dw - 180 * u, by0, x0 + dw - 30 * u, by1, u, pad && s_nNeonDlgSel == 1) || ((s_nNK & NK_A) && s_nNeonDlgSel == 1)) s_nNeonAct = NA_QUIT;
+        else if(NeonPBtn(ng ? "START" : "QUIT", x0 + dw - 180 * u, by0, x0 + dw - 30 * u, by1, u, pad && s_nNeonDlgSel == 1) || ((s_nNK & NK_A) && s_nNeonDlgSel == 1))
+        { if(ng) { s_nNeonDlg = 0; s_nNT = NT_MAIN; s_nNeonAct = NA_NEWGAME; } else s_nNeonAct = NA_QUIT; }
     }
     EatTap();   // nothing under the dialog gets the tap
 }
@@ -1915,7 +2078,7 @@ static void NeonPTitle(float W, float H)
         switch(i)
         {
             case 0: s_nNeonAct = NA_RESUME; break;
-            case 1: s_nNeonAct = NA_NEWGAME; break;
+            case 1: NeonTOpenStart(); break;   // 5.02.01: the Start game page (New game + your saves), like PCMenu
             case 2: NeonTOpenBrowse(); break;
             case 3: s_nNeonAct = NA_QUICK; break;
             case 4: NeonTOpenSettings(); break;
@@ -2081,6 +2244,7 @@ void MP::NeonPaintMenu(int what)
         s_nNeonTitleMs = MP_NowMs();
         if(s_nNT == NT_BROWSE) NeonPBrowse(W, H);
         else if(s_nNT == NT_SETTINGS) NeonPSettings(W, H);
+        else if(s_nNT == NT_START) NeonPStart(W, H);   // 5.02.01
         else NeonPTitle(W, H);
         NeonPToast(W, H, H / 804.0f);
     }
@@ -2101,6 +2265,7 @@ void MP::NeonTouch(int kind, int finger, float x, float y)   // 4.13.30
 void MP::NeonMenuTick()
 {
     NeonFileTick(MP_NowMs());   // 5.01.07: neon_mode.txt added / removed while the title menu is up
+    NeonCloseTick(MP_NowMs());  // 5.02.01: Resume / New game / a slot: no pause menu after the load
     if(s_nNeonMode == NEON_MODE_DEFAULT) { NeonMusicStop(); return; }   // 4.13.30
     const uint64_t now = MP_NowMs();
     const bool titleUp = s_nNeonTitleMs && now - s_nNeonTitleMs < 600 && NeonTitleCtx();
@@ -2119,6 +2284,8 @@ void MP::NeonMenuTick()
         NeonBuild(s_NTRows);
     }
     if(titleUp && s_nNT == NT_SETTINGS && now - s_nNSBuiltAt > 1500) { s_nNSBuiltAt = now; NeonNSBuild(); }
+    if(titleUp && s_nNT == NT_START && now - s_nNGBuiltAt > 2000) { s_nNGBuiltAt = now; NeonNGBuild(); }   // 5.02.01
+    { const int ls = s_nNGLoadReq.exchange(-1); if(ls >= 0 && titleUp) { s_nNT = NT_MAIN; NeonMusicStop(); NeonLoadSlot(ls); } }
     if(!titleUp && s_nNT != NT_MAIN && !NeonTitleCtx()) s_nNT = NT_MAIN;
     {
         const int fv = s_nNTFavReq.exchange(-1);   // 5.01.15: the favourite star (favorites.txt on this thread)

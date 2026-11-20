@@ -31,4 +31,5 @@ namespace GameSettings
     bool SAUtilsFound();
     void Save();                                // the game's settings file (when MobileSettings::Save... exists)
     const char* SaveInfo();
+    std::string GxtText(const char* key);       // 5.02.01: the game's text of a GXT key (ASCII upper case; the key when unknown)
 }

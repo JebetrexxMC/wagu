@@ -14,5 +14,8 @@ if [ ! -x Server/omp-server ]; then
 fi
 docker build -t mp/omp:${distro} --build-arg BASE="${distro/-/:}" . || exit 1
 mode=(-ti); [ "$DETACH" = 1 ] && mode=(-d --name omp-${distro})   # DETACH=1: in the background
-docker run --rm "${mode[@]}" -v "$PWD/Server":/omp -w /omp -p ${port}:${port}/udp -p ${port}:${port}/tcp mp/omp:${distro} \
+# 5.02.01: omp-server is a 32-bit binary and Docker's default seccomp filter stops its UDP socket ("Unable to start
+# legacy network on port 7777. Port in use?" - checked on GitHub Actions: works with the filter off, fails with it on,
+# bridge or host network). The container only runs the official open.mp server.
+docker run --rm --security-opt seccomp=unconfined "${mode[@]}" -v "$PWD/Server":/omp -w /omp -p ${port}:${port}/udp -p ${port}:${port}/tcp mp/omp:${distro} \
     ./omp-server -c network.port=${port}

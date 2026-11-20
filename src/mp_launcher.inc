@@ -475,9 +475,126 @@ static bool LMatch(const char* name, const char* lang = nullptr)
     return strstr(a, b) != nullptr;
 }
 
+// ---- 5.02.01: the open.mp tab (next to Featured) -------------------------------------------------
+// The open.mp master list (api.open.mp/servers: every open.mp and SA-MP server the open.mp launcher shows), read on a
+// thread every 90 s while the tab is open. Join = crossplay (mp_crossplay.inc StartPcJoin: the PC server through
+// libMP's SampGate). A password server opens Add server > open.mp with the address filled in.
+#define MP_OMP_LIST_URL "https://api.open.mp/servers"
+struct OmpSrv { std::string host, name, mode, lang, ver; int port = 0, players = 0, maxp = 0; bool pw = false, omp = false; };
+static std::mutex           s_OmpMx;
+static std::vector<OmpSrv>  s_OmpList;
+static std::atomic<int>     s_nOmpState{0};   // 0 never, 1 fetching, 2 ok, 3 failed
+static uint64_t             s_nOmpAt = 0;
+static std::string          s_OmpWhy;
+static void OmpUtf8(std::string& o, unsigned c)
+{
+    if(c < 0x80) o += (char)c;
+    else if(c < 0x800) { o += (char)(0xC0 | (c >> 6)); o += (char)(0x80 | (c & 63)); }
+    else { o += (char)(0xE0 | (c >> 12)); o += (char)(0x80 | ((c >> 6) & 63)); o += (char)(0x80 | (c & 63)); }
+}
+// the list is one flat array of flat objects: {"ip":"1.2.3.4:7777","hn":"name","pc":3,"pm":50,"gm":"..","la":"..","pa":false,"vn":"..","omp":true}
+static void OmpParse(const std::string& j, std::vector<OmpSrv>& out)
+{
+    size_t i = 0, n = j.size();
+    auto ws = [&]() { while(i < n && (j[i] == ' ' || j[i] == '\n' || j[i] == '\r' || j[i] == '\t' || j[i] == ',')) ++i; };
+    auto str = [&](std::string& o) -> bool {
+        if(i >= n || j[i] != '"') return false; ++i;
+        while(i < n && j[i] != '"')
+        {
+            char c = j[i++];
+            if(c != '\\') { o += c; continue; }
+            if(i >= n) break; c = j[i++];
+            if(c == 'u' && i + 4 <= n) { unsigned v = (unsigned)strtoul(j.substr(i, 4).c_str(), nullptr, 16); i += 4; OmpUtf8(o, v); }
+            else o += c == 'n' ? ' ' : c == 't' ? ' ' : c;
+        }
+        ++i; return true;
+    };
+    ws(); if(i >= n || j[i] != '[') return; ++i;
+    while(i < n && out.size() < 5000)
+    {
+        ws(); if(i >= n || j[i] == ']') break;
+        if(j[i] != '{') return; ++i;
+        OmpSrv s; std::string ip;
+        while(i < n)
+        {
+            ws(); if(i < n && j[i] == '}') { ++i; break; }
+            std::string k; if(!str(k)) return;
+            ws(); if(i >= n || j[i] != ':') return; ++i; ws();
+            if(i < n && j[i] == '"') { std::string v; str(v);
+                if(k == "ip") ip = v; else if(k == "hn") s.name = v; else if(k == "gm") s.mode = v; else if(k == "la") s.lang = v; else if(k == "vn") s.ver = v; }
+            else
+            {
+                size_t b = i; while(i < n && j[i] != ',' && j[i] != '}') ++i;
+                const std::string v = j.substr(b, i - b);
+                if(k == "pc") s.players = atoi(v.c_str()); else if(k == "pm") s.maxp = atoi(v.c_str());
+                else if(k == "pa") s.pw = v.compare(0, 4, "true") == 0; else if(k == "omp") s.omp = v.compare(0, 4, "true") == 0;
+            }
+        }
+        const size_t c = ip.rfind(':');
+        if(c == std::string::npos || c == 0) continue;
+        s.host = ip.substr(0, c); s.port = atoi(ip.c_str() + c + 1);
+        if(s.port <= 0 || s.port > 65535 || s.host.size() > 60) continue;
+        if(s.name.empty()) s.name = ip;
+        out.push_back(std::move(s));
+    }
+}
+static void OmpListKick(bool force = false)
+{
+    const uint64_t now = MP_NowMs();
+    if(s_nOmpState == 1 || (!force && s_nOmpAt && now - s_nOmpAt < (s_nOmpState == 3 ? 20000u : 90000u))) return;
+    s_nOmpAt = now; s_nOmpState = 1;
+    std::thread([]() {
+        std::string body, why; std::vector<OmpSrv> v;
+        const bool ok = Online::HttpsFetch(MP_OMP_LIST_URL, body, 15000, why, 4u << 20);
+        if(ok) OmpParse(body, v);
+        std::stable_sort(v.begin(), v.end(), [](const OmpSrv& a, const OmpSrv& b) { return a.players > b.players; });
+        const bool good = ok && !v.empty();
+        if(logger) logger->Info("open.mp list: %s (%d servers, %d bytes%s%s)", good ? "ok" : "failed", (int)v.size(), (int)body.size(), why.empty() ? "" : ", ", why.c_str());
+        { std::lock_guard<std::mutex> lk(s_OmpMx); if(good) s_OmpList.swap(v); s_OmpWhy = good ? "" : (why.empty() ? "no servers in the answer" : why); }
+        s_nOmpState = good ? 2 : 3;
+    }).detach();
+}
+static void OmpCut(char* o, size_t n, const std::string& s)
+{   // UTF-8 safe copy (never half a character)
+    size_t k = s.size() < n - 1 ? s.size() : n - 1;
+    while(k > 0 && k < s.size() && ((unsigned char)s[k] & 0xC0) == 0x80) --k;
+    memcpy(o, s.data(), k); o[k] = 0;
+}
+static void OmpRows(std::vector<LRow>& rows)
+{
+    OmpListKick();
+    std::lock_guard<std::mutex> lk(s_OmpMx);
+    int shown = 0;
+    for(const OmpSrv& s : s_OmpList)
+    {
+        if(!s_szSearch[0] && shown >= 400) break;   // the busiest 400 (search looks through all of them)
+        if(!LMatch(s.name.c_str(), s.lang.c_str()) && !LMatch(s.mode.c_str()) && !LMatch(s.host.c_str())) continue;
+        LRow q; memset(&q, 0, sizeof(q));
+        q.kind = 8; OmpCut(q.name, sizeof(q.name), s.name); OmpCut(q.ip, sizeof(q.ip), s.host); q.port = s.port;
+        q.players = s.players; q.maxp = s.maxp; q.ping = -1; q.region = -1; q.icon = 0; q.saved = -1;
+        q.locked = s.pw; q.live = true; q.internet = true;
+        OmpCut(q.lang, sizeof(q.lang), s.lang);
+        OmpCut(q.mode, sizeof(q.mode), s.mode);
+        snprintf(q.tags, sizeof(q.tags), "%s", s.omp ? "open.mp" : "SA-MP");
+        char d[160]; snprintf(d, sizeof(d), "PC server %s:%d (%s). Joins through MP crossplay.", s.host.c_str(), s.port, s.ver.empty() ? "SA-MP 0.3.7" : s.ver.c_str());
+        OmpCut(q.desc, sizeof(q.desc), d);
+        char addr[80]; snprintf(addr, sizeof(addr), "%s:%d", s.host.c_str(), s.port);
+        q.on = SampProxyActive() && !strcmp(s_szPcAddr, addr) && client.GetState() != NET_DISCONNECTED;
+        rows.push_back(q);
+        ++shown;
+    }
+}
+static const char* OmpEmptyText()
+{
+    const int st = s_nOmpState;
+    if(st == 3) { static char b[160]; std::lock_guard<std::mutex> lk(s_OmpMx); snprintf(b, sizeof(b), "Could not read the open.mp list (%s). It tries again in a moment.", s_OmpWhy.c_str()); return b; }
+    return "Reading the open.mp server list...";
+}
+
 static void LBuildRows(int tab, const std::vector<LanServer>& nearby, std::vector<LRow>& rows)
 {
     rows.clear();
+    if(tab == LT_INTERNET && s_nInetSub == 2) { OmpRows(rows); return; }   // 5.02.01: the open.mp tab
     if(tab == LT_INTERNET || tab == LT_LAN)
     {
         LRow r; memset(&r, 0, sizeof(r));
@@ -749,6 +866,16 @@ static void LJoinNow(const LRow& r)
     if(r.kind == 5) { if(!MP::IsOnRp()) LeaveServer(nullptr); MP::JoinRp(); return; }     // 3.25
     if(r.kind == 6) { if(!MP::IsOnDz()) LeaveServer(nullptr); MP::JoinDz(); return; }     // 3.58
     if(r.kind == 7) { if(!MP::IsOnLg()) LeaveServer(nullptr); MP::JoinLg(); return; }     // 4.13.4
+    if(r.kind == 8)
+    {   // 5.02.01: an open.mp / SA-MP PC server (open.mp tab): crossplay join
+        char addr[80]; snprintf(addr, sizeof(addr), "%s:%d", r.ip, r.port);
+        if(r.on) { StopPcJoin("Left the PC server."); return; }
+        MP_CopyStr(s_szPcAddr, addr, sizeof(s_szPcAddr));
+        if(r.locked) { s_szPcPw[0] = 0; s_nLTab = LT_ADD; SysMsg(COL_YELLOW, "%s has a password: type it under open.mp / SA-MP and tap Join PC server.", r.name); return; }
+        s_szPcPw[0] = 0;
+        StartPcJoin(addr, "");
+        return;
+    }
     if(r.on) { LeaveServer("Left the server."); return; }
     if(r.kind == 1) MP::JoinServer(r.ip, r.port, r.name);
     else if(ServerEntry* e = ServerList::Get(r.saved)) MP::JoinServer(e->host, e->port, e->name);
@@ -1182,6 +1309,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
                 char ip[96];
                 if(r.kind == 2 && r.saved >= 0) { ServerEntry* se = ServerList::Get(r.saved); snprintf(ip, sizeof(ip), "IP: %s:%d", se ? se->host : "?", r.port); }
                 else if(r.kind == 1 && !r.internet && r.ip[0]) snprintf(ip, sizeof(ip), "IP: %s:%d (Wi-Fi)", r.ip, r.port);
+                else if(r.kind == 8) snprintf(ip, sizeof(ip), "IP: %s:%d (open.mp, PC crossplay)", r.ip, r.port);   // 5.02.01
                 else if(r.kind == 0 || r.kind >= 3) snprintf(ip, sizeof(ip), "IP: 24/7 internet lobby, port %d", r.port);
                 else if(r.internet) snprintf(ip, sizeof(ip), "IP: internet lobby, port %d", r.port);
                 else snprintf(ip, sizeof(ip), "IP: hidden, port %d", r.port);
@@ -1272,7 +1400,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
     }
     if(rows.empty())
         ImGui::TextDisabled(s_szSearch[0] ? "No server matches \"%s\"." : (s_nLTab == LT_FAVORITES ? "No favourite servers yet. Tap a server and press Favorite, or tap + to add one." :
-                            s_nLTab == LT_LAN ? "No Wi-Fi servers on this network." : "Searching..."), s_szSearch);
+                            s_nLTab == LT_LAN ? "No Wi-Fi servers on this network." : (s_nLTab == LT_INTERNET && s_nInetSub == 2) ? OmpEmptyText() : "Searching..."), s_szSearch);
     LDragScroll();
     ImGui::EndChild();
     ImGui::EndChild();
@@ -2276,7 +2404,7 @@ static void RenderLauncher(void* openPtr)
         float y = wp.y + titleH + (tbH - btnH) * 0.5f;
         float sideW = ImMax(UI::S(300), ws.x * 0.17f);
         float x = wp.x + UI::S(10) + sideW + UI::S(18);
-        struct { const char* t; int tab, sub; } tabs[4] = { { "Internet", LT_INTERNET, 0 }, { "Featured", LT_INTERNET, 1 }, { "Favorites", LT_FAVORITES, -1 }, { "Lan", LT_LAN, -1 } };
+        struct { const char* t; int tab, sub; } tabs[5] = { { "Internet", LT_INTERNET, 0 }, { "Featured", LT_INTERNET, 1 }, { "open.mp", LT_INTERNET, 2 }, { "Favorites", LT_FAVORITES, -1 }, { "Lan", LT_LAN, -1 } };   // 5.02.01: + open.mp
         if(!listTab)
         {   // 4.03: pages stay in the left sidebar - the top row only shows the page name
             const char* pt = s_nLTab == LT_ADD || s_nLTab == LT_HOSTED ? "Add server" : s_nLTab == LT_CLOUD ? "Cloud Storage" : s_nLTab == LT_PLAYERS ? "Players" :
@@ -2285,7 +2413,7 @@ static void RenderLauncher(void* openPtr)
                              (s_nLTab >= LT_SECTIONS && s_nLTab - LT_SECTIONS < FloatMenu::SectionCount()) ? FloatMenu::SectionTitle(s_nLTab - LT_SECTIONS) : "";
             dl->AddText(ImVec2(x, y + (btnH - ImGui::GetTextLineHeight()) * 0.5f), IM_COL32_WHITE, pt);
         }
-        for(int i = 0; i < 4 && listTab; ++i)
+        for(int i = 0; i < 5 && listTab; ++i)
         {
             ImVec2 ts = ImGui::CalcTextSize(tabs[i].t);
             float tw = ts.x + UI::S(44);
@@ -2306,7 +2434,7 @@ static void RenderLauncher(void* openPtr)
         ImGui::SetCursorScreenPos(ImVec2(rx, y));
         if(LInputBox("search", s_szSearch, "Search", searchW, btnH, IC_SEARCH)) VKeyboard::Open("Search server", s_szSearch, 31, OnSearch);
         ImGui::SameLine(0, UI::S(6));
-        if(LToolButton("refresh", IC_REFRESH, nullptr, btnH)) { ServerList::Refresh(); if(s_bHasNetwork) { s_nNearbyTime = MP_NowMs(); StartJob(JOB_SCAN, false, "", MP_DEFAULT_PORT); } }
+        if(LToolButton("refresh", IC_REFRESH, nullptr, btnH)) { if(s_nLTab == LT_INTERNET && s_nInetSub == 2) OmpListKick(true); ServerList::Refresh(); if(s_bHasNetwork) { s_nNearbyTime = MP_NowMs(); StartJob(JOB_SCAN, false, "", MP_DEFAULT_PORT); } }
         ImGui::SameLine(0, UI::S(6));
         s_vRegionBtn = ImGui::GetCursorScreenPos(); s_fRegionBtn = btnH;   // 3.25.1: region switch
         // 4.05.3: the only toolbar button that TOGGLES - one tap that arrived twice (press seen twice) opened

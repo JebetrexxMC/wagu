@@ -438,3 +438,6 @@ void GameSettings::Save()
 {
     if(fnSave) { fnSave(); logger->Info("Neon settings: saved (%s)", s_szSave); }
 }
+
+// 5.02.01: the neon Start game page (save slot titles = the GXT key of the last mission passed)
+std::string GameSettings::GxtText(const char* key) { return Gxt(key); }
