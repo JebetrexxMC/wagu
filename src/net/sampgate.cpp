@@ -1259,7 +1259,10 @@ static void RemSendFoot(Impl& I, const SyncData& d)
     if(ar < I.lastArmour) I.lastArmour = ar;
     const int wp = (d.weapon < 64 && (d.weapon == 0 || I.gunOk[d.weapon])) ? d.weapon : 0;
     o.Write((uint8_t)std::min<int>(hp, 255)); o.Write((uint8_t)std::min<int>(ar, 255));
-    o.Write((uint8_t)((wp & 63) | (((extra >> 16) & 3) << 6)));
+    // 5.02.15: the 2 high bits are a value, not bits (open.mp player_pool.hpp: 1 = KEY_YES, 2 = KEY_NO, 3 = KEY_CTRL_BACK).
+    // Before, H (262144) came out as 0 and Y + N together as CTRL_BACK.
+    const uint8_t addKey = (extra & 262144) ? 3 : (extra & 131072) ? 2 : (extra & 65536) ? 1 : 0;
+    o.Write((uint8_t)((wp & 63) | (addKey << 6)));
     o.Write((uint8_t)((d.flags & SYNC_DUCKING) ? 1 : 0));
     float vel[3] = { -sinf(a) * sp, cosf(a) * sp, 0 }; WrVec(o, vel);
     float z[3] = { 0, 0, 0 }; WrVec(o, z); o.Write((uint16_t)0); o.Write((uint16_t)0); o.Write((uint16_t)0);

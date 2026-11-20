@@ -313,6 +313,80 @@ static bool SampSrvCommand(const char* text)
     return true;
 }
 
+// 5.02.15: the crossplay key bar (SA-MP Mobile style). SA-MP key bits: TAB = KEY_ACTION 1, SPC = KEY_SPRINT 8,
+// F = KEY_SECONDARY_ATTACK 16, 2 = KEY_SUBMISSION 512, ALT = KEY_WALK 1024, Y = KEY_YES 65536, N = KEY_NO 131072,
+// H = KEY_CTRL_BACK 262144. G has no key bit on PC either: samp.exe gets you in the nearest car as a passenger.
+static void SampKeyBarPassenger()
+{
+    const int ped = Game::LocalPed(); if(ped <= 0 || Game::IsCharInAnyCar(ped)) return;
+    Vec3 me; if(!Game::GetCharPos(ped, me)) return;
+    int best = 0; float bd = 6.0f;
+    for(int i = 0; i < MP_MAX_PLAYERS; ++i)
+    {
+        const RemotePlayer& p = players[i];
+        if(i == myId || !p.ped || !p.car) continue;
+        Vec3 cp; if(!Game::GetCarPos(p.car, cp)) continue;
+        const float d = Dist2D(me, cp); if(d < bd) { bd = d; best = p.car; }
+    }
+    if(!best) { SysMsg(COL_YELLOW, "No car next to you to get in as a passenger (G)."); return; }
+    const int seat = Game::FreePassengerSeat(best, 0);
+    if(seat < 0) { SysMsg(COL_YELLOW, "That car is full."); return; }
+    Game::ClearTasksNow(ped); Game::TaskEnterCarAsPassenger(ped, best, seat);
+    s_nPassBtnCar = best; s_nPassBtnT = MP_NowMs();
+}
+static void SampKeyBar(uint64_t now)
+{
+    static bool s_bFold = false;
+    static uint64_t s_nLatch[8] = {}, s_nResendAt = 0;
+    static const struct { const char* l; int bit; } kK[] = {
+        { "ESC", 0 }, { "TAB", 1 }, { "ALT", 1024 }, { "SPC", 8 }, { "F", 16 }, { "H", 262144 }, { "2", 512 }, { "Y", 65536 }, { "N", 131072 }, { "G", -1 } };
+    const ImVec2 ds = ImGui::GetIO().DisplaySize;
+    const float bh = std::max(34.0f, ds.y * 0.062f), bw = bh * 1.18f, gap = bh * 0.14f;
+    const int n = s_bFold ? 1 : 1 + (int)(sizeof(kK) / sizeof(kK[0]));
+    ImGui::SetNextWindowPos(ImVec2(ds.x * 0.05f, ds.y * 0.395f));
+    ImGui::SetNextWindowSize(ImVec2(n * (bw + gap) + 12.0f, bh + 12.0f));
+    ImGui::SetNextWindowBgAlpha(0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6, 6));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.05f, 0.05f, 0.06f, 0.62f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.05f, 0.05f, 0.06f, 0.62f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.55f, 0.08f, 0.08f, 0.85f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.75f, 0.10f, 0.10f, 0.95f));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
+    ImGui::Begin("##SampKeyBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoFocusOnAppearing);
+    if(ImGui::Button(s_bFold ? ">>##kb" : "<<##kb", ImVec2(bw, bh))) s_bFold = !s_bFold;
+    int keys = 0;
+    if(!s_bFold)
+    {
+        int li = 0;
+        for(auto& k : kK)
+        {
+            ImGui::SameLine(0, gap);
+            char id[16]; snprintf(id, sizeof(id), "%s##kb%d", k.l, li);
+            const bool tap = ImGui::Button(id, ImVec2(bw, bh)), held = ImGui::IsItemActive();
+            if(k.bit > 0)
+            {   // a tap is held 300 ms, so the server's 0.3.7 sync (every ~40-100 ms) always sees it go down and up
+                const int slot = li < 8 ? li : 7;
+                if(held || tap) s_nLatch[slot] = now + 300;
+                if(held || now < s_nLatch[slot]) keys |= k.bit;
+            }
+            if(tap && k.bit == 0)
+            {   // ESC: what samp.exe does - cancel a textdraw menu, else close the dialog (response 0)
+                if(s_SS.select) { s_SS.select = false; SampSrvSend(SPO_TDCLICK, 0, 0, -1); }
+                else if(s_Dlg.open) CloseDialog(0);
+            }
+            if(tap && k.bit == 1) FloatMenu::OpenPage(FloatMenu::PAGE_PLAYERS);   // TAB: the PC server's player list too
+            if(tap && k.bit == -1) SampKeyBarPassenger();
+            ++li;
+        }
+    }
+    ImGui::End();
+    ImGui::PopStyleColor(5); ImGui::PopStyleVar(3);
+    // the gate drops held keys after 400 ms without news: send again every 250 ms while something is down
+    if(keys != s_SS.keys || (keys && now >= s_nResendAt)) { s_SS.keys = keys; s_nResendAt = now + 250; SampSrvSend(SPO_KEYS, 0, 0, keys); }
+}
+
 static void SampSrvRender(ImDrawList* dl)
 {
     if(!SampSrvOn()) return;
@@ -368,9 +442,13 @@ static void SampSrvRender(ImDrawList* dl)
         if(ImGui::Button(">##cls", ImVec2(aw, bh))) SampSrvSend(SPO_SPAWNREQ, 2, 0, 0);
         ImGui::End();
     }
-    // Y / N / H keys (SA-MP KEY_YES / KEY_NO / KEY_CTRL_BACK)
-    if(!s_Dlg.open)
-    {
+    // 5.02.15: crossplay (PC SA-MP / open.mp server through the gate): the SA-MP Mobile key bar  << ESC TAB ALT SPC F H 2 Y N G.
+    // Its own window on the left under the radar, never in the floating menu, only on crossplay servers. PC gamemodes
+    // open their menus / doors / engines / jobs with OnPlayerKeyStateChange (Y N H F ALT...), and dialogs close with ESC
+    // (open.mp dialog styles: ESC = response 0, like button 2). Native SA-MP gamemodes on MP servers keep the Y / N / H column.
+    if(ConnectedToSampProxy()) SampKeyBar(MP_NowMs());
+    else if(!s_Dlg.open)
+    {   // Y / N / H keys (SA-MP KEY_YES / KEY_NO / KEY_CTRL_BACK)
         const ImVec2 ds = ImGui::GetIO().DisplaySize;
         const float bw = 56.0f;
         ImGui::SetNextWindowPos(ImVec2(ds.x - bw - 12.0f, ds.y * 0.42f)); ImGui::SetNextWindowSize(ImVec2(bw + 8.0f, bw * 3 + 32.0f));

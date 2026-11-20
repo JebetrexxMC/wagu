@@ -4448,3 +4448,18 @@
 	url = https://github.com/sanpezlo/td-notification
 	branch = master
 	shallow = true
+[submodule "third_party/omp-dev/mpsamp-open/easyDialog"]
+	path = third_party/omp-dev/mpsamp-open/easyDialog
+	url = https://github.com/mpsamp-open/easyDialog.git
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp-stdlib-official"]
+	path = third_party/omp-dev/omp-stdlib-official
+	url = https://github.com/openmultiplayer/omp-stdlib.git
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/open.mp-capi"]
+	path = third_party/omp-dev/open.mp-capi
+	url = https://github.com/openmultiplayer/open.mp-capi.git
+	branch = master
+	shallow = true
