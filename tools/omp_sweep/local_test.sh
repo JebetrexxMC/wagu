@@ -32,5 +32,20 @@ sleep 14; pkill -9 -f omp-server; sleep 6; start 70; sleep 36; pkill -f omp-serv
 check /tmp/lt_c.log "Reconnecting (1 of 10)" "lost connection -> reconnecting"
 [ "$(grep -c 'SPO_CLASSSEL show 0 spawned 1' /tmp/lt_c.log)" -ge 2 ] && echo "ok   spawned again after the reconnect" || { echo "FAIL spawned again after the reconnect"; fails=$((fails+1)); }
 check /tmp/lt_c.log "ok   still connected" "still connected at the end"
+
+# 3. 5.02.15: the crossplay key bar (net/samp_keybar.h, frame by frame) against tools/omp_sweep/keytest.pwn
+(cd /tmp/Server && LD_LIBRARY_PATH=qawno ./qawno/pawncc -iqawno/include -d0 -O1 "$OLDPWD/tools/omp_sweep/keytest.pwn" -ogamemodes/keytest.amx > /tmp/kt_build.log 2>&1) || { echo "FAIL keytest.pwn did not compile"; fails=$((fails+1)); }
+python3 -c "import json;p='/tmp/Server/config.json';c=json.load(open(p));c['pawn']['main_scripts']=['keytest 1'];json.dump(c,open(p,'w'),indent=1)"
+(cd /tmp/Server && timeout 80 ./omp-server > /tmp/omp_kt.log 2>&1 &); sleep 4
+MP_GATE_WAIT=5000 MP_TEST_REMOTE_ONLY=1 MP_TEST_SPAWN=1 MP_TEST_KEYS=1 MP_TEST_PORT=22600 MP_TEST_NAME=Phone_K timeout 70 "$T" 127.0.0.1 7799 > /tmp/kt_client.log 2>&1
+sleep 1; pkill -f omp-server
+for k in "1:TAB" "1024:ALT" "8:SPC" "16:F" "262144:H" "512:2" "65536:Y" "131072:N"; do
+  b=${k%%:*}; check /tmp/omp_kt.log "KT keys new $b old 0" "key bar ${k#*:} reaches OnPlayerKeyStateChange ($b)"
+done
+[ "$(grep -c 'KT keys new 8 old 0' /tmp/omp_kt.log)" -eq 2 ] && echo "ok   SPC held 2 s = one press, no flicker" || { echo "FAIL SPC hold flickered"; fails=$((fails+1)); }
+grep -E "KT keys new [0-9]+ " /tmp/omp_kt.log | grep -vqE "new (0|1|8|16|512|1024|65536|131072|262144) " && { echo "FAIL a key came with another key's bit"; fails=$((fails+1)); } || echo "ok   no key came with another key's bit"
+check /tmp/omp_kt.log "KT dialog 77 response 0 item -1" "ESC closes a msgbox dialog (response 0)"
+check /tmp/omp_kt.log "KT dialog 78 response 0 item 1" "ESC closes a list dialog (response 0, the selected row)"
+check /tmp/omp_kt.log "KT click 65535" "ESC cancels SelectTextDraw (INVALID_TEXT_DRAW)"
 echo; [ $fails -eq 0 ] && echo "all ok" || echo "$fails FAILED"
 exit $fails

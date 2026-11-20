@@ -21,6 +21,7 @@
 #include "net/samp.h"
 #include "net/sampgate.h"
 #include "net/cgrp.h"
+#include "net/samp_keybar.h"
 
 struct Ev : INetEvents {
     bool ok = false; int msgs = 0, dialogs = 0, tds = 0, samp = 0, hello = 0, joins = 0, syncs = 0, cg = 0;
@@ -120,6 +121,44 @@ int main(int argc, char** argv)
             cl.Send(&r, sizeof(r)); pump(3000, true);
         }
         printf("  after the dialogs: class shown %d, spawned %d\n", ev.classShow, ev.classSpawned);
+    }
+    if(getenv("MP_TEST_KEYS"))
+    {   // 5.02.15: the crossplay key bar, frame by frame (60 fps) through the phone's own key logic (net/samp_keybar.h).
+        // keybar_test.sh checks the server's OnPlayerKeyStateChange / OnDialogResponse / OnPlayerClickTextDraw log.
+        SampKeyBarState kb; int sends = 0;
+        auto frames = [&](int ms, uint32_t held, uint32_t tapFirst) {
+            const uint64_t e = MP_NowMs() + ms; bool first = true;
+            while(MP_NowMs() < e)
+            {
+                bool send = false; const uint64_t now = MP_NowMs();
+                const int keys = SampKeyBarStep(kb, now, held, first ? tapFirst : 0, send); first = false;
+                if(send) { PktSamp k; memset(&k, 0, sizeof(k)); k.type = PKT_SAMP; k.op = SPO_KEYS; k.val = keys; cl.Send(&k, sizeof(k)); ++sends; }
+                pump(16, true);
+            }
+        };
+        auto cmdTo = [&](const char* t) { PktSamp k; memset(&k, 0, sizeof(k)); k.type = PKT_SAMP; k.op = SPO_CMD; MP_CopyStr(k.text, t, sizeof(k.text)); cl.Send(&k, sizeof(k)); };
+        for(int i = 0; i < SKB_COUNT; ++i)
+        {
+            if(kSampKeyBar[i].bit <= 0) continue;
+            printf("  tap %s (%d)\n", kSampKeyBar[i].label, kSampKeyBar[i].bit);
+            frames(16, 1u << i, 1u << i);   // one frame under the finger = a quick tap
+            frames(900, 0, 0);
+        }
+        printf("  hold SPC 2 s\n"); frames(2000, 1u << SKB_SPC, 1u << SKB_SPC); frames(900, 0, 0);
+        printf("  hold Y, then N while Y is still down\n"); frames(400, 1u << SKB_Y, 1u << SKB_Y); frames(400, (1u << SKB_Y) | (1u << SKB_N), 1u << SKB_N); frames(900, 0, 0);
+        printf("  key sends: %d\n", sends);
+        // ESC = CloseDialog(0): response 0, list item -1 (msgbox) / the selected row (list)
+        ev.lastDlg = -1; cmdTo("/dlg"); for(int w = 0; w < 30 && ev.lastDlg < 0; ++w) pump(100, true);
+        CHECK(ev.lastDlg == 77, "keybar: the PC dialog came (/dlg)");
+        { PktDialogResp r; memset(&r, 0, sizeof(r)); r.type = PKT_DIALOG_RESPONSE; r.dialogId = 77; r.response = 0; r.listItem = -1; cl.Send(&r, sizeof(r)); }
+        pump(800, true);
+        ev.lastDlg = -1; cmdTo("/dlg2"); for(int w = 0; w < 30 && ev.lastDlg < 0; ++w) pump(100, true);
+        CHECK(ev.lastDlg == 78, "keybar: the PC list dialog came (/dlg2)");
+        { PktDialogResp r; memset(&r, 0, sizeof(r)); r.type = PKT_DIALOG_RESPONSE; r.dialogId = 78; r.response = 0; r.listItem = 1; cl.Send(&r, sizeof(r)); }
+        pump(800, true);
+        cmdTo("/sel"); pump(800, true);
+        { PktSamp k; memset(&k, 0, sizeof(k)); k.type = PKT_SAMP; k.op = SPO_TDCLICK; k.val = -1; cl.Send(&k, sizeof(k)); }
+        pump(1000, true);
     }
     if(getenv("MP_TEST_HOLD")) pump(atoi(getenv("MP_TEST_HOLD")), true);   // 5.02.13: two testers - stay to hear the other one's chat
     printf("  messages %d, dialogs %d, textdraws %d, samp ops %d, cg acts %d, joins %d\n", ev.msgs, ev.dialogs, ev.tds, ev.samp, ev.cg, ev.joins);

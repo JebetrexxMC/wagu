@@ -1,3 +1,4 @@
+#include "net/samp_keybar.h"   // 5.02.15: the crossplay key bar
 // 4.11: the phone side of SA-MP gamemodes running on an MP server (net/server_samp.inc, net/samp.h).
 // The server runs the PC gamemode (.amx) and sends PKT_SAMP for the things MP had no packet for yet:
 // checkpoints, map icons, camera, freeze, time / weather, interior, attached objects, 3D text labels
@@ -337,12 +338,10 @@ static void SampKeyBarPassenger()
 static void SampKeyBar(uint64_t now)
 {
     static bool s_bFold = false;
-    static uint64_t s_nLatch[8] = {}, s_nResendAt = 0;
-    static const struct { const char* l; int bit; } kK[] = {
-        { "ESC", 0 }, { "TAB", 1 }, { "ALT", 1024 }, { "SPC", 8 }, { "F", 16 }, { "H", 262144 }, { "2", 512 }, { "Y", 65536 }, { "N", 131072 }, { "G", -1 } };
+    static SampKeyBarState s_Kb;
     const ImVec2 ds = ImGui::GetIO().DisplaySize;
     const float bh = std::max(34.0f, ds.y * 0.062f), bw = bh * 1.18f, gap = bh * 0.14f;
-    const int n = s_bFold ? 1 : 1 + (int)(sizeof(kK) / sizeof(kK[0]));
+    const int n = s_bFold ? 1 : 1 + SKB_COUNT;
     ImGui::SetNextWindowPos(ImVec2(ds.x * 0.05f, ds.y * 0.395f));
     ImGui::SetNextWindowSize(ImVec2(n * (bw + gap) + 12.0f, bh + 12.0f));
     ImGui::SetNextWindowBgAlpha(0.0f);
@@ -356,35 +355,26 @@ static void SampKeyBar(uint64_t now)
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
     ImGui::Begin("##SampKeyBar", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoFocusOnAppearing);
     if(ImGui::Button(s_bFold ? ">>##kb" : "<<##kb", ImVec2(bw, bh))) s_bFold = !s_bFold;
-    int keys = 0;
+    uint32_t held = 0, tapped = 0;
     if(!s_bFold)
-    {
-        int li = 0;
-        for(auto& k : kK)
+        for(int i = 0; i < SKB_COUNT; ++i)
         {
             ImGui::SameLine(0, gap);
-            char id[16]; snprintf(id, sizeof(id), "%s##kb%d", k.l, li);
-            const bool tap = ImGui::Button(id, ImVec2(bw, bh)), held = ImGui::IsItemActive();
-            if(k.bit > 0)
-            {   // a tap is held 300 ms, so the server's 0.3.7 sync (every ~40-100 ms) always sees it go down and up
-                const int slot = li < 8 ? li : 7;
-                if(held || tap) s_nLatch[slot] = now + 300;
-                if(held || now < s_nLatch[slot]) keys |= k.bit;
-            }
-            if(tap && k.bit == 0)
-            {   // ESC: what samp.exe does - cancel a textdraw menu, else close the dialog (response 0)
-                if(s_SS.select) { s_SS.select = false; SampSrvSend(SPO_TDCLICK, 0, 0, -1); }
-                else if(s_Dlg.open) CloseDialog(0);
-            }
-            if(tap && k.bit == 1) FloatMenu::OpenPage(FloatMenu::PAGE_PLAYERS);   // TAB: the PC server's player list too
-            if(tap && k.bit == -1) SampKeyBarPassenger();
-            ++li;
+            char id[16]; snprintf(id, sizeof(id), "%s##kb%d", kSampKeyBar[i].label, i);
+            if(ImGui::Button(id, ImVec2(bw, bh))) tapped |= 1u << i;
+            if(ImGui::IsItemActive()) held |= 1u << i;
         }
-    }
     ImGui::End();
     ImGui::PopStyleColor(5); ImGui::PopStyleVar(3);
-    // the gate drops held keys after 400 ms without news: send again every 250 ms while something is down
-    if(keys != s_SS.keys || (keys && now >= s_nResendAt)) { s_SS.keys = keys; s_nResendAt = now + 250; SampSrvSend(SPO_KEYS, 0, 0, keys); }
+    if(tapped & (1u << SKB_ESC))
+    {   // ESC: what samp.exe does - cancel a textdraw menu, else close the dialog (response 0)
+        if(s_SS.select) { s_SS.select = false; SampSrvSend(SPO_TDCLICK, 0, 0, -1); }
+        else if(s_Dlg.open) CloseDialog(0);
+    }
+    if(tapped & (1u << SKB_TAB)) FloatMenu::OpenPage(FloatMenu::PAGE_PLAYERS);   // TAB: the PC server's player list too
+    if(tapped & (1u << SKB_G)) SampKeyBarPassenger();
+    bool send = false; const int keys = SampKeyBarStep(s_Kb, now, held, tapped, send);
+    if(send) { s_SS.keys = keys; SampSrvSend(SPO_KEYS, 0, 0, keys); }
 }
 
 static void SampSrvRender(ImDrawList* dl)
