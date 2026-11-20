@@ -3833,3 +3833,33 @@
 	url = https://github.com/lassir/bcrypt-samp
 	branch = master
 	shallow = true
+[submodule "third_party/omp-dev/tools/open.mp"]
+	path = third_party/omp-dev/tools/open.mp
+	url = https://github.com/JebetrexxMC/open.mp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/tools/samp-essentials"]
+	path = third_party/omp-dev/tools/samp-essentials
+	url = https://github.com/JebetrexxMC/samp-essentials
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/tools/AML_ImGui"]
+	path = third_party/omp-dev/tools/AML_ImGui
+	url = https://github.com/JebetrexxMC/AML_ImGui
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/tools/AndroidModLoader"]
+	path = third_party/omp-dev/tools/AndroidModLoader
+	url = https://github.com/JebetrexxMC/AndroidModLoader
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/tools/SAUtils"]
+	path = third_party/omp-dev/tools/SAUtils
+	url = https://github.com/JebetrexxMC/SAUtils
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/tools/open.mp-capi"]
+	path = third_party/omp-dev/tools/open.mp-capi
+	url = https://github.com/JebetrexxMC/open.mp-capi
+	branch = master
+	shallow = true

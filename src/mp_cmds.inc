@@ -261,7 +261,7 @@ static bool HandleCommand(const char* text)
     // 2.35: the host disabled cheats
     static const char* const kCheatCmds[] = { "tp", "wallhack", "wh", "nofall", "invincible", "god", "freeze", "invisible", "invis", "fly", "flash", "behind", "gravity" };
     if(MP::CheatsBlocked())
-        for(const char* c : kCheatCmds) if(!strcmp(cmd, c)) { SysMsg(COL_RED, "Cheats are disabled on this server by the host."); return true; }
+        for(const char* c : kCheatCmds) if(!strcmp(cmd, c)) { SysMsg(COL_RED, ConnectedToSampProxy() ? "MP cheats are off on PC servers (their anti-cheat would kick you)." : "Cheats are disabled on this server by the host."); return true; }
     if(!strcmp(cmd, "tp"))              CmdTp(arg);
     else if(!strcmp(cmd, "wallhack") || !strcmp(cmd, "wh")) { s_Cheat.wallhack = !s_Cheat.wallhack; SysMsg(COL_SYSTEM, "Wall hack: %s", OnOff(s_Cheat.wallhack)); }
     else if(!strcmp(cmd, "nofall"))     { s_Cheat.nofall = !s_Cheat.nofall; s_Cheat.applied = false; SysMsg(COL_SYSTEM, "No fall: %s", OnOff(s_Cheat.nofall)); }

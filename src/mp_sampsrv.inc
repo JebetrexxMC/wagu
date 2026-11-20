@@ -85,7 +85,7 @@ static void SampSrvOnPacket(const uint8_t* d, int len)
             break;
         case SPO_CONTROL: s_SS.frozen = p.a == 0; Game::SetPlayerControl(p.a != 0); if(ped) Game::FreezeChar(ped, p.a == 0); break;
         case SPO_WORLD: if(ped) Game::SetInterior(ped, p.a); break;
-        case SPO_TIME: Game::SetTimeOfDay(p.a, p.b); if(p.val >= 0) Game::ForceWeatherNow(p.val); break;
+        case SPO_TIME: s_nPcHour = p.a % 24; s_nPcMin = p.b % 60; Game::SetTimeOfDay(p.a, p.b); if(p.val >= 0) Game::ForceWeatherNow(p.val); break;   // 5.02.14: held by ApplyWorld
         case SPO_ATTACH:
         {
             if(p.a >= 10) break;

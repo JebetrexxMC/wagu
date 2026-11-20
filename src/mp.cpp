@@ -1070,10 +1070,15 @@ static uint64_t s_nWorldRecvMs = 0;
 static uint64_t s_nWorldSyncedAt = 0;
 static int      s_nWorldNoticed = 0;   // 2.18.2: Game::WORLD_FIX_* already told this connection (once each)
 static int      s_nWorldBlocked = 0;
+// 5.02.14: on a PC open.mp / SA-MP server the PC server owns the clock + weather (SetWorldTime /
+// SetPlayerTime / SetWeather). The MP day lock used to put MP's real-time clock back every frame, so the
+// PC server's time was undone at once. Now the lock holds the PC server's hour:minute instead.
+static bool     ConnectedToSampProxy();
+static int      s_nPcHour = -1, s_nPcMin = 0;
 static void ApplyWorld(uint64_t now)
 {
     if((s_bReleaseWeather || s_bWorldSynced) && Game::IsReady() && client.GetState() == NET_DISCONNECTED)
-    { s_bReleaseWeather = false; s_bWorldSynced = false; Game::ReleaseWorld(); }   // left / lost the server: your own time + weather again
+    { s_bReleaseWeather = false; s_bWorldSynced = false; s_nPcHour = -1; Game::ReleaseWorld(); }   // left / lost the server: your own time + weather again
     if(s_bWorldPending) { s_bWorldPending = false; s_nWorldRecvMs = now; if(!s_bWorldSynced) s_nWorldSyncedAt = 0; s_bWorldSynced = true; }
     if(!s_bWorldSynced || !Game::IsReady() || client.GetState() == NET_DISCONNECTED) return;
     s_bReleaseWeather = false;
@@ -1086,6 +1091,11 @@ static void ApplyWorld(uint64_t now)
     int forced = s_World.mode == WORLD_NATURAL ? -1 : (int)s_World.weather;
     if(s_nCgWeather >= 0) forced = s_nCgWeather;   // 4.09: CGRP /weather [id]
     { const int lgm = MP::LgClockMinute(); if(lgm >= 0) { absMin = (uint32_t)lgm; frac = 0; s_nWorldSyncedAt = now; } }   // 4.13.14: League night, one clock
+    if(ConnectedToSampProxy())
+    {   // 5.02.14: the PC server's world, never MP's day
+        if(s_nPcHour < 0) return;                      // the PC server didn't set one yet: leave the game's own
+        absMin = (uint32_t)(s_nPcHour * 60 + s_nPcMin); frac = 0;
+    }
     int fixed = Game::EnforceWorld(absMin, frac, forced);
     if(!s_nWorldSyncedAt) { s_nWorldSyncedAt = now; return; }     // first lock after joining: not a cheat
     if(fixed && now - s_nWorldSyncedAt > 3000)
@@ -4634,7 +4644,7 @@ void MP::Process()
     // 4.13.15: the 100% save swap on the default server is OFF for good (its save load on join was one of the
     // black-screen freezes). Process(enabled = false) still puts saves back after an old session / co-op.
     Progress::Process(now, false, client.GetState() == NET_CONNECTED && MP::IsOnDefault(),
-                      client.GetState() == NET_CONNECTED && !MP::IsOnDefault(),
+                      client.GetState() == NET_CONNECTED && !MP::IsOnDefault() && !ConnectedToSampProxy(),   // 5.02.14: no MP saves on PC servers
                       Game::IsReady() && !paused && !s_bLocalSeparate && s_nFeedStep < 0);
     ApplyWorld(now);
     // 3.51.1: the CLEO menu (and its touch / swipe cheat scripts) is blocked automatically on every server,
@@ -4743,23 +4753,30 @@ void MP::Process()
             if(!JoinScreenUp() && !DzConnScreen()) { Game::ShowGameHud(true); Game::SetPlayerControl(true); }   // 4.13.2: still connecting = normal HUD
         }
     }
-    BcwProcess(ped, now);        // 3.04: Brief Case War
-    Mw3Process(ped, now);        // 3.23: Modern Warfare 3
-    RpProcess(ped, now);         // 3.25: Mega Vil Futuristic
-    DzProcess(ped, now);         // 3.58: Project Day Z
-    LgProcess(ped, now);         // 4.13.4: Rocket League (was San Andreas Online League)
-    CgProcess(ped, now);         // 4.09: CGRP systems
-    SampSrvProcess(ped, now);    // 4.11: SA-MP gamemode servers
-    HkProcess(ped, now); HmProcess(ped, now); CoopProcess(ped, now); NeedsProcess(ped, now); MvProcess(now); Modes2Process(ped, now); RulesProcess(now); ModCheckProcess(now); ProgProcess(ped, now); AdmProcess(ped); DealerProcess(ped, now);   // 3.39 / 3.54 staff commands
-    SpawnUnstickTick(ped, now);  // 5.01.12: CJ can't move after the spawn (every server)
-    ProcessGates(ped, now);      // 3.04.2: Area 69 gates
-    ProcessHotelPc(ped, now);    // 3.36: hotel rooms with a computer (eyefind.info vehicle shops)
+    // 5.02.14: on a PC open.mp / SA-MP server the PC server owns the game: MP's own systems (teleports of the
+    // spawn unstick + Area 69 gates, safe-zone god mode, hunger money, saved progress, MP game modes, cheats)
+    // used to keep running there and fight the PC server - its anti-cheat kicked for teleport / god / money.
+    const bool pcSrv = ConnectedToSampProxy();
+    if(!pcSrv)
+    {
+        BcwProcess(ped, now);        // 3.04: Brief Case War
+        Mw3Process(ped, now);        // 3.23: Modern Warfare 3
+        RpProcess(ped, now);         // 3.25: Mega Vil Futuristic
+        DzProcess(ped, now);         // 3.58: Project Day Z
+        LgProcess(ped, now);         // 4.13.4: Rocket League (was San Andreas Online League)
+        CgProcess(ped, now);         // 4.09: CGRP systems
+        HkProcess(ped, now); HmProcess(ped, now); CoopProcess(ped, now); NeedsProcess(ped, now); MvProcess(now); Modes2Process(ped, now); RulesProcess(now); ModCheckProcess(now); ProgProcess(ped, now); AdmProcess(ped); DealerProcess(ped, now);   // 3.39 / 3.54 staff commands
+        SpawnUnstickTick(ped, now);  // 5.01.12: CJ can't move after the spawn (every server)
+        ProcessGates(ped, now);      // 3.04.2: Area 69 gates
+        ProcessHotelPc(ped, now);    // 3.36: hotel rooms with a computer (eyefind.info vehicle shops)
+        ProcessSafeZones(ped, now);  // 3.21: hospital safe zones + spawn protection
+        ProcessGames(ped, now);      // 2.21: races, deathmatch, jobs, open world
+    }
+    SampSrvProcess(ped, now);    // 4.11: SA-MP gamemode servers (and the PC server's world)
     ProcessClothes(now);         // 3.10: clothing sync
     ProcessVoice();              // 3.11: voice chat
-    ProcessCheats(ped, now);     // 2.19: chat-command cheats
+    ProcessCheats(ped, now);     // 2.19: chat-command cheats (all off on a PC server)
     AfkTick(ped, now);           // 3.34
-    ProcessSafeZones(ped, now);  // 3.21: hospital safe zones + spawn protection
-    ProcessGames(ped, now);      // 2.21: races, deathmatch, jobs, open world
     ProcessSamp(ped, now);       // 3.01: map icons, actors, turf HUD, class skin, team
     UpdatePassengerCandidate(ped, now);   // 2.19.1: Passenger button
 
@@ -4834,6 +4851,7 @@ static void ApplyServerPerms()
 
 bool MP::CheatsBlocked()
 {
+    if(ConnectedToSampProxy()) return true;   // 5.02.14: PC servers have their own anti-cheat (MP /tp /god /fly = kick)
     if(s_Server.IsRunning() && settings.disableCheats && !MP::IsHostingDefault()) return true;   // my own server: at once
     return client.GetState() == NET_CONNECTED && (s_nServerPerms & PERM_NO_CHEATS);
 }
@@ -4841,6 +4859,7 @@ bool MP::CheatsBlocked()
 // "Cheat Menu" on (Add server > permissions) - never on the default server, never with "Disable cheats"
 bool MP::CheatMenuAllowed()
 {
+    if(ConnectedToSampProxy()) return false;   // 5.02.14
     if(client.GetState() != NET_CONNECTED || MP::IsOnDefault()) return false;
     return (s_nServerPerms & PERM_CHEAT_MENU) && !(s_nServerPerms & PERM_NO_CHEATS);
 }
