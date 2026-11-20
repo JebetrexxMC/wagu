@@ -20,6 +20,7 @@
 #include "net/server.h"
 #include "net/samp.h"
 #include "net/sampgate.h"
+#include "net/cgrp.h"
 
 struct Ev : INetEvents {
     bool ok = false; int msgs = 0, dialogs = 0, tds = 0, samp = 0, hello = 0, joins = 0, syncs = 0, cg = 0;
@@ -42,7 +43,8 @@ struct Ev : INetEvents {
     void OnDialog(const PktDialog& d) override { ++dialogs; printf("  dialog %u style %u: %.60s\n", d.dialogId, d.style, d.caption); }
     void OnTextDraw(const PktTextDraw& t) override { ++tds; if(tds <= 3) printf("  textdraw %u show %u: %.40s\n", t.tdId, t.show, t.text); }
     void OnSamp(const uint8_t* d, int) override { ++samp; if(d[1] == SPO_HELLO) { ++hello; printf("  SPO_HELLO: %s\n", (const char*)d + offsetof(PktSamp, text)); } }
-    void OnCg(const uint8_t*, int) override { ++cg; }
+    float px = 1958.f, py = 1343.f, pz = 15.4f;   // 5.02.10: follows the server's SetPlayerPos like the phone does
+    void OnCg(const uint8_t* d, int n) override { ++cg; if(n >= (int)sizeof(PktCgAct)) { const PktCgAct* a = (const PktCgAct*)d; if(a->act == CGA_TELE) { px = a->pos[0]; py = a->pos[1]; pz = a->pos[2]; } } }
 };
 
 static int fails = 0;
@@ -63,10 +65,11 @@ int main(int argc, char** argv)
 
     // ---- REMOTE role ----
     MPServer proxy; proxy.SetPersistent(true);
-    if(!proxy.Start(19791, "proxy", [](const char*){}, 4)) { printf("proxy failed\n"); return 1; }
+    const int basePort = getenv("MP_TEST_PORT") ? atoi(getenv("MP_TEST_PORT")) : 19791;   // 5.02.10: parallel sweeps
+    if(!proxy.Start(basePort, "proxy", [](const char*){}, 4)) { printf("proxy failed\n"); return 1; }
     const char* pw = argc > 3 ? argv[3] : nullptr;   // 5.02.01: a password server (open.mp tab: the password is asked first)
     SampGate gate; gate.StartRemote(&proxy, host, port, pw);
-    MPClient cl; Ev ev; cl.Connect("127.0.0.1", 19791, "Phone Tester", 106);
+    MPClient cl; Ev ev; cl.Connect("127.0.0.1", basePort, "Phone Tester", 106);
     uint32_t seq = 1;
     auto pump = [&](int ms, bool move) {
         uint64_t e = MP_NowMs() + ms;
@@ -75,7 +78,7 @@ int main(int argc, char** argv)
             cl.Poll(&ev);
             if(move && cl.GetState() == NET_CONNECTED && seq % 4 == 0)
             {
-                PktSync p; memset(&p, 0, sizeof(p)); p.type = PKT_SYNC; p.seq = seq; p.d.pos[0] = 1958.f + (float)(seq % 100) * 0.1f; p.d.pos[1] = 1343.f; p.d.pos[2] = 15.4f;
+                PktSync p; memset(&p, 0, sizeof(p)); p.type = PKT_SYNC; p.seq = seq; p.d.pos[0] = ev.px + (float)(seq % 40) * 0.02f; p.d.pos[1] = ev.py; p.d.pos[2] = ev.pz;
                 p.d.heading = 90; p.d.health = 100; p.d.skin = 106; p.d.speed = 3.0f; cl.Send(&p, sizeof(p));
             }
             ++seq;
@@ -97,6 +100,8 @@ int main(int argc, char** argv)
     CHECK(!gate.Ended(), "still connected after chat + /command + movement");
     cl.Disconnect(); pump(300, false);
     gate.Stop(); proxy.Stop();
+
+    if(getenv("MP_TEST_REMOTE_ONLY")) { printf(fails ? "\n%d FAILED\n" : "\nall ok\n", fails); return fails ? 1 : 0; }   // 5.02.10: sweeps skip the host part
 
     // ---- SERVER role ----
     MPServer srv; srv.SetPersistent(true);

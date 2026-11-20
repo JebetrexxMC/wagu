@@ -467,7 +467,9 @@ static void TdeRender()
     if(!s_Tde.open) return;
     ImGuiIO& io = ImGui::GetIO();
     const ImVec2 ds = io.DisplaySize;
-    const float kx = ds.x / 640.0f, ky = ds.y / 448.0f;
+    const float ky = ds.y / 448.0f;
+    float kx = ds.x / 640.0f, ox = 0;
+    if(!settings.tdStretch && kx > ky) { kx = ky; ox = (ds.x - 640.0f * kx) * 0.5f; }   // 5.02.10: same canvas as the game (no stretch)
     const bool modal = SampDialogOpen() || VKeyboard::IsOpen();
 
     ImGui::SetNextWindowPos(ImVec2(0, 0)); ImGui::SetNextWindowSize(ds);
@@ -479,19 +481,19 @@ static void TdeRender()
     ImDrawList* dl = ImGui::GetWindowDrawList();
     dl->AddRectFilled(ImVec2(0, 0), ds, IM_COL32(0, 0, 0, 40));
     if(s_Tde.grid)
-        for(int gx = 0; gx <= 640; gx += 40) dl->AddLine(ImVec2(gx * kx, 0), ImVec2(gx * kx, ds.y), IM_COL32(255, 255, 255, 22));
+        for(int gx = 0; gx <= 640; gx += 40) dl->AddLine(ImVec2(ox + gx * kx, 0), ImVec2(ox + gx * kx, ds.y), IM_COL32(255, 255, 255, 22));
     if(s_Tde.grid)
-        for(int gy = 0; gy <= 448; gy += 40) dl->AddLine(ImVec2(0, gy * ky), ImVec2(ds.x, gy * ky), IM_COL32(255, 255, 255, 22));
+        for(int gy = 0; gy <= 448; gy += 40) dl->AddLine(ImVec2(ox, gy * ky), ImVec2(ox + 640.0f * kx, gy * ky), IM_COL32(255, 255, 255, 22));
 
     // the textdraws, with the box each one covers (for tapping)
     std::vector<ImVec4> rects(s_Tde.pr.items.size());
-    for(size_t i = 0; i < s_Tde.pr.items.size(); ++i) rects[i] = TdDrawOne(dl, MptdToPkt(s_Tde.pr.items[i]), 0, 0, kx, ky);
+    for(size_t i = 0; i < s_Tde.pr.items.size(); ++i) rects[i] = TdDrawOne(dl, MptdToPkt(s_Tde.pr.items[i]), ox, 0, kx, ky);
     MptdItem* c = TdeCur();
     if(c)
     {
         const ImVec4& r = rects[s_Tde.sel];
         dl->AddRect(ImVec2(r.x - 3, r.y - 3), ImVec2(r.z + 3, r.w + 3), IM_COL32(255, 216, 74, 255), 0, 0, UI::S(2.5f));
-        dl->AddCircleFilled(ImVec2(c->x * kx, c->y * ky), UI::S(5), IM_COL32(255, 216, 74, 255));
+        dl->AddCircleFilled(ImVec2(ox + c->x * kx, c->y * ky), UI::S(5), IM_COL32(255, 216, 74, 255));
     }
 
     // ---- tool bar (bottom, two rows) + info line (top) ----

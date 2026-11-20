@@ -34,6 +34,7 @@ static void PSettingsPopup()
         { "Damage Indicator",  &settings.showDmgInd,     0 },
         { "Kill Feed",         &settings.showKillFeed,   0 },
         { "Chat Bubble",       &settings.chatBubbles,    0 },
+        { "Stretch Textdraws (PC)", &settings.tdStretch, 0 },   // 5.02.10
         { "Voice Chat",        &settings.voiceChat,      0 },
         { "Hit Sound",         &settings.hitSound,       0 },
         { "Chat Timestamp",    &settings.chatTimestamps, 0 },

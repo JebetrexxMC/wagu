@@ -5971,7 +5971,7 @@ void MP::SaveConfig()
     B("NoCamShake", settings.noCamShake);   // 3.34
     I("UiFont", settings.uiFont); I("UiFontFx", settings.uiFontFx); F("UiFontScale", settings.uiFontScale); F("UiScale", settings.uiScale);
     B("ChatTimestamps", settings.chatTimestamps); B("VoiceChat", settings.voiceChat); F("VoiceVolume", settings.voiceVolume); F("MicGain", settings.micGain); F("VoicePitch", settings.voicePitch);   // 3.11
-    B("ChatBubbles", settings.chatBubbles); B("Labels3D", settings.labels3d); B("MapIcons", settings.mapIcons); B("Actors", settings.actors); B("GangZones", settings.gangZones);   // 3.01
+    B("ChatBubbles", settings.chatBubbles); B("TdStretch", settings.tdStretch); B("Labels3D", settings.labels3d); B("MapIcons", settings.mapIcons); B("Actors", settings.actors); B("GangZones", settings.gangZones);   // 3.01
     I("Team", settings.team); I("ClassSkin", settings.classSkin);
     B("ShowNameTags", settings.showNameTags); B("ShowDmgInd", settings.showDmgInd); B("GlobalChat", settings.globalChat);   // 3.35
     I("RadarStyle", settings.radarStyle); B("PubgCompass", settings.pubgCompass);   // 3.27
@@ -6027,7 +6027,8 @@ static void LoadConfig()
     ::cfg->GetString(settings.pcServer, sizeof(settings.pcServer), "PcServer", "", "MP");
     { char m[24] = ""; ::cfg->GetString(m, sizeof(m), "HostAntiCheatMask", "FFFFFFFFFF", "MP"); settings.hostAcMask = strtoull(m, nullptr, 16) & AC_ALL_MASK; }
     settings.hitSound = ::cfg->GetBool("HitSound", true, "MP");               // 3.00
-    settings.chatBubbles = ::cfg->GetBool("ChatBubbles", false, "MP");   // 3.01: off by default
+    settings.chatBubbles = ::cfg->GetBool("ChatBubbles", false, "MP");
+    settings.tdStretch = ::cfg->GetBool("TdStretch", false, "MP");   // 5.02.10: off = no PC-style stretch   // 3.01: off by default
     settings.chatTimestamps = ::cfg->GetBool("ChatTimestamps", false, "MP");   // 3.11: off until the player turns it on
     settings.voiceChat   = ::cfg->GetBool("VoiceChat", true, "MP");
     settings.permAfk     = ::cfg->GetBool("PermAfk", true, "MP");       // 3.34
@@ -8065,6 +8066,7 @@ static void SectionChat(void*)
     changed |= ImGui::SliderInt("##chf", &settings.chatFade, 0, 120, settings.chatFade ? "%d seconds" : "never");
     changed |= ChatPlacementOptions("chatsec");   // 2.22
     changed |= FloatMenu::ToggleSwitch("Chat bubbles (text over the head)", &settings.chatBubbles);   // 3.01: off by default
+    changed |= FloatMenu::ToggleSwitch("Stretch server textdraws (PC style)", &settings.tdStretch);   // 5.02.10
     if(FloatMenu::BigButton("Small chat (4 lines, 70 %)")) { settings.chatLines = 4; settings.chatSize = 0.7f; settings.chatWidth = 0.36f; changed = true; }
     if(FloatMenu::BigButton("Reset chat layout"))
     { settings.chatLines = 6; settings.chatSize = 0.8f; settings.chatScale = 1.0f; settings.chatWidth = 0.42f; settings.chatFade = 25; settings.chatBg = true; settings.chatX = 0.22f; settings.chatY = 0.02f;

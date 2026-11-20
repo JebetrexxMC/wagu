@@ -386,6 +386,26 @@ static void SampTildeLines(const char* s, ImU32 base, std::vector<std::vector<Sa
 // height), 5 = preview model (same size, bgColor behind). SA-MP box: align 1 from x to boxX (the
 // textsize X), 2 = centred, boxX - x = width, 3 = from boxX to x; boxX 0 = as wide as the text.
 static inline ImU32 TdCol(uint32_t c) { return IM_COL32(c >> 24, (c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF); }
+// 5.02.10: no PC-style stretch on a wide phone - the 640x448 canvas keeps its shape (centred), and a box or
+// sprite that touches the canvas' left / right edge is carried out to the screen edge (full-screen backgrounds).
+static float s_TdEdgeL = -1, s_TdEdgeR = -1;
+static void TdEdges(ImVec2& a, ImVec2& b, float ox, float kx)
+{
+    if(s_TdEdgeL < 0) return;
+    if(a.x <= ox + 4.0f * kx) a.x = fminf(a.x, s_TdEdgeL);
+    if(b.x >= ox + 636.0f * kx) b.x = fmaxf(b.x, s_TdEdgeR);
+}
+static bool TdArrow(ImDrawList* dl, const char* n, ImVec2 a, ImVec2 b, ImU32 col)
+{   // 5.02.10: the common ld_beat arrows / dots as shapes instead of a blank card (the TXD itself is not in MP)
+    const ImVec2 c((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f); const float r = fminf(b.x - a.x, b.y - a.y) * 0.42f;
+    if(!strncasecmp(n, "left", 4))  { dl->AddTriangleFilled(ImVec2(c.x - r, c.y), ImVec2(c.x + r * 0.7f, c.y - r), ImVec2(c.x + r * 0.7f, c.y + r), col); return true; }
+    if(!strncasecmp(n, "right", 5)) { dl->AddTriangleFilled(ImVec2(c.x + r, c.y), ImVec2(c.x - r * 0.7f, c.y - r), ImVec2(c.x - r * 0.7f, c.y + r), col); return true; }
+    if(!strncasecmp(n, "up", 2))    { dl->AddTriangleFilled(ImVec2(c.x, c.y - r), ImVec2(c.x - r, c.y + r * 0.7f), ImVec2(c.x + r, c.y + r * 0.7f), col); return true; }
+    if(!strncasecmp(n, "down", 4))  { dl->AddTriangleFilled(ImVec2(c.x, c.y + r), ImVec2(c.x - r, c.y - r * 0.7f), ImVec2(c.x + r, c.y - r * 0.7f), col); return true; }
+    if(!strcasecmp(n, "chit") || !strcasecmp(n, "circle") || !strncasecmp(n, "ball", 4)) { dl->AddCircleFilled(c, r, col, 24); return true; }
+    if(!strcasecmp(n, "cross") || !strcasecmp(n, "close")) { dl->AddLine(ImVec2(c.x - r, c.y - r), ImVec2(c.x + r, c.y + r), col, fmaxf(2.0f, r * 0.3f)); dl->AddLine(ImVec2(c.x - r, c.y + r), ImVec2(c.x + r, c.y - r), col, fmaxf(2.0f, r * 0.3f)); return true; }
+    return false;
+}
 static ImVec4 TdDrawOne(ImDrawList* dl, const PktTextDraw& d, float ox, float oy, float kx, float ky)
 {   // returns the rectangle it covers (x0, y0, x1, y1) in screen pixels
     float x = ox + d.x * kx, y = oy + d.y * ky;
@@ -393,6 +413,7 @@ static ImVec4 TdDrawOne(ImDrawList* dl, const PktTextDraw& d, float ox, float oy
     {
         float w = d.letterX * kx, h = d.letterY * ky;
         ImVec2 a(fminf(x, x + w), fminf(y, y + h)), b(fmaxf(x, x + w), fmaxf(y, y + h));
+        TdEdges(a, b, ox, kx);
         if(d.font == 5)
         {
             dl->AddRectFilled(a, b, TdCol(d.bgColor));
@@ -406,6 +427,7 @@ static ImVec4 TdDrawOne(ImDrawList* dl, const PktTextDraw& d, float ox, float oy
             const char* c = strchr(d.text, ':'); const char* n = c ? c + 1 : d.text;
             bool solid = !strcasecmp(n, "white") || !strcasecmp(n, "black") || !strcasecmp(n, "tvbase") || !strcasecmp(n, "blkdot") || !strcasecmp(n, "bg") || !strcasecmp(n, "backgroundbox");
             if(solid) dl->AddRectFilled(a, b, TdCol(!strcasecmp(n, "black") || !strcasecmp(n, "blkdot") ? (d.color & 0xFF) : d.color));
+            else if(TdArrow(dl, n, a, b, TdCol(d.color))) {}
             else
             {   // the real TXD picture is not in MP: a tinted card with the sprite name
                 uint32_t col = d.color; uint32_t al = (col & 0xFF) * 2 / 5;
@@ -439,6 +461,7 @@ static ImVec4 TdDrawOne(ImDrawList* dl, const PktTextDraw& d, float ox, float oy
         else { b0 = fminf(x, bx); b1 = fmaxf(x, bx); }
         const float pad = 2.0f * kx;
         ImVec2 a(fminf(b0, tx0) - pad, y - 1.0f * ky), b(fmaxf(b1, tx0 + maxW) + pad, y + lh * lines.size() + 2.0f * ky);
+        TdEdges(a, b, ox, kx);
         dl->AddRectFilled(a, b, TdCol(d.boxColor));
         r = ImVec4(a.x, a.y, b.x, b.y);
     }
@@ -462,15 +485,18 @@ static ImVec4 TdDrawOne(ImDrawList* dl, const PktTextDraw& d, float ox, float oy
 static void RenderTextDraws(ImDrawList* dl)
 {
     const ImVec2 ds = ImGui::GetIO().DisplaySize;
-    const float kx = ds.x / 640.0f, ky = ds.y / 448.0f;
+    const float ky = ds.y / 448.0f;
+    float kx = ds.x / 640.0f, ox = 0;
+    if(!settings.tdStretch && kx > ky) { kx = ky; ox = (ds.x - 640.0f * kx) * 0.5f; s_TdEdgeL = 0; s_TdEdgeR = ds.x; }   // 5.02.10: 4:3 canvas, centred
     const uint64_t now = MP_NowMs();
     for(int i = 0; i < SAMP_TD_MAX; ++i)
     {
         SampTd& t = s_Td[i];
         if(!t.used) continue;
         if(t.until && now >= t.until) { t.used = false; continue; }
-        t.rect = TdDrawOne(dl, t.d, 0, 0, kx, ky);
+        t.rect = TdDrawOne(dl, t.d, ox, 0, kx, ky);
     }
+    s_TdEdgeL = s_TdEdgeR = -1;
 }
 
 // ---- chat bubbles (SetPlayerChatBubble: chat text over the head for a few seconds) ------------

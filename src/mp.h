@@ -21,6 +21,7 @@ struct MPSettings
     float nametagSize       = 1.0f;
     float nametagDistance   = 60.0f;
     bool  showOwnTag        = true;
+    bool  tdStretch         = false;   // 5.02.10: server textdraws stretched to the full width (PC style); off = 4:3, no stretch
     bool  chatBubbles       = false;   // 3.01: chat text over the head (SA-MP chat bubble); off until the player turns it on
     bool  showHealthBars    = true;
     bool  showRadarIcons    = true;

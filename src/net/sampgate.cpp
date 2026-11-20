@@ -176,7 +176,8 @@ struct SampGate::Impl
     uint64_t lastFoot = 0, keysUntil = 0, retrySpawnAt = 0;
     uint32_t heldKeys = 0;
     bool wasDead = false;
-    bool wantClass = false;                 // 5.02.09: ForceClassSelection waits for the next respawn (like the PC client)
+    bool wantClass = false;
+    bool dlgOpen = false, tdSel = false, spect = false, noAuto = false;   // noAuto: the server sent us back to class selection - wait for the player    // 5.02.10: no auto-spawn while a login dialog / clickable-textdraw login is up (a PC player can't press Spawn then)                 // 5.02.09: ForceClassSelection waits for the next respawn (like the PC client)
     uint64_t autoSpawnWin = 0; int autoSpawnN = 0;   // 5.02.09: cap auto RequestSpawn so a login screen can't loop
     int lastHealth = 100;
 
@@ -784,14 +785,16 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             {
                 const uint64_t now = NowMs();
                 if(now - I.autoSpawnWin > 30000) { I.autoSpawnWin = now; I.autoSpawnN = 0; }
-                if(++I.autoSpawnN <= 3) { BitStream o; CliRpc(I, 129, o); }
-                else if(I.autoSpawnN == 4) srv->GateMsg(s, 0xA9C4E4FF, "[open.mp] The server keeps you in class selection - log in / finish its dialog first.");
+                (void)now; if(!I.spect && !I.dlgOpen && !I.tdSel && !I.noAuto) I.retrySpawnAt = NowMs() + 5000;   // 5 s: account loading, then the login dialog   // 5.02.10: wait - a login dialog usually comes right after the class answer
             }
             break;
         }
-        case 129:  // spawn answer / SpawnPlayer
-            bs.Read(u32a);
-            if(u32a) RemSpawned(I, srv); else I.retrySpawnAt = NowMs() + 4000;
+        case 129:  // spawn answer / SpawnPlayer: 0 = no, 1 = yes, 2 = SpawnPlayer()
+            // 5.02.10: SA-MP 0.3.7 servers send 1 byte, open.mp 4 - reading 4 from a 1-byte answer kept an old
+            // value, so a "not logged in yet" refusal was taken as a yes (spawn -> the server's guard -> loop)
+            if(bs.GetNumberOfUnreadBits() >= 32) bs.Read(u32a); else { uint8_t b8 = 0; bs.Read(b8); u32a = b8; }
+            if(dbg) printf("[crossplay] spawn answer %u\n", u32a);
+            if(u32a) RemSpawned(I, srv); else if(!I.dlgOpen && !I.tdSel && !I.spect) I.retrySpawnAt = NowMs() + 4000;
             break;
         case 68: { Impl::Spawn sp; if(RdSpawn(bs, sp)) I.spawn = sp; break; }
         case 74:   // ForceClassSelection
@@ -799,7 +802,10 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             break;
         case 124:  // TogglePlayerSpectating
             bs.Read(u32a);
-            if(!u32a && I.wantClass && I.phase >= 4) { I.wantClass = false; I.phase = 3; BitStream o; o.Write((uint16_t)0); CliRpc(I, 128, o); }
+            I.spect = u32a != 0;   // 5.02.10: spectating (account loading / login camera) = no Spawn button for a PC player either
+            if(I.phase == 3) I.retrySpawnAt = I.spect ? 0 : NowMs() + 1500;
+            if(!u32a && I.wantClass && I.phase >= 4) { I.wantClass = false; I.phase = 3; I.noAuto = true;
+                srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] The server sent you back to class selection - log in (dialog or its /command) and you spawn after that."); BitStream o; o.Write((uint16_t)0); CliRpc(I, 128, o); }
             break;
         case 137:  // player joined
         {
@@ -866,6 +872,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 61:   // dialog
         {
             int16_t id = -1; bs.Read(id); bs.Read(u8a); std::string cap = SampCp::ToUtf8(RdStr8(bs), I.cp), b1 = SampCp::ToUtf8(RdStr8(bs), I.cp), b2 = SampCp::ToUtf8(RdStr8(bs), I.cp), body = SampCp::ToUtf8(RdCompressed(bs), I.cp);
+            I.dlgOpen = id >= 0; if(I.phase == 3) I.retrySpawnAt = I.dlgOpen ? 0 : NowMs() + 1500;   // 5.02.10: login first
             if(id < 0) srv->GateDialog(s, -1, 0, "", "", "", "");
             else srv->GateDialog(s, id, u8a, cap.c_str(), body.c_str(), b1.c_str(), b2.c_str());
             break;
@@ -899,7 +906,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             MP_CopyStr(it->second.text, text.c_str(), sizeof(it->second.text)); srv->GateTextDraw(s, it->second);
             break;
         }
-        case 83: { bool on = false; bs.Read(on); bs.Read(u32a); srv->GateOp(s, SPO_TDSELECT, on ? 1 : 0, 0, (int32_t)u32a); break; }
+        case 83: { bool on = false; bs.Read(on); bs.Read(u32a); I.tdSel = on; if(I.phase == 3) I.retrySpawnAt = on ? 0 : NowMs() + 1500; srv->GateOp(s, SPO_TDSELECT, on ? 1 : 0, 0, (int32_t)u32a); break; }
         case 107: { RdVec(bs, v); bs.Read(fa); float f[4] = { v[0], v[1], v[2], fa }; srv->GateOp(s, SPO_CHECKPOINT, 1, 0, 0, f); srv->GateAct(s, CGA_GPS, 0, 0, 0, v); break; }
         case 37: { float z[4] = { 0, 0, 0, 0 }; srv->GateOp(s, SPO_CHECKPOINT, 0, 0, 0, z); srv->GateAct(s, CGA_GPS, 0, 0, 0, z); break; }
         case 38: { bs.Read(u8a); RdVec(bs, v); RdVec(bs, w3); bs.Read(fa); float f[4] = { v[0], v[1], v[2], fa }; srv->GateOp(s, SPO_CHECKPOINT, 1, 1, 0, f); break; }
@@ -1135,22 +1142,30 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         if(e.kind == HK_CHAT || (e.kind == HK_SAMP && e.op == SPO_CMD))
         {
             std::string t = SampCp::FromUtf8(e.text, I.cp); if(t.empty()) continue;
-            if(t[0] == '/') { BitStream o; WrStr32(o, t); CliRpc(I, 50, o); }
+            if(t[0] == '/') { BitStream o; WrStr32(o, t); CliRpc(I, 50, o); if(I.phase == 3) { I.noAuto = false; I.autoSpawnN = 0; I.retrySpawnAt = now + 2500; } }   // 5.02.10: /login etc.
             else { BitStream o; WrStr8(o, t.substr(0, 144)); CliRpc(I, 101, o); }
         }
         else if(e.kind == HK_SAMP && e.op == SPO_TDCLICK)
         {
             uint16_t wire = kInvalid; if(e.val >= 0 && e.val < kTdSlots && I.tdOwner[e.val] >= 0) wire = (uint16_t)I.tdOwner[e.val];
             BitStream o; o.Write(wire); CliRpc(I, 83, o);
+            if(I.phase == 3) { I.noAuto = false; I.autoSpawnN = 0; I.retrySpawnAt = now + 1500; }   // 5.02.10: a textdraw login / spawn button
         }
         else if(e.kind == HK_SAMP && e.op == SPO_KEYS) { I.heldKeys = (uint32_t)e.val; I.keysUntil = now + 400; }
         else if(e.kind == HK_DIALOG)
         {
             BitStream o; o.Write((int16_t)e.dialog); o.Write(e.resp); o.Write(e.list); WrStr8(o, SampCp::FromUtf8(e.text, I.cp)); CliRpc(I, 62, o);
+            I.dlgOpen = false; I.noAuto = false;
             if(I.phase == 3) { I.retrySpawnAt = now + 1500; I.autoSpawnN = 0; }
         }
     }
-    if(I.phase == 3 && I.retrySpawnAt && now >= I.retrySpawnAt) { I.retrySpawnAt = 0; BitStream o; CliRpc(I, 129, o); }
+    if(I.phase == 3 && I.retrySpawnAt && now >= I.retrySpawnAt && !I.dlgOpen && !I.tdSel && !I.spect && !I.noAuto)
+    {   // 5.02.10: capped (3 per 30 s, a dialog answer resets it) so a login / tutorial screen can't loop or get "spawn before login" kicks
+        I.retrySpawnAt = 0;
+        if(now - I.autoSpawnWin > 30000) { I.autoSpawnWin = now; I.autoSpawnN = 0; }
+        if(++I.autoSpawnN <= 3) { BitStream o; CliRpc(I, 129, o); }
+        else if(I.autoSpawnN == 4) srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] The server keeps you in class selection - log in / finish its dialog first.");
+    }
 
     // movement 20 Hz while spawned
     if(I.phase >= 3 && now - I.lastFoot >= 50)
@@ -1165,7 +1180,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             if(dead && !I.wasDead) { BitStream o; o.Write((uint8_t)255); o.Write(kInvalid); CliRpc(I, 53, o); }
             if(!dead && I.wasDead)
             {
-                if(I.wantClass) { I.wantClass = false; I.phase = 3; I.wasDead = false; BitStream o; o.Write((uint16_t)0); CliRpc(I, 128, o); }
+                if(I.wantClass) { I.wantClass = false; I.phase = 3; I.wasDead = false; I.noAuto = true; BitStream o; o.Write((uint16_t)0); CliRpc(I, 128, o); }
                 else RemSpawned(I, srv);
             }
             I.wasDead = dead;
