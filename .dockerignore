@@ -1,6 +1,11 @@
 *
 !src/net
 !third_party/mbedtls
+!third_party/pawn-amx
+!third_party/sqlite
+!third_party/puff
+!third_party/unrar
+!third_party/omp-raknet
 !server/Makefile
 !server/mp_server.cpp
 !server/run_24_7.sh
