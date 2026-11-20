@@ -318,22 +318,26 @@ static bool SampSrvCommand(const char* text)
 // F = KEY_SECONDARY_ATTACK 16, 2 = KEY_SUBMISSION 512, ALT = KEY_WALK 1024, Y = KEY_YES 65536, N = KEY_NO 131072,
 // H = KEY_CTRL_BACK 262144. G has no key bit on PC either: samp.exe gets you in the nearest car as a passenger.
 static void SampKeyBarPassenger()
-{
-    const int ped = Game::LocalPed(); if(ped <= 0 || Game::IsCharInAnyCar(ped)) return;
+{   // 5.02.15: like samp.exe's G - the nearest car within 6 m, a car another player drives first, else any car (the
+    // server's parked cars too; before, only a car a player was driving counted, so G on a parked car did nothing)
+    const int ped = Game::LocalPed();
+    if(ped <= 0 || Game::IsCharInAnyCar(ped) || Game::IsCharDead(ped)) { logger->Info("[keybar] G: not on foot"); return; }
     Vec3 me; if(!Game::GetCharPos(ped, me)) return;
     int best = 0; float bd = 6.0f;
     for(int i = 0; i < MP_MAX_PLAYERS; ++i)
     {
         const RemotePlayer& p = players[i];
         if(i == myId || !p.ped || !p.car) continue;
-        Vec3 cp; if(!Game::GetCarPos(p.car, cp)) continue;
+        Vec3 cp; if(!Game::GetCarPos(p.car, cp) || fabsf(cp.z - me.z) > 3.0f) continue;
         const float d = Dist2D(me, cp); if(d < bd) { bd = d; best = p.car; }
     }
-    if(!best) { SysMsg(COL_YELLOW, "No car next to you to get in as a passenger (G)."); return; }
+    if(!best) { best = Game::FindNearestCar(me, 6.0f); Vec3 cp; if(best && (!Game::GetCarPos(best, cp) || fabsf(cp.z - me.z) > 3.0f)) best = 0; }
+    if(!best) { logger->Info("[keybar] G: no car within 6 m"); SysMsg(COL_YELLOW, "No car next to you to get in as a passenger (G)."); return; }
     const int seat = Game::FreePassengerSeat(best, 0);
-    if(seat < 0) { SysMsg(COL_YELLOW, "That car is full."); return; }
+    if(seat < 0) { logger->Info("[keybar] G: car %d full", best); SysMsg(COL_YELLOW, "That car is full."); return; }
     Game::ClearTasksNow(ped); Game::TaskEnterCarAsPassenger(ped, best, seat);
     s_nPassBtnCar = best; s_nPassBtnT = MP_NowMs();
+    logger->Info("[keybar] G: getting in car %d seat %d (%.1f m)", best, seat, bd);
 }
 static void SampKeyBar(uint64_t now)
 {
@@ -371,7 +375,12 @@ static void SampKeyBar(uint64_t now)
         if(s_SS.select) { s_SS.select = false; SampSrvSend(SPO_TDCLICK, 0, 0, -1); }
         else if(s_Dlg.open) CloseDialog(0);
     }
-    if(tapped & (1u << SKB_TAB)) FloatMenu::OpenPage(FloatMenu::PAGE_PLAYERS);   // TAB: the PC server's player list too
+    if(tapped & (1u << SKB_TAB))
+    {   // TAB: the PC server's player list too, a toggle like samp.exe's scoreboard
+        const bool was = FloatMenu::IsPageOpen(FloatMenu::PAGE_PLAYERS);
+        if(was) FloatMenu::ClosePage(FloatMenu::PAGE_PLAYERS); else FloatMenu::OpenPage(FloatMenu::PAGE_PLAYERS);
+        logger->Info("[keybar] TAB: player list %s (%d on the PC server)", was ? "closed" : "open", (int)s_PcList.size());
+    }
     if(tapped & (1u << SKB_G)) SampKeyBarPassenger();
     bool send = false; const int keys = SampKeyBarStep(s_Kb, now, held, tapped, send);
     if(send) { s_SS.keys = keys; SampSrvSend(SPO_KEYS, 0, 0, keys); }
