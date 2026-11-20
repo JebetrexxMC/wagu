@@ -8,7 +8,7 @@
 set -u
 T=/tmp/sampgate_test; V=v1.6.7.3218; fails=0
 R=../third_party/omp-raknet
-make -C server -j"$(nproc)" >/dev/null 2>&1 || { echo "server libs did not build"; exit 1; }
+make -C server -j"$(nproc)" > /tmp/server_build.log 2>&1 || { echo "server libs did not build"; grep -E "error|No such file|No rule" /tmp/server_build.log | head -20; exit 1; }
 (cd test && g++ -O1 -std=c++17 -pthread -w -I../src -I../third_party/mbedtls/include -D__stdcall= -DRAKNET_LEGACY -DPACKETS_PER_TICK=3 \
   -I$R/Include/raknet -I$R sampgate_test.cpp ../src/net/sampgate.cpp ../src/net/client.cpp ../src/net/server.cpp ../src/net/lan.cpp \
   ../src/net/online.cpp ../src/net/authcrypto.cpp ../src/net/samp_import.cpp ../server/obj/*.a -ldl -o "$T") || { echo "sampgate_test did not build"; exit 1; }

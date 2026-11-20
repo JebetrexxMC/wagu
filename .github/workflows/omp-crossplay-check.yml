@@ -30,9 +30,14 @@ jobs:
             tools/omp_sweep
             third_party/omp-raknet
             third_party/mbedtls
+            third_party/pawn-amx
+            third_party/puff
+            third_party/sqlite
+            third_party/unrar
       - name: 32-bit libs for omp-server
         run: sudo dpkg --add-architecture i386 && sudo apt-get update -qq && sudo apt-get install -y -qq libc6:i386 libstdc++6:i386 libatomic1:i386
       - name: Local open.mp server (spawn, chat, reconnect)
+        shell: bash   # = -eo pipefail: a failed test fails the step (tee hid it)
         run: bash tools/omp_sweep/local_test.sh | tee /tmp/local.txt
       - name: Top 12 open.mp servers
         if: always()
@@ -40,9 +45,11 @@ jobs:
         run: sh tools/omp_sweep/sweep.sh /tmp/sweep.tsv
       - name: Summary
         if: always()
+        shell: bash {0}   # never fails: it only reports
         run: |
-          { echo '### Local open.mp server'; echo '```'; cat /tmp/local.txt 2>/dev/null; echo '```'
-            echo '### open.mp list (top 12)'; echo '```'; cut -f2-10 /tmp/sweep.tsv 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo '### Local open.mp server'; echo '```'; cat /tmp/local.txt 2>/dev/null || echo '(no result)'; echo '```'
+            echo '### open.mp list (top 12)'; echo '```'; cut -f2-10 /tmp/sweep.tsv 2>/dev/null || echo '(no result)'; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -51,3 +58,5 @@ jobs:
             /tmp/local.txt
             /tmp/sweep.tsv
             /tmp/lt_*.log
+            /tmp/server_build.log
+          if-no-files-found: ignore
