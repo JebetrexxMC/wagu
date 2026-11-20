@@ -46,8 +46,7 @@ jobs:
           done
       - name: Run on open.mp (omp-server)
         run: |
-          OMP_VERSION=$(sed -n 's/^OMP_VERSION=\${OMP_VERSION:-\(.*\)}$/\1/p' docker/omp/run_omp.sh 2>/dev/null)
-          OMP_VERSION=${OMP_VERSION:-v1.6.7.3218}
+          OMP_VERSION=v1.6.7.3218   # same as docker/omp/run_omp.sh
           sudo dpkg --add-architecture i386 && sudo apt-get update -qq && sudo apt-get install -y -qq libc6:i386 libstdc++6:i386 >/dev/null
           curl -fL --retry 5 -o /tmp/omp.tgz "https://github.com/openmultiplayer/open.mp/releases/download/${OMP_VERSION}/open.mp-linux-x86.tar.gz"
           tar xzf /tmp/omp.tgz -C /tmp
