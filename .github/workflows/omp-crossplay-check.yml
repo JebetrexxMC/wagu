@@ -1,0 +1,53 @@
+# 5.02.13: open.mp / SA-MP crossplay check. On every push to the network code and every day:
+#  - a local open.mp server (omp-server 1.6.7): two pretend phones join through the RakNet gate, press < Spawn >,
+#    see each other's chat; then the server is killed + restarted and the gate must reconnect and spawn again
+#  - the 12 busiest servers on the open.mp list (tools/omp_sweep/sweep.sh): stayed / kicked / launcher / no_answer
+# Results: the job summary + the "omp-crossplay" artifact. Hosting stays in mp-247-servers.yml.
+name: open.mp crossplay check
+on:
+  push:
+    branches: [main]
+    paths: ['src/net/**', 'test/sampgate_test.cpp', 'tools/omp_sweep/**', '.github/workflows/omp-crossplay-check.yml']
+  schedule:
+    - cron: '17 1 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: omp-crossplay-check
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            src
+            server
+            test
+            tools/omp_sweep
+            third_party/omp-raknet
+            third_party/mbedtls
+      - name: 32-bit libs for omp-server
+        run: sudo dpkg --add-architecture i386 && sudo apt-get update -qq && sudo apt-get install -y -qq libc6:i386 libstdc++6:i386 libatomic1:i386
+      - name: Local open.mp server (spawn, chat, reconnect)
+        run: bash tools/omp_sweep/local_test.sh | tee /tmp/local.txt
+      - name: Top 12 open.mp servers
+        if: always()
+        continue-on-error: true
+        run: sh tools/omp_sweep/sweep.sh /tmp/sweep.tsv
+      - name: Summary
+        if: always()
+        run: |
+          { echo '### Local open.mp server'; echo '```'; cat /tmp/local.txt 2>/dev/null; echo '```'
+            echo '### open.mp list (top 12)'; echo '```'; cut -f2-10 /tmp/sweep.tsv 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: omp-crossplay
+          path: |
+            /tmp/local.txt
+            /tmp/sweep.tsv
+            /tmp/lt_*.log

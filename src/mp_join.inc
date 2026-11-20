@@ -57,7 +57,7 @@ static const Vec3 kJoinCamLook = {  384.0f, -1557.0f, 20.0f };
 static const Vec3 kJoinPedPark = {  836.0f, -2048.0f, -100.0f };   // Santa Maria pier: keeps the beach streamed in
 
 // JP_PENDING = joining, the next game tick starts the black slide (4.13.10; 4.13.2 waited for "Connected successfully!")
-enum { JP_NONE, JP_PENDING, JP_COVER, JP_BLACK, JP_REVEAL, JP_WAIT, JP_PICK };
+enum { JP_NONE, JP_PENDING, JP_COVER, JP_BLACK, JP_REVEAL, JP_WAIT, JP_PICK, JP_PCCLASS };   // 5.02.13: JP_PCCLASS = a PC server's own class selection
 #define JOIN_SLIDE_MS   1000   // 20 ticks x 50 ms
 #define JOIN_BUTTONS_MS 3000
 static int      s_nJoinPhase = JP_NONE;
@@ -447,7 +447,26 @@ static void JoinFlowProcess(int ped, uint64_t now)
                     BcwJoinTakeover(ped);
                     return;
                 }
+                if(ConnectedToSampProxy())
+                {   // 5.02.13: an open.mp / SA-MP server (crossplay): no MP < Spawn > picker. It spawned you at an MP spot while
+                    // the PC server still had you in its class selection / login, and its login camera took you straight back
+                    // to the connection view. Now the server's own class selection (< Spawn > from mp_sampsrv.inc) runs and the
+                    // join screen lets go when the server spawns you (SPO_CLASSSEL, b = 1).
+                    s_nJoinPhase = JP_PCCLASS; s_nJoinT0 = now;
+                    if(s_bCine) { s_bCine = false; }
+                    break;
+                }
                 s_nJoinPhase = JP_PICK; s_nJoinT0 = now;
+            }
+            break;
+        case JP_PCCLASS:
+            if(SampSrvPcSpawned() || !ConnectedToSampProxy())
+            {
+                const bool lost = !ConnectedToSampProxy();
+                s_bJoinSpawnPicked = true;
+                JoinRestoreGame(lost);   // spawned: the server already put you at its spawn; PC join ended: Grove Street
+                s_nJoinPhase = JP_NONE;
+                return;
             }
             break;
         case JP_PICK:

@@ -203,6 +203,13 @@ struct SampGate::Impl
     bool dlgOpen = false, tdSel = false, spect = false, noAuto = false;   // noAuto: the server sent us back to class selection - wait for the player    // 5.02.10: no auto-spawn while a login dialog / clickable-textdraw login is up (a PC player can't press Spawn then)                 // 5.02.09: ForceClassSelection waits for the next respawn (like the PC client)
     uint64_t autoSpawnWin = 0; int autoSpawnN = 0;   // 5.02.09: cap auto RequestSpawn so a login screen can't loop
     int lastHealth = 100;
+    // 5.02.13
+    bool resetPending = false;            // lost connection: keep ghosts / list on screen until the new InitGame
+    uint64_t listFullAt = 0;              // last full player-list resend to the phone
+    uint64_t stableSince = 0;             // in game since (lostN goes back to 0 after 3 stable minutes)
+    float holdPos[3] = { 0, 0, 0 }; uint64_t holdUntil = 0;   // spawn / SetPlayerPos: report this spot until the phone is there
+    int classIdx = 0;                     // class selection: the class the phone looks at (< >)
+    bool classShown = false;              // the phone shows the PC class selection (< Spawn >)
 
     std::atomic<bool>* joinedFlag = nullptr;
     Impl() { for(int& t : tdOwner) t = -1; }
@@ -222,7 +229,10 @@ static void OnRpc(RPCParameters* p, void* extra)
     RpcIn r; r.id = id; r.bits = p->numberOfBitsOfData; r.from = p->sender; r.idx = p->senderIndex;
     if(p->input && r.bits) r.data.assign(p->input, p->input + (r.bits + 7) / 8);
     std::lock_guard<std::mutex> lk(I->qm);
-    if(I->rpcs.size() < 4096) I->rpcs.push_back(std::move(r));
+    // 5.02.13: was 4096 - a busy server (300+ players) sends one ServerJoin (137) per player at the join plus the
+    // scoreboard, objects and textdraws; RPCs past the cap were dropped, so players were missing from the list and
+    // their chat lines were thrown away ("can't see PC chat")
+    if(I->rpcs.size() < 65536) I->rpcs.push_back(std::move(r));
 }
 static void* s_RpcExtra[256][2];
 
@@ -720,10 +730,13 @@ bool SampGate::StartServer(MPServer* srv, uint16_t port, const char* hostname, i
 // ================================================================================================
 static void CliRpc(Impl& I, int id, BitStream& bs) { if(I.C) I.C->RPC((RPCID)id, &bs, HIGH_PRIORITY, RELIABLE_ORDERED, 2, false, UNASSIGNED_NETWORK_ID, nullptr); }
 
+static void RemClassSel(Impl& I, MPServer* srv, bool show, bool spawned = false);   // 5.02.13
+
 static void RemReset(Impl& I, MPServer* srv)
 {   // ghosts, objects and textdraws of the PC server go away
     for(auto& kv : I.rp) if(kv.second.slot >= 0) srv->BridgeRemove(kv.second.slot);
-    I.rp.clear(); I.vehModel.clear(); I.pcScore.clear(); I.scoreAskAt = 0;
+    I.rp.clear(); I.vehModel.clear(); I.pcScore.clear(); I.scoreAskAt = 0; I.listFullAt = 0; I.resetPending = false; I.holdUntil = 0;
+    RemClassSel(I, srv, false);
     if(I.phoneSlot >= 0) srv->GateOp(I.phoneSlot, SPO_PCLIST, 0, 0, 0);
     for(auto& kv : I.objs) { float z[3] = { 0, 0, 0 }; srv->GateObject(kv.second.row, kv.second.model, z, z, false); }
     I.objs.clear();
@@ -772,17 +785,36 @@ static int RemTdSlot(Impl& I, int wire, bool alloc)
     return -1;
 }
 
+// 5.02.13: the phone shows the PC server's class selection (< Spawn > like samp.exe) instead of MP's own spawn picker.
+// Before, the MP picker spawned the phone at an MP spot while the PC server still had it in class selection / login,
+// and the server's login camera pulled it straight back to the connection view.
+static void RemClassSel(Impl& I, MPServer* srv, bool show, bool spawned)
+{   // b = 1: hidden because the phone spawned (the phone's join screen ends then)
+    if(I.phoneSlot < 0 || (I.classShown == show && !spawned)) return;
+    I.classShown = show;
+    srv->GateOp(I.phoneSlot, SPO_CLASSSEL, show ? 1 : 0, spawned ? 1 : 0, I.classIdx);
+}
+
+static void RemHold(Impl& I, const float* pos, uint64_t ms)
+{   // 5.02.13: the PC server put us somewhere (spawn, SetPlayerPos). Until the phone's ped is really there, the sync
+    // reports that spot - the old position for a few frames looked like a teleport hack (nex-ac & co kicked at spawn)
+    memcpy(I.holdPos, pos, sizeof(I.holdPos)); I.holdUntil = NowMs() + ms;
+}
+
 static void RemSpawned(Impl& I, MPServer* srv)
 {
     I.phase = 4; I.wasDead = false;
     const int s = I.phoneSlot;
+    I.stableSince = NowMs();
     if(I.spawn.have)
     {
+        RemHold(I, I.spawn.pos, 3000);
         srv->GateAct(s, CGA_SKIN, 0, 0, (int32_t)RemModel(I, (int32_t)I.spawn.skin));
         srv->GateAct(s, CGA_TELE, 255, 0, 0, I.spawn.pos, I.spawn.rot);
         srv->GateAct(s, CGA_DISARM);
         for(int i = 0; i < 3; ++i) if(I.spawn.w[i] > 0 && I.spawn.w[i] < 47) srv->GateAct(s, CGA_GUN, (int)I.spawn.w[i], 0, (int32_t)std::max<uint32_t>(I.spawn.ammo[i], 1));
     }
+    RemClassSel(I, srv, false, true);   // 5.02.13: after the teleport - the phone's join screen lets go here
     BitStream o; CliRpc(I, 52, o);
 }
 
@@ -820,6 +852,12 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         }
         case 139:  // InitGame
         {
+            if(I.resetPending) RemReset(I, srv);   // 5.02.13: reconnected - now the old ghosts / list go (the server sends them again)
+            // 5.02.13: a new game (first join / reconnect): the old session's login dialog / textdraw login / spectate are gone.
+            // They stayed set after a reconnect = no < Spawn > and no auto-spawn (the phone sat in class selection)
+            if(I.dlgOpen) srv->GateDialog(s, -1, 0, "", "", "", "");
+            if(I.tdSel) srv->GateOp(s, SPO_TDSELECT, 0, 0, 0);
+            I.dlgOpen = false; I.tdSel = false; I.spect = false; I.noAuto = false; I.wantClass = false; I.autoSpawnN = 0; I.retrySpawnAt = 0;
             bool b; float f;
             for(int i = 0; i < 4; ++i) bs.Read(b); bs.Read(f); bs.Read(b); bs.Read(f); bs.Read(b); bs.Read(b); bs.Read(b);
             bs.Read(u32a); uint16_t id = 0; bs.Read(id); I.myId = id; I.gameAt = NowMs(); { float f4[4] = { 0, 0, 0, 0 }; srv->GateOp(s, SPO_PCLIST, 1, 1, (int32_t)id, f4, I.rName.c_str()); }   // 5.02.12: me in the player list
@@ -840,7 +878,9 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             char m[200]; snprintf(m, sizeof(m), "[open.mp] Connected to %s as %s (id %d).", name.c_str(), I.rName.c_str(), (int)id);
             srv->GateMsg(s, 0x88AA62FF, m);
             SetStatus(I, "On %s (%s:%u)", name.c_str(), I.rHost.c_str(), I.rPort);
+            I.classIdx = 0; I.stableSince = NowMs();
             BitStream o; o.Write((uint16_t)0); CliRpc(I, 128, o);
+            RemClassSel(I, srv, true);   // 5.02.13: < Spawn > on the phone
             break;
         }
         case 128:  // class answer
@@ -870,7 +910,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             I.spect = u32a != 0;   // 5.02.10: spectating (account loading / login camera) = no Spawn button for a PC player either
             if(I.phase == 3) I.retrySpawnAt = I.spect ? 0 : NowMs() + 1500;
             if(!u32a && I.wantClass && I.phase >= 4) { I.wantClass = false; I.phase = 3; I.noAuto = true;
-                srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] The server sent you back to class selection - log in (dialog or its /command) and you spawn after that."); BitStream o; o.Write((uint16_t)0); CliRpc(I, 128, o); }
+                srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] The server sent you back to class selection - log in (dialog or its /command) and you spawn after that."); BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); RemClassSel(I, srv, true); }
             break;
         case 137:  // player joined
         {
@@ -920,18 +960,17 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 101:
         {
             bs.Read(u16a); std::string t = SampCp::ToUtf8(RdStr8(bs), I.cp);
-            if(u16a == I.myId) srv->GateChat(s, t.c_str());
-            else if(Impl::Rp* p = RemPlayer(I, u16a))
-            {
-                if(p->slot >= 0) srv->GateChat(p->slot, t.c_str());
-                else
-                {   // 5.02.11: a player colour of 0 (many servers never set one) was black text - use SA-MP's default palette
-                    static const uint32_t kPal[8] = { 0xFF8C13FF, 0xC715FFFF, 0x20B2AAFF, 0xDC143CFF, 0x6495EDFF, 0xF0E68CFF, 0x778899FF, 0xFF1493FF };
-                    uint32_t c = p->color; if((c >> 8) == 0) c = kPal[u16a % 8];
-                    std::string l = p->name + ": {FFFFFF}" + t;   // like the PC chat: the name in the player's colour, the text white
-                    srv->GateMsg(s, c, l.c_str());
-                }
-            }
+            if(u16a == I.myId) { srv->GateChat(s, t.c_str()); break; }
+            // 5.02.13: every PC chat line is a chat line on the phone. Before, a streamed-in player's line went out as
+            // that ghost's own chat packet - dropped on the phone whenever the ghost was not (or no longer) in its player
+            // list (stream in / out, a just-joined player), and a player missing from our list was dropped completely.
+            static const uint32_t kPal[8] = { 0xFF8C13FF, 0xC715FFFF, 0x20B2AAFF, 0xDC143CFF, 0x6495EDFF, 0xF0E68CFF, 0x778899FF, 0xFF1493FF };
+            Impl::Rp* p = RemPlayer(I, u16a);
+            uint32_t c = p ? p->color : 0; if((c >> 8) == 0) c = kPal[u16a % 8];   // 5.02.11: colour 0 = SA-MP's palette
+            std::string nm = p && !p->name.empty() ? p->name : ("Player " + std::to_string(u16a));
+            std::string l = nm + ": {FFFFFF}" + t;   // like the PC chat: the name in the player's colour, the text white
+            srv->GateMsg(s, c, l.c_str());
+            if(p && p->slot >= 0) { float f[4] = { 30.0f, 8000.0f, 0, 0 }; srv->GateOp(-1, SPO_BUBBLE, 1, 0, p->slot, f, ("{FFFFFF}" + t).c_str()); }   // over the head
             break;
         }
         case 43:   // 5.02.11: RemoveBuildingForPlayer (map mods) -> the phone removes the same buildings
@@ -979,7 +1018,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         }
         case 12: case 13:
         {
-            RdVec(bs, v); float cur[3], h = 0; int hp; srv->GatePos(s, cur, &h, &hp);
+            RdVec(bs, v); float cur[3], h = 0; int hp; srv->GatePos(s, cur, &h, &hp); RemHold(I, v, 2500);
             srv->GateAct(s, CGA_TELE, 255, 0, 0, v, h); break;
         }
         case 19: { bs.Read(fa); float cur[3], h = 0; int hp; if(srv->GatePos(s, cur, &h, &hp)) srv->GateAct(s, CGA_TELE, 255, 0, 0, cur, fa); break; }
@@ -1159,6 +1198,11 @@ static void RemSendFoot(Impl& I, const SyncData& d)
 {   // the phone's movement -> PC server (client format on-foot sync; in a car = on foot at the car)
     const bool car = (d.flags & SYNC_IN_CAR) != 0;
     const float* pos = car ? d.carPos : d.pos; float h = car ? d.carHeading : d.heading;
+    if(I.holdUntil)
+    {   // 5.02.13: spawn / SetPlayerPos - report the server's spot until the phone's ped got there (no teleport-hack kick)
+        const float dx = pos[0] - I.holdPos[0], dy = pos[1] - I.holdPos[1], dz = pos[2] - I.holdPos[2];
+        if(dx * dx + dy * dy + dz * dz < 9.0f || NowMs() > I.holdUntil) I.holdUntil = 0; else pos = I.holdPos;
+    }
     float q[4]; HeadingQuat(h, q);
     float a = h * kPi / 180.0f, sp = car ? 0.0f : d.speed / 50.0f;
     uint32_t extra = NowMs() < I.keysUntil ? I.heldKeys : 0;
@@ -1288,6 +1332,9 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                     o.Write((const char*)kSv, sizeof(kSv));
                 }
                 I.C->RPC((RPCID)25, &o, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
+                // 5.02.13: 10 s without an ack = "lost connection" was too short for phones on mobile data (cell handover,
+                // the screen turning off, a busy Wi-Fi); the PC server keeps the player longer than that anyway
+                I.C->SetTimeoutTime(25000);
                 I.phase = 2; I.phaseAt = now;
                 break;
             }
@@ -1345,14 +1392,16 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                 RemEnd(I, srv, "The PC server closed the connection (kicked / server restart)."); break;
             }
             case ID_CONNECTION_LOST:
-                if(I.phase >= 2 && I.lostN < 3 && !getenv("MP_GATE_NORECONNECT"))
+                if(I.phase >= 2 && I.lostN < 10 && !getenv("MP_GATE_NORECONNECT"))
                 {   // 5.02.12: like the PC client ("Lost connection to the server. Reconnecting..."): a phone on mobile data
                     // loses packets for a few seconds all the time
-                    ++I.lostN; RemReset(I, srv);
-                    char m[200]; snprintf(m, sizeof(m), "[open.mp] Lost connection to the server. Reconnecting (%d of 3)...", I.lostN);
+                    // 5.02.13: 10 tries (3 before; the count goes back to 0 after 3 stable minutes), 3 s / 6 s / ... max 30 s
+                    // apart, and the PC players / list stay on screen until the server sends them again (they blinked away)
+                    ++I.lostN; I.resetPending = true; RemClassSel(I, srv, false);
+                    char m[200]; snprintf(m, sizeof(m), "[open.mp] Lost connection to the server. Reconnecting (%d of 10)...", I.lostN);
                     srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m); printf("%s\n", m);
                     { std::lock_guard<std::mutex> lk(I.qm); I.rpcs.clear(); }
-                    I.C->Disconnect(100); I.phase = 8; I.rejoinAt = now + 5000ull * (uint64_t)I.lostN; I.rejectN = 0; break;
+                    I.C->Disconnect(100); I.phase = 8; I.rejoinAt = now + std::min<uint64_t>(3000ull * (uint64_t)I.lostN, 30000ull); I.rejectN = 0; I.tries = 0; break;
                 }
                 RemEnd(I, srv, "Lost the connection to the PC server."); break;
             case kPlayerSync: RemFootIn(I, srv, pk, false); break;
@@ -1383,6 +1432,11 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             if(I.phase == 3) { I.noAuto = false; I.autoSpawnN = 0; I.retrySpawnAt = now + 1500; }   // 5.02.10: a textdraw login / spawn button
         }
         else if(e.kind == HK_SAMP && e.op == SPO_KEYS) { I.heldKeys = (uint32_t)e.val; I.keysUntil = now + 400; }
+        else if(e.kind == HK_SAMP && e.op == SPO_SPAWNREQ && I.phase == 3)
+        {   // 5.02.13: the phone's < Spawn > (a = 0) / < > class (a = 1 previous, 2 next) - RequestSpawn / RequestClass
+            if(e.a == 0) { BitStream o; CliRpc(I, 129, o); I.noAuto = false; I.autoSpawnN = 0; I.retrySpawnAt = 0; printf("[crossplay] spawn button\n"); }
+            else { I.classIdx = std::max(0, I.classIdx + (e.a == 1 ? -1 : 1)); BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); }
+        }
         else if(e.kind == HK_DIALOG)
         {
             BitStream o; o.Write((int16_t)e.dialog); o.Write(e.resp); o.Write(e.list); WrStr8(o, SampCp::FromUtf8(e.text, I.cp)); CliRpc(I, 62, o);
@@ -1411,11 +1465,10 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             if(dead && !I.wasDead) { BitStream o; o.Write((uint8_t)255); o.Write(kInvalid); CliRpc(I, 53, o); }
             if(!dead && I.wasDead)
             {
-                if(I.wantClass) { I.wantClass = false; I.phase = 3; I.wasDead = false; I.noAuto = true; BitStream o; o.Write((uint16_t)0); CliRpc(I, 128, o); }
+                if(I.wantClass) { I.wantClass = false; I.phase = 3; I.wasDead = false; I.noAuto = true; BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); RemClassSel(I, srv, true); }
                 else RemSpawned(I, srv);
             }
             I.wasDead = dead;
-            if(now - I.scoreAskAt >= 8000) { I.scoreAskAt = now; BitStream o; CliRpc(I, 155, o); }   // 5.02.12: scores / pings for the player list
             if(!dead) RemSendFoot(I, me->d);
             if(!dead) for(auto& kv : I.picks)
             {   // 5.02.11: walking into a pickup (houses, jobs, info icons) - like the PC client, once per walk-in
@@ -1425,6 +1478,21 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                 else if(kv.second.inside && d2 > 3.0f * 3.0f) kv.second.inside = false;
             }
         }
+        if(now - I.scoreAskAt >= 5000)
+        {   // 5.02.12: scores / pings for the player list. 5.02.13: also in class selection / login (the list was empty until
+            // the spawn), and every 30 s the whole list goes to the phone again - only changed rows were sent, so a row the
+            // phone had lost (its connection to this MP server blinked) stayed away until that player's score changed
+            I.scoreAskAt = now; BitStream o; CliRpc(I, 155, o);
+            if(now - I.listFullAt >= 30000)
+            {
+                I.listFullAt = now; I.pcScore.clear();
+                for(auto& kv : I.rp) { float f4[4] = { 0, -1, 0, 0 }; srv->GateOp(I.phoneSlot, SPO_PCLIST, 1, 0, (int32_t)kv.first, f4, kv.second.name.c_str()); }
+                if(I.myId >= 0) { float f4[4] = { 0, -1, 0, 0 }; srv->GateOp(I.phoneSlot, SPO_PCLIST, 1, 1, (int32_t)I.myId, f4, I.rName.c_str()); }
+            }
+        }
+        if(I.lostN && I.phase >= 3 && I.stableSince && now - I.stableSince > 180000) I.lostN = 0;
+        if(I.phase == 3 && !I.dlgOpen && !I.tdSel && !I.spect) RemClassSel(I, srv, true);
+        else if(I.phase == 3 && (I.dlgOpen || I.tdSel)) RemClassSel(I, srv, false);   // login dialog / textdraw login first
         // PC players with no stream-in yet but a position: nothing to do (they come with RPC 32)
         std::lock_guard<std::mutex> lk(I.sm);
         if(I.phase >= 3) I.status = "On " + I.rServerName + " (" + std::to_string(I.rp.size()) + " PC players around)";

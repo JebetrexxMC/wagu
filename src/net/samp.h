@@ -37,5 +37,7 @@ enum eSampOp : uint8_t
     SPO_VEHPARAMS,    // S->C  my car: a = engine + 1, b = doors locked + 1 (0 = unset), val = lights (-1 unset)
     SPO_PCLIST,       // S->C  5.02.12: everyone on the PC server (the Tab list): a = 0 clear / 1 add or update (val = id, text = name,
                       //       f[0] = score, f[1] = ping, b = 1 me) / 2 remove (val = id)
+    SPO_CLASSSEL,     // S->C  5.02.13: the PC server's class selection: a = 1 show < Spawn > (val = class index) / 0 hide (spawned / login dialog)
+    SPO_SPAWNREQ,     // C->S  5.02.13: the phone's class selection buttons: a = 0 Spawn (RequestSpawn) / 1 previous class / 2 next class
 };
 struct PktSamp { uint8_t type, op, a, b; int32_t val; float f[4]; char text[200]; };

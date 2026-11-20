@@ -25,7 +25,10 @@ static struct SampSrvState
     std::map<int, SsActor> actors;
     bool audio = false, audioPos = false; Vec3 audioAt{ 0, 0, 0 }; float audioDist = 50.0f;
     bool tags = true; float tagDist = 0.0f; bool tagOff[MP_MAX_PLAYERS] = {};
+    // 5.02.13: PC server class selection (SPO_CLASSSEL): < Spawn > like samp.exe, and "spawned" ends the join screen
+    bool pcClass = false, pcSpawned = false; int pcClassIdx = 0;
 } s_SS;
+static bool SampSrvPcSpawned() { return s_SS.pcSpawned; }
 
 static bool SampSrvOn() { return s_SS.on && client.GetState() == NET_CONNECTED; }
 static void SampSrvSend(uint8_t op, uint8_t a, uint8_t b, int32_t val, const char* text = nullptr)
@@ -177,6 +180,10 @@ static void SampSrvOnPacket(const uint8_t* d, int len)
             if(p.b) Game::LockCar(car, p.b == 2);
             break;
         }
+        case SPO_CLASSSEL:   // 5.02.13
+            s_SS.pcClass = p.a != 0; s_SS.pcClassIdx = p.val;
+            if(p.a) s_SS.pcSpawned = false; else if(p.b) s_SS.pcSpawned = true;
+            break;
         case SPO_PCLIST:   // 5.02.12: the PC server's whole player list (only the nearby ones are in players[])
             if(p.a == 0) s_PcList.clear();
             else if(p.a == 2) s_PcList.erase(p.val);
@@ -336,6 +343,21 @@ static void SampSrvRender(ImDrawList* dl)
         }
         ImGui::SetCursorPos(ImVec2(ds.x - 130.0f, 10.0f));
         if(ImGui::Button("Close", ImVec2(120.0f, 44.0f))) { s_SS.select = false; SampSrvSend(SPO_TDCLICK, 0, 0, -1); }
+        ImGui::End();
+    }
+    // 5.02.13: the PC server's class selection - <  Spawn  > (samp.exe's buttons). The MP spawn picker is off on PC servers.
+    if(s_SS.pcClass && !s_Dlg.open && !s_SS.select)
+    {
+        const ImVec2 ds = ImGui::GetIO().DisplaySize;
+        const float bh = std::max(56.0f, ds.y * 0.09f), aw = bh * 1.3f, sw = bh * 3.2f, gap = 14.0f, w = aw * 2 + sw + gap * 2 + 16.0f;
+        ImGui::SetNextWindowPos(ImVec2((ds.x - w) * 0.5f, ds.y - bh - ds.y * 0.06f)); ImGui::SetNextWindowSize(ImVec2(w, bh + 16.0f));
+        ImGui::SetNextWindowBgAlpha(0.0f);
+        ImGui::Begin("##SampClassSel", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove);
+        if(ImGui::Button("<##cls", ImVec2(aw, bh))) SampSrvSend(SPO_SPAWNREQ, 1, 0, 0);
+        ImGui::SameLine(0, gap);
+        if(ImGui::Button("Spawn##cls", ImVec2(sw, bh))) SampSrvSend(SPO_SPAWNREQ, 0, 0, 0);
+        ImGui::SameLine(0, gap);
+        if(ImGui::Button(">##cls", ImVec2(aw, bh))) SampSrvSend(SPO_SPAWNREQ, 2, 0, 0);
         ImGui::End();
     }
     // Y / N / H keys (SA-MP KEY_YES / KEY_NO / KEY_CTRL_BACK)

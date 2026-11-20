@@ -552,6 +552,12 @@ static void PagePlayers(void* openPtr)
     {
         RemotePlayer& p = players[i];
         if(!p.active) continue;
+        if(!s_PcList.empty() && i != myId)
+        {   // 5.02.13: on a PC server the "Name (PC)" rows are only the players streamed in near you - they came and went
+            // with every stream in / out (the blinking list). Everyone is in the PC list below, which stays.
+            const size_t ln = strlen(p.name);
+            if(ln > 5 && !strcmp(p.name + ln - 5, " (PC)")) continue;
+        }
         ++n;
         ImGui::PushID(i);
         ImVec2 a = ImGui::GetCursorScreenPos();

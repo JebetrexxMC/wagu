@@ -3428,3 +3428,408 @@
 	url = https://github.com/yungtry/gtasa-d3dhook
 	branch = master
 	shallow = true
+[submodule "third_party/omp-dev/tools/Termius-SSH"]
+	path = third_party/omp-dev/tools/Termius-SSH
+	url = https://github.com/JebetrexxMC/Termius-SSH
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/tools/termux-app"]
+	path = third_party/omp-dev/tools/termux-app
+	url = https://github.com/JebetrexxMC/termux-app
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/tools/Psdk-aml"]
+	path = third_party/omp-dev/tools/Psdk-aml
+	url = https://github.com/JebetrexxMC/Psdk-aml
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/tools/ARMPatch"]
+	path = third_party/omp-dev/tools/ARMPatch
+	url = https://github.com/JebetrexxMC/ARMPatch
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/tools/AArchASMHelper"]
+	path = third_party/omp-dev/tools/AArchASMHelper
+	url = https://github.com/JebetrexxMC/AArchASMHelper
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/tools/AML_PrecompiledLibs"]
+	path = third_party/omp-dev/tools/AML_PrecompiledLibs
+	url = https://github.com/JebetrexxMC/AML_PrecompiledLibs
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/tools/mysql-server"]
+	path = third_party/omp-dev/tools/mysql-server
+	url = https://github.com/JebetrexxMC/mysql-server
+	branch = trunk
+	shallow = true
+[submodule "third_party/omp-dev/tools/Samp-voice_chat"]
+	path = third_party/omp-dev/tools/Samp-voice_chat
+	url = https://github.com/JebetrexxMC/Samp-voice_chat
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/tools/vscode"]
+	path = third_party/omp-dev/tools/vscode
+	url = https://github.com/JebetrexxMC/vscode
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/tools/gta-reversed"]
+	path = third_party/omp-dev/tools/gta-reversed
+	url = https://github.com/JebetrexxMC/gta-reversed
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/tools/plugin-sdk-sa"]
+	path = third_party/omp-dev/tools/plugin-sdk-sa
+	url = https://github.com/JebetrexxMC/plugin-sdk-sa
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/tools/samp-source"]
+	path = third_party/omp-dev/tools/samp-source
+	url = https://github.com/JebetrexxMC/samp-source
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/AML_ImGui"]
+	path = third_party/omp-dev/aml/AML_ImGui
+	url = https://github.com/AndroidModLoader/AML_ImGui
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/aml/AS4AML"]
+	path = third_party/omp-dev/aml/AS4AML
+	url = https://github.com/AndroidModLoader/AS4AML
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/AMLLA"]
+	path = third_party/omp-dev/aml/AMLLA
+	url = https://github.com/AndroidModLoader/AMLLA
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/AS4AML_old"]
+	path = third_party/omp-dev/aml/AS4AML_old
+	url = https://github.com/AndroidModLoader/AS4AML_old
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/aml/AS4GTA"]
+	path = third_party/omp-dev/aml/AS4GTA
+	url = https://github.com/AndroidModLoader/AS4GTA
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/AndroidModLoader"]
+	path = third_party/omp-dev/aml/AndroidModLoader
+	url = https://github.com/AndroidModLoader/AndroidModLoader
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/AndroidModLoader.github.io"]
+	path = third_party/omp-dev/aml/AndroidModLoader.github.io
+	url = https://github.com/AndroidModLoader/AndroidModLoader.github.io
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/BASSMod"]
+	path = third_party/omp-dev/aml/BASSMod
+	url = https://github.com/AndroidModLoader/BASSMod
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/BlipWorks"]
+	path = third_party/omp-dev/aml/BlipWorks
+	url = https://github.com/AndroidModLoader/BlipWorks
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/BytEmber_GTASA"]
+	path = third_party/omp-dev/aml/BytEmber_GTASA
+	url = https://github.com/AndroidModLoader/BytEmber_GTASA
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_AcceptEULA"]
+	path = third_party/omp-dev/aml/GTASA_AcceptEULA
+	url = https://github.com/AndroidModLoader/GTASA_AcceptEULA
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_BulletTracers"]
+	path = third_party/omp-dev/aml/GTASA_BulletTracers
+	url = https://github.com/AndroidModLoader/GTASA_BulletTracers
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_CLEOPlus"]
+	path = third_party/omp-dev/aml/GTASA_CLEOPlus
+	url = https://github.com/AndroidModLoader/GTASA_CLEOPlus
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_CrosshairFix"]
+	path = third_party/omp-dev/aml/GTASA_CrosshairFix
+	url = https://github.com/AndroidModLoader/GTASA_CrosshairFix
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_DebugInfo"]
+	path = third_party/omp-dev/aml/GTASA_DebugInfo
+	url = https://github.com/AndroidModLoader/GTASA_DebugInfo
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_DrawDistance"]
+	path = third_party/omp-dev/aml/GTASA_DrawDistance
+	url = https://github.com/AndroidModLoader/GTASA_DrawDistance
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_ExGangWars"]
+	path = third_party/omp-dev/aml/GTASA_ExGangWars
+	url = https://github.com/AndroidModLoader/GTASA_ExGangWars
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_FixRadar"]
+	path = third_party/omp-dev/aml/GTASA_FixRadar
+	url = https://github.com/AndroidModLoader/GTASA_FixRadar
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_FluffyClouds"]
+	path = third_party/omp-dev/aml/GTASA_FluffyClouds
+	url = https://github.com/AndroidModLoader/GTASA_FluffyClouds
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_FullscreenSplash"]
+	path = third_party/omp-dev/aml/GTASA_FullscreenSplash
+	url = https://github.com/AndroidModLoader/GTASA_FullscreenSplash
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_GPS"]
+	path = third_party/omp-dev/aml/GTASA_GPS
+	url = https://github.com/AndroidModLoader/GTASA_GPS
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_HeliFix"]
+	path = third_party/omp-dev/aml/GTASA_HeliFix
+	url = https://github.com/AndroidModLoader/GTASA_HeliFix
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_IVPickups"]
+	path = third_party/omp-dev/aml/GTASA_IVPickups
+	url = https://github.com/AndroidModLoader/GTASA_IVPickups
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_Male01Fix"]
+	path = third_party/omp-dev/aml/GTASA_Male01Fix
+	url = https://github.com/AndroidModLoader/GTASA_Male01Fix
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_MoreSettings"]
+	path = third_party/omp-dev/aml/GTASA_MoreSettings
+	url = https://github.com/AndroidModLoader/GTASA_MoreSettings
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_MovingMoon"]
+	path = third_party/omp-dev/aml/GTASA_MovingMoon
+	url = https://github.com/AndroidModLoader/GTASA_MovingMoon
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_OnlineRadio"]
+	path = third_party/omp-dev/aml/GTASA_OnlineRadio
+	url = https://github.com/AndroidModLoader/GTASA_OnlineRadio
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_PedFuncs"]
+	path = third_party/omp-dev/aml/GTASA_PedFuncs
+	url = https://github.com/AndroidModLoader/GTASA_PedFuncs
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_OpenALUpdate"]
+	path = third_party/omp-dev/aml/GTASA_OpenALUpdate
+	url = https://github.com/AndroidModLoader/GTASA_OpenALUpdate
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_Planter"]
+	path = third_party/omp-dev/aml/GTASA_Planter
+	url = https://github.com/AndroidModLoader/GTASA_Planter
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_Timecyc24"]
+	path = third_party/omp-dev/aml/GTASA_Timecyc24
+	url = https://github.com/AndroidModLoader/GTASA_Timecyc24
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_Rubbish"]
+	path = third_party/omp-dev/aml/GTASA_Rubbish
+	url = https://github.com/AndroidModLoader/GTASA_Rubbish
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTASA_UVAnim"]
+	path = third_party/omp-dev/aml/GTASA_UVAnim
+	url = https://github.com/AndroidModLoader/GTASA_UVAnim
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTAVC_DirectLight"]
+	path = third_party/omp-dev/aml/GTAVC_DirectLight
+	url = https://github.com/AndroidModLoader/GTAVC_DirectLight
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTAVC_FontSize"]
+	path = third_party/omp-dev/aml/GTAVC_FontSize
+	url = https://github.com/AndroidModLoader/GTAVC_FontSize
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTAVC_SDF"]
+	path = third_party/omp-dev/aml/GTAVC_SDF
+	url = https://github.com/AndroidModLoader/GTAVC_SDF
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_CLEOMod"]
+	path = third_party/omp-dev/aml/GTA_CLEOMod
+	url = https://github.com/AndroidModLoader/GTA_CLEOMod
+	branch = RUSJJ_CLEO_MOD
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_CLEO_AudioStreams"]
+	path = third_party/omp-dev/aml/GTA_CLEO_AudioStreams
+	url = https://github.com/AndroidModLoader/GTA_CLEO_AudioStreams
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_CLEO_IniFiles"]
+	path = third_party/omp-dev/aml/GTA_CLEO_IniFiles
+	url = https://github.com/AndroidModLoader/GTA_CLEO_IniFiles
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_CLEO_IntOperations"]
+	path = third_party/omp-dev/aml/GTA_CLEO_IntOperations
+	url = https://github.com/AndroidModLoader/GTA_CLEO_IntOperations
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_CLEO_MathOperations"]
+	path = third_party/omp-dev/aml/GTA_CLEO_MathOperations
+	url = https://github.com/AndroidModLoader/GTA_CLEO_MathOperations
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_CamTools"]
+	path = third_party/omp-dev/aml/GTA_CamTools
+	url = https://github.com/AndroidModLoader/GTA_CamTools
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_CrashInfo"]
+	path = third_party/omp-dev/aml/GTA_CrashInfo
+	url = https://github.com/AndroidModLoader/GTA_CrashInfo
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_CollectiblesOnRadar"]
+	path = third_party/omp-dev/aml/GTA_CollectiblesOnRadar
+	url = https://github.com/AndroidModLoader/GTA_CollectiblesOnRadar
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_FuzzySeek"]
+	path = third_party/omp-dev/aml/GTA_FuzzySeek
+	url = https://github.com/AndroidModLoader/GTA_FuzzySeek
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_Haptics"]
+	path = third_party/omp-dev/aml/GTA_Haptics
+	url = https://github.com/AndroidModLoader/GTA_Haptics
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_GLAlphaFunc"]
+	path = third_party/omp-dev/aml/GTA_GLAlphaFunc
+	url = https://github.com/AndroidModLoader/GTA_GLAlphaFunc
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_MoneySeparator"]
+	path = third_party/omp-dev/aml/GTA_MoneySeparator
+	url = https://github.com/AndroidModLoader/GTA_MoneySeparator
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_NCOO"]
+	path = third_party/omp-dev/aml/GTA_NCOO
+	url = https://github.com/AndroidModLoader/GTA_NCOO
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_OpenImmersionVibe"]
+	path = third_party/omp-dev/aml/GTA_OpenImmersionVibe
+	url = https://github.com/AndroidModLoader/GTA_OpenImmersionVibe
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_RadarShaper"]
+	path = third_party/omp-dev/aml/GTA_RadarShaper
+	url = https://github.com/AndroidModLoader/GTA_RadarShaper
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_RealSkybox"]
+	path = third_party/omp-dev/aml/GTA_RealSkybox
+	url = https://github.com/AndroidModLoader/GTA_RealSkybox
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_RealTrafficFix"]
+	path = third_party/omp-dev/aml/GTA_RealTrafficFix
+	url = https://github.com/AndroidModLoader/GTA_RealTrafficFix
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_StarrySkies"]
+	path = third_party/omp-dev/aml/GTA_StarrySkies
+	url = https://github.com/AndroidModLoader/GTA_StarrySkies
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_ViewModelsInfo"]
+	path = third_party/omp-dev/aml/GTA_ViewModelsInfo
+	url = https://github.com/AndroidModLoader/GTA_ViewModelsInfo
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_WantedRadar"]
+	path = third_party/omp-dev/aml/GTA_WantedRadar
+	url = https://github.com/AndroidModLoader/GTA_WantedRadar
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GTA_WideRender"]
+	path = third_party/omp-dev/aml/GTA_WideRender
+	url = https://github.com/AndroidModLoader/GTA_WideRender
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/GlowingPickupsSAA"]
+	path = third_party/omp-dev/aml/GlowingPickupsSAA
+	url = https://github.com/AndroidModLoader/GlowingPickupsSAA
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/JPatch"]
+	path = third_party/omp-dev/aml/JPatch
+	url = https://github.com/AndroidModLoader/JPatch
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/LCSSnowMobile"]
+	path = third_party/omp-dev/aml/LCSSnowMobile
+	url = https://github.com/AndroidModLoader/LCSSnowMobile
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/Project2DFX_Mobile"]
+	path = third_party/omp-dev/aml/Project2DFX_Mobile
+	url = https://github.com/AndroidModLoader/Project2DFX_Mobile
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/RealTime"]
+	path = third_party/omp-dev/aml/RealTime
+	url = https://github.com/AndroidModLoader/RealTime
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/aml/SAShaderL"]
+	path = third_party/omp-dev/aml/SAShaderL
+	url = https://github.com/AndroidModLoader/SAShaderL
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/SAUtils"]
+	path = third_party/omp-dev/aml/SAUtils
+	url = https://github.com/AndroidModLoader/SAUtils
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/SanLTDActivator"]
+	path = third_party/omp-dev/aml/SanLTDActivator
+	url = https://github.com/AndroidModLoader/SanLTDActivator
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/ViceSkies"]
+	path = third_party/omp-dev/aml/ViceSkies
+	url = https://github.com/AndroidModLoader/ViceSkies
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/aml-psdk"]
+	path = third_party/omp-dev/aml/aml-psdk
+	url = https://github.com/AndroidModLoader/aml-psdk
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/aml/gta3sc"]
+	path = third_party/omp-dev/aml/gta3sc
+	url = https://github.com/AndroidModLoader/gta3sc
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/lassir/bcrypt-samp"]
+	path = third_party/omp-dev/topic/lassir/bcrypt-samp
+	url = https://github.com/lassir/bcrypt-samp
+	branch = master
+	shallow = true

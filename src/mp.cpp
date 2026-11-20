@@ -2701,6 +2701,7 @@ static void ProcessSamp(int ped, uint64_t now);
 struct PcListEntry { std::string name; int score = 0, ping = -1; bool me = false; };   // 5.02.12: everyone on the PC server (SPO_PCLIST)
 static std::map<int, PcListEntry> s_PcList;
 static void SampSrvReset(); static void SampSrvRender(ImDrawList* dl); static bool SampSrvCommand(const char* text);   // 4.11: mp_sampsrv.inc
+static bool SampSrvPcSpawned(); static bool ConnectedToSampProxy();   // 5.02.13: PC server class selection (mp_sampsrv.inc / mp_crossplay.inc)
 static void SampSrvOnPacket(const uint8_t* d, int len); static void DzMapTick(const Vec3& me, uint64_t now); static void SampSrvProcess(int ped, uint64_t now);
 static int SampSrvZones(Game::RadarZone* out, int maxOut); static bool SampSrvTagHidden(int id);   // 4.13.53: mp_sampsrv.inc
 class Events : public INetEvents
