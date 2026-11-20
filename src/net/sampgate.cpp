@@ -172,6 +172,8 @@ struct SampGate::Impl
     std::map<int, PktTextDraw> tdDef;
     struct Obj { uint32_t row; uint16_t model; float p[3], r[3]; };
     std::map<int, Obj> objs;
+    struct Pick { Obj o; bool inside = false; };   // 5.02.11: pickups (CreatePickup) - shown as objects, walking in sends OnPlayerPickUpPickup
+    std::map<int, Pick> picks;
     std::map<int, std::array<float, 4>> zones;
     uint64_t lastFoot = 0, keysUntil = 0, retrySpawnAt = 0;
     uint32_t heldKeys = 0;
@@ -663,6 +665,8 @@ static void RemReset(Impl& I, MPServer* srv)
     I.rp.clear(); I.vehModel.clear();
     for(auto& kv : I.objs) { float z[3] = { 0, 0, 0 }; srv->GateObject(kv.second.row, kv.second.model, z, z, false); }
     I.objs.clear();
+    for(auto& kv : I.picks) { float z[3] = { 0, 0, 0 }; srv->GateObject(kv.second.o.row, kv.second.o.model, z, z, false); }
+    I.picks.clear();
     for(int i = 0; i < kTdSlots; ++i) if(I.tdOwner[i] >= 0) { PktTextDraw t; memset(&t, 0, sizeof(t)); t.type = PKT_TEXTDRAW; t.tdId = (uint16_t)i; t.show = 0; srv->GateTextDraw(I.phoneSlot, t); I.tdOwner[i] = -1; }
     I.tdSlot.clear(); I.tdDef.clear();
     for(auto& kv : I.zones) { float f[4]; memcpy(f, kv.second.data(), sizeof(f)); char m[2] = { 4, 0 }; srv->GateOp(I.phoneSlot, SPO_ZONE, (uint8_t)(kv.first & 255), (uint8_t)(kv.first >> 8), 0, f, m); }
@@ -840,8 +844,55 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             else if(Impl::Rp* p = RemPlayer(I, u16a))
             {
                 if(p->slot >= 0) srv->GateChat(p->slot, t.c_str());
-                else { std::string l = p->name + ": " + t; srv->GateMsg(s, p->color, l.c_str()); }
+                else
+                {   // 5.02.11: a player colour of 0 (many servers never set one) was black text - use SA-MP's default palette
+                    static const uint32_t kPal[8] = { 0xFF8C13FF, 0xC715FFFF, 0x20B2AAFF, 0xDC143CFF, 0x6495EDFF, 0xF0E68CFF, 0x778899FF, 0xFF1493FF };
+                    uint32_t c = p->color; if((c >> 8) == 0) c = kPal[u16a % 8];
+                    std::string l = p->name + ": {FFFFFF}" + t;   // like the PC chat: the name in the player's colour, the text white
+                    srv->GateMsg(s, c, l.c_str());
+                }
             }
+            break;
+        }
+        case 43:   // 5.02.11: RemoveBuildingForPlayer (map mods) -> the phone removes the same buildings
+        {
+            uint32_t model = 0; float r = 0; bs.Read(model); RdVec(bs, v); bs.Read(r);
+            float f4[4] = { v[0], v[1], v[2], r }; srv->GateOp(s, SPO_REMOVEBLD, 0, 0, (int32_t)model, f4); break;
+        }
+        case 113:  // 5.02.11: SetPlayerAttachedObject (hats, bags, weapons on the back) - my own
+        {
+            bs.Read(u16a); uint32_t idx = 0; bool create = false; bs.Read(idx); bs.Read(create);
+            if((int)u16a != I.myId || idx >= 10) break;
+            if(!create) { srv->GateOp(s, SPO_ATTACH, (uint8_t)idx, 0, -1); break; }
+            uint32_t model = 0, bone = 0; float off[3], rot[3], sc[3]; bs.Read(model); bs.Read(bone); RdVec(bs, off); RdVec(bs, rot); RdVec(bs, sc);
+            char t[96]; snprintf(t, sizeof(t), "%.3f %.3f %.3f %.3f %.3f %.3f", rot[0], rot[1], rot[2], sc[0], sc[1], sc[2]);
+            float f4[4] = { off[0], off[1], off[2], 0 };
+            srv->GateOp(s, SPO_ATTACH, (uint8_t)idx, (uint8_t)bone, (int32_t)RemModel(I, (int32_t)model), f4, t); break;
+        }
+        case 86:   // 5.02.11: ApplyAnimation on me (sit, lean, handsup, job animations)
+        {
+            bs.Read(u16a); std::string lib = RdStr8(bs), an = RdStr8(bs);
+            if((int)u16a == I.myId && !lib.empty() && !an.empty()) { std::string t = lib + " " + an; srv->GateAct(s, CGA_ANIM, 0, 0, 0, nullptr, 0, t.c_str()); }
+            break;
+        }
+        case 95:   // 5.02.11: CreatePickup -> an object the phone sees; OnPlayerPickUpPickup when the phone walks in
+        {
+            int32_t id = 0, model = 0, type = 0; bs.Read(id); bs.Read(model); bs.Read(type); RdVec(bs, v);
+            model = RemModel(I, model); if(model <= 0 || model > 65535) break;
+            auto old = I.picks.find(id); if(old != I.picks.end()) { srv->GateObject(old->second.o.row, old->second.o.model, old->second.o.p, old->second.o.r, false); I.picks.erase(old); }
+            Impl::Pick k; k.o.row = 0x5B000000u | ((uint32_t)id & 0xFFFF); k.o.model = (uint16_t)model; memcpy(k.o.p, v, sizeof(v)); k.o.r[0] = k.o.r[1] = k.o.r[2] = 0;
+            I.picks[id] = k; srv->GateObject(k.o.row, k.o.model, k.o.p, k.o.r, true); break;
+        }
+        case 63:   // DestroyPickup
+        {
+            int32_t id = 0; bs.Read(id); auto it = I.picks.find(id); if(it == I.picks.end()) break;
+            srv->GateObject(it->second.o.row, it->second.o.model, it->second.o.p, it->second.o.r, false); I.picks.erase(it); break;
+        }
+        case 11:   // 5.02.11: SetPlayerName (the name after login, e.g. Phone_Tester -> John_Doe) - chat lines use it
+        {
+            bs.Read(u16a); std::string nm = RdStr8(bs);
+            if((int)u16a == I.myId) { if(!nm.empty()) I.rName = nm; }
+            else if(Impl::Rp* p = RemPlayer(I, u16a)) p->name = nm;
             break;
         }
         case 12: case 13:
@@ -1105,6 +1156,13 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                 // 5.02.07: what the open.mp launcher's client adds: its omp version (IsPlayerUsingOfficialClient = true
                 // on open.mp; SA-MP 0.3.7 servers ignore the extra bytes). Off: MP_GATE_OMP=0
                 if(SAMPRakNet::ClientOmp()) o.Write((uint32_t)SAMPRakNet::CURRENT_OMP_CLIENT_MOD_VERSION);
+                if(!getenv("MP_GATE_NOSV"))
+                {   // 5.02.11: the SampVoice client plugin's handshake, so "voice plugin not detected" servers let phones in
+                    // (SvGetVersion / SvHasMicro). SampVoice 3.1 looks for EF BE AD DE + version 11 + micro anywhere in
+                    // ClientJoin; 4.x for DE AD C0 DE + length + version (big endian 4.2.0) + micro, searching from the end.
+                    static const uint8_t kSv[] = { 0xEF, 0xBE, 0xAD, 0xDE, 11, 1,   0xDE, 0xAD, 0xC0, 0xDE, 5, 4, 2, 0, 0, 1 };
+                    o.Write((const char*)kSv, sizeof(kSv));
+                }
                 I.C->RPC((RPCID)25, &o, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
                 I.phase = 2; I.phaseAt = now;
                 break;
@@ -1185,6 +1243,13 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             }
             I.wasDead = dead;
             if(!dead) RemSendFoot(I, me->d);
+            if(!dead) for(auto& kv : I.picks)
+            {   // 5.02.11: walking into a pickup (houses, jobs, info icons) - like the PC client, once per walk-in
+                const float dx = me->d.pos[0] - kv.second.o.p[0], dy = me->d.pos[1] - kv.second.o.p[1], dz = me->d.pos[2] - kv.second.o.p[2];
+                const float d2 = dx * dx + dy * dy + dz * dz;
+                if(!kv.second.inside && d2 < 1.6f * 1.6f) { kv.second.inside = true; BitStream o; o.Write((int32_t)kv.first); CliRpc(I, 131, o); }
+                else if(kv.second.inside && d2 > 3.0f * 3.0f) kv.second.inside = false;
+            }
         }
         // PC players with no stream-in yet but a position: nothing to do (they come with RPC 32)
         std::lock_guard<std::mutex> lk(I.sm);
@@ -1197,7 +1262,7 @@ bool SampGate::StartRemote(MPServer* srv, const char* host, uint16_t port, const
     Stop();
     m_pSrv = srv; m_nPort = port; m_bRemote = true; m_bJoined = false;
     Impl& I = *m_p; I.joinedFlag = &m_bJoined; I.rHost = host ? host : ""; I.rPort = port; I.rPass = password ? password : "";
-    I.phase = 0; I.phaseAt = NowMs(); I.phoneSlot = -1; I.myId = -1; I.rp.clear(); I.objs.clear(); I.tdSlot.clear(); I.tdDef.clear(); I.zones.clear();
+    I.phase = 0; I.phaseAt = NowMs(); I.phoneSlot = -1; I.myId = -1; I.rp.clear(); I.objs.clear(); I.picks.clear(); I.tdSlot.clear(); I.tdDef.clear(); I.zones.clear();
     for(int& t : I.tdOwner) t = -1;
     { std::lock_guard<std::mutex> lk(I.sm); I.rServerName.clear(); }
     static ICore core; core.fn = LogThunk;

@@ -583,7 +583,7 @@ static void OmpRows(std::vector<LRow>& rows)
     const bool limit = !s_szSearch[0] && pf == 0;                     // filtered or searched: every match
     for(const OmpSrv& s : s_OmpList)
     {
-        if(limit && shown >= 400) break;   // the busiest 400 (search / the filter look through all of them)
+        if(limit && shown >= 5000) break;   // 5.02.11: every server (was the busiest 400 - rows off screen aren't drawn, so 1300+ is cheap)
         if(pf == 1 && !s.pw) continue;
         if(pf == 2 && s.pw) continue;
         if(!kw && !LMatch(s.name.c_str(), s.lang.c_str()) && !LMatch(s.mode.c_str()) && !LMatch(s.host.c_str()))
@@ -1311,7 +1311,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
         {
             last = now;
             for(auto& r : rows) { if(r.ping < 0) continue; LRowKey(r, key, sizeof(key)); auto& v = s_PingHist[key]; v.push_back(r.ping); if(v.size() > 40) v.erase(v.begin()); }
-            if(s_PingHist.size() > 1200) s_PingHist.clear();   // 4.13.47: 500 servers
+            if(s_PingHist.size() > 6000) s_PingHist.clear();   // 4.13.47: 500 servers
         }
     }
     for(int i = 0; i < (int)rows.size(); ++i)
