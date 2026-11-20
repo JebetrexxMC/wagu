@@ -1,0 +1,17 @@
+date	rank	address	players	password	version	result	status	last_message	name
+2026-11-20	1	188.212.101.20:7777	918	0	omp 1.5.8.3124	stayed	On B-Zone RPG (928 PC players around)		B-Zone RPG
+2026-11-20	2	51.79.37.125:7777	897	0	0.3.7	no_answer	The PC server did not answer.		FZ Roleplay [S1] Rol en español
+2026-11-20	3	213.177.232.51:5125	695	0	0.3.7-R2	launcher	Connecting to 213.177.232.51:5125 as Phone_Tester...		GRAND MOBILE | Server 02
+2026-11-20	4	81.28.13.174:7787	662	0	omp 1.5.8.0	launcher	Connecting to 81.28.13.174:7787 as Phone_Tester...		Rio Rise Project | Server #87
+2026-11-20	5	81.28.13.174:7790	649	0	omp 1.5.8.0	launcher	Connecting to 81.28.13.174:7790 as Phone_Tester...		Rio Rise Project | Server #90
+2026-11-20	6	185.112.33.99:7777	612	0	0.3.7-R2	stayed	On ArSaCiA Game: RPG Server (735 PC players around)	First login into the server.	ArSaCiA Game: RPG Server
+2026-11-20	7	149.56.252.191:7777	568	0	0.3.7	stayed	On Brasil Play Shox #1 | #NOVAGM #DESBANALL (94 PC players around)	Seu login ja esta pronto. Digite sua senha e clique em ENTRAR ou use /logar. Se a tela de login nao aparecer, reconecte-	[BPS] Novo IP: 151.242.227.107:7777
+2026-11-20	8	149.202.88.200:7777	471	0	omp 1.5.8.3124	kicked	The PC server closed the connection (kicked / server restart).	You need to log in first!	blue.bugged.ro | 14 ANI | Giftbox
+2026-11-20	9	15.204.150.150:7777	467	0	0.3.7-R2	launcher	Connecting to 15.204.150.150:7777 as Phone_Tester...		GTA NewGamers #1 | Florida RP | PayDay X4
+2026-11-20	10	31.58.143.109:7777	429	0	omp 1.5.8.3079	stayed	On Vice Side Roleplay | Go To School (23 PC players around)	[Voice] Info: Plugin Voice tidak terdeteksi. Jika voice tidak berfungsi, keluar lalu masuk lagi.	Vice Side Roleplay | Go To School
+2026-11-20	11	168.222.20.97:7777	330	0	omp 1.6.7.3218	kicked	The PC server closed the connection (kicked / server restart).	ยินดีต้อนรับเข้าสู่ NEWTHINGS 3.0!	NEWTHINGS 3.0 v3.0.0
+2026-11-20	12	135.125.189.3:7777	304	0	omp 1.5.8.3079	launcher	Connecting to 135.125.189.3:7777 as Phone_Tester...	 	[A] Arcane OGC | Aktivni popusti na DONACIJE
+2026-11-20	pw	31.58.143.79:7777	130	1	0.3.7-R2	wrong_pw	Wrong server password.		Aspirasi Roleplay 2026
+2026-11-20	local	127.0.0.1:7799	0	1	omp v1.6.7.3218	stayed	password \"mp2026\" -> ok (want stayed)		local omp-server password test
+2026-11-20	local	127.0.0.1:7799	0	1	omp v1.6.7.3218	wrong_pw	password \"wrongpw\" -> ok (want wrong_pw)		local omp-server password test
+2026-11-20	local	127.0.0.1:7799	0	1	omp v1.6.7.3218	wrong_pw	password \"\" -> ok (want wrong_pw)		local omp-server password test

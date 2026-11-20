@@ -37,7 +37,7 @@ printf 'date\trank\taddress\tplayers\tpassword\tversion\tresult\tstatus\tlast_me
 classify() {  # $1 = log
   if grep -q "Wrong server password" "$1"; then echo wrong_pw
   elif grep -q "^ok   still connected" "$1" && grep -q "^ok   gate joined the PC server" "$1"; then echo stayed
-  elif grep -q "^ok   gate joined the PC server" "$1" || grep -q "SPO_HELLO" "$1"; then echo kicked
+  elif grep -q "^ok   gate joined the PC server" "$1"; then echo kicked
   elif grep -q "did not answer" "$1"; then echo no_answer
   else echo launcher; fi
 }
@@ -45,7 +45,7 @@ while IFS="$(printf '\t')" read -r rank addr pc pa ver name; do
   host=${addr%:*}; port=${addr##*:}; pw=""; [ "$pa" = 1 ] && pw="mp-sweep-wrong"
   MP_GATE_WAIT=20000 timeout 70 "$T" "$host" "$port" $pw > /tmp/omp_sweep_one.log 2>&1
   res=$(classify /tmp/omp_sweep_one.log)
-  st=$(grep -m1 "status:" /tmp/omp_sweep_one.log | sed 's/^ *status: //' | tr '\t' ' ')
+  st=$(grep "status:" /tmp/omp_sweep_one.log | tail -1 | sed 's/^ *status: //' | tr '\t' ' ')
   last=$(grep "  msg " /tmp/omp_sweep_one.log | grep -v "\[open.mp\]" | tail -1 | sed 's/^ *msg [0-9A-F]*: //' | tr '\t' ' ' | cut -c1-120)
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$day" "$rank" "$addr" "$pc" "$pa" "$ver" "$res" "$st" "$last" "$name" >> "$OUT"
   echo "$rank $res $name"
