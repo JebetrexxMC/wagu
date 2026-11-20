@@ -156,6 +156,7 @@ static void UpdateActors(bool want, uint64_t now)
     if(!want) { RemoveActors(); return; }
     if(now < next) return;
     next = now + 500;
+    int made = 0;   // 5.02.15: max 2 new actors a tick (all of them in one frame right after a spawn = a hitch)
     for(auto& a : s_Actors)
     {
         float dx = a.p.x - myDrawPos.x, dy = a.p.y - myDrawPos.y;
@@ -164,8 +165,8 @@ static void UpdateActors(bool want, uint64_t now)
         if(a.ped && d > 130.0f) { Game::DeleteChar(a.ped); a.ped = 0; a.animOk = false; continue; }
         if(!a.ped && d < 90.0f)
         {
-            if(!Game::ModelReady(a.skin)) continue;
-            a.ped = Game::CreateNpcPed(a.skin, a.p, a.h);
+            if(made >= 2 || !Game::ModelReady(a.skin)) continue;
+            a.ped = Game::CreateNpcPed(a.skin, a.p, a.h); ++made;
             if(a.ped) { Game::SetCharGodMode(a.ped, true); Game::FreezeChar(a.ped, true); }
         }
         if(a.ped && !a.animOk) a.animOk = Game::PlayAnimLoop(a.ped, a.anim, a.file);

@@ -236,6 +236,7 @@ static bool SampSrvTagHidden(int id)
 // 4.13.53: actors (streamed in near me) and the audio stream volume
 static void SampSrvActorsAudio(const Vec3& me, uint64_t now)
 {
+    int made = 0;   // 5.02.15: a server with many actors made all of them in one frame after the spawn (freeze)
     for(auto& kv : s_SS.actors)
     {
         SsActor& a = kv.second;
@@ -243,8 +244,8 @@ static void SampSrvActorsAudio(const Vec3& me, uint64_t now)
         if(d2 > 200.0f * 200.0f) { if(a.ped > 0) { Game::DeleteChar(a.ped); a.ped = 0; a.animDone = false; } continue; }
         if(a.ped <= 0)
         {
-            if(now < a.tryAt) continue;
-            a.tryAt = now + 500;
+            if(now < a.tryAt || made >= 2) continue;
+            a.tryAt = now + 500; ++made;
             if(!Game::IsSafePedModel(a.model) || !Game::ModelReady(a.model)) continue;
             a.ped = Game::CreateNpcPed(a.model, { a.p.x, a.p.y, a.p.z + 1.0f }, a.h);
             if(a.ped <= 0) { a.ped = 0; continue; }

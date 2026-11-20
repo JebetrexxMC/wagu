@@ -101,7 +101,7 @@ void Game::TeleportGround(int ped, Vec3 at, float heading)
 {
     if(ped <= 0) return;
     CALLSCM(REQUEST_COLLISION_W, at.x, at.y);
-    CALLSCM(LOAD_SCENE_W, at.x, at.y, at.z);
+    if(SceneLoadAllowed(ped, at)) CALLSCM(LOAD_SCENE_W, at.x, at.y, at.z);   // 5.02.15: not on every call (freeze)
     // 3.21.4: look for the ground just above the point first (it used to start 40 m up and took
     // the roof of the house / the bridge over the spot), the old way only when nothing is there
     float g = GroundBelow(at.x, at.y, at.z + 3.0f);

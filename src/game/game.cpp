@@ -634,13 +634,39 @@ int Game::AddBlipForChar(int ped, uint32_t rgba)
 void Game::SetBlipColour(int blip, uint32_t rgba) { if(blip > 0) CALLSCM(CHANGE_BLIP_COLOUR, blip, (int)rgba); }
 void Game::RemoveBlip(int blip) { if(blip > 0) CALLSCM(REMOVE_BLIP, blip); }
 
+// 5.02.15: LOAD_SCENE streams the whole area in on the game thread (the game stands still until it is done). It ran on
+// every Teleport: the co-op cutscene follow (every 4 m), the house step guard, the taxi NPC, the jail check, the
+// mode exits and the saved-progress interior all called it again and again = the "keeps freezing" after a spawn,
+// worst with big model packs. Now only for your own player, only for a real jump (> 120 m from where you are), and
+// at most once every 4 s; everything else is placed like TeleportLight (collision asked for, streams in the background).
+static uint64_t s_nLastScene = 0;
+bool Game::SceneLoadSlot()
+{   // PreloadArea(blocking): at most one blocking area load every 4 s, shared with Teleport
+    const uint64_t now = MP_NowMs();
+    if(s_nLastScene && now - s_nLastScene < 4000) return false;
+    s_nLastScene = now; return true;
+}
+bool Game::SceneLoadAllowed(int ped, const Vec3& to)
+{
+    if(ped <= 0 || ped != LocalPed()) return false;
+    Vec3 cur{ 0, 0, 0 };
+    if(GetCharPos(ped, cur))
+    {
+        const float dx = cur.x - to.x, dy = cur.y - to.y;
+        if(dx * dx + dy * dy < 120.0f * 120.0f) return false;
+    }
+    const uint64_t now = MP_NowMs();
+    if(s_nLastScene && now - s_nLastScene < 4000) return false;
+    s_nLastScene = now;
+    return true;
+}
 void Game::Teleport(int ped, const Vec3& foot, float heading)
 {
     if(ped <= 0) return;
     CALLSCM(SET_AREA_VISIBLE, 0);
     CALLSCM(SET_CHAR_AREA_VISIBLE, ped, 0);
     CALLSCM(REQUEST_COLLISION, foot.x, foot.y);
-    CALLSCM(LOAD_SCENE, foot.x, foot.y, foot.z);
+    if(SceneLoadAllowed(ped, foot)) CALLSCM(LOAD_SCENE, foot.x, foot.y, foot.z);
     if(IsCharInAnyCar(ped)) WarpOutOfCar(ped, foot);
     else CALLSCM(SET_CHAR_COORDINATES, ped, foot.x, foot.y, foot.z);
     SetCharHeading(ped, heading);

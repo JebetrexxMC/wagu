@@ -200,7 +200,7 @@ void Game::PreloadArea(const Vec3& p, bool blocking)
 {
     if(!IsReady()) return;
     CALLSCM(REQUEST_COLLISION_219, p.x, p.y);
-    if(blocking) CALLSCM(LOAD_SCENE_219, p.x, p.y, p.z);
+    if(blocking && SceneLoadSlot()) CALLSCM(LOAD_SCENE_219, p.x, p.y, p.z);   // 5.02.15: max 1 blocking load / 4 s (freeze)
 }
 
 bool Game::GetMoveSpeed(int handle, bool isCar, Vec3& mps)
