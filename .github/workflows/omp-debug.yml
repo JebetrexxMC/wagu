@@ -1,0 +1,23 @@
+name: omp debug (temporary)
+on:
+  push:
+    paths: ['.github/workflows/omp-debug.yml']
+jobs:
+  dbg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: variants
+        run: |
+          curl -fsSL -o o.tgz https://github.com/openmultiplayer/open.mp/releases/download/v1.6.7.3218/open.mp-linux-x86.tar.gz
+          tar xzf o.tgz; ls Server
+          sudo dpkg --add-architecture i386; sudo apt-get update -qq; sudo apt-get install -y -qq libc6:i386 libstdc++6:i386 libatomic1:i386 strace >/dev/null
+          cd Server
+          echo "== host"; timeout 8 ./omp-server -c network.port=7777 2>&1 | grep -i "network\|error" || true
+          sudo ss -lunp | grep 7777 || echo "nothing on 7777"
+          echo "== host strace"; timeout 8 strace -f -e trace=network ./omp-server -c network.port=7777 2>&1 | grep -E "bind|socket\(|7777|EADDR|EACCES|EPERM" | head -30 || true
+          printf 'FROM debian:12\nRUN dpkg --add-architecture i386 && apt-get update -qq && apt-get install -y -qq libc6:i386 libstdc++6:i386 libatomic1:i386 strace ca-certificates >/dev/null\n' > /tmp/Dockerfile
+          docker build -q -t ompd /tmp
+          echo "== docker bridge"; timeout 12 docker run --rm -v $PWD:/omp -w /omp -p 7777:7777/udp ompd ./omp-server -c network.port=7777 2>&1 | grep -i "network\|error" || true
+          echo "== docker bridge + tcp"; timeout 12 docker run --rm -v $PWD:/omp -w /omp -p 7777:7777/udp -p 7777:7777/tcp ompd ./omp-server -c network.port=7777 2>&1 | grep -i "network\|error" || true
+          echo "== docker host"; timeout 12 docker run --rm --network host -v $PWD:/omp -w /omp ompd ./omp-server -c network.port=7777 2>&1 | grep -i "network\|error" || true
+          echo "== docker strace"; timeout 15 docker run --rm --cap-add SYS_PTRACE --security-opt seccomp=unconfined -v $PWD:/omp -w /omp ompd strace -f -e trace=network ./omp-server -c network.port=7777 2>&1 | grep -E "bind|socket\(|7777|EADDR|Legacy|legacy" | head -30 || true
