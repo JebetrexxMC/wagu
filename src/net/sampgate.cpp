@@ -208,6 +208,12 @@ struct SampGate::Impl
     bool dlgOpen = false, tdSel = false, spect = false, noAuto = false;   // noAuto: the server sent us back to class selection - wait for the player    // 5.02.10: no auto-spawn while a login dialog / clickable-textdraw login is up (a PC player can't press Spawn then)                 // 5.02.09: ForceClassSelection waits for the next respawn (like the PC client)
     uint64_t autoSpawnWin = 0; int autoSpawnN = 0;   // 5.02.09: cap auto RequestSpawn so a login screen can't loop
     int lastHealth = 100;
+    // 5.02.15: what a PC client reports back - anti-cheats (Nex-AC...) and FPS / AFK scripts read these
+    int lastArmour = 0;                   // SetPlayerArmour (RPC 66), 0 at spawn
+    int32_t money = 0;                    // GivePlayerMoney / ResetPlayerMoney - sent back in the stats packet (205)
+    int32_t drunk = 0;                    // SetPlayerDrunkLevel (RPC 35) - the PC client lowers it 1 per frame
+    uint64_t statsAt = 0, drunkAt = 0;
+    bool gunOk[64] = {};                  // weapons the server gave (GivePlayerWeapon / spawn), the rest is reported as fists
     // 5.02.13
     bool resetPending = false;            // lost connection: keep ghosts / list on screen until the new InitGame
     uint64_t listFullAt = 0;              // last full player-list resend to the phone
@@ -751,6 +757,7 @@ static void RemReset(Impl& I, MPServer* srv)
     I.tdSlot.clear(); I.tdDef.clear();
     for(auto& kv : I.alabels) if(kv.second.shown && I.phoneSlot >= 0) srv->GateLabel(I.phoneSlot, kv.first, false, nullptr, 0, 0, "");   // 5.02.15
     I.alabels.clear(); I.vehPos.clear();
+    I.money = 0; I.drunk = 0; I.statsAt = I.drunkAt = 0; memset(I.gunOk, 0, sizeof(I.gunOk)); I.lastArmour = 0;   // 5.02.15
     for(auto& kv : I.zones) { float f[4]; memcpy(f, kv.second.data(), sizeof(f)); char m[2] = { 4, 0 }; srv->GateOp(I.phoneSlot, SPO_ZONE, (uint8_t)(kv.first & 255), (uint8_t)(kv.first >> 8), 0, f, m); }
     I.zones.clear();
 }
@@ -812,6 +819,9 @@ static void RemSpawned(Impl& I, MPServer* srv)
 {
     I.phase = 4; I.wasDead = false;
     const int s = I.phoneSlot;
+    I.lastHealth = 100; I.lastArmour = 0;   // 5.02.15: what SA-MP's spawn gives
+    memset(I.gunOk, 0, sizeof(I.gunOk));
+    for(int i = 0; i < 3; ++i) if(I.spawn.have && I.spawn.w[i] < 64) I.gunOk[I.spawn.w[i]] = true;
     I.stableSince = NowMs();
     if(I.spawn.have)
     {
@@ -1032,13 +1042,14 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         }
         case 19: { bs.Read(fa); float cur[3], h = 0; int hp; if(srv->GatePos(s, cur, &h, &hp)) srv->GateAct(s, CGA_TELE, 255, 0, 0, cur, fa); break; }
         case 14: bs.Read(fa); srv->GateAct(s, CGA_HEALTH, 0, 0, (int32_t)fa); I.lastHealth = (int)fa; break;
-        case 66: bs.Read(fa); srv->GateAct(s, CGA_ARMOUR, 0, 0, (int32_t)fa); break;
-        case 22: bs.Read(u32a); bs.Read(u32b); srv->GateAct(s, CGA_GUN, (int)u32a, 0, (int32_t)u32b); break;
-        case 21: srv->GateAct(s, CGA_DISARM); break;
+        case 66: bs.Read(fa); srv->GateAct(s, CGA_ARMOUR, 0, 0, (int32_t)fa); I.lastArmour = (int)fa; break;
+        case 22: bs.Read(u32a); bs.Read(u32b); srv->GateAct(s, CGA_GUN, (int)u32a, 0, (int32_t)u32b); if(u32a < 64) I.gunOk[u32a] = true; break;
+        case 21: srv->GateAct(s, CGA_DISARM); memset(I.gunOk, 0, sizeof(I.gunOk)); break;
+        case 35: bs.Read(i32); I.drunk = std::max<int32_t>(0, i32); I.drunkAt = NowMs(); I.statsAt = 0; break;   // 5.02.15: SetPlayerDrunkLevel
         case 67: bs.Read(u32a); srv->GateOp(s, SPO_WEAPON, 0, 0, (int32_t)u32a); break;
         case 145: bs.Read(u8a); bs.Read(u16a); srv->GateOp(s, SPO_WEAPON, 1, u8a, u16a); break;
-        case 18: bs.Read(i32); srv->GateAct(s, CGA_MONEY, 0, 0, i32); break;
-        case 20: srv->GateAct(s, CGA_SETMONEY, 0, 0, 0); break;
+        case 18: bs.Read(i32); srv->GateAct(s, CGA_MONEY, 0, 0, i32); I.money += i32; break;
+        case 20: srv->GateAct(s, CGA_SETMONEY, 0, 0, 0); I.money = 0; break;
         case 133: bs.Read(u8a); srv->GateAct(s, CGA_WANTED, 0, 0, u8a); break;
         case 15: bs.Read(u8a); srv->GateOp(s, SPO_CONTROL, u8a ? 1 : 0, 0, 0); break;
         case 29: bs.Read(u8a); bs.Read(u8b); srv->GateOp(s, SPO_TIME, u8a, u8b, -1); break;
@@ -1239,8 +1250,16 @@ static void RemSendFoot(Impl& I, const SyncData& d)
     o.Write((uint16_t)0); o.Write((uint16_t)((!car && d.speed > 0.3f) ? 0xFF80 : 0));
     o.Write((uint16_t)(KeysFromFlags(d.flags) | (extra & 0xFFFF)));
     WrVec(o, pos); o.Write(q[0]); o.Write(q[1]); o.Write(q[2]); o.Write(q[3]);
-    o.Write((uint8_t)std::min<int>(d.health, 255)); o.Write((uint8_t)std::min<int>(d.armour, 255));
-    o.Write((uint8_t)((d.weapon & 63) | (((extra >> 16) & 3) << 6)));
+    // 5.02.15: report like the PC client after the server's own SetPlayerHealth / Armour / GivePlayerWeapon: health
+    // and armour never above what the server gave (MP / CLEO regeneration = Nex-AC health hack kick), a weapon the
+    // server didn't give (the phone's own) as fists (weapon hack kick)
+    const int hp = std::max(0, std::min<int>(d.health, std::max(1, I.lastHealth)));
+    const int ar = std::max(0, std::min<int>(d.armour, I.lastArmour));
+    if(hp < I.lastHealth) I.lastHealth = hp;
+    if(ar < I.lastArmour) I.lastArmour = ar;
+    const int wp = (d.weapon < 64 && (d.weapon == 0 || I.gunOk[d.weapon])) ? d.weapon : 0;
+    o.Write((uint8_t)std::min<int>(hp, 255)); o.Write((uint8_t)std::min<int>(ar, 255));
+    o.Write((uint8_t)((wp & 63) | (((extra >> 16) & 3) << 6)));
     o.Write((uint8_t)((d.flags & SYNC_DUCKING) ? 1 : 0));
     float vel[3] = { -sinf(a) * sp, cosf(a) * sp, 0 }; WrVec(o, vel);
     float z[3] = { 0, 0, 0 }; WrVec(o, z); o.Write((uint16_t)0); o.Write((uint16_t)0); o.Write((uint16_t)0);
@@ -1529,6 +1548,15 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             }
             I.wasDead = dead;
             if(!dead) RemSendFoot(I, me->d);
+            if(now - I.statsAt >= 1000)
+            {   // 5.02.15: the stats packet (205) of the PC client: money + drunk level, about once a second. It was never
+                // sent, so the drunk level stood still - FPS scripts (drunk level drop per second) read 0 FPS = paused /
+                // AFK and kicked, and GetPlayerMoney / money anti-cheats saw no client money
+                if(I.drunk > 0 && I.drunkAt) { const int32_t drop = (int32_t)((now - I.drunkAt) * 45 / 1000); I.drunk = std::max<int32_t>(0, I.drunk - drop); }
+                I.drunkAt = now; I.statsAt = now;
+                BitStream o; o.Write((uint8_t)205); o.Write(I.money); o.Write(I.drunk);
+                I.C->Send(&o, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 1);
+            }
             if(!dead) for(auto& kv : I.picks)
             {   // 5.02.11: walking into a pickup (houses, jobs, info icons) - like the PC client, once per walk-in
                 const float dx = me->d.pos[0] - kv.second.o.p[0], dy = me->d.pos[1] - kv.second.o.p[1], dz = me->d.pos[2] - kv.second.o.p[2];
