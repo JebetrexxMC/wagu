@@ -3928,3 +3928,18 @@
 	url = https://github.com/mpsamp-open/sscanf
 	branch = master
 	shallow = true
+[submodule "third_party/omp-dev/tools/tauri"]
+	path = third_party/omp-dev/tools/tauri
+	url = https://github.com/JebetrexxMC/tauri
+	branch = dev
+	shallow = true
+[submodule "third_party/omp-dev/mpsamp-open/SLikeNet"]
+	path = third_party/omp-dev/mpsamp-open/SLikeNet
+	url = https://github.com/mpsamp-open/SLikeNet
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/mpsamp-open/RakNet"]
+	path = third_party/omp-dev/mpsamp-open/RakNet
+	url = https://github.com/mpsamp-open/RakNet
+	branch = master
+	shallow = true
