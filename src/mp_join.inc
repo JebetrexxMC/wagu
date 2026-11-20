@@ -273,6 +273,9 @@ static void JoinOverlayCancel()
 
 static bool AuthHoldsJoin(uint64_t now);   // 3.21.6 (mp_auth.inc)
 static bool JoinFlowActive() { return s_nJoinPhase != JP_NONE; }
+// 5.02.16: a PC server's class selection / login (crossplay): the join screen stays until the server spawns you, but its
+// dialogs, textdraws, < Spawn > buttons and chat must show (they were hidden with the join screen = stuck, nothing on screen)
+static bool JoinPcClass() { return s_nJoinPhase == JP_PCCLASS; }
 static void JoinMarkConnected() { s_bJoinConnected = true; }
 
 static void StartCamFlight(const Vec3& toP, const Vec3& toL)

@@ -704,6 +704,7 @@ bool MP_WallhackOn() { return s_Cheat.wallhack; }
 static void ShowPairPopup(int from);
 static bool JoinFlowActive();
 static bool JoinScreenUp();   // 4.13.2
+static bool JoinPcClass();    // 5.02.16
 static void MenuMpProcess(int ped, uint64_t now);   // 4.13.4 (mp_menu.inc)
 static bool MenuMpActive();                          // 4.13.5 (mp_menu.inc)
 static void SpawnLight(int ped, const Vec3& at, float heading, bool findGround);   // 4.12.9 (mp_join.inc)

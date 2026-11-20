@@ -1887,7 +1887,7 @@ static void Render219(void*)
     FloatMenu::SetHidden(joinScreen);   // join screen: no top bar
     RenderPairPopup();
     RenderBehindCountdown();   // 2.28
-    if(!joinScreen || (MP::SpawnPickerShown() && !DzConnScreen())) RenderChatBox();
+    if(!joinScreen || JoinPcClass() || (MP::SpawnPickerShown() && !DzConnScreen())) RenderChatBox();   // 5.02.16: + a PC server's login / class selection (its messages)
     RenderSpawnPicker();
     RenderPassengerButton();   // 2.19.1
     RenderGames();             // 2.21: score bar + race / DM / job HUD
