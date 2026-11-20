@@ -560,15 +560,32 @@ static void OmpCut(char* o, size_t n, const std::string& s)
     while(k > 0 && k < s.size() && ((unsigned char)s[k] & 0xC0) == 0x80) --k;
     memcpy(o, s.data(), k); o[k] = 0;
 }
+// 5.02.03: password filter (the chip in the tab's bar, or "password" / "locked" / "pw" typed in the search box;
+// "open" / "nopw" = servers without one). 0 all, 1 password only, 2 no password
+static int s_nOmpPwFilter = 0;
+static int OmpSearchPw()
+{
+    if(!s_szSearch[0]) return 0;
+    char b[32]; MP_CopyStr(b, s_szSearch, sizeof(b)); for(char* c = b; *c; ++c) *c = (char)tolower((unsigned char)*c);
+    char* e = b + strlen(b); while(e > b && e[-1] == ' ') *--e = 0;
+    const char* t = b; while(*t == ' ') ++t;
+    if(!strcmp(t, "password") || !strcmp(t, "passworded") || !strcmp(t, "locked") || !strcmp(t, "pw") || !strcmp(t, "pass")) return 1;
+    if(!strcmp(t, "open") || !strcmp(t, "nopw") || !strcmp(t, "no password") || !strcmp(t, "unlocked")) return 2;
+    return 0;
+}
 static void OmpRows(std::vector<LRow>& rows)
 {
     OmpListKick();
     std::lock_guard<std::mutex> lk(s_OmpMx);
     int shown = 0;
+    const int kw = OmpSearchPw(), pf = kw ? kw : s_nOmpPwFilter;   // a keyword search is the filter (not a name search)
+    const bool limit = !s_szSearch[0] && pf == 0;                     // filtered or searched: every match
     for(const OmpSrv& s : s_OmpList)
     {
-        if(!s_szSearch[0] && shown >= 400) break;   // the busiest 400 (search looks through all of them)
-        if(!LMatch(s.name.c_str(), s.lang.c_str()) && !LMatch(s.mode.c_str()) && !LMatch(s.host.c_str())) continue;
+        if(limit && shown >= 400) break;   // the busiest 400 (search / the filter look through all of them)
+        if(pf == 1 && !s.pw) continue;
+        if(pf == 2 && s.pw) continue;
+        if(!kw && !LMatch(s.name.c_str(), s.lang.c_str()) && !LMatch(s.mode.c_str()) && !LMatch(s.host.c_str())) continue;
         LRow q; memset(&q, 0, sizeof(q));
         q.kind = 8; OmpCut(q.name, sizeof(q.name), s.name); OmpCut(q.ip, sizeof(q.ip), s.host); q.port = s.port;
         q.players = s.players; q.maxp = s.maxp; q.ping = -1; q.region = -1; q.icon = 0; q.saved = -1;
@@ -598,6 +615,7 @@ static const char* OmpEmptyText()
 {
     const int st = s_nOmpState;
     if(st == 3) { static char b[160]; std::lock_guard<std::mutex> lk(s_OmpMx); snprintf(b, sizeof(b), "Could not read the open.mp list (%s). It tries again in a moment.", s_OmpWhy.c_str()); return b; }
+    if(st == 2) return "No open.mp server matches this filter.";   // 5.02.03
     return "Reading the open.mp server list...";
 }
 
@@ -1225,14 +1243,38 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
         const unsigned ago = s_nOmpAt ? (unsigned)((MP_NowMs() - s_nOmpAt) / 1000) : 0;
         if(st8 == 1) snprintf(st, sizeof(st), n ? "Refreshing the open.mp list... (%d servers now)" : "Reading the open.mp server list...", n);
         else if(st8 == 3) snprintf(st, sizeof(st), "Could not read the open.mp list%s - tap Refresh", n ? " (showing the last one)" : "");
-        else if(st8 == 2) snprintf(st, sizeof(st), "%d servers on open.mp (%d shown)  -  updated %us ago", n, (int)rows.size(), ago);
+        else if(st8 == 2) snprintf(st, sizeof(st), "%d servers on open.mp (%d shown%s)  -  updated %us ago", n, (int)rows.size(), (OmpSearchPw() ? OmpSearchPw() : s_nOmpPwFilter) == 1 ? ", with a password" : (OmpSearchPw() ? OmpSearchPw() : s_nOmpPwFilter) == 2 ? ", no password" : "", ago);
         else snprintf(st, sizeof(st), "open.mp server list");
         const float bh = barH - UI::S(12);
         const char* bl = "Refresh";
         const float bw = bh * 0.55f + bh * 0.42f + ImGui::CalcTextSize(bl).x + bh * 0.35f;
-        dl->AddText(ImVec2(p.x + UI::S(14), p.y + (barH - ImGui::GetTextLineHeight()) * 0.5f), IM_COL32(200, 205, 212, 255), st);
+        {   // clipped before the filter chip (5.02.03)
+            const float chipW = ImGui::CalcTextSize("Password only").x + bh * 1.4f;
+            dl->PushClipRect(p, ImVec2(p.x + W - bw - chipW - UI::S(30), p.y + barH), true);
+            dl->AddText(ImVec2(p.x + UI::S(14), p.y + (barH - ImGui::GetTextLineHeight()) * 0.5f), IM_COL32(200, 205, 212, 255), st);
+            dl->PopClipRect();
+        }
         ImGui::SetCursorScreenPos(ImVec2(p.x + W - bw - UI::S(8), p.y + UI::S(6)));
         if(LToolButton("omprefresh", IC_REFRESH, bl, bh, st8 != 1)) { OmpListKick(true); if(logger) logger->Info("open.mp list: Refresh tapped"); }
+        {   // 5.02.03: password filter chip, left of Refresh: All -> Password -> No password
+            static const char* const kPf[3] = { "All servers", "Password only", "No password" };
+            const int kw = OmpSearchPw(), pf = kw ? kw : s_nOmpPwFilter;
+            const char* fl = kPf[pf];
+            const float fw = ImGui::CalcTextSize(kPf[1]).x + bh * 1.4f;
+            const ImVec2 fa(p.x + W - bw - UI::S(20) - fw, p.y + UI::S(6)), fb(fa.x + fw, fa.y + bh);
+            ImGui::SetCursorScreenPos(fa); ImGui::PushID("omppf");
+            if(ImGui::InvisibleButton("##pf", ImVec2(fw, bh), L_PRESS_ON_CLICK))
+            {
+                if(kw) s_szSearch[0] = 0;   // the chip takes over from a keyword search
+                s_nOmpPwFilter = (pf + 1) % 3; s_szLSelKey[0] = 0; s_nLSel = -1;
+                if(logger) logger->Info("open.mp tab: filter %s", kPf[s_nOmpPwFilter]);
+            }
+            const bool held = ImGui::IsItemActive(); ImGui::PopID();
+            dl->AddRectFilled(fa, fb, pf ? IM_COL32(88, 101, 242, held ? 255 : 210) : IM_COL32(255, 255, 255, held ? 40 : 18), UI::S(6));
+            LPadlock(dl, ImVec2(fa.x + bh * 0.42f, fa.y + bh * 0.5f - UI::S(3)), UI::S(18), pf != 2, IM_COL32(235, 238, 245, 255));
+            const ImVec2 ts = ImGui::CalcTextSize(fl);
+            dl->AddText(ImVec2(fa.x + bh * 0.85f, fa.y + (bh - ts.y) * 0.5f), IM_COL32_WHITE, fl);
+        }
         ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + barH + UI::S(2)));
     }
     ImGui::BeginChild("##lrows", ImVec2(0, 0), false);
