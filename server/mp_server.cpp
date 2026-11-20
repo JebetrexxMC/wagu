@@ -167,7 +167,13 @@ int main(int argc, char** argv)
         int sp = 0, smax = 50;
         for(int i = 1; i + 1 < argc; ++i) if(!strcasecmp(argv[i], "--samp-port") || !strcasecmp(argv[i], "--omp-port")) sp = atoi(argv[i + 1]);
         for(int i = 1; i + 1 < argc; ++i) if(!strcasecmp(argv[i], "--samp-max")) smax = atoi(argv[i + 1]);
-        if(sp > 0 && sp < 65536) gate.StartServer(&server, (uint16_t)sp, server.GetName(), smax);
+        bool ann = true;   // 5.02.11: --no-announce keeps it off the open.mp list
+        for(int i = 1; i < argc; ++i) if(!strcasecmp(argv[i], "--no-announce")) ann = false;
+        if(sp > 0 && sp < 65536 && gate.StartServer(&server, (uint16_t)sp, server.GetName(), smax))
+        {
+            gate.SetAnnounce(ann);
+            printf("[crossplay] %s\n", ann ? "announcing to the open.mp list (SA-MP / open.mp launchers) - off: --no-announce" : "not on the open.mp list (--no-announce)");
+        }
     }
     {   // 3.04.6: old MP versions are refused and logged
         const char* ol = "outdated_clients.log";

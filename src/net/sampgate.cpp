@@ -4,6 +4,9 @@
 #include "samp.h"
 #include "cgrp.h"
 #include "dz_map.h"
+#include "online.h"
+#include <atomic>
+#include <memory>
 
 #include "RakNetworkFactory.h"
 #include "RakClientInterface.h"
@@ -146,6 +149,7 @@ struct SampGate::Impl
     std::map<int, uint64_t> phoneSeen;                     // phone slot -> last relayed (0 = joined, not streamed)
     std::map<int, std::string> phoneNames;
     uint64_t lastRelay = 0, lastPeers = 0;
+    bool announce = false; uint64_t annAt = 0; std::shared_ptr<std::atomic<bool>> annBusy = std::make_shared<std::atomic<bool>>(false);   // 5.02.11
     int maxPc = 50;
 
     // ---- remote role ----
@@ -592,6 +596,21 @@ static void SrvTick(SampGate* g, Impl& I, MPServer* srv)
         // phone chat -> PC players
         std::vector<std::pair<int, std::string>> chat; srv->BridgeTakeChat(chat);
         for(auto& c : chat) { BitStream o; o.Write((uint16_t)c.first); WrStr8(o, c.second); SrvRpcAll(I, 101, o); }
+        // 5.02.11: the open.mp internet list (what an open.mp server does at start: GET api.open.mp/0.3.7/announce/<port>;
+        // the list then queries this port, so the SA-MP / open.mp launchers show the server and its players - phones too).
+        // Again every 10 minutes so a list restart finds it again.
+        if(I.announce && (I.annAt == 0 || now - I.annAt >= 600000) && !I.annBusy->load())
+        {
+            I.annAt = now; I.annBusy->store(true);
+            const std::string url = "https://api.open.mp/0.3.7/announce/" + std::to_string(g->Port());
+            auto busy = I.annBusy;
+            std::thread([url, busy] {
+                std::string body, why;
+                const bool ok = Online::HttpsFetch(url, body, 15000, why, 4096);
+                printf("[crossplay] open.mp list announce %s%s%s\n", ok ? "sent" : "failed: ", ok ? "" : why.c_str(), ok && !body.empty() ? (" - " + body.substr(0, 120)).c_str() : "");
+                busy->store(false);
+            }).detach();
+        }
         // query snapshot
         std::lock_guard<std::mutex> lk(I.sm);
         I.qPlayers.clear();
@@ -822,7 +841,12 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 32:   // stream in
         {
             bs.Read(u16a); bs.Read(u8a); bs.Read(u32a); RdVec(bs, v); bs.Read(fa); bs.Read(u32b);
-            if(Impl::Rp* p = RemPlayer(I, u16a)) { p->skin = (uint16_t)RemModel(I, (int32_t)u32a); if(u32b) p->color = u32b; RemGhostIn(I, srv, u16a, v, fa); }
+            if(Impl::Rp* p = RemPlayer(I, u16a))
+            {
+                static const bool dbg = getenv("MP_GATE_DEBUG") != nullptr;
+                if(dbg) printf("[crossplay] stream in player %d %s skin %u at %.1f %.1f %.1f\n", (int)u16a, p->name.c_str(), (unsigned)u32a, v[0], v[1], v[2]);
+                p->skin = (uint16_t)RemModel(I, (int32_t)u32a); if(u32b) p->color = u32b; RemGhostIn(I, srv, u16a, v, fa);
+            }
             break;
         }
         case 163: bs.Read(u16a); if(Impl::Rp* p = RemPlayer(I, u16a)) { if(p->slot >= 0) srv->BridgeRemove(p->slot); p->slot = -1; } break;
@@ -1039,6 +1063,10 @@ static void RemFootIn(Impl& I, MPServer* srv, Packet* pk, bool vehicle)
     BitStream bs(pk->data, pk->length, false); bs.IgnoreBits(8);
     uint16_t id; if(!bs.Read(id)) return;
     Impl::Rp* p = RemPlayer(I, id); if(!p) return;
+    {   // 5.02.11 test: MP_GATE_DEBUG prints the first movement of each PC player (two gates on one server = "PC sees phone")
+        static const bool dbg = getenv("MP_GATE_DEBUG") != nullptr; static std::map<int, int> seen;
+        if(dbg && seen[id]++ == 0) printf("[crossplay] movement from player %d %s\n", (int)id, p->name.c_str());
+    }
     if(p->slot < 0) RemGhostIn(I, srv, id, nullptr, 0);
     if(p->slot < 0) return;
     SyncData d;
@@ -1289,6 +1317,8 @@ void SampGate::Loop()
 }
 
 bool SampGate::Ended() const { return m_bRemote && m_p->phase == 9; }
+
+void SampGate::SetAnnounce(bool on) { m_p->announce = on; m_p->annAt = 0; }
 
 void SampGate::Stop()
 {

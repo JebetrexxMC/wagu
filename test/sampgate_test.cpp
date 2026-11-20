@@ -69,7 +69,7 @@ int main(int argc, char** argv)
     if(!proxy.Start(basePort, "proxy", [](const char*){}, 4)) { printf("proxy failed\n"); return 1; }
     const char* pw = argc > 3 ? argv[3] : nullptr;   // 5.02.01: a password server (open.mp tab: the password is asked first)
     SampGate gate; gate.StartRemote(&proxy, host, port, pw);
-    MPClient cl; Ev ev; cl.Connect("127.0.0.1", basePort, "Phone Tester", 106);
+    MPClient cl; Ev ev; cl.Connect("127.0.0.1", basePort, getenv("MP_TEST_NAME") ? getenv("MP_TEST_NAME") : "Phone Tester", 106);   // 5.02.11: two testers = each one is the other's PC player
     uint32_t seq = 1;
     auto pump = [&](int ms, bool move) {
         uint64_t e = MP_NowMs() + ms;
@@ -109,6 +109,25 @@ int main(int argc, char** argv)
     SampGate g2; CHECK(g2.StartServer(&srv, 7791, "Gate Host", 10), "SA-MP port 7791 open");
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
     SampQueryInfo q2; CHECK(SampGate::Query("127.0.0.1", 7791, q2, 1500) && q2.hostname == "Gate Host", "the MP server answers the SA-MP browser query");
+    {   // 5.02.11: a phone on the MP server, moving; MP_TEST_HOST_HOLD=<ms> keeps it up so a second process (a PC-side
+        // sampgate_test 127.0.0.1 7791) can check it sees the phone's character (stream in + movement)
+        MPClient ph; Ev pe; ph.Connect("127.0.0.1", 19792, "Phone Host", 106);
+        const int hold = getenv("MP_TEST_HOST_HOLD") ? atoi(getenv("MP_TEST_HOST_HOLD")) : 3000;
+        uint64_t e = MP_NowMs() + hold; uint32_t sq = 1;
+        while(MP_NowMs() < e)
+        {
+            ph.Poll(&pe);
+            if(ph.GetState() == NET_CONNECTED && sq % 4 == 0)
+            {
+                PktSync p; memset(&p, 0, sizeof(p)); p.type = PKT_SYNC; p.seq = sq; p.d.pos[0] = 1958.4f + (float)(sq % 40) * 0.05f; p.d.pos[1] = 1343.2f; p.d.pos[2] = 15.4f;
+                p.d.heading = 90; p.d.health = 100; p.d.skin = 106; p.d.speed = 3.0f; ph.Send(&p, sizeof(p));
+            }
+            ++sq; std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        SampQueryInfo q3; CHECK(SampGate::Query("127.0.0.1", 7791, q3, 1500) && q3.players >= 1, "the launcher query lists the phone player");
+        printf("  query: %d players\n", q3.players);
+        ph.Disconnect();
+    }
     g2.Stop(); srv.Stop();
 
     printf(fails ? "\n%d FAILED\n" : "\nall ok\n", fails);

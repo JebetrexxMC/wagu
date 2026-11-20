@@ -47,6 +47,8 @@ public:
     // `srv` (normally a private MP server on 127.0.0.1) joins the PC server host:port for its phone player.
     bool StartRemote(MPServer* srv, const char* host, uint16_t port, const char* password = nullptr);
     void Stop();
+    // 5.02.11 server role: list it on the open.mp internet list (SA-MP / open.mp launchers), like open.mp's announce=true
+    void SetAnnounce(bool on);
 
     bool Running() const { return m_bRun; }
     bool IsRemote() const { return m_bRemote; }
