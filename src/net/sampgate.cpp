@@ -176,6 +176,8 @@ struct SampGate::Impl
     uint64_t lastFoot = 0, keysUntil = 0, retrySpawnAt = 0;
     uint32_t heldKeys = 0;
     bool wasDead = false;
+    bool wantClass = false;                 // 5.02.09: ForceClassSelection waits for the next respawn (like the PC client)
+    uint64_t autoSpawnWin = 0; int autoSpawnN = 0;   // 5.02.09: cap auto RequestSpawn so a login screen can't loop
     int lastHealth = 100;
 
     std::atomic<bool>* joinedFlag = nullptr;
@@ -758,6 +760,11 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             bs.Read(b); bs.Read(u32a); uint8_t hour = 12, weather = 1; bs.Read(hour); bs.Read(weather);
             bs.Read(f); bs.Read(b); bs.Read(u32a); bs.Read(b); for(int i = 0; i < 5; ++i) bs.Read(u32a);
             std::string name = RdStr8(bs);
+            {   // 5.02.09: some hostnames pad with spaces / 0xA0 / 0xF0 bytes (Horizon RP) - trim, then the code page -> UTF-8
+                auto pad = [](unsigned char c) { return c == ' ' || c == 0xA0 || c == 0xF0 || c == '\t'; };
+                size_t a = 0, b = name.size(); while(a < b && pad((unsigned char)name[a])) ++a; while(b > a && pad((unsigned char)name[b - 1])) --b;
+                name = SampCp::ToUtf8(name.substr(a, b - a), I.cp);
+            }
             { std::lock_guard<std::mutex> lk(I.sm); I.rServerName = name; }
             if(I.joinedFlag) *I.joinedFlag = true;
             I.phase = 3; I.phaseAt = NowMs();
@@ -773,7 +780,13 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 128:  // class answer
         {
             uint8_t sel = 0; bs.Read(sel); Impl::Spawn sp; if(RdSpawn(bs, sp)) I.spawn = sp;
-            if(I.phase < 4) { BitStream o; CliRpc(I, 129, o); }
+            if(I.phase < 4)
+            {
+                const uint64_t now = NowMs();
+                if(now - I.autoSpawnWin > 30000) { I.autoSpawnWin = now; I.autoSpawnN = 0; }
+                if(++I.autoSpawnN <= 3) { BitStream o; CliRpc(I, 129, o); }
+                else if(I.autoSpawnN == 4) srv->GateMsg(s, 0xA9C4E4FF, "[open.mp] The server keeps you in class selection - log in / finish its dialog first.");
+            }
             break;
         }
         case 129:  // spawn answer / SpawnPlayer
@@ -782,7 +795,12 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             break;
         case 68: { Impl::Spawn sp; if(RdSpawn(bs, sp)) I.spawn = sp; break; }
         case 74:   // ForceClassSelection
-            I.phase = 3; { BitStream o; o.Write((uint16_t)0); CliRpc(I, 128, o); } break;
+            if(I.phase >= 4) I.wantClass = true;   // 5.02.09: the PC client only goes back on the next respawn / spectate off
+            break;
+        case 124:  // TogglePlayerSpectating
+            bs.Read(u32a);
+            if(!u32a && I.wantClass && I.phase >= 4) { I.wantClass = false; I.phase = 3; BitStream o; o.Write((uint16_t)0); CliRpc(I, 128, o); }
+            break;
         case 137:  // player joined
         {
             bs.Read(u16a); bs.Read(u32a); bs.Read(u8a); std::string nm = RdStr8(bs);
@@ -1129,7 +1147,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         else if(e.kind == HK_DIALOG)
         {
             BitStream o; o.Write((int16_t)e.dialog); o.Write(e.resp); o.Write(e.list); WrStr8(o, SampCp::FromUtf8(e.text, I.cp)); CliRpc(I, 62, o);
-            if(I.phase == 3) I.retrySpawnAt = now + 1500;
+            if(I.phase == 3) { I.retrySpawnAt = now + 1500; I.autoSpawnN = 0; }
         }
     }
     if(I.phase == 3 && I.retrySpawnAt && now >= I.retrySpawnAt) { I.retrySpawnAt = 0; BitStream o; CliRpc(I, 129, o); }
@@ -1145,7 +1163,11 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         {
             const bool dead = (me->d.flags & SYNC_DEAD) || me->d.health == 0;
             if(dead && !I.wasDead) { BitStream o; o.Write((uint8_t)255); o.Write(kInvalid); CliRpc(I, 53, o); }
-            if(!dead && I.wasDead) RemSpawned(I, srv);
+            if(!dead && I.wasDead)
+            {
+                if(I.wantClass) { I.wantClass = false; I.phase = 3; I.wasDead = false; BitStream o; o.Write((uint16_t)0); CliRpc(I, 128, o); }
+                else RemSpawned(I, srv);
+            }
             I.wasDead = dead;
             if(!dead) RemSendFoot(I, me->d);
         }

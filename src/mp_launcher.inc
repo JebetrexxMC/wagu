@@ -586,7 +586,11 @@ static void OmpRows(std::vector<LRow>& rows)
         if(limit && shown >= 400) break;   // the busiest 400 (search / the filter look through all of them)
         if(pf == 1 && !s.pw) continue;
         if(pf == 2 && s.pw) continue;
-        if(!kw && !LMatch(s.name.c_str(), s.lang.c_str()) && !LMatch(s.mode.c_str()) && !LMatch(s.host.c_str())) continue;
+        if(!kw && !LMatch(s.name.c_str(), s.lang.c_str()) && !LMatch(s.mode.c_str()) && !LMatch(s.host.c_str()))
+        {   // 5.02.09: "ip:port" too
+            char hp[80]; snprintf(hp, sizeof(hp), "%s:%d", s.host.c_str(), s.port);
+            if(!LMatch(hp)) continue;
+        }
         LRow q; memset(&q, 0, sizeof(q));
         q.kind = 8; OmpCut(q.name, sizeof(q.name), s.name); OmpCut(q.ip, sizeof(q.ip), s.host); q.port = s.port;
         q.players = s.players; q.maxp = s.maxp; q.ping = -1; q.region = -1; q.icon = 0; q.saved = -1;
@@ -1249,20 +1253,37 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
         const float bh = barH - UI::S(12);
         const char* bl = "Refresh";
         const float bw = bh * 0.55f + bh * 0.42f + ImGui::CalcTextSize(bl).x + bh * 0.35f;
+        const float sw = std::min(UI::S(320), W * 0.24f);   // 5.02.09: search box next to Refresh
         {   // clipped before the filter chip (5.02.03)
             const float chipW = ImGui::CalcTextSize("Password only").x + bh * 1.4f;
-            dl->PushClipRect(p, ImVec2(p.x + W - bw - chipW - UI::S(30), p.y + barH), true);
+            dl->PushClipRect(p, ImVec2(p.x + W - bw - sw - chipW - UI::S(42), p.y + barH), true);
             dl->AddText(ImVec2(p.x + UI::S(14), p.y + (barH - ImGui::GetTextLineHeight()) * 0.5f), IM_COL32(200, 205, 212, 255), st);
             dl->PopClipRect();
         }
         ImGui::SetCursorScreenPos(ImVec2(p.x + W - bw - UI::S(8), p.y + UI::S(6)));
         if(LToolButton("omprefresh", IC_REFRESH, bl, bh, st8 != 1)) { OmpListKick(true); if(logger) logger->Info("open.mp list: Refresh tapped"); }
+        {   // 5.02.09: search the open.mp list (name, gamemode, language, IP or ip:port), x clears it
+            const ImVec2 sa(p.x + W - bw - UI::S(20) - sw, p.y + UI::S(6));
+            ImGui::SetCursorScreenPos(sa);
+            if(LInputBox("ompsearch", s_szSearch, "Search open.mp", sw - (s_szSearch[0] ? bh : 0.0f), bh, IC_SEARCH)) VKeyboard::Open("Search open.mp servers", s_szSearch, 31, OnSearch);
+            if(s_szSearch[0])
+            {
+                const ImVec2 xa(sa.x + sw - bh, sa.y), xb(sa.x + sw, sa.y + bh);
+                ImGui::SetCursorScreenPos(xa); ImGui::PushID("ompsx");
+                if(ImGui::InvisibleButton("##x", ImVec2(bh, bh), L_PRESS_ON_CLICK)) { s_szSearch[0] = 0; s_nLSel = -1; s_szLSelKey[0] = 0; }
+                const bool xh = ImGui::IsItemActive(); ImGui::PopID();
+                dl->AddRectFilled(xa, xb, IM_COL32(255, 255, 255, xh ? 50 : 22), UI::S(6));
+                const ImVec2 c((xa.x + xb.x) * 0.5f, (xa.y + xb.y) * 0.5f); const float r = bh * 0.18f;
+                dl->AddLine(ImVec2(c.x - r, c.y - r), ImVec2(c.x + r, c.y + r), IM_COL32_WHITE, UI::S(2.5f));
+                dl->AddLine(ImVec2(c.x - r, c.y + r), ImVec2(c.x + r, c.y - r), IM_COL32_WHITE, UI::S(2.5f));
+            }
+        }
         {   // 5.02.03: password filter chip, left of Refresh: All -> Password -> No password
             static const char* const kPf[3] = { "All servers", "Password only", "No password" };
             const int kw = OmpSearchPw(), pf = kw ? kw : s_nOmpPwFilter;
             const char* fl = kPf[pf];
             const float fw = ImGui::CalcTextSize(kPf[1]).x + bh * 1.4f;
-            const ImVec2 fa(p.x + W - bw - UI::S(20) - fw, p.y + UI::S(6)), fb(fa.x + fw, fa.y + bh);
+            const ImVec2 fa(p.x + W - bw - sw - UI::S(32) - fw, p.y + UI::S(6)), fb(fa.x + fw, fa.y + bh);
             ImGui::SetCursorScreenPos(fa); ImGui::PushID("omppf");
             if(ImGui::InvisibleButton("##pf", ImVec2(fw, bh), L_PRESS_ON_CLICK))
             {
