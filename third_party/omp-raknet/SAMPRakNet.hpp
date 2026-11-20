@@ -114,6 +114,7 @@ public:
 	// datagrams decoded. A server that does not know omp (SA-MP 0.3.7) sends its cookie again -> ^ 0x6969 there.
 	static void SetClientOmp(bool on);
 	static bool ClientOmp();
+	static void ClientOmpReset();   // a new connection: the omp cookie answer first again
 	static uint16_t ClientCookieXor(unsigned int binaryAddress, unsigned short port);
 	static int ClientReceive(unsigned int binaryAddress, unsigned short port, char* data, int len);   // -1 = consumed
 	static bool ClientUsedOmp(unsigned int binaryAddress, unsigned short port);

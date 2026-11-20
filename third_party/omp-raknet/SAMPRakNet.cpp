@@ -450,6 +450,7 @@ static std::unordered_map<uint64_t, ClientOmpState> g_clientOmpState;
 static uint64_t ClientOmpHash(unsigned int a, unsigned short p) { return ((uint64_t)a << 16) | p; }
 void SAMPRakNet::SetClientOmp(bool on) { g_clientOmp = on; }
 bool SAMPRakNet::ClientOmp() { return g_clientOmp.load(); }
+void SAMPRakNet::ClientOmpReset() { std::lock_guard<std::mutex> lk(g_clientSockMx); g_clientOmpState.clear(); }
 uint16_t SAMPRakNet::ClientCookieXor(unsigned int binaryAddress, unsigned short port)
 {
     std::lock_guard<std::mutex> lk(g_clientSockMx);

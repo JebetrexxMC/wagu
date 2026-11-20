@@ -45,6 +45,7 @@ using namespace RakNet;
 namespace {
 
 const uint32_t kSampVersion = 4057;          // SA-MP 0.3.7-R2/R3 netgame version
+const uint32_t kSampVersionDL = 4062;        // 5.02.08: SA-MP 0.3.DL-R1 (custom models)
 const uint16_t kInvalid = 0xFFFF;
 const uint8_t  kPlayerSync = 207, kVehicleSync = 200;   // SA-MP 0.3.7 sync packet ids
 const float    kPi = 3.14159265358979f;
@@ -155,6 +156,11 @@ struct SampGate::Impl
     int phase = 0;                // 0 wait phone, 1 connecting, 2 accepted, 3 in game (class), 4 spawned, 9 ended
     uint64_t phaseAt = 0;
     int tries = 0;                // 5.02.06: connect attempts (a busy server that drops the first one gets 2 more)
+    // 5.02.08: the PC client the phone shows itself as: SA-MP 0.3.7-R5 (4057) or 0.3.DL-R1 (4062, picked when the
+    // server's "version" rule says DL; MP_GATE_CLIENT=r2 / r5 / dl forces one). A server that kicks one right at
+    // the join gets the other one once.
+    uint32_t cliVer = 4057; std::string cliVerStr = "0.3.7-R5"; bool verSwapped = false;
+    std::unordered_map<int32_t, int32_t> modelBase;   // 5.02.08: 0.3.DL custom model id -> its base model (RPC 179)
     int phoneSlot = -1;
     int myId = -1;
     struct Spawn { uint32_t skin = 0; float pos[3] = { 0, 0, 3 }; float rot = 0; uint32_t w[3] = { 0, 0, 0 }, ammo[3] = { 0, 0, 0 }; bool have = false; } spawn;
@@ -407,7 +413,7 @@ static void SrvHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             uint32_t ver = 0, chal = 0; uint8_t mod = 0; bs.Read(ver); bs.Read(mod);
             std::string name = SampGate::SampName(RdStr8(bs).c_str()); bs.Read(chal); std::string key = RdStr8(bs); std::string vs = RdStr8(bs);
             p.pid = r.from; p.on = true; p.name = name;
-            if(ver != kSampVersion) { Impl::Pc t = p; t.pid = r.from; SrvMsg(I, &t, 0xFF4040FF, "This MP server takes SA-MP 0.3.7 / open.mp clients only."); I.S->Kick(r.from); break; }
+            if(ver != kSampVersion && ver != kSampVersionDL) { Impl::Pc t = p; t.pid = r.from; SrvMsg(I, &t, 0xFF4040FF, "This MP server takes SA-MP 0.3.7 / 0.3.DL / open.mp clients only."); I.S->Kick(r.from); break; }
             int slot = srv->BridgeAdd(name.c_str(), kColors[r.idx % 16], 0);
             if(slot < 0) { Impl::Pc t = p; SrvMsg(I, &t, 0xFF4040FF, "The server is full."); I.S->Kick(r.from); break; }
             p.slot = slot; p.joined = true; p.spawned = false; p.skin = 0; p.lastSync = 0;
@@ -672,6 +678,14 @@ static void RemEnd(Impl& I, MPServer* srv, const char* why)
     SetStatus(I, "%s", why);
 }
 
+static void RemSetClient(Impl& I, bool dl)
+{
+    I.cliVer = dl ? kSampVersionDL : kSampVersion; I.cliVerStr = dl ? "0.3.DL-R1" : "0.3.7-R5";
+}
+static int32_t RemModel(Impl& I, int32_t m)
+{   // 5.02.08: a 0.3.DL custom model (skin 20001+, object -1000..-30000) shows as its base model on the phone
+    auto it = I.modelBase.find(m); return it != I.modelBase.end() ? it->second : m;
+}
 static Impl::Rp* RemPlayer(Impl& I, int id) { auto it = I.rp.find(id); return it == I.rp.end() ? nullptr : &it->second; }
 
 static void RemGhostIn(Impl& I, MPServer* srv, int id, const float* pos, float ang)
@@ -696,7 +710,7 @@ static void RemSpawned(Impl& I, MPServer* srv)
     const int s = I.phoneSlot;
     if(I.spawn.have)
     {
-        srv->GateAct(s, CGA_SKIN, 0, 0, (int32_t)I.spawn.skin);
+        srv->GateAct(s, CGA_SKIN, 0, 0, (int32_t)RemModel(I, (int32_t)I.spawn.skin));
         srv->GateAct(s, CGA_TELE, 255, 0, 0, I.spawn.pos, I.spawn.rot);
         srv->GateAct(s, CGA_DISARM);
         for(int i = 0; i < 3; ++i) if(I.spawn.w[i] > 0 && I.spawn.w[i] < 47) srv->GateAct(s, CGA_GUN, (int)I.spawn.w[i], 0, (int32_t)std::max<uint32_t>(I.spawn.ammo[i], 1));
@@ -726,6 +740,14 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             if(!bs.Read(type) || !bs.Read(addr)) break; bs.Read(off); bs.Read(cnt);
             if(dbg) printf("[crossplay] ClientCheck type 0x%02X addr 0x%08X off %u count %u\n", type, addr, off, cnt);
             BitStream o; o.Write(type); o.Write(addr); o.Write((uint8_t)0); CliRpc(I, 103, o);
+            break;
+        }
+        case 179:  // 5.02.08: 0.3.DL ModelRequest - remember which base model each custom one replaces
+        {
+            uint32_t pool = 0, count = 0; uint8_t type = 0; int32_t vw = 0, base = 0, nid = 0;
+            bs.Read(pool); bs.Read(count); bs.Read(type); bs.Read(vw); bs.Read(base); bs.Read(nid);
+            if(nid) I.modelBase[nid] = base;
+            if(dbg) printf("[crossplay] custom model %d -> base %d (type %u)\n", nid, base, type);
             break;
         }
         case 139:  // InitGame
@@ -772,12 +794,13 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 32:   // stream in
         {
             bs.Read(u16a); bs.Read(u8a); bs.Read(u32a); RdVec(bs, v); bs.Read(fa); bs.Read(u32b);
-            if(Impl::Rp* p = RemPlayer(I, u16a)) { p->skin = (uint16_t)u32a; if(u32b) p->color = u32b; RemGhostIn(I, srv, u16a, v, fa); }
+            if(Impl::Rp* p = RemPlayer(I, u16a)) { p->skin = (uint16_t)RemModel(I, (int32_t)u32a); if(u32b) p->color = u32b; RemGhostIn(I, srv, u16a, v, fa); }
             break;
         }
         case 163: bs.Read(u16a); if(Impl::Rp* p = RemPlayer(I, u16a)) { if(p->slot >= 0) srv->BridgeRemove(p->slot); p->slot = -1; } break;
         case 153:  // skin
             bs.Read(u32a); bs.Read(u32b);
+            u32b = (uint32_t)RemModel(I, (int32_t)u32b);
             if((int)u32a == I.myId) srv->GateAct(s, CGA_SKIN, 0, 0, (int32_t)u32b);
             else if(Impl::Rp* p = RemPlayer(I, (int)u32a)) p->skin = (uint16_t)u32b;
             break;
@@ -891,6 +914,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         {
             uint16_t id, av = kInvalid, ao = kInvalid; int32_t model; float dd; uint8_t nocol;
             bs.Read(id); bs.Read(model); RdVec(bs, v); RdVec(bs, w3); bs.Read(dd); bs.Read(nocol); bs.Read(av); bs.Read(ao);
+            model = RemModel(I, model);
             if(av != kInvalid || ao != kInvalid || model <= 0 || model > 65535) break;
             Impl::Obj o; o.row = 0x5A000000u | id; o.model = (uint16_t)model; memcpy(o.p, v, sizeof(v)); memcpy(o.r, w3, sizeof(w3));
             I.objs[id] = o; srv->GateObject(o.row, o.model, o.p, o.r, true);
@@ -999,7 +1023,7 @@ static bool RemRetry(Impl& I, MPServer* srv, uint64_t now)
     srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m);
     I.C->Disconnect(100);
     I.C->SetPassword(I.rPass.c_str());
-    if(!I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5)) return false;
+    if(!(SAMPRakNet::ClientOmpReset(), I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5))) return false;
     I.phaseAt = now;
     return true;
 }
@@ -1019,11 +1043,14 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         {   // 5.02.05: the server's language picks the codepage its chat / dialogs are written in (MP_GATE_CP=1251 forces one)
             SampQueryInfo qi; I.cp = 1252;
             if(SampGate::Query(I.rHost.c_str(), I.rPort, qi, 1200)) I.cp = SampCp::ForLanguage(qi.language, qi.hostname);
+            const bool dl = qi.version.find("DL") != std::string::npos || qi.version.find("dl") != std::string::npos;
+            RemSetClient(I, dl);
+            if(const char* c = getenv("MP_GATE_CLIENT")) { if(!strcmp(c, "dl")) RemSetClient(I, true); else if(!strcmp(c, "r5")) RemSetClient(I, false); else if(!strcmp(c, "r2")) { RemSetClient(I, false); I.cliVerStr = "0.3.7-R2"; } }
             if(const char* f = getenv("MP_GATE_CP")) if(atoi(f) > 0) I.cp = atoi(f);
             printf("[crossplay] text codepage %d (language \"%s\")\n", I.cp, qi.language.c_str());
         }
         I.C->SetPassword(I.rPass.c_str());
-        if(!I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5)) { RemEnd(I, srv, "Could not start the connection."); return; }
+        if(!(SAMPRakNet::ClientOmpReset(), I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5))) { RemEnd(I, srv, "Could not start the connection."); return; }
         I.phase = 1; I.phaseAt = now;
         return;
     }
@@ -1047,8 +1074,9 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             case ID_CONNECTION_REQUEST_ACCEPTED:
             {
                 BitStream in(pk->data, pk->length, false); in.IgnoreBits(8 + 32 + 16 + 16); uint32_t chal = 0; in.Read(chal);
-                BitStream o; o.Write(kSampVersion); o.Write((uint8_t)1); WrStr8(o, I.rName); o.Write((uint32_t)(chal ^ kSampVersion));
-                WrStr8(o, Gpci()); WrStr8(o, "0.3.7-R2");
+                BitStream o; o.Write(I.cliVer); o.Write((uint8_t)1); WrStr8(o, I.rName); o.Write((uint32_t)(chal ^ I.cliVer));
+                WrStr8(o, Gpci()); WrStr8(o, I.cliVerStr.c_str());
+                printf("[crossplay] joining as SA-MP %s (%u)%s\n", I.cliVerStr.c_str(), I.cliVer, SAMPRakNet::ClientOmp() ? " + open.mp launcher" : "");
                 // 5.02.07: what the open.mp launcher's client adds: its omp version (IsPlayerUsingOfficialClient = true
                 // on open.mp; SA-MP 0.3.7 servers ignore the extra bytes). Off: MP_GATE_OMP=0
                 if(SAMPRakNet::ClientOmp()) o.Write((uint32_t)SAMPRakNet::CURRENT_OMP_CLIENT_MOD_VERSION);
@@ -1060,7 +1088,16 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             case ID_NO_FREE_INCOMING_CONNECTIONS: RemEnd(I, srv, "The PC server is full."); break;
             case ID_CONNECTION_BANNED: RemEnd(I, srv, "You are banned from this PC server."); break;
             case ID_INVALID_PASSWORD: RemEnd(I, srv, "Wrong server password."); break;
-            case ID_DISCONNECTION_NOTIFICATION: RemEnd(I, srv, "The PC server closed the connection (kicked / server restart)."); break;
+            case ID_DISCONNECTION_NOTIFICATION:
+                if(I.phase == 2 && !I.verSwapped && !getenv("MP_GATE_CLIENT"))
+                {   // 5.02.08: kicked at the join (before the game start): try the other SA-MP client version once
+                    I.verSwapped = true; RemSetClient(I, I.cliVer != kSampVersionDL);
+                    printf("[crossplay] kicked at the join - trying again as SA-MP %s\n", I.cliVerStr.c_str());
+                    char m[160]; snprintf(m, sizeof(m), "[open.mp] Trying again as SA-MP %s...", I.cliVerStr.c_str()); srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m);
+                    I.C->Disconnect(100); I.C->SetPassword(I.rPass.c_str());
+                    if((SAMPRakNet::ClientOmpReset(), I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5))) { I.phase = 1; I.phaseAt = now; break; }
+                }
+                RemEnd(I, srv, "The PC server closed the connection (kicked / server restart)."); break;
             case ID_CONNECTION_LOST: RemEnd(I, srv, "Lost the connection to the PC server."); break;
             case kPlayerSync: RemFootIn(I, srv, pk, false); break;
             case kVehicleSync: RemFootIn(I, srv, pk, true); break;
