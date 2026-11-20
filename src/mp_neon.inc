@@ -1174,14 +1174,18 @@ static void NeonMusicDownload()
         s_nNeonMusDl = 3;
     }).detach();
 }
+static uint64_t s_nNeonMusHoldUntil = 0;   // 5.02.06: no restart right after Resume / New game / a join
+static bool s_bNeonMusOn = false;          // 5.02.06: the title menu music was started (until a stop)
 static void NeonMusicStop()
 {
-    if(s_nNeonMus == 1) { Sound::StreamStop(); logger->Info("Neon menu: menu music stopped"); }
+    s_bNeonMusOn = false;
+    if(s_nNeonMus == 1) { Sound::StreamStop(); logger->Info("Neon menu: menu music stopped"); s_nNeonMusHoldUntil = MP_NowMs() + 10000; }
     s_nNeonMus = 0;
 }
 static void NeonMusicInGame() { if(s_nNeonMus == 1 && Game::LocalPed() > 0) NeonMusicStop(); }   // MP::Process
 static bool s_bNeonMusUrl = false, s_bNeonMusLoop = false;   // 5.01.14: streaming from the URL / a loop restart (no fade)
 static float s_fNeonMusMax = 0.0f;   // 5.01.15: the furthest position heard (a track that "ends" early is resumed, not looped)
+static float s_fNeonMusResume = 0.0f;   // 5.02.06: where a cut-off track carries on
 static uint64_t s_nNeonMusLastPos = 0;
 static char s_szNeonMusPath[600] = "";   // 5.01.16: the file playing ("" = the URL stream)
 static void NeonMusicTick(bool want)   // game thread
@@ -1191,12 +1195,12 @@ static void NeonMusicTick(bool want)   // game thread
     // player that stalls while buffering reports "end of track", which looped it from 0:00. Now a running track is
     // never restarted because of its position; an early "end" (before the real length) is a stall - the downloaded
     // copy (or the URL again) takes over; only a real end of the track loops it; a failed start is tried again.
-    if(s_nNeonMode == NEON_MODE_NEON && settings.neonMusic && s_nNeonMusDl.load() == 0)
+    if(settings.neonMusic && s_nNeonMusDl.load() == 0)   // 5.02.06: every menu mode (it was the neon menu only)
     {   // once: a copy on the disk already, or download it now (before the first start needs it)
         if(NeonMusicVerified()) s_nNeonMusDl = 2; else NeonMusicDownload();   // 5.01.16: an unverified copy is downloaded again
     }
     want = want && settings.neonMusic && settings.neonMusicVol > 0;
-    if(!want) { NeonMusicStop(); s_bNeonMusLoop = false; s_fNeonMusMax = 0.0f; return; }
+    if(!want) { NeonMusicStop(); s_bNeonMusLoop = false; s_fNeonMusMax = 0.0f; s_fNeonMusResume = 0.0f; return; }
     const uint64_t now = MP_NowMs();
     if(s_nNeonMus == -1 && now - s_nNeonMusAt < 3000) return;
     if(s_nNeonMus == 1)
@@ -1214,6 +1218,8 @@ static void NeonMusicTick(bool want)   // game thread
                          s_fNeonMusMax, dur, Sound::StreamInfo());
             Sound::StreamStop(); s_nNeonMus = 0;
             s_bNeonMusLoop = full;
+            // 5.02.06: an early stop (the Host/Media stream cut off) carries on from where it was, not from 0:00
+            s_fNeonMusResume = full ? 0.0f : (s_fNeonMusMax > 2.0f ? s_fNeonMusMax : 0.0f);
             if(full) s_fNeonMusMax = 0.0f;
             if(!full && !ended) { s_nNeonMus = -1; s_nNeonMusAt = now; return; }   // a failed start: wait 3 s
         }
@@ -1226,7 +1232,13 @@ static void NeonMusicTick(bool want)   // game thread
     if(s_nNeonMus != 1)
     {
         char p[600]; bool ok = false; const bool local = NeonMusicLocal(p, sizeof(p));
-        if(local) ok = Sound::StreamPlay(p, s_bNeonMusLoop ? settings.neonMusicVol / 100.0f : 0.0f);
+        // 5.02.06: the stream stopped part way and the full copy is still downloading: wait for it (silent) instead of
+        // starting the stream again at 0:00 - then the copy on the disk carries on from the same second
+        if(!local && s_fNeonMusResume > 0.0f && s_nNeonMusDl.load() == 1) return;
+        const float from = local ? s_fNeonMusResume : 0.0f;
+        if(local) ok = Sound::StreamPlay(p, s_bNeonMusLoop ? settings.neonMusicVol / 100.0f : 0.0f, from);
+        if(ok && from > 0.0f) logger->Info("Neon menu: menu music carries on at %.1f s (%s)", from, p);
+        s_fNeonMusResume = 0.0f;
         if(local && !ok) s_NeonMusBad.insert(p);   // 5.01.16: unreadable: the next start takes another copy / the URL
         MP_CopyStr(s_szNeonMusPath, ok && local ? p : "", sizeof(s_szNeonMusPath));
         s_bNeonMusUrl = false;
@@ -1238,6 +1250,24 @@ static void NeonMusicTick(bool want)   // game thread
     }
     float k = s_bNeonMusLoop ? 1.0f : (now - s_nNeonMusAt) / 400.0f; if(k > 1) k = 1;   // a short fade in (none on a loop)
     Sound::StreamSetVolume(settings.neonMusicVol / 100.0f * k);
+}
+// 5.02.06: the title menu music in every ServerBrowserMode (default / mp / neon): neon_mainmenu.mp3 starts 4 s and then
+// 20 menu ticks after the title menu first shows, plays the whole 5:46 and loops; it only stops for a loaded game,
+// Resume / New game / a join, or MP Settings > menu music off. Before, it was the neon menu only and stopped whenever
+// the neon page was not painted for 4 s (a sub-menu, the game's settings, the keyboard) - and started again at 0:00.
+static uint64_t s_nNeonMusTitleFirst = 0, s_nNeonMusTitleSeen = 0;
+static int s_nNeonMusTicks = 0;
+static void NeonMusicMenuTick(uint64_t now)
+{
+    const bool title = NeonTitleCtx();
+    if(Game::LocalPed() > 0) { s_nNeonMusTitleFirst = 0; s_nNeonMusTicks = 0; NeonMusicTick(false); return; }
+    if(title) { s_nNeonMusTitleSeen = now; if(!s_nNeonMusTitleFirst) { s_nNeonMusTitleFirst = now; s_nNeonMusTicks = 0; } }
+    bool want = s_nNeonMusTitleFirst && now - s_nNeonMusTitleFirst >= 4000 && (s_bNeonMusOn || ++s_nNeonMusTicks >= 20);
+    if(!s_bNeonMusOn) want = want && title && now >= s_nNeonMusHoldUntil;               // a new start: only on the title
+    else want = want && !s_bMenuMp.load() && now - s_nNeonMusTitleSeen < 60000;          // started: keeps going on sub-menus
+    if(want && !s_bNeonMusOn) logger->Info("Neon menu: menu music starts (4 s + 20 ticks after the title menu)");
+    s_bNeonMusOn = want;   // (a cut-off track carries on even off the title page)
+    NeonMusicTick(want);
 }
 
 // ---- shared helpers ----
@@ -2266,12 +2296,10 @@ void MP::NeonMenuTick()
 {
     NeonFileTick(MP_NowMs());   // 5.01.07: neon_mode.txt added / removed while the title menu is up
     NeonCloseTick(MP_NowMs());  // 5.02.01: Resume / New game / a slot: no pause menu after the load
-    if(s_nNeonMode == NEON_MODE_DEFAULT) { NeonMusicStop(); return; }   // 4.13.30
     const uint64_t now = MP_NowMs();
+    NeonMusicMenuTick(now);   // 5.02.06: every menu mode, 4 s + 20 ticks after the title menu first shows
+    if(s_nNeonMode == NEON_MODE_DEFAULT) return;   // 4.13.30
     const bool titleUp = s_nNeonTitleMs && now - s_nNeonTitleMs < 600 && NeonTitleCtx();
-    // 5.01.11: the menu music while the neon title menu is up; notify.mp3 for the Discord pop-up
-    // 5.01.15: it keeps playing through a short gap (a sub-menu, a frame without the title) instead of restarting at 0:00
-    NeonMusicTick(s_nNeonTitleMs && now - s_nNeonTitleMs < 4000 && NeonTitleCtx());
     if(titleUp) NotifySoundFetch();
     if(s_bNeonToastSound && titleUp)
     {

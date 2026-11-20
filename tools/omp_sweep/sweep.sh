@@ -15,7 +15,8 @@ set -u
 OUT=${1:-tools/omp_sweep/results/$(date -u +%Y-%m-%d).tsv}
 mkdir -p "$(dirname "$OUT")"
 T=/tmp/sampgate_test
-if [ ! -x "$T" ]; then
+rm -f "$T"   # 5.02.06: a fresh build every run (an old binary missed the 30 s logon fix)
+if true; then
   make -C server -j"$(nproc)" >/dev/null 2>&1 || { echo "server libs did not build"; exit 1; }
   R=../third_party/omp-raknet
   (cd test && g++ -O1 -std=c++17 -pthread -I../src -I../third_party/mbedtls/include -D__stdcall= -DRAKNET_LEGACY -DPACKETS_PER_TICK=3 \
@@ -43,7 +44,7 @@ classify() {  # $1 = log
 }
 while IFS="$(printf '\t')" read -r rank addr pc pa ver name; do
   host=${addr%:*}; port=${addr##*:}; pw=""; [ "$pa" = 1 ] && pw="mp-sweep-wrong"
-  MP_GATE_WAIT=20000 timeout 70 "$T" "$host" "$port" $pw > /tmp/omp_sweep_one.log 2>&1
+  MP_GATE_WAIT=45000 timeout 120 "$T" "$host" "$port" $pw > /tmp/omp_sweep_one.log 2>&1
   res=$(classify /tmp/omp_sweep_one.log)
   st=$(grep "status:" /tmp/omp_sweep_one.log | tail -1 | sed 's/^ *status: //' | tr '\t' ' ')
   last=$(grep "  msg " /tmp/omp_sweep_one.log | grep -v "\[open.mp\]" | tail -1 | sed 's/^ *msg [0-9A-F]*: //' | tr '\t' ' ' | cut -c1-120)

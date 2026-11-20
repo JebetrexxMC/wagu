@@ -285,7 +285,7 @@ namespace
         std::atomic<int> gen{0};
         std::atomic<bool> eof{false}, active{false}, failed{false};
         std::atomic<long long> played{0};      // sample frames done
-        int ch = 0, hz = 0; float vol = 1.0f, dur = 0.0f;
+        int ch = 0, hz = 0; float vol = 1.0f, dur = 0.0f, startSec = 0.0f;   // 5.02.06: startSec = where a resumed track starts
     };
     Stream s_St;
     bool StEnqueueNextLocked()
@@ -313,7 +313,7 @@ namespace
         }
         while(StEnqueueNextLocked()) {}
     }
-    void StDecodeThread(std::string path, int myGen)
+    void StDecodeThread(std::string path, int myGen, float startSec)
     {
         FILE* f = fopen(path.c_str(), "rb");
         if(!f) { s_St.failed = true; s_St.eof = true; return; }
@@ -326,7 +326,7 @@ namespace
         mp3dec_t dec; mp3dec_init(&dec);   // per thread (an old thread may still be ending)
         std::vector<uint8_t> in(64 * 1024); size_t pos = 0, avail = 0; bool fileEof = false;
         mp3d_sample_t pcm[MINIMP3_MAX_SAMPLES_PER_FRAME];
-        std::vector<int16_t> block; bool first = true; int ch = 0, hz = 0;
+        std::vector<int16_t> block; bool first = true; int ch = 0, hz = 0; long long dropped = 0;
         while(s_St.gen == myGen)
         {
             if(avail < 16 * 1024 && !fileEof)
@@ -351,6 +351,12 @@ namespace
                 s_St.dur = info.bitrate_kbps > 0 ? (float)(fileLen - skip) * 8.0f / (info.bitrate_kbps * 1000.0f) : 0.0f;
             }
             if(info.channels != ch || info.hz != hz) continue;   // odd frame: skip
+            if(startSec > 0.0f)
+            {   // 5.02.06: resume - frames before startSec are decoded and dropped (a 5 min mp3 takes ~1 s)
+                dropped += n;
+                if(dropped < (long long)(startSec * hz)) continue;
+                startSec = 0.0f;
+            }
             block.insert(block.end(), pcm, pcm + n * ch);
             if((int)block.size() >= hz * ch)   // ~1 s per slot
             {
@@ -476,7 +482,7 @@ namespace
     }
 }
 
-bool Sound::StreamPlay(const char* path, float volume)
+bool Sound::StreamPlay(const char* path, float volume, float startSec)
 {
     s_StInfo[0] = 0;
     if(!path || !*path || !EnsureEngine()) { snprintf(s_StInfo, sizeof(s_StInfo), "no audio engine"); return false; }
@@ -496,7 +502,8 @@ bool Sound::StreamPlay(const char* path, float volume)
         for(int i = 0; i < ST_SLOTS; ++i) { s_St.slotState[i] = 0; s_St.slot[i].clear(); }
         s_St.head = 0; s_St.played = 0; s_St.eof = false; s_St.failed = false; s_St.active = true;
         s_St.ch = 0; s_St.hz = 0; s_St.dur = 0; s_St.vol = volume;
-        std::thread(StDecodeThread, std::string(path), g).detach();
+        s_St.startSec = startSec > 0.0f ? startSec : 0.0f;
+        std::thread(StDecodeThread, std::string(path), g, s_St.startSec).detach();
     }
     snprintf(s_StInfo, sizeof(s_StInfo), "file: %s - decoding", what);
     return true;
@@ -592,7 +599,7 @@ bool  Sound::StreamEnded() { { std::lock_guard<std::mutex> lk(s_UrlMx); if(s_Url
 float Sound::StreamPosition()
 {
     if(s_FdMode) { SLmillisecond ms = 0; if(s_Fd.play && (*s_Fd.play)->GetPosition(s_Fd.play, &ms) == SL_RESULT_SUCCESS) return ms / 1000.0f; return 0.0f; }
-    return s_St.hz > 0 ? (float)((double)s_St.played / s_St.hz) : 0.0f;
+    return s_St.hz > 0 ? (float)((double)s_St.played / s_St.hz) + s_St.startSec : 0.0f;
 }
 float Sound::StreamDuration()
 {

@@ -73,7 +73,11 @@ if not VL: sys.exit("ViceLoader.apk missing: put the CI build (gh run download <
 APKS = [(n, find_apk(n)) for n in ("ViceLoader.apk", "Moquil.apk", "MP-Voice.apk", "MP-Textdraw-Editor.apk")]
 APKS = [(n, a) for n, a in APKS if a]
 INST = open("tools/INSTALL_template.txt", encoding="utf-8").read().replace("{V}", V)
-def full_zip(path, with_vl=True, package=False, apks=True):
+# 5.02.06: the release zips carry the menu song (Host/Media/neon_mainmenu.mp3, 5:46) + its .ok, so the title menu
+# plays the whole track from the phone instead of streaming it from GitHub (that stream stopped part way); not in
+# assets/MP/MP.zip / the client zip (over the repo's file limit)
+MUSIC = "Host/Media/neon_mainmenu.mp3"
+def full_zip(path, with_vl=True, package=False, apks=True, music=False):
     with zf(path) as z:
         f = ("MP-%s-Package" if package else "MP-%s") % V
         for n, a in (APKS if apks else []):
@@ -81,14 +85,17 @@ def full_zip(path, with_vl=True, package=False, apks=True):
             z.write(a, f + "/apks/" + n)
         z.write("bin/libMP64.so", f + "/lib/arm64-v8a/libMP64.so"); z.write("bin/libMP32.so", f + "/lib/armeabi-v7a/libMP32.so")
         tree(z, "assets/MP", f + "/assets/MP", ASKIP)
+        if music and os.path.isfile(MUSIC):
+            z.write(MUSIC, f + "/assets/MP/neon_mainmenu.mp3")
+            z.writestr(f + "/assets/MP/neon_mainmenu.mp3.ok", "%d\n" % os.path.getsize(MUSIC))
         inst = INST
         if package:
             inst = inst.replace("  assets/MP/   ", "  " + ("MP_%s.zip" % V).ljust(33) + "the same release as one zip (lib + assets + apks + INSTALL.txt)\n  assets/MP/   ", 1)
             z.write("release/MP-%s-full.zip" % V, f + "/MP_%s.zip" % V)
         if not apks: inst += "\nThis zip has no apks/ folder: download ViceLoader.apk, Moquil.apk, MP-Voice.apk and\nMP-Textdraw-Editor.apk from the release page (https://github.com/ThirtyFoxMCx00E1/wagu/releases/latest).\n"
         z.writestr(f + "/INSTALL.txt", inst)
-full_zip("release/MP-%s-full.zip" % V)
-full_zip("release/MP-%s-Package.zip" % V, package=True)   # the full zip + everything unpacked next to it
+full_zip("release/MP-%s-full.zip" % V, music=True)
+full_zip("release/MP-%s-Package.zip" % V, package=True, music=True)   # the full zip + everything unpacked next to it
 open("release/INSTALL.txt", "w", encoding="utf-8").write(INST)
 # 4.13.20: assets/MP/MP.zip = the full zip, the direct download link of the Discord /changelog post.
 # 5.01.03: without ViceLoader.apk there (GitHub refuses files over 100 MB in the repo); the release zip has it

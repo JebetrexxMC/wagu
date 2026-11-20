@@ -3025,6 +3025,13 @@ bool RakPeer::HandleRPCPacket( const char *data, int length, PlayerID playerId, 
 		return false;
 	}
 	rpcIndex = rpcMap.GetIndexFromFunctionName(uniqueIdentifier);
+	// MP 5.02.06: ClientJoin (RPC 25) = the player logged on to the game (open.mp sets isLogon from its network
+	// component, which MP doesn't have). Before this every PC player of MP's crossplay host was kicked after 30 s.
+	if ( uniqueIdentifier == 25 )
+	{
+		RemoteSystemStruct *rs = GetRemoteSystemFromPlayerID( playerId, false, true );
+		if ( rs ) rs->isLogon = true;
+	}
 #endif
 
 #if !RAKNET_LEGACY
@@ -4599,7 +4606,10 @@ namespace RakNet
 				if ( remoteSystem->connectMode==RemoteSystemStruct::CONNECTED )
 				{
 					// Taken from SA-MP 0.3.7 changes
-					if (!remoteSystem->isLogon)
+					// MP 5.02.06: never on our own client connection: the PC server we joined never "logs on" to us, so the
+					// phone dropped every open.mp server 30 s after connecting ("Lost the connection to the PC server",
+					// usually while the login / register dialog was still open)
+					if (!remoteSystem->isLogon && !SAMPRakNet::IsClientSocket(connectionSocket))
 					{
 						// Taken from SA-MP 0.3.7 changes
 						RakNetTime diff = RakNet::GetTime() - remoteSystem->connectionTime;

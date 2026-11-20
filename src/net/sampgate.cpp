@@ -154,6 +154,7 @@ struct SampGate::Impl
     uint16_t rPort = 0;
     int phase = 0;                // 0 wait phone, 1 connecting, 2 accepted, 3 in game (class), 4 spawned, 9 ended
     uint64_t phaseAt = 0;
+    int tries = 0;                // 5.02.06: connect attempts (a busy server that drops the first one gets 2 more)
     int phoneSlot = -1;
     int myId = -1;
     struct Spawn { uint32_t skin = 0; float pos[3] = { 0, 0, 3 }; float rot = 0; uint32_t w[3] = { 0, 0, 0 }, ammo[3] = { 0, 0, 0 }; bool have = false; } spawn;
@@ -986,6 +987,22 @@ static void RemSendFoot(Impl& I, const SyncData& d)
     I.C->Send(&o, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 1);
 }
 
+// 5.02.06: "The PC server did not answer" came up for busy servers that just drop the first connection request (their
+// flood guard) - the client now tries 3 times (a new socket each time) before the red message
+static bool RemRetry(Impl& I, MPServer* srv, uint64_t now)
+{
+    if(I.tries >= 2) return false;
+    ++I.tries;
+    printf("[crossplay] no answer yet - connect try %d of 3\n", I.tries + 1);
+    char m[160]; snprintf(m, sizeof(m), "[open.mp] No answer yet, trying again (%d of 3)...", I.tries + 1);
+    srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m);
+    I.C->Disconnect(100);
+    I.C->SetPassword(I.rPass.c_str());
+    if(!I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5)) return false;
+    I.phaseAt = now;
+    return true;
+}
+
 static void RemTick(SampGate* g, Impl& I, MPServer* srv)
 {
     const uint64_t now = NowMs();
@@ -1010,6 +1027,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         return;
     }
     if(I.phase == 9) return;
+    if(I.phase == 1 && now - I.phaseAt > 12000 && RemRetry(I, srv, now)) return;
     if(I.phase == 1 && now - I.phaseAt > 15000) { RemEnd(I, srv, "The PC server did not answer (closed, wrong port or not SA-MP 0.3.7 / open.mp)."); return; }
 
     for(Packet* pk = I.C->Receive(); pk; I.C->DeallocatePacket(pk), pk = I.C->Receive())
@@ -1034,7 +1052,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                 I.phase = 2; I.phaseAt = now;
                 break;
             }
-            case ID_CONNECTION_ATTEMPT_FAILED: RemEnd(I, srv, "The PC server did not answer."); break;
+            case ID_CONNECTION_ATTEMPT_FAILED: if(!RemRetry(I, srv, now)) RemEnd(I, srv, "The PC server did not answer."); break;
             case ID_NO_FREE_INCOMING_CONNECTIONS: RemEnd(I, srv, "The PC server is full."); break;
             case ID_CONNECTION_BANNED: RemEnd(I, srv, "You are banned from this PC server."); break;
             case ID_INVALID_PASSWORD: RemEnd(I, srv, "Wrong server password."); break;
