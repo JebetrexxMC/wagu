@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MP 4.0.0-mp: LuaJIT is built from source (https://github.com/ThirtyFoxMCx00E1/LuaJIT, branch v2.1) for both
+# MP 4.0.0-mp: LuaJIT is built from source (https://github.com/JebetrexxMC/LuaJIT, branch v2.1) for both
 # Android ABIs instead of the old prebuilt lib/lua/bin. Output: lib/lua/bin/<abi>/static_release/libluajit-5.1.a and
 # the matching headers in lib/lua/. Usage: tools/build_luajit.sh <LuaJIT source dir>   (ANDROID_NDK_HOME set)
 set -euo pipefail

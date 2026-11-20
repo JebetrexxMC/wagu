@@ -372,7 +372,7 @@
 "summary": "Join camera after connected (no bars, no fades), ScreenGuard.",
 "items": [
 "Join camera: the black connection screen now stays until \"Connected successfully!\", then the camera tour starts. No cinema bars at the top and bottom and no dip to black / jump between shots any more: one continuous camera move (a smooth curve through the shots, high over the city between them). Default server: starts at Santa Maria pier and keeps flying behind the < Spawn > picker until you pick a place. Mega Vil Futuristic: glides over the Plaza, then eases down to the Lobby Hub without stopping.",
-"ScreenGuard (from research/ScreenGuard_source): screen recording, screenshots and casting of the game are black unless the phone has a valid `src_Access.txt` in the MP folder (`Android/data/com.rockstargames.gtasa/files/MP/`). 1000 keys exist; DM ThirtyFox on Discord to get one. Only SHA-256 hashes of the keys are in the source."
+"ScreenGuard (from research/ScreenGuard_source): screen recording, screenshots and casting of the game are black unless the phone has a valid `src_Access.txt` in the MP folder (`Android/data/com.rockstargames.gtasa/files/MP/`). 1000 keys exist; DM JebetrexxMC on Discord to get one. Only SHA-256 hashes of the keys are in the source."
 ]
 },
 {
@@ -540,7 +540,7 @@
 "v": "4.05.4",
 "summary": "new website address.",
 "items": [
-"The website moved to **[mpsamp-open.github.io](https://mpsamp-open.github.io)** (the new mpsamp.open GitHub organization). The old address thirtyfoxmcx00e1.github.io/wagu forwards there and stays online as a backup.",
+"The website moved to **[mpsamp-open.github.io](https://mpsamp-open.github.io)** (the new mpsamp.open GitHub organization). The old address jebetrexxmc.github.io/wagu forwards there and stays online as a backup.",
 "The game downloads regions.txt from the new site and falls back to the old one if it can't reach it. The \"update your MP\" message, the login bot status link, the Termux installer, vps-setup.sh and the HiveMQ docs use the new address too."
 ]
 },
@@ -617,7 +617,7 @@
 "Lan list moved to the top tabs; the layout pages stay in the left sidebar. Favourites tab.",
 "Profile dropdown at the top right: Settings, About, Switch account, Log out. Up to 3 Discord accounts can be saved (the login bot allows 3 accounts too).",
 "The virtual keyboard, the spawn picker and the join loading screen (\"CONNECTING TO SERVER\") use the same square CS:GO look. The floating menu is unchanged.",
-"Virtual keyboard: COPY and PASTE (Android clipboard) on the input line. In chat a GIF button opens a GIF page (categories + animated grid from github.com/ThirtyFoxMCx00E1/animated-gifs, downloaded on demand from the wagu gifs branch). A tapped GIF is sent as [gif:N] and shown animated on its own tall chat row, so chat text never overlaps it (older lines move up).",
+"Virtual keyboard: COPY and PASTE (Android clipboard) on the input line. In chat a GIF button opens a GIF page (categories + animated grid from github.com/JebetrexxMC/animated-gifs, downloaded on demand from the wagu gifs branch). A tapped GIF is sent as [gif:N] and shown animated on its own tall chat row, so chat text never overlaps it (older lines move up).",
 "Textdraw Editor and MP Voice apps restyled to match the server UI, and both play Global_click.mp3 on every tap.",
 "texdb research (gta3 .toc / .dat): the .toc header \"checksum\" is the .dat file size, followed by one u32 offset per gta3.txt entry (0xFFFFFFFF = missing). A .dat entry is u32 id/format, u16 width, u16 height (0x8000 = has mips), u32 size, then the data; entries whose first data word is 0 are uncompressed, so a database can be written without compression. The per-texture ID is a name hash (h = h*33 + ...), only partly solved; the compressed entries are not decoded yet."
 ]
@@ -746,7 +746,7 @@
 },
 {
 "v": "3.59",
-"summary": "**Project Day Z Legacy** gets the MTA DayZ systems (ported from [MTA DayZ / NullSystemWorks 0.9.9.5a](https://github.com/ThirtyFoxMCx00E1/mtadayz), credited in the cabin CREDITS) and the original MTA DayZ textures (inventory panel, item icons, status icons, GPS map, compass, spawn selection, journal), plus the features from the 11 new screenshots. Includes everything from 3.58 (first release that ships it).",
+"summary": "**Project Day Z Legacy** gets the MTA DayZ systems (ported from [MTA DayZ / NullSystemWorks 0.9.9.5a](https://github.com/JebetrexxMC/mtadayz), credited in the cabin CREDITS) and the original MTA DayZ textures (inventory panel, item icons, status icons, GPS map, compass, spawn selection, journal), plus the features from the 11 new screenshots. Includes everything from 3.58 (first release that ships it).",
 "items": [
 "New inventory like the real one: textured background with labels (PRIMARY / SECONDARY / GEAR / FOOD / MEDICINES / TOOL BELT), item icons, weight bar, ground + bag tabs.",
 "Loot glow + beams: aiming at a loot object straight on gives it a glowing outline, otherwise only a light beam; both only for you and never through walls (line of sight checked).",
@@ -910,8 +910,8 @@
 "v": "3.50",
 "summary": "**Server anti-cheat, the Textdraw Editor (in the game and as an app) and server Plugins.**",
 "items": [
-"**Anti-cheat** (the checks of [Nex-AC](https://github.com/ThirtyFoxMCx00E1/Nex-AC) 1.9.69, ported to the MP protocol): AirBreak, Teleport (also pickups from far away), Fly, Speed, Health / Armour, Weapon / ammo, Special actions (jetpack), Godmode, Invisible, Money, Tuning, Lag-comp spoof, Parkour, Quick turn, Rapid fire, Fake spawn, Fake kill, Pro aim, CJ run, Car shot, Car jack, Unfreeze, AFK ghost, Reconnect, High ping, Dialog, Sandbox, Invalid version, Seat / slot / callback flood, admin and moderator key brute force, Crashers, NOPs and DoS. Each check warns, then kicks for 4 min 29 s after too many warnings; admin, moderators and the host only get the warning. **Always on** on the default server, Mega Vil Futuristic Roleplay, Brief Case War and MW3 (the checks that the menu cheats would trip only run while the cheats are off there). **Custom servers**: MP Launcher > Add server > Gamemode, scroll down: **Anti-cheat** on / off and every check on its own. `mp_server --anticheat [hexmask]` / `--no-anticheat` for VPS / Termux servers.",
-"**Textdraw Editor in the game**: `/tde` (also `/textdraw`, `/tdeditor`) opens a full-screen editor on top of the game, after [samp-textdraw-editor](https://github.com/ThirtyFoxMCx00E1/samp-textdraw-editor): projects, settings, list, depot (deleted textdraws come back), new / copy / delete, drag position, text size and letter size, text, fonts 0-5 (sprite browser with 576 sprites, preview models), alignment, proportional, outline, shadow, colour / background / box colour (palette + HEX), box, selectable, global or player textdraws, undo / redo, auto-save every minute. `/tde save | new | open <name> | export [openmp] | close | help`. A project is ONE `.mptd` file in `files/MP/tde/projects/`; Pawn export (SA-MP or open.mp) in `files/MP/tde/export/`, import of `.mptd` or SA-MP editor `.pwn` / `.txt` (sscanf-style) from `files/MP/tde/import/`.",
+"**Anti-cheat** (the checks of [Nex-AC](https://github.com/JebetrexxMC/Nex-AC) 1.9.69, ported to the MP protocol): AirBreak, Teleport (also pickups from far away), Fly, Speed, Health / Armour, Weapon / ammo, Special actions (jetpack), Godmode, Invisible, Money, Tuning, Lag-comp spoof, Parkour, Quick turn, Rapid fire, Fake spawn, Fake kill, Pro aim, CJ run, Car shot, Car jack, Unfreeze, AFK ghost, Reconnect, High ping, Dialog, Sandbox, Invalid version, Seat / slot / callback flood, admin and moderator key brute force, Crashers, NOPs and DoS. Each check warns, then kicks for 4 min 29 s after too many warnings; admin, moderators and the host only get the warning. **Always on** on the default server, Mega Vil Futuristic Roleplay, Brief Case War and MW3 (the checks that the menu cheats would trip only run while the cheats are off there). **Custom servers**: MP Launcher > Add server > Gamemode, scroll down: **Anti-cheat** on / off and every check on its own. `mp_server --anticheat [hexmask]` / `--no-anticheat` for VPS / Termux servers.",
+"**Textdraw Editor in the game**: `/tde` (also `/textdraw`, `/tdeditor`) opens a full-screen editor on top of the game, after [samp-textdraw-editor](https://github.com/JebetrexxMC/samp-textdraw-editor): projects, settings, list, depot (deleted textdraws come back), new / copy / delete, drag position, text size and letter size, text, fonts 0-5 (sprite browser with 576 sprites, preview models), alignment, proportional, outline, shadow, colour / background / box colour (palette + HEX), box, selectable, global or player textdraws, undo / redo, auto-save every minute. `/tde save | new | open <name> | export [openmp] | close | help`. A project is ONE `.mptd` file in `files/MP/tde/projects/`; Pawn export (SA-MP or open.mp) in `files/MP/tde/export/`, import of `.mptd` or SA-MP editor `.pwn` / `.txt` (sscanf-style) from `files/MP/tde/import/`.",
 "**Plugins** (MP Launcher > Add server, under Rules): type **Textdraw** (the two others are not used yet) > **Import file** copies a `.mptd` into `files/MP/<server name>/`. When you host that server every player that joins sees those textdraws.",
 "**MP Textdraw Editor app** (optional, `textdraweditor/`, built by the GitHub workflow **MP Textdraw Editor**): landscape, GTA SA background, login / register / forgot / reset password pages (after bootstrap-5-login-page) with the same MP account as the game (Discord `/gen` code), the same tools as `/tde`, and it saves the same single `.mptd` file (a copy goes to `Download/MP Textdraws` for the Plugins import). Pawn export for SA-MP and open.mp, import of `.mptd` / `.pwn` / `.txt`, share.",
 "README live card restyled as a two-panel statistics chart (players and slots in use per server, 24 h peak vs now)."
@@ -1164,7 +1164,7 @@
 "Needs (hunger, thirst) and stamina circles on the RP HUD, new citizen helper box, greenzone badge, info panel like the screenshots.",
 "City events every 15 minutes: Double Pay Hour, Holo Cash Drop, Neon Night Festival, Mega Lottery Draw, Holo Tower Rush. Mega Lottery (tickets 1-60).",
 "170 RP commands (no cheats): /shop, /phone, /bank, /atm, /jobs, /work, /duty, /gps, /buyhouse, /sellhouse, /setspawn, /myhouse, /myveh, /garage, /pet, /me, /do, /ooc, /b, /s, /w, /pay, /give, /call, /sms, /911, /taxi, /e [emote], /cuff, /ticket, /arrest, /frisk, /repair, /heal, /lotto, /stats, /id, /time, /help ... (`/rphelp` lists them all).",
-"VPS kit: HiveMQ CE now comes from our fork [ThirtyFoxMCx00E1/hivemq-community-edition](https://github.com/ThirtyFoxMCx00E1/hivemq-community-edition) (its `MP build` release `mp-2026.6`, sha256 checked; the official release is the fallback). Java heap: 10 GB (`-Xms5g -Xmx10g`) on 14 GB+ machines, 8 GB on 10-14 GB. More heap = more queued messages and connections, not a lower ping.",
+"VPS kit: HiveMQ CE now comes from our fork [JebetrexxMC/hivemq-community-edition](https://github.com/JebetrexxMC/hivemq-community-edition) (its `MP build` release `mp-2026.6`, sha256 checked; the official release is the fallback). Java heap: 10 GB (`-Xms5g -Xmx10g`) on 14 GB+ machines, 8 GB on 10-14 GB. More heap = more queued messages and connections, not a lower ping.",
 "Broker bot: stays on Mega Vil 24/7 like on MW3 / BCW, never leaves. Max players on Mega Vil: 250 (the other servers stay at 100)."
 ]
 },
@@ -1291,7 +1291,7 @@
 "v": "3.21.7",
 "summary": "MP Railway - the Discord login bot online 24/7 on our own server.",
 "items": [
-"**MP Railway:** Railway.app stopped taking new accounts, so the login bot ([discordpy-bot](https://github.com/ThirtyFoxMCx00E1/discordpy-bot)) now runs on our own self-hosted Railway, part of the [HiveMQ kit](https://github.com/ThirtyFoxMCx00E1/wagu/tree/main/HiveMQ#mp-3217-mp-railway---the-discord-bot-247-on-our-own-server): build from git, restart on crash and on reboot, auto deploy of every push within 2 minutes. One command on the server: `sudo mp-railway setup`. Without the bot Discord didn't show `/gen` and nobody could log in.",
+"**MP Railway:** Railway.app stopped taking new accounts, so the login bot ([discordpy-bot](https://github.com/JebetrexxMC/discordpy-bot)) now runs on our own self-hosted Railway, part of the [HiveMQ kit](https://github.com/JebetrexxMC/wagu/tree/main/HiveMQ#mp-3217-mp-railway---the-discord-bot-247-on-our-own-server): build from git, restart on crash and on reboot, auto deploy of every push within 2 minutes. One command on the server: `sudo mp-railway setup`. Without the bot Discord didn't show `/gen` and nobody could log in.",
 "**Railway page:** new [Railway](https://mpsamp-open.github.io/railway.html) page next to Termux on the website: live bot status (signed by the bot, checked with the mod's public key), deployments, variables and the MP Bot terminal (types every command by itself).",
 "**Discord:** `/stats` and `/char` show an account card with your avatar and Refresh / Switch view buttons (only you see it). Each command shows once (no more double `/gen`).",
 "**Login screen:** if the broker answers but the bot doesn't, the game now says the login bot is offline (not your internet) and links the live status page."
@@ -1634,7 +1634,7 @@
 },
 {
 "v": "2.30",
-"summary": "MP Launcher watermark: \"powered by HiveMQ/ThirtyFoxMC\" on the right side of the title bar (left of the close button), green at 50% transparency. It hides itself on narrow screens rather than covering the launcher name.",
+"summary": "MP Launcher watermark: \"powered by HiveMQ/JebetrexxMC\" on the right side of the title bar (left of the close button), green at 50% transparency. It hides itself on narrow screens rather than covering the launcher name.",
 "items": []
 },
 {
@@ -1684,7 +1684,7 @@
 },
 {
 "v": "2.20",
-"summary": "Regional lobby servers. The mod downloads `regions.txt` from the website ([mpsamp-open.github.io](https://mpsamp-open.github.io/)), measures the ping to the Asia, Europe, NA and Oceania brokers in the background and joins the fastest one (MP menu shows \"Asia 38 ms\" etc. on the region buttons; \"Lobby: lowest ping region\" toggle). Hosting uses your server's region; joining a server from another region moves you to that region's broker and back afterwards. Server lists are shared between regions by the bridge, so everyone still sees every server. Until regions are filled in, the free public lobby is used exactly like 2.19. `broker.txt` now also accepts `[Asia]`/`[Europe]`/`[NA]`/`[Oceania]` blocks, `mqtt://`/`mqtts://` prefixes and `regions_url=` (`off` to disable). New website with live server list and region ping (`docs/`). Self-hosted HiveMQ regional broker kit: [wagu/HiveMQ](https://github.com/ThirtyFoxMCx00E1/wagu/tree/main/HiveMQ).",
+"summary": "Regional lobby servers. The mod downloads `regions.txt` from the website ([mpsamp-open.github.io](https://mpsamp-open.github.io/)), measures the ping to the Asia, Europe, NA and Oceania brokers in the background and joins the fastest one (MP menu shows \"Asia 38 ms\" etc. on the region buttons; \"Lobby: lowest ping region\" toggle). Hosting uses your server's region; joining a server from another region moves you to that region's broker and back afterwards. Server lists are shared between regions by the bridge, so everyone still sees every server. Until regions are filled in, the free public lobby is used exactly like 2.19. `broker.txt` now also accepts `[Asia]`/`[Europe]`/`[NA]`/`[Oceania]` blocks, `mqtt://`/`mqtts://` prefixes and `regions_url=` (`off` to disable). New website with live server list and region ping (`docs/`). Self-hosted HiveMQ regional broker kit: [wagu/HiveMQ](https://github.com/JebetrexxMC/wagu/tree/main/HiveMQ).",
 "items": []
 },
 {

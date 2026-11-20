@@ -32,7 +32,7 @@ while [ $# -gt 0 ]; do
   esac; shift
 done
 [ -n "$CMD" ] && [ -n "$REPO" ] || { sed -n '2,10p' "$0" 2>/dev/null || true; die "usage: git-helper.sh scan|clean OWNER/REPO [--push] [--as \"Name <email>\"]"; }
-case "$REPO" in */*) ;; *) die "REPO must be OWNER/REPO (e.g. ThirtyFoxMCx00E1/archify)";; esac
+case "$REPO" in */*) ;; *) die "REPO must be OWNER/REPO (e.g. JebetrexxMC/archify)";; esac
 
 need() {   # Termux: pkg, Debian/Ubuntu: apt
   command -v "$1" >/dev/null 2>&1 && return 0

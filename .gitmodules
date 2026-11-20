@@ -10,12 +10,12 @@
 	shallow = true
 [submodule "third_party/omp-dev/compiler"]
 	path = third_party/omp-dev/compiler
-	url = https://github.com/ThirtyFoxMCx00E1/compiler.git
+	url = https://github.com/JebetrexxMC/compiler.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/qawno"]
 	path = third_party/omp-dev/qawno
-	url = https://github.com/ThirtyFoxMCx00E1/qawno.git
+	url = https://github.com/JebetrexxMC/qawno.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/sampctl2"]
@@ -25,252 +25,252 @@
 	shallow = true
 [submodule "third_party/omp-dev/YSI-Includes"]
 	path = third_party/omp-dev/YSI-Includes
-	url = https://github.com/ThirtyFoxMCx00E1/YSI-Includes.git
+	url = https://github.com/JebetrexxMC/YSI-Includes.git
 	branch = 5.x
 	shallow = true
 [submodule "third_party/omp-dev/amx_assembly"]
 	path = third_party/omp-dev/amx_assembly
-	url = https://github.com/ThirtyFoxMCx00E1/amx_assembly.git
+	url = https://github.com/JebetrexxMC/amx_assembly.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/code-parse.inc"]
 	path = third_party/omp-dev/code-parse.inc
-	url = https://github.com/ThirtyFoxMCx00E1/code-parse.inc.git
+	url = https://github.com/JebetrexxMC/code-parse.inc.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/indirection"]
 	path = third_party/omp-dev/indirection
-	url = https://github.com/ThirtyFoxMCx00E1/indirection.git
+	url = https://github.com/JebetrexxMC/indirection.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/md-sort"]
 	path = third_party/omp-dev/md-sort
-	url = https://github.com/ThirtyFoxMCx00E1/md-sort.git
+	url = https://github.com/JebetrexxMC/md-sort.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/open.mp-gdk"]
 	path = third_party/omp-dev/open.mp-gdk
-	url = https://github.com/ThirtyFoxMCx00E1/open.mp-gdk.git
+	url = https://github.com/JebetrexxMC/open.mp-gdk.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/sdk/open.mp-capi"]
 	path = third_party/omp-dev/sdk/open.mp-capi
-	url = https://github.com/ThirtyFoxMCx00E1/open.mp-capi.git
+	url = https://github.com/JebetrexxMC/open.mp-capi.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/sdk/open.mp-sdk"]
 	path = third_party/omp-dev/sdk/open.mp-sdk
-	url = https://github.com/ThirtyFoxMCx00E1/open.mp-sdk.git
+	url = https://github.com/JebetrexxMC/open.mp-sdk.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/sdk/samp-plugin-boilerplate"]
 	path = third_party/omp-dev/sdk/samp-plugin-boilerplate
-	url = https://github.com/ThirtyFoxMCx00E1/samp-plugin-boilerplate.git
+	url = https://github.com/JebetrexxMC/samp-plugin-boilerplate.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/sdk/glm"]
 	path = third_party/omp-dev/sdk/glm
-	url = https://github.com/ThirtyFoxMCx00E1/glm.git
+	url = https://github.com/JebetrexxMC/glm.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/editors/pawn-sublime-language"]
 	path = third_party/omp-dev/editors/pawn-sublime-language
-	url = https://github.com/ThirtyFoxMCx00E1/pawn-sublime-language.git
+	url = https://github.com/JebetrexxMC/pawn-sublime-language.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/sdk/samp-plugin-sdk"]
 	path = third_party/omp-dev/sdk/samp-plugin-sdk
-	url = https://github.com/ThirtyFoxMCx00E1/samp-plugin-sdk.git
+	url = https://github.com/JebetrexxMC/samp-plugin-sdk.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/sdk/samp-ptl"]
 	path = third_party/omp-dev/sdk/samp-ptl
-	url = https://github.com/ThirtyFoxMCx00E1/samp-ptl.git
+	url = https://github.com/JebetrexxMC/samp-ptl.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/sdk/samp-plugin-runner"]
 	path = third_party/omp-dev/sdk/samp-plugin-runner
-	url = https://github.com/ThirtyFoxMCx00E1/samp-plugin-runner.git
+	url = https://github.com/JebetrexxMC/samp-plugin-runner.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/sdk/sampgdk-backup"]
 	path = third_party/omp-dev/sdk/sampgdk-backup
-	url = https://github.com/ThirtyFoxMCx00E1/sampgdk-backup.git
+	url = https://github.com/JebetrexxMC/sampgdk-backup.git
 	branch = main
 	shallow = true
 [submodule "third_party/omp-dev/stdlib/pawn-stdlib"]
 	path = third_party/omp-dev/stdlib/pawn-stdlib
-	url = https://github.com/ThirtyFoxMCx00E1/pawn-stdlib.git
+	url = https://github.com/JebetrexxMC/pawn-stdlib.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/sdk/robin-hood-hashing"]
 	path = third_party/omp-dev/sdk/robin-hood-hashing
-	url = https://github.com/ThirtyFoxMCx00E1/robin-hood-hashing.git
+	url = https://github.com/JebetrexxMC/robin-hood-hashing.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/stdlib/samp-stdlib"]
 	path = third_party/omp-dev/stdlib/samp-stdlib
-	url = https://github.com/ThirtyFoxMCx00E1/samp-stdlib.git
+	url = https://github.com/JebetrexxMC/samp-stdlib.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/editors/vscode-pawn"]
 	path = third_party/omp-dev/editors/vscode-pawn
-	url = https://github.com/ThirtyFoxMCx00E1/vscode-pawn.git
+	url = https://github.com/JebetrexxMC/vscode-pawn.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/pawn-requests"]
 	path = third_party/omp-dev/includes/pawn-requests
-	url = https://github.com/ThirtyFoxMCx00E1/pawn-requests.git
+	url = https://github.com/JebetrexxMC/pawn-requests.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/PawnPlus"]
 	path = third_party/omp-dev/includes/PawnPlus
-	url = https://github.com/ThirtyFoxMCx00E1/PawnPlus.git
+	url = https://github.com/JebetrexxMC/PawnPlus.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/pawn-test-scripts"]
 	path = third_party/omp-dev/includes/pawn-test-scripts
-	url = https://github.com/ThirtyFoxMCx00E1/pawn-test-scripts.git
+	url = https://github.com/JebetrexxMC/pawn-test-scripts.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/sa-mp-fixes"]
 	path = third_party/omp-dev/includes/sa-mp-fixes
-	url = https://github.com/ThirtyFoxMCx00E1/sa-mp-fixes.git
+	url = https://github.com/JebetrexxMC/sa-mp-fixes.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/samp-geoip"]
 	path = third_party/omp-dev/includes/samp-geoip
-	url = https://github.com/ThirtyFoxMCx00E1/samp-geoip.git
+	url = https://github.com/JebetrexxMC/samp-geoip.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/foreach"]
 	path = third_party/omp-dev/includes/foreach
-	url = https://github.com/ThirtyFoxMCx00E1/foreach.git
+	url = https://github.com/JebetrexxMC/foreach.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/progress2"]
 	path = third_party/omp-dev/includes/progress2
-	url = https://github.com/ThirtyFoxMCx00E1/progress2.git
+	url = https://github.com/JebetrexxMC/progress2.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/sqlitei"]
 	path = third_party/omp-dev/includes/sqlitei
-	url = https://github.com/ThirtyFoxMCx00E1/sqlitei.git
+	url = https://github.com/JebetrexxMC/sqlitei.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/samp-weapon-config"]
 	path = third_party/omp-dev/includes/samp-weapon-config
-	url = https://github.com/ThirtyFoxMCx00E1/samp-weapon-config.git
+	url = https://github.com/JebetrexxMC/samp-weapon-config.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/GameText-Plus"]
 	path = third_party/omp-dev/includes/GameText-Plus
-	url = https://github.com/ThirtyFoxMCx00E1/GameText-Plus.git
+	url = https://github.com/JebetrexxMC/GameText-Plus.git
 	branch = main
 	shallow = true
 [submodule "third_party/omp-dev/includes/samp-weapon-data"]
 	path = third_party/omp-dev/includes/samp-weapon-data
-	url = https://github.com/ThirtyFoxMCx00E1/samp-weapon-data.git
+	url = https://github.com/JebetrexxMC/samp-weapon-data.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/sa-mp-extended-vehicle-information"]
 	path = third_party/omp-dev/includes/sa-mp-extended-vehicle-information
-	url = https://github.com/ThirtyFoxMCx00E1/sa-mp-extended-vehicle-information.git
+	url = https://github.com/JebetrexxMC/sa-mp-extended-vehicle-information.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/samp-server-weapons"]
 	path = third_party/omp-dev/includes/samp-server-weapons
-	url = https://github.com/ThirtyFoxMCx00E1/samp-server-weapons.git
+	url = https://github.com/JebetrexxMC/samp-server-weapons.git
 	branch = main
 	shallow = true
 [submodule "third_party/omp-dev/includes/samp-aviation"]
 	path = third_party/omp-dev/includes/samp-aviation
-	url = https://github.com/ThirtyFoxMCx00E1/samp-aviation.git
+	url = https://github.com/JebetrexxMC/samp-aviation.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/actor_robbery"]
 	path = third_party/omp-dev/includes/actor_robbery
-	url = https://github.com/ThirtyFoxMCx00E1/actor_robbery.git
+	url = https://github.com/JebetrexxMC/actor_robbery.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/MV_Youtube"]
 	path = third_party/omp-dev/includes/MV_Youtube
-	url = https://github.com/ThirtyFoxMCx00E1/MV_Youtube.git
+	url = https://github.com/JebetrexxMC/MV_Youtube.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/MySQL-Prepared-Statements"]
 	path = third_party/omp-dev/includes/MySQL-Prepared-Statements
-	url = https://github.com/ThirtyFoxMCx00E1/MySQL-Prepared-Statements.git
+	url = https://github.com/JebetrexxMC/MySQL-Prepared-Statements.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/mdialog"]
 	path = third_party/omp-dev/includes/mdialog
-	url = https://github.com/ThirtyFoxMCx00E1/mdialog.git
+	url = https://github.com/JebetrexxMC/mdialog.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/samp-include-rscan"]
 	path = third_party/omp-dev/includes/samp-include-rscan
-	url = https://github.com/ThirtyFoxMCx00E1/samp-include-rscan.git
+	url = https://github.com/JebetrexxMC/samp-include-rscan.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/easyDialog"]
 	path = third_party/omp-dev/includes/easyDialog
-	url = https://github.com/ThirtyFoxMCx00E1/easyDialog.git
+	url = https://github.com/JebetrexxMC/easyDialog.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/samp-logger"]
 	path = third_party/omp-dev/includes/samp-logger
-	url = https://github.com/ThirtyFoxMCx00E1/samp-logger.git
+	url = https://github.com/JebetrexxMC/samp-logger.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/Model-Sizes-Plus"]
 	path = third_party/omp-dev/includes/Model-Sizes-Plus
-	url = https://github.com/ThirtyFoxMCx00E1/Model-Sizes-Plus.git
+	url = https://github.com/JebetrexxMC/Model-Sizes-Plus.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/samp-async-dialogs"]
 	path = third_party/omp-dev/includes/samp-async-dialogs
-	url = https://github.com/ThirtyFoxMCx00E1/samp-async-dialogs.git
+	url = https://github.com/JebetrexxMC/samp-async-dialogs.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/physics.inc"]
 	path = third_party/omp-dev/includes/physics.inc
-	url = https://github.com/ThirtyFoxMCx00E1/physics.inc.git
+	url = https://github.com/JebetrexxMC/physics.inc.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/strlib"]
 	path = third_party/omp-dev/includes/strlib
-	url = https://github.com/ThirtyFoxMCx00E1/strlib.git
+	url = https://github.com/JebetrexxMC/strlib.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/vending"]
 	path = third_party/omp-dev/includes/vending
-	url = https://github.com/ThirtyFoxMCx00E1/vending.git
+	url = https://github.com/JebetrexxMC/vending.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/archive"]
 	path = third_party/omp-dev/includes/archive
-	url = https://github.com/ThirtyFoxMCx00E1/archive.git
+	url = https://github.com/JebetrexxMC/archive.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/New-SA-MP-callbacks"]
 	path = third_party/omp-dev/includes/New-SA-MP-callbacks
-	url = https://github.com/ThirtyFoxMCx00E1/New-SA-MP-callbacks.git
+	url = https://github.com/JebetrexxMC/New-SA-MP-callbacks.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/rotations.inc"]
 	path = third_party/omp-dev/includes/rotations.inc
-	url = https://github.com/ThirtyFoxMCx00E1/rotations.inc.git
+	url = https://github.com/JebetrexxMC/rotations.inc.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/samp-command-guess"]
 	path = third_party/omp-dev/includes/samp-command-guess
-	url = https://github.com/ThirtyFoxMCx00E1/samp-command-guess.git
+	url = https://github.com/JebetrexxMC/samp-command-guess.git
 	branch = 2.x
 	shallow = true
 [submodule "third_party/omp-dev/includes/mathutil"]
 	path = third_party/omp-dev/includes/mathutil
-	url = https://github.com/ThirtyFoxMCx00E1/mathutil.git
+	url = https://github.com/JebetrexxMC/mathutil.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/eSelection"]
@@ -280,192 +280,192 @@
 	shallow = true
 [submodule "third_party/omp-dev/includes/samp-distance"]
 	path = third_party/omp-dev/includes/samp-distance
-	url = https://github.com/ThirtyFoxMCx00E1/samp-distance.git
+	url = https://github.com/JebetrexxMC/samp-distance.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/Alternative-Dialogs"]
 	path = third_party/omp-dev/includes/Alternative-Dialogs
-	url = https://github.com/ThirtyFoxMCx00E1/Alternative-Dialogs.git
+	url = https://github.com/JebetrexxMC/Alternative-Dialogs.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/mSelection"]
 	path = third_party/omp-dev/includes/mSelection
-	url = https://github.com/ThirtyFoxMCx00E1/mSelection.git
+	url = https://github.com/JebetrexxMC/mSelection.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/SAMP-RGB-Textdraw"]
 	path = third_party/omp-dev/includes/SAMP-RGB-Textdraw
-	url = https://github.com/ThirtyFoxMCx00E1/SAMP-RGB-Textdraw.git
+	url = https://github.com/JebetrexxMC/SAMP-RGB-Textdraw.git
 	branch = main
 	shallow = true
 [submodule "third_party/omp-dev/includes/I-ZCMD"]
 	path = third_party/omp-dev/includes/I-ZCMD
-	url = https://github.com/ThirtyFoxMCx00E1/I-ZCMD.git
+	url = https://github.com/JebetrexxMC/I-ZCMD.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/includes/IsPlayerUsingAndroid"]
 	path = third_party/omp-dev/includes/IsPlayerUsingAndroid
-	url = https://github.com/ThirtyFoxMCx00E1/IsPlayerUsingAndroid.git
+	url = https://github.com/JebetrexxMC/IsPlayerUsingAndroid.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/Pawn.CMD"]
 	path = third_party/omp-dev/plugins/Pawn.CMD
-	url = https://github.com/ThirtyFoxMCx00E1/Pawn.CMD.git
+	url = https://github.com/JebetrexxMC/Pawn.CMD.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-plugin-crashdetect"]
 	path = third_party/omp-dev/plugins/samp-plugin-crashdetect
-	url = https://github.com/ThirtyFoxMCx00E1/samp-plugin-crashdetect.git
+	url = https://github.com/JebetrexxMC/samp-plugin-crashdetect.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-plugin-jit-backup"]
 	path = third_party/omp-dev/plugins/samp-plugin-jit-backup
-	url = https://github.com/ThirtyFoxMCx00E1/samp-plugin-jit-backup.git
+	url = https://github.com/JebetrexxMC/samp-plugin-jit-backup.git
 	branch = main
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-plugin-profiler-backup"]
 	path = third_party/omp-dev/plugins/samp-plugin-profiler-backup
-	url = https://github.com/ThirtyFoxMCx00E1/samp-plugin-profiler-backup.git
+	url = https://github.com/JebetrexxMC/samp-plugin-profiler-backup.git
 	branch = main
 	shallow = true
 [submodule "third_party/omp-dev/plugins/FCNPC"]
 	path = third_party/omp-dev/plugins/FCNPC
-	url = https://github.com/ThirtyFoxMCx00E1/FCNPC.git
+	url = https://github.com/JebetrexxMC/FCNPC.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/SA-MP-MySQL"]
 	path = third_party/omp-dev/plugins/SA-MP-MySQL
-	url = https://github.com/ThirtyFoxMCx00E1/SA-MP-MySQL.git
+	url = https://github.com/JebetrexxMC/SA-MP-MySQL.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/SA-MP-FileManager"]
 	path = third_party/omp-dev/plugins/SA-MP-FileManager
-	url = https://github.com/ThirtyFoxMCx00E1/SA-MP-FileManager.git
+	url = https://github.com/JebetrexxMC/SA-MP-FileManager.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-precise-timers"]
 	path = third_party/omp-dev/plugins/samp-precise-timers
-	url = https://github.com/ThirtyFoxMCx00E1/samp-precise-timers.git
+	url = https://github.com/JebetrexxMC/samp-precise-timers.git
 	branch = main
 	shallow = true
 [submodule "third_party/omp-dev/plugins/Pawn.RakNet"]
 	path = third_party/omp-dev/plugins/Pawn.RakNet
-	url = https://github.com/ThirtyFoxMCx00E1/Pawn.RakNet.git
+	url = https://github.com/JebetrexxMC/Pawn.RakNet.git
 	branch = omp
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-streamer-plugin"]
 	path = third_party/omp-dev/plugins/samp-streamer-plugin
-	url = https://github.com/ThirtyFoxMCx00E1/samp-streamer-plugin.git
+	url = https://github.com/JebetrexxMC/samp-streamer-plugin.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/pawn-memory"]
 	path = third_party/omp-dev/plugins/pawn-memory
-	url = https://github.com/ThirtyFoxMCx00E1/pawn-memory.git
+	url = https://github.com/JebetrexxMC/pawn-memory.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/pawn-scraper"]
 	path = third_party/omp-dev/plugins/pawn-scraper
-	url = https://github.com/ThirtyFoxMCx00E1/pawn-scraper.git
+	url = https://github.com/JebetrexxMC/pawn-scraper.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/SKY"]
 	path = third_party/omp-dev/plugins/SKY
-	url = https://github.com/ThirtyFoxMCx00E1/SKY.git
+	url = https://github.com/JebetrexxMC/SKY.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-plugin-totp"]
 	path = third_party/omp-dev/plugins/samp-plugin-totp
-	url = https://github.com/ThirtyFoxMCx00E1/samp-plugin-totp.git
+	url = https://github.com/JebetrexxMC/samp-plugin-totp.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-dns-plugin"]
 	path = third_party/omp-dev/plugins/samp-dns-plugin
-	url = https://github.com/ThirtyFoxMCx00E1/samp-dns-plugin.git
+	url = https://github.com/JebetrexxMC/samp-dns-plugin.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-custom-query-flood-check"]
 	path = third_party/omp-dev/plugins/samp-custom-query-flood-check
-	url = https://github.com/ThirtyFoxMCx00E1/samp-custom-query-flood-check.git
+	url = https://github.com/JebetrexxMC/samp-custom-query-flood-check.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/ColAndreas"]
 	path = third_party/omp-dev/plugins/ColAndreas
-	url = https://github.com/ThirtyFoxMCx00E1/ColAndreas.git
+	url = https://github.com/JebetrexxMC/ColAndreas.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/YSF"]
 	path = third_party/omp-dev/plugins/YSF
-	url = https://github.com/ThirtyFoxMCx00E1/YSF.git
+	url = https://github.com/JebetrexxMC/YSF.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/Pawn.Regex"]
 	path = third_party/omp-dev/plugins/Pawn.Regex
-	url = https://github.com/ThirtyFoxMCx00E1/Pawn.Regex.git
+	url = https://github.com/JebetrexxMC/Pawn.Regex.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/NativeFallback"]
 	path = third_party/omp-dev/plugins/NativeFallback
-	url = https://github.com/ThirtyFoxMCx00E1/NativeFallback.git
+	url = https://github.com/JebetrexxMC/NativeFallback.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-tsconnector"]
 	path = third_party/omp-dev/plugins/samp-tsconnector
-	url = https://github.com/ThirtyFoxMCx00E1/samp-tsconnector.git
+	url = https://github.com/JebetrexxMC/samp-tsconnector.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/sampml"]
 	path = third_party/omp-dev/plugins/sampml
-	url = https://github.com/ThirtyFoxMCx00E1/sampml.git
+	url = https://github.com/JebetrexxMC/sampml.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-plugin-mapandreas"]
 	path = third_party/omp-dev/plugins/samp-plugin-mapandreas
-	url = https://github.com/ThirtyFoxMCx00E1/samp-plugin-mapandreas.git
+	url = https://github.com/JebetrexxMC/samp-plugin-mapandreas.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-irc-plugin"]
 	path = third_party/omp-dev/plugins/samp-irc-plugin
-	url = https://github.com/ThirtyFoxMCx00E1/samp-irc-plugin.git
+	url = https://github.com/JebetrexxMC/samp-irc-plugin.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-chatbot"]
 	path = third_party/omp-dev/plugins/samp-chatbot
-	url = https://github.com/ThirtyFoxMCx00E1/samp-chatbot.git
+	url = https://github.com/JebetrexxMC/samp-chatbot.git
 	branch = main
 	shallow = true
 [submodule "third_party/omp-dev/plugins/SAMPSON"]
 	path = third_party/omp-dev/plugins/SAMPSON
-	url = https://github.com/ThirtyFoxMCx00E1/SAMPSON.git
+	url = https://github.com/JebetrexxMC/SAMPSON.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-discord-connector"]
 	path = third_party/omp-dev/plugins/samp-discord-connector
-	url = https://github.com/ThirtyFoxMCx00E1/samp-discord-connector.git
+	url = https://github.com/JebetrexxMC/samp-discord-connector.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-bscrashfix"]
 	path = third_party/omp-dev/plugins/samp-bscrashfix
-	url = https://github.com/ThirtyFoxMCx00E1/samp-bscrashfix.git
+	url = https://github.com/JebetrexxMC/samp-bscrashfix.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/pawn-json"]
 	path = third_party/omp-dev/plugins/pawn-json
-	url = https://github.com/ThirtyFoxMCx00E1/pawn-json.git
+	url = https://github.com/JebetrexxMC/pawn-json.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/pawn-chrono"]
 	path = third_party/omp-dev/plugins/pawn-chrono
-	url = https://github.com/ThirtyFoxMCx00E1/pawn-chrono.git
+	url = https://github.com/JebetrexxMC/pawn-chrono.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/keylistener"]
 	path = third_party/omp-dev/plugins/keylistener
-	url = https://github.com/ThirtyFoxMCx00E1/keylistener.git
+	url = https://github.com/JebetrexxMC/keylistener.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/tgconnector"]
 	path = third_party/omp-dev/plugins/tgconnector
-	url = https://github.com/ThirtyFoxMCx00E1/tgconnector.git
+	url = https://github.com/JebetrexxMC/tgconnector.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/sampvoice"]
@@ -475,17 +475,17 @@
 	shallow = true
 [submodule "third_party/omp-dev/plugins/rustext"]
 	path = third_party/omp-dev/plugins/rustext
-	url = https://github.com/ThirtyFoxMCx00E1/rustext.git
+	url = https://github.com/JebetrexxMC/rustext.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/samp-cef"]
 	path = third_party/omp-dev/plugins/samp-cef
-	url = https://github.com/ThirtyFoxMCx00E1/samp-cef.git
+	url = https://github.com/JebetrexxMC/samp-cef.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/SAMP_AC_v2"]
 	path = third_party/omp-dev/plugins/SAMP_AC_v2
-	url = https://github.com/ThirtyFoxMCx00E1/SAMP_AC_v2.git
+	url = https://github.com/JebetrexxMC/SAMP_AC_v2.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/crypto/bcrypt-samp2"]
@@ -495,107 +495,107 @@
 	shallow = true
 [submodule "third_party/omp-dev/langs/NET-plugin"]
 	path = third_party/omp-dev/langs/NET-plugin
-	url = https://github.com/ThirtyFoxMCx00E1/.NET-plugin.git
+	url = https://github.com/JebetrexxMC/.NET-plugin.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/Advanced-SA-NickName"]
 	path = third_party/omp-dev/plugins/Advanced-SA-NickName
-	url = https://github.com/ThirtyFoxMCx00E1/Advanced-SA-NickName.git
+	url = https://github.com/JebetrexxMC/Advanced-SA-NickName.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/crypto/samp-crypto"]
 	path = third_party/omp-dev/crypto/samp-crypto
-	url = https://github.com/ThirtyFoxMCx00E1/samp-crypto.git
+	url = https://github.com/JebetrexxMC/samp-crypto.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/langs/sampgo"]
 	path = third_party/omp-dev/langs/sampgo
-	url = https://github.com/ThirtyFoxMCx00E1/sampgo.git
+	url = https://github.com/JebetrexxMC/sampgo.git
 	branch = experimental
 	shallow = true
 [submodule "third_party/omp-dev/langs/ompgo"]
 	path = third_party/omp-dev/langs/ompgo
-	url = https://github.com/ThirtyFoxMCx00E1/ompgo.git
+	url = https://github.com/JebetrexxMC/ompgo.git
 	branch = main
 	shallow = true
 [submodule "third_party/omp-dev/plugins/pawn-redis"]
 	path = third_party/omp-dev/plugins/pawn-redis
-	url = https://github.com/ThirtyFoxMCx00E1/pawn-redis.git
+	url = https://github.com/JebetrexxMC/pawn-redis.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/SA-MP-Plus"]
 	path = third_party/omp-dev/plugins/SA-MP-Plus
-	url = https://github.com/ThirtyFoxMCx00E1/SA-MP-Plus.git
+	url = https://github.com/JebetrexxMC/SA-MP-Plus.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/langs/SampSharp"]
 	path = third_party/omp-dev/langs/SampSharp
-	url = https://github.com/ThirtyFoxMCx00E1/SampSharp.git
+	url = https://github.com/JebetrexxMC/SampSharp.git
 	branch = main
 	shallow = true
 [submodule "third_party/omp-dev/langs/ShoebillPlugin"]
 	path = third_party/omp-dev/langs/ShoebillPlugin
-	url = https://github.com/ThirtyFoxMCx00E1/ShoebillPlugin.git
+	url = https://github.com/JebetrexxMC/ShoebillPlugin.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/chandling"]
 	path = third_party/omp-dev/plugins/chandling
-	url = https://github.com/ThirtyFoxMCx00E1/chandling.git
+	url = https://github.com/JebetrexxMC/chandling.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/langs/samp-node"]
 	path = third_party/omp-dev/langs/samp-node
-	url = https://github.com/ThirtyFoxMCx00E1/samp-node.git
+	url = https://github.com/JebetrexxMC/samp-node.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/crypto/samp-bcrypt"]
 	path = third_party/omp-dev/crypto/samp-bcrypt
-	url = https://github.com/ThirtyFoxMCx00E1/samp-bcrypt.git
+	url = https://github.com/JebetrexxMC/samp-bcrypt.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/langs/kamp"]
 	path = third_party/omp-dev/langs/kamp
-	url = https://github.com/ThirtyFoxMCx00E1/kamp.git
+	url = https://github.com/JebetrexxMC/kamp.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/langs/SAMPHP"]
 	path = third_party/omp-dev/langs/SAMPHP
-	url = https://github.com/ThirtyFoxMCx00E1/SAMPHP.git
+	url = https://github.com/JebetrexxMC/SAMPHP.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/gamemodes/omp-base-script"]
 	path = third_party/omp-dev/gamemodes/omp-base-script
-	url = https://github.com/ThirtyFoxMCx00E1/omp-base-script.git
+	url = https://github.com/JebetrexxMC/omp-base-script.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/gamemodes/ScavengeSurvive"]
 	path = third_party/omp-dev/gamemodes/ScavengeSurvive
-	url = https://github.com/ThirtyFoxMCx00E1/ScavengeSurvive.git
+	url = https://github.com/JebetrexxMC/ScavengeSurvive.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/langs/YALP"]
 	path = third_party/omp-dev/langs/YALP
-	url = https://github.com/ThirtyFoxMCx00E1/YALP.git
+	url = https://github.com/JebetrexxMC/YALP.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/langs/PySAMP"]
 	path = third_party/omp-dev/langs/PySAMP
-	url = https://github.com/ThirtyFoxMCx00E1/PySAMP.git
+	url = https://github.com/JebetrexxMC/PySAMP.git
 	branch = main
 	shallow = true
 [submodule "third_party/omp-dev/tools/TextDraw-Editor"]
 	path = third_party/omp-dev/tools/TextDraw-Editor
-	url = https://github.com/ThirtyFoxMCx00E1/TextDraw-Editor.git
+	url = https://github.com/JebetrexxMC/TextDraw-Editor.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/gamemodes/SC-RP"]
 	path = third_party/omp-dev/gamemodes/SC-RP
-	url = https://github.com/ThirtyFoxMCx00E1/SC-RP.git
+	url = https://github.com/JebetrexxMC/SC-RP.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/tools/Ultimate-Creator"]
 	path = third_party/omp-dev/tools/Ultimate-Creator
-	url = https://github.com/ThirtyFoxMCx00E1/Ultimate-Creator.git
+	url = https://github.com/JebetrexxMC/Ultimate-Creator.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/gamemodes/gta-open"]
@@ -605,27 +605,27 @@
 	shallow = true
 [submodule "third_party/omp-dev/gamemodes/MapFix"]
 	path = third_party/omp-dev/gamemodes/MapFix
-	url = https://github.com/ThirtyFoxMCx00E1/MapFix.git
+	url = https://github.com/JebetrexxMC/MapFix.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/tools/Texture-Studio"]
 	path = third_party/omp-dev/tools/Texture-Studio
-	url = https://github.com/ThirtyFoxMCx00E1/Texture-Studio.git
+	url = https://github.com/JebetrexxMC/Texture-Studio.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/gamemodes/SA-MP-Development"]
 	path = third_party/omp-dev/gamemodes/SA-MP-Development
-	url = https://github.com/ThirtyFoxMCx00E1/SA-MP-Development.git
+	url = https://github.com/JebetrexxMC/SA-MP-Development.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/tools/samp-animbrowse"]
 	path = third_party/omp-dev/tools/samp-animbrowse
-	url = https://github.com/ThirtyFoxMCx00E1/samp-animbrowse.git
+	url = https://github.com/JebetrexxMC/samp-animbrowse.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/tools/Map-Editor-V3"]
 	path = third_party/omp-dev/tools/Map-Editor-V3
-	url = https://github.com/ThirtyFoxMCx00E1/Map-Editor-V3.git
+	url = https://github.com/JebetrexxMC/Map-Editor-V3.git
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/plugins/pathfinder"]
@@ -635,17 +635,17 @@
 	shallow = true
 [submodule "third_party/omp-dev/tools/launcher"]
 	path = third_party/omp-dev/tools/launcher
-	url = https://github.com/ThirtyFoxMCx00E1/launcher
+	url = https://github.com/JebetrexxMC/launcher
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/tools/web"]
 	path = third_party/omp-dev/tools/web
-	url = https://github.com/ThirtyFoxMCx00E1/web
+	url = https://github.com/JebetrexxMC/web
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/sdk/cpp-httplib"]
 	path = third_party/omp-dev/sdk/cpp-httplib
-	url = https://github.com/ThirtyFoxMCx00E1/cpp-httplib
+	url = https://github.com/JebetrexxMC/cpp-httplib
 	branch = master
 	shallow = true
 [submodule "third_party/omp-dev/omp/open.mp"]

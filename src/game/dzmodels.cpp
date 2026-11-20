@@ -1,6 +1,6 @@
 // 3.61: Project Day Z Legacy model pack (see dzmodels.h).
 //
-// Hosting: Host/DayZ/models of github.com/ThirtyFoxMCx00E1/wagu (tools/make_dz_models.py copies the
+// Hosting: Host/DayZ/models of github.com/JebetrexxMC/wagu (tools/make_dz_models.py copies the
 // whole MTA DayZ model folder there and writes manifest.txt). The files are the original PC dff / txd.
 //
 // Textures: GTA SA Android can't read PC (Direct3D) TXDs, so they are never given to the game as
@@ -53,7 +53,7 @@ namespace
 {
 const char* kBaseUrls[] = {
     "https://mpsamp-open.github.io/Host/DayZ/models/",
-    "https://raw.githubusercontent.com/ThirtyFoxMCx00E1/mtadayz/master/DayZ/models/",   // files only
+    "https://raw.githubusercontent.com/JebetrexxMC/mtadayz/master/DayZ/models/",   // files only
 };
 const int kTxdBase = 20000;
 

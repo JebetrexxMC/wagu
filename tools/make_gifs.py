@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""4.04: chat GIFs. Turns every animated GIF of github.com/ThirtyFoxMCx00E1/animated-gifs into a small
+"""4.04: chat GIFs. Turns every animated GIF of github.com/JebetrexxMC/animated-gifs into a small
 sprite sheet the game can show in the chat (JPEG, up to 12 frames of max 120x90 in 4 columns = one 512x512 texture) plus
 index.txt:  id|category|name|frames|cols|frameW|frameH|delayMs
 Output: <out>/g/<id>.jpg + <out>/index.txt (pushed to the wagu "gifs" branch; the game downloads one
@@ -9,7 +9,7 @@ One GIF at a time is downloaded, converted and dropped (the repo is ~5.8 GB).
 import io, os, sys, urllib.parse, urllib.request, concurrent.futures as cf
 from PIL import Image, ImageSequence
 
-RAW = "https://raw.githubusercontent.com/ThirtyFoxMCx00E1/animated-gifs/master/"
+RAW = "https://raw.githubusercontent.com/JebetrexxMC/animated-gifs/master/"
 MAXF, COLS, FW, FH = 12, 4, 120, 90
 
 def convert(data):

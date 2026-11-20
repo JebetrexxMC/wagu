@@ -44,8 +44,8 @@ these and more (XDP, conntrack bypass, coalescing off), so only use it on a non-
 `get-modules.sh` downloads NetworkEnhancer and wifi-bonding-nolog from their authors (they can't be shipped
 in this zip), then flash them in Magisk / KernelSU / APatch and reboot.
 
-Sources: sockperf github.com/ThirtyFoxMCx00E1/sockperf, netperf github.com/ThirtyFoxMCx00E1/netperf,
+Sources: sockperf github.com/JebetrexxMC/sockperf, netperf github.com/JebetrexxMC/netperf,
 RIPDPI github.com/po4yka/RIPDPI, net-merge github.com/net-merge/net-merge + github.com/net-merge/android,
 NetworkOptimizer github.com/emadtoranji/NetworkOptimizer, NetworkEnhancer github.com/RAAJK20Pro/NetworkEnhancer,
 wifi-bonding-nolog github.com/Magisk-Modules-Alt-Repo/wifi-bonding-nolog, flat (eBPF latency, Linux root)
-github.com/ThirtyFoxMCx00E1/flat, EtherifyZero (Windows PCs) github.com/PhilosopherZero/EtherifyZero.
+github.com/JebetrexxMC/flat, EtherifyZero (Windows PCs) github.com/PhilosopherZero/EtherifyZero.

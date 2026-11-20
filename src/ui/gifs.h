@@ -1,4 +1,4 @@
-// 4.04: chat GIFs (github.com/ThirtyFoxMCx00E1/animated-gifs, converted by tools/make_gifs.py into small
+// 4.04: chat GIFs (github.com/JebetrexxMC/animated-gifs, converted by tools/make_gifs.py into small
 // sprite sheets on the wagu "gifs" branch). Sent in chat as "[gif:<id>]"; every phone downloads the
 // sheet it needs into files/TYFMC/MP/gifs/ and the chat shows it animated on a taller row.
 #pragma once

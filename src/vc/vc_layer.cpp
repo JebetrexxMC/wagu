@@ -1,7 +1,7 @@
 // 4.13.36: MP for GTA Vice City (libGTAVC.so). The same libMP32.so / libMP64.so runs in both games: in San Andreas
 // the SA code starts (main.cpp OnModLoad), in Vice City only this file runs. Nothing here touches SA code or SA
 // addresses: every game function is found by its exported name in libGTAVC.so (vc-android-sdk), and the class
-// layouts come from reVC (ThirtyFoxMCx00E1/GTAviceCity: CPlaceable = vtable + CMatrix, position at +0x30 of the matrix).
+// layouts come from reVC (JebetrexxMC/GTAviceCity: CPlaceable = vtable + CMatrix, position at +0x30 of the matrix).
 // The network, the server and the protocol are MP's own (net/client.cpp); the phone tells the server it is a Vice City
 // phone (PktJoin6.game = MP_GAME_VC), so it only joins Vice City servers (mp_server --game vc) and never meets SA players.
 //
@@ -1575,7 +1575,7 @@ static void PollButtons()
 }
 
 // ---- 4.13.40: VC:MP-style gamemode -----------------------------------------------------------------------------
-// Ported from VC:MP 0.1c (https://github.com/ThirtyFoxMCx00E1/vc-mp, GPL v2, kyeman / SA:MP team): class selection
+// Ported from VC:MP 0.1c (https://github.com/JebetrexxMC/vc-mp, GPL v2, kyeman / SA:MP team): class selection
 // (vcmp/game: spawn at the class point in its skin with its 3 weapons), teams + team colours, server cars that the
 // first driver takes and the server respawns (server/vehiclepool.cpp), the kill feed (vcmp/deathwindow.cpp).
 static void VcmpDrop()

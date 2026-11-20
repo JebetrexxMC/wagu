@@ -55,7 +55,7 @@ $BT/zipalign -f -p 4 build/unsigned.apk build/aligned.apk
 if [ -z "$KEYSTORE" ]; then
   KEYSTORE=build/debug.keystore; export KEYPASS=android
   [ -f $KEYSTORE ] || keytool -genkeypair -keystore $KEYSTORE -storepass android -keypass android -alias viceloader \
-          -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=VICE Loader, O=ThirtyFoxMCx00E1" >/dev/null 2>&1
+          -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=VICE Loader, O=JebetrexxMC" >/dev/null 2>&1
 fi
 $BT/apksigner sign --ks "$KEYSTORE" --ks-pass env:KEYPASS --out ${OUT_APK:-ViceLoader.apk} build/aligned.apk
 $BT/apksigner verify ${OUT_APK:-ViceLoader.apk} && ls -la ${OUT_APK:-ViceLoader.apk}

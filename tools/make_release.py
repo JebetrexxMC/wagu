@@ -92,7 +92,7 @@ def full_zip(path, with_vl=True, package=False, apks=True, music=False):
         if package:
             inst = inst.replace("  assets/MP/   ", "  " + ("MP_%s.zip" % V).ljust(33) + "the same release as one zip (lib + assets + apks + INSTALL.txt)\n  assets/MP/   ", 1)
             z.write("release/MP-%s-full.zip" % V, f + "/MP_%s.zip" % V)
-        if not apks: inst += "\nThis zip has no apks/ folder: download ViceLoader.apk, Moquil.apk, MP-Voice.apk and\nMP-Textdraw-Editor.apk from the release page (https://github.com/ThirtyFoxMCx00E1/wagu/releases/latest).\n"
+        if not apks: inst += "\nThis zip has no apks/ folder: download ViceLoader.apk, Moquil.apk, MP-Voice.apk and\nMP-Textdraw-Editor.apk from the release page (https://github.com/JebetrexxMC/wagu/releases/latest).\n"
         z.writestr(f + "/INSTALL.txt", inst)
 full_zip("release/MP-%s-full.zip" % V, music=True)
 full_zip("release/MP-%s-Package.zip" % V, package=True, music=True)   # the full zip + everything unpacked next to it

@@ -3,7 +3,7 @@
 Your own Oracle-style "Always Free" cloud console. Friends sign up, get a free tier (default 2 OCPU, 12 GB memory, 100 GB storage, 2 servers, the same as Oracle's A1 free tier) and create servers in a few clicks:
 
 - **This machine** - Incus containers (or VMs) on the box running MP Cloud. Starts in seconds, no Oracle account needed.
-- **Oracle Cloud** - real OCI servers in the admin's Oracle account, made with the OCI API. On "Out of host capacity" MP Cloud tries every availability domain and keeps retrying (state `WAITING_CAPACITY`) until Oracle has room, like [oci-instance-creator](https://github.com/ThirtyFoxMCx00E1/oci-instance-creator).
+- **Oracle Cloud** - real OCI servers in the admin's Oracle account, made with the OCI API. On "Out of host capacity" MP Cloud tries every availability domain and keeps retrying (state `WAITING_CAPACITY`) until Oracle has room, like [oci-instance-creator](https://github.com/JebetrexxMC/oci-instance-creator).
 
 One-click installs on any server:
 
@@ -11,8 +11,8 @@ One-click installs on any server:
 |---|---|
 | Plain | Ubuntu / Debian with SSH (user `opc`) |
 | MP server | HiveMQ + the 24/7 MP servers (`vps-setup.sh`) for Asia, Europe, NA or Oceania, DuckDNS updated |
-| Coolify | [Coolify](https://coolify.io) app platform, dashboard on port 8000 (idea from [coolify-oci-free](https://github.com/ThirtyFoxMCx00E1/coolify-oci-free)) |
-| Dokploy | [Dokploy](https://dokploy.com), dashboard on port 3000 (idea from [dokploy-oci-free](https://github.com/ThirtyFoxMCx00E1/dokploy-oci-free)) |
+| Coolify | [Coolify](https://coolify.io) app platform, dashboard on port 8000 (idea from [coolify-oci-free](https://github.com/JebetrexxMC/coolify-oci-free)) |
+| Dokploy | [Dokploy](https://dokploy.com), dashboard on port 3000 (idea from [dokploy-oci-free](https://github.com/JebetrexxMC/dokploy-oci-free)) |
 
 ## Install
 

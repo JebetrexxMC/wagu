@@ -27,7 +27,7 @@ MpBridge (server lists of all regions), the XDP flood filter and the network tun
 ## Option A: all 4 on Vultr, one command
 
 ```bash
-git clone --depth 1 --filter=blob:none --sparse https://github.com/ThirtyFoxMCx00E1/wagu && cd wagu && git sparse-checkout set HiveMQ
+git clone --depth 1 --filter=blob:none --sparse https://github.com/JebetrexxMC/wagu && cd wagu && git sparse-checkout set HiveMQ
 export VULTR_API_KEY=...      # my.vultr.com > Account > API
 export DUCKDNS_TOKEN=...      # duckdns.org (the account that owns mpsamp / eusamp / nasamp / ocsamp)
 bash HiveMQ/providers/deploy-vultr.sh            # asia europe na oceania
@@ -42,7 +42,7 @@ Setup runs by itself on first boot (about 5 minutes): `ssh root@IP tail -f /var/
 
 `mp-deploy-vultr` does the same as `deploy-vultr.sh`, built on Vultr's official Go library
 [govultr](https://github.com/vultr/govultr) (v3.34.0). Download
-[mp-deploy-vultr-4.12.zip](https://github.com/ThirtyFoxMCx00E1/wagu/raw/main/release/mp-deploy-vultr-4.12.zip)
+[mp-deploy-vultr-4.12.zip](https://github.com/JebetrexxMC/wagu/raw/main/release/mp-deploy-vultr-4.12.zip)
 (`mp-deploy-vultr-windows-amd64.exe`, `-linux-amd64`, `-darwin-arm64` inside), double-click it, paste the
 Vultr API key and the DuckDNS token when asked. `mp-deploy-vultr --list` shows the IPs; `asia oceania`
 creates only those. Source: `HiveMQ/providers/vultr-go/` (`bash build.sh`, Go 1.23+).

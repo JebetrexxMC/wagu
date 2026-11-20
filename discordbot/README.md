@@ -44,7 +44,7 @@ updates the bot on every push. Run it any time: Actions > Deploy to MP Railway >
 Or by hand on the HiveMQ server (once):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ThirtyFoxMCx00E1/HiveMQ/main/railway/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/JebetrexxMC/HiveMQ/main/railway/install.sh | sudo bash
 ```
 
 It asks for `DISCORD_TOKEN` and `AUTH_PRIVATE_KEY` (hidden input, stored in
@@ -58,7 +58,7 @@ sudo mp-railway deploy        deploy now (instead of waiting for the 2 min check
 sudo mp-railway env set DISCORD_TOKEN     change a secret (asks, hidden), restarts
 ```
 
-Live status: [MP Railway page](https://thirtyfoxmcx00e1.github.io/wagu/railway.html) (the bot
+Live status: [MP Railway page](https://jebetrexxmc.github.io/wagu/railway.html) (the bot
 publishes a signed status every 30 s; the page checks the signature with the mod's public key).
 
 ## Variables

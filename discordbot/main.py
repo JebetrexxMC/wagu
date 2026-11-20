@@ -263,7 +263,7 @@ async def stats_cmd(inter: discord.Interaction):
 HELP_PAGES = [
     ("1/5 - Install MP Multiplayer",
      "1. GTA SA 2.00 (Android) with **AML 1.4.0**.\n"
-     "2. Download MP from **https://mpsamp-open.github.io** (or the newest release on GitHub: ThirtyFoxMCx00E1/wagu).\n"
+     "2. Download MP from **https://mpsamp-open.github.io** (or the newest release on GitHub: JebetrexxMC/wagu).\n"
      "3. Copy `libMP64.so` (64-bit game) or `libMP32.so` (32-bit game) to\n`Android/data/com.rockstargames.gtasa/mods/`\n"
      "4. Copy the `MP` folder to `Android/data/com.rockstargames.gtasa/files/TYFMC/MP/`\n"
      "5. Start the game and tap the **MP** bubble on the right edge of the screen."),
@@ -748,7 +748,7 @@ async def post_watch_panel(ch, url):
         return False
 
 
-CHANGELOG_URL = os.environ.get("CHANGELOG_URL", "https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/main/docs/discord/changelog.md")
+CHANGELOG_URL = os.environ.get("CHANGELOG_URL", "https://raw.githubusercontent.com/JebetrexxMC/wagu/main/docs/discord/changelog.md")
 
 
 def _fetch_changelog() -> str:

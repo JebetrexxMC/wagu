@@ -1,5 +1,5 @@
 // MP 4.13.4: San Andreas Online League - the 6th featured 24/7 server: Rocket League style car
-// soccer ("Rocket Soccer" of San Andreas Online / MTA Neon, github.com/ThirtyFoxMCx00E1/san-andreas-online).
+// soccer ("Rocket Soccer" of San Andreas Online / MTA Neon, github.com/JebetrexxMC/san-andreas-online).
 // SA:O runs RocketSim (Bullet) at 120 Hz in a WASM kernel; that is far too heavy for a phone server
 // that also has to stay up 24/7, so MP has its own small ball model here, shared by the server
 // (authoritative, server_league.inc) and the phone (prediction + free play, mp_league.inc).

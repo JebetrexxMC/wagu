@@ -87,7 +87,7 @@ class Autopilot:
         try:
             txt = urllib.request.urlopen(self.WAGU_PROTO + "?t=%d" % int(now), timeout=15).read().decode("utf-8", "replace")
             self.latest = re.search(r'MP_VERSION_STR\s+"([^"]+)"', txt).group(1)
-            r = subprocess.run(["git", "ls-remote", "https://github.com/ThirtyFoxMCx00E1/wagu.git", "HEAD"], capture_output=True, text=True, timeout=15)
+            r = subprocess.run(["git", "ls-remote", "https://github.com/JebetrexxMC/wagu.git", "HEAD"], capture_output=True, text=True, timeout=15)
             kit_new = (r.stdout.split() or [""])[0]
         except Exception:
             return None

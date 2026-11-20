@@ -1,5 +1,5 @@
 script_name('MP Self Test')
-script_author('ThirtyFoxMCx00E1')
+script_author('JebetrexxMC')
 script_version('1.0-mp')
 script_description('MonetLoader for MP 4.0.0-mp: tests the PC compatibility layer and PC MoonImGui (MP 5.01.00)')
 

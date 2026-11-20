@@ -243,14 +243,14 @@ def main():
     hist, daily = [], []
     try:
         import urllib.request
-        rq = urllib.request.Request("https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/live-status/history.json?t=%d" % time.time(), headers={"User-Agent": "wagu-live-status"})
+        rq = urllib.request.Request("https://raw.githubusercontent.com/JebetrexxMC/wagu/live-status/history.json?t=%d" % time.time(), headers={"User-Agent": "wagu-live-status"})
         hj = json.load(urllib.request.urlopen(rq, timeout=15))
         hist, daily = hj.get("readings", []), hj.get("daily", [])
     except Exception as ex:
         print("history: %s" % ex, file=sys.stderr)
     if not hist:
         try:   # first run: start from the last status.json
-            rq = urllib.request.Request("https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/live-status/status.json?t=%d" % time.time(), headers={"User-Agent": "wagu-live-status"})
+            rq = urllib.request.Request("https://raw.githubusercontent.com/JebetrexxMC/wagu/live-status/status.json?t=%d" % time.time(), headers={"User-Agent": "wagu-live-status"})
             pv = json.load(urllib.request.urlopen(rq, timeout=15)); ps = pv.get("servers") or []
             hist = [{"t": pv["updated"], "players": int(pv.get("players", 0)), "servers": len(ps), "active": sum(1 for s in ps if s.get("players", 0) > 0),
                      "slots": sum(int(s.get("max", 0)) for s in ps), "top": max([0] + [int(s.get("players", 0)) for s in ps])}]

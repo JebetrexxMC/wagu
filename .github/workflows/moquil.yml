@@ -43,7 +43,7 @@ jobs:
             echo "::warning::No MOQUIL_KEYSTORE secret: signing with a new key made for this run"
             P=$(openssl rand -hex 16)
             keytool -genkeypair -keystore "$RUNNER_TEMP/moquil.jks" -storepass "$P" -keypass "$P" -alias moquil \
-              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Moquil, O=ThirtyFox" > /dev/null
+              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Moquil, O=JebetrexxMC" > /dev/null
             echo "::add-mask::$P"; echo "KEYPASS=$P" >> "$GITHUB_ENV"
           fi
           echo "KEYSTORE=$RUNNER_TEMP/moquil.jks" >> "$GITHUB_ENV"

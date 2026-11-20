@@ -1,6 +1,6 @@
 name: Build MonetLoader for MP
 
-# MP: MonetLoaderOSS lives in this repo (MonetLoaderOSS/, from ThirtyFoxMCx00E1/MonetLoaderOSS). Builds
+# MP: MonetLoaderOSS lives in this repo (MonetLoaderOSS/, from JebetrexxMC/MonetLoaderOSS). Builds
 # libmonetloader.so for both ABIs (the build that is embedded in libMP as src/embed/monetloader/<abi>/) and checks
 # that every Lua file of MonetLoader's dist/ and of assets/MP/moonloader (lua_scripts_loader.lua, mp_zip, mp_pcpaths)
 # parses with LuaJIT. The lua_scripts loader host test runs too.
@@ -31,11 +31,11 @@ jobs:
         with:
           ndk-version: r27c
           add-to-path: true
-      - name: LuaJIT from source (ThirtyFoxMCx00E1/LuaJIT v2.1)
+      - name: LuaJIT from source (JebetrexxMC/LuaJIT v2.1)
         env:
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
         run: |
-          git clone --depth 1 -b v2.1 https://github.com/ThirtyFoxMCx00E1/LuaJIT /tmp/LuaJIT
+          git clone --depth 1 -b v2.1 https://github.com/JebetrexxMC/LuaJIT /tmp/LuaJIT
           bash tools/build_luajit.sh /tmp/LuaJIT
       - name: Lua syntax check (host LuaJIT)
         run: |

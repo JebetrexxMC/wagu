@@ -1,8 +1,8 @@
 # 4.0.0-mp: native Lua modules compiled into libmonetloader.so from their real upstream sources
 #   lpeg 1.1.0 (Roberto Ierusalimschy)          -> require 'lpeg' (+ re.lua)
-#   lrexlib (ThirtyFoxMCx00E1/lrexlib)         -> require 'rex_posix', 'rex_pcre2' (alias 'rex_pcre')
+#   lrexlib (JebetrexxMC/lrexlib)         -> require 'rex_posix', 'rex_pcre2' (alias 'rex_pcre')
 #   LuaSQL sqlite3 + SQLite 3.50.4             -> require 'luasql.sqlite3'
-#   LuaLanes 4 (ThirtyFoxMCx00E1/lanes)        -> require 'lanes' (lanes.core)
+#   LuaLanes 4 (JebetrexxMC/lanes)        -> require 'lanes' (lanes.core)
 #   lubyk xml (RapidXML)                       -> require 'xml' (xml.core)
 set(MODDIR ${PROJECT_SOURCE_DIR}/cpp/script/modules)
 

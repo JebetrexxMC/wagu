@@ -109,6 +109,14 @@ public:
 	static uint8_t* EncryptClient(uint8_t const* src, int len, uint16_t serverPort, int* outLen);
 	static void SetClientSocket(SOCKET s, bool client);
 	static bool IsClientSocket(SOCKET s);
+	// MP 5.02.07: the phone joins PC servers as the open.mp launcher client does: the connection cookie is answered
+	// with ^ 0x6D70 (IsPlayerUsingOmp), the server's omp encryption key (network.use_omp_encryption) is taken and its
+	// datagrams decoded. A server that does not know omp (SA-MP 0.3.7) sends its cookie again -> ^ 0x6969 there.
+	static void SetClientOmp(bool on);
+	static bool ClientOmp();
+	static uint16_t ClientCookieXor(unsigned int binaryAddress, unsigned short port);
+	static int ClientReceive(unsigned int binaryAddress, unsigned short port, char* data, int len);   // -1 = consumed
+	static bool ClientUsedOmp(unsigned int binaryAddress, unsigned short port);
 	// MP 5.02: the response to a server's ID_AUTH_KEY challenge (nullptr = unknown challenge)
 	static const char* AuthResponse(const char* challenge);
 	static uint8_t* Encrypt(const OmpPlayerEncryptionData* encryptionData, uint8_t const* src, int len);

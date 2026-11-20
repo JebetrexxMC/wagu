@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""3.59: pack the original MTA DayZ art (github.com/ThirtyFoxMCx00E1/mtadayz, DayZ/gui) into the
+"""3.59: pack the original MTA DayZ art (github.com/JebetrexxMC/mtadayz, DayZ/gui) into the
 Project Day Z Legacy atlases + src/mp_dayz_atlas.h (UV rects).
   python3 tools/dz_mta_assets.py ../mtadayz
 Credits: MTA DayZ by the NullSystemWorks team / original authors (see their contributors.txt)."""

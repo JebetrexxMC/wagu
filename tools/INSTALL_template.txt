@@ -59,7 +59,7 @@ Problems? Send these files
   Vice City:    Android/data/com.rockstargames.gtavc/files/TYFMC/MP/mp_log.txt
   VICE Loader:  Download/ViceLoader/crash_*.txt  (or the Save log button in the app)
 
-Source and releases: https://github.com/ThirtyFoxMCx00E1/wagu
+Source and releases: https://github.com/JebetrexxMC/wagu
 
 Vice City crashes on the Load screen (SIGABRT in CheckDataNotCorrupt / OS_FileClose)?
   A save file is incomplete or from another version and the game closes it twice. MP {V} blocks that and names the slot in mp_log.txt.

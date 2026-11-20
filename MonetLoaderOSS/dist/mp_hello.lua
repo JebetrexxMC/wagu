@@ -1,7 +1,7 @@
 -- MonetLoader for MP: example PC MoonLoader script, unchanged API.
 -- Put any PC .lua script in this folder (files/TYFMC/MP/moonloader) and its libraries in lib/.
 script_name('MP Hello')
-script_author('ThirtyFoxMCx00E1')
+script_author('JebetrexxMC')
 script_version('1.0')
 
 local sampev = require 'samp.events'

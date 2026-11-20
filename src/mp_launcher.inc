@@ -2043,7 +2043,7 @@ static void LFmtBytes(char* o, size_t n, unsigned long long b)
 // Project Day Z servers (the cloud list below), so nothing outside the MP folder is needed.
 static const char* const kDzPackUrls[] = {
     "https://mpsamp-open.github.io/Host/DayZ/pack/MP_ProjectDayZ.zip",
-    "https://github.com/ThirtyFoxMCx00E1/wagu/releases/download/DayZ-Pack/MP_ProjectDayZ.zip" };
+    "https://github.com/JebetrexxMC/wagu/releases/download/DayZ-Pack/MP_ProjectDayZ.zip" };
 static std::atomic<int> s_nDzPack{ 0 };            // 0 idle, 1 downloading, 2 unpacking, 3 done, 4 failed
 static std::atomic<size_t> s_nDzPackGot{ 0 };
 static std::mutex s_DzPackMx; static std::string s_DzPackMsg;
@@ -2364,7 +2364,7 @@ static void LPageAbout(float W)
         VPill(dl, a, b, IM_COL32(24, 27, 32, 200), VAlpha(kVTeal, 0.45f));
         dl->AddRectFilled(ImVec2(a.x, a.y + UI::S(10)), ImVec2(a.x + UI::S(5), b.y - UI::S(10)), kVTeal);
         dl->AddText(UI::Font(), fs * 1.45f, ImVec2(a.x + UI::S(26), a.y + fs * 0.55f), IM_COL32_WHITE, "MP Multiplayer");
-        char v[96]; snprintf(v, sizeof(v), "Version %s   -   created by ThirtyFoxMC (ThirtyFoxMCx00E1)", MP_VERSION_STR);
+        char v[96]; snprintf(v, sizeof(v), "Version %s   -   created by JebetrexxMC", MP_VERSION_STR);
         dl->AddText(ImVec2(a.x + UI::S(26), a.y + fs * 2.45f), kVDim, v);
         dl->AddText(ImVec2(a.x + UI::S(26), a.y + fs * 3.35f), kVDim, "Multiplayer for GTA San Andreas and GTA Vice City on Android");
         ImGui::Dummy(ImVec2(W, fs * 4.6f + UI::S(12)));
@@ -2385,19 +2385,19 @@ static void LPageAbout(float W)
 
     LAboutHeading("ABOUT THIS MOD");
     LAboutPara("MP Multiplayer is an independent, non-commercial project designed, programmed and maintained by one developer, "
-               "ThirtyFoxMC. Every part of it - the networking and sync, the server browser and launcher, the game modes, the "
+               "JebetrexxMC. Every part of it - the networking and sync, the server browser and launcher, the game modes, the "
                "dedicated server, the TV Player, the Moquil social app and the tools behind them - is the result of many months "
                "of daily work, testing on real phones and fixing problems reported by the community.");
     LAboutPara("The mod is offered for free so that players can enjoy San Andreas and Vice City together. Updates, fixes and "
                "announcements are published only through the official channels above.");
 
     LAboutHeading("AUTHORSHIP AND CREDIT");
-    LAboutPara("MP Multiplayer, its code, its interface, its artwork and its name are the original work of ThirtyFoxMC. "
+    LAboutPara("MP Multiplayer, its code, its interface, its artwork and its name are the original work of JebetrexxMC. "
                "All rights are reserved by the author.");
     LAboutBullet("You may share the official download link and make videos, streams and reviews of the mod, as long as the author is credited.");
-    LAboutBullet("Re-uploading the mod or any part of it (libMP, scripts, assets, server files) to another site, channel, group or store requires the author's permission and visible credit to ThirtyFoxMC with a link to the official source.");
+    LAboutBullet("Re-uploading the mod or any part of it (libMP, scripts, assets, server files) to another site, channel, group or store requires the author's permission and visible credit to JebetrexxMC with a link to the official source.");
     LAboutBullet("Removing or changing the author's name, claiming the mod as your own, renaming it and presenting it as a new project, or selling it or putting it behind paid links or ad walls is not allowed.");
-    LAboutBullet("Edited versions and ports must clearly say they are based on MP Multiplayer by ThirtyFoxMC.");
+    LAboutBullet("Edited versions and ports must clearly say they are based on MP Multiplayer by JebetrexxMC.");
 
     LAboutHeading("A NOTE ON RE-UPLOADS");
     LAboutPara("This project has been copied and re-uploaded by others without permission and without any credit to the person "
@@ -2414,7 +2414,7 @@ static void LPageAbout(float W)
                "mbedTLS, Opus, SQLite and other open-source libraries under their own licences; their authors keep full credit "
                "for their work.");
     ImGui::Dummy(ImVec2(1, UI::S(10)));
-    ImGui::TextDisabled("(c) ThirtyFoxMC (ThirtyFoxMCx00E1). All rights reserved.");
+    ImGui::TextDisabled("(c) JebetrexxMC. All rights reserved.");
     ImGui::Dummy(ImVec2(1, UI::S(20)));
 }
 
@@ -2493,7 +2493,7 @@ static void RenderLauncher(void* openPtr)
         }
         // watermark (2.30), between the version and the profile
         {
-            const char* wm = "powered by HiveMQ/ThirtyFoxMC";
+            const char* wm = "powered by HiveMQ/JebetrexxMC";
             ImVec2 wsz = ImGui::CalcTextSize(wm);
             float wx = profA.x - UI::S(20) - wsz.x * 0.8f, minX = px + ImGui::CalcTextSize("MP Launcher  v" MP_VERSION_STR).x + UI::S(30);
             if(wx > minX) dl->AddText(ImGui::GetFont(), ImGui::GetFontSize() * 0.8f, ImVec2(wx, ty2 + lh * 0.1f), IM_COL32(95, 211, 95, 110), wm);
@@ -2747,7 +2747,7 @@ static void RenderLauncher(void* openPtr)
         if(ImGui::Begin("##MPAbout", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::TextUnformatted("MP Launcher v" MP_VERSION_STR);
-            ImGui::TextDisabled("GTA San Andreas multiplayer mod by ThirtyFoxMC");
+            ImGui::TextDisabled("GTA San Andreas multiplayer mod by JebetrexxMC");
             ImGui::Separator();
             ImGui::TextWrapped("Servers: internet lobby (HiveMQ / public MQTT brokers), Wi-Fi (Lan) and saved servers. "
                                "Logins and Discord verification: the MP Discord bot (max %d game accounts per Discord).", AUTH_MAX_ACCOUNTS);

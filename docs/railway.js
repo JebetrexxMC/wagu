@@ -10,7 +10,7 @@
   var APP = qApp || 'discordpy-bot', TOPIC = 'wagu/railway/' + APP + '/status';
   var PUBLIC = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://test.mosquitto.org:8081/'];
   var PUBKEY = '047bfb24d8637c172eb9353130450cca575553ef9cb1d8a9538451fa940eac0d12246f940a367ccc3f5231b61701d19c2a3d56a80eb49215ad71baf7405701e006';
-  var COMMITS = 'https://api.github.com/repos/ThirtyFoxMCx00E1/discordpy-bot/commits?sha=main&per_page=8';
+  var COMMITS = 'https://api.github.com/repos/JebetrexxMC/discordpy-bot/commits?sha=main&per_page=8';
   var FRESH = 95000;   // 3 missed beacons = not online
   var $ = function (id) { return document.getElementById(id); };
   var out = $('out'), stick = window.MPAutoScroll(out);

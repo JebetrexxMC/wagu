@@ -1,7 +1,7 @@
 MonetLoader for MP 4.0.0-mp (MP 5.01.00, built from MonetLoaderOSS + the real libraries)
 =========================================================================================
 PC MoonLoader .lua scripts run on Android, on MP servers and offline. Built into libMP32.so (armeabi-v7a) and
-libMP64.so (arm64-v8a) - no separate libmonetloader.so. Source + CI: https://github.com/ThirtyFoxMCx00E1/MonetLoaderOSS
+libMP64.so (arm64-v8a) - no separate libmonetloader.so. Source + CI: https://github.com/JebetrexxMC/MonetLoaderOSS
 
 Where things go
   Scripts:    Android/data/com.rockstargames.gtasa/files/TYFMC/MP/moonloader/*.lua
@@ -19,7 +19,7 @@ What changed in 4.0.0-mp (MP 5.01.00)
   - The three remade mods (mods/hg.lua HG menu, mods/hitmarker.lua, mods/tvplayer.lua) are removed.
     On the first start mods_loader.lua 1.2-mp renames the old files on your phone to *.old (nothing is deleted;
     rename one back to keep using it) and writes lib/.mp_lib_4.0.0 so it only happens once.
-  - LuaJIT 2.1 is built from source (ThirtyFoxMCx00E1/LuaJIT) for both ABIs in the same CI run.
+  - LuaJIT 2.1 is built from source (JebetrexxMC/LuaJIT) for both ABIs in the same CI run.
 
 PC compatibility layer (pccompat, built in)
   PC scripts use gta_sa.exe 1.0 US addresses (0x400000 ... 0xFFFFFF). MonetLoader for MP has a map of 6336 named
@@ -96,6 +96,6 @@ The mods folder
 
 txAdmin
   txadmin.lua + lib/webviews/ + lib/android/ - "txAdmin Open Source" 4.6.0-webview by 4trays LazyCat Studios (MIT,
-  https://github.com/ThirtyFoxMCx00E1/MonetLoader-txAdmin). An admin panel in an Android WebView: player list, duty,
+  https://github.com/JebetrexxMC/MonetLoader-txAdmin). An admin panel in an Android WebView: player list, duty,
   goto / gethere / spec / freeze / slap / sethp, kick / ban / warn / mute / jail with reasons, vehicles. Open it with
   /tx or /txadmin (/txlock, /txlogout).

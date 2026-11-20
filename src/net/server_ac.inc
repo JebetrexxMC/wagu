@@ -1,6 +1,6 @@
 // ================================================================================================
 // 3.50: server anti-cheat (included by server.cpp). Ported from the ideas, limits and warning
-// counts of Nex-AC 1.9.69 (https://github.com/ThirtyFoxMCx00E1/Nex-AC) to the MP protocol: the
+// counts of Nex-AC 1.9.69 (https://github.com/JebetrexxMC/Nex-AC) to the MP protocol: the
 // server only sees what the phones send (sync, shots, damage, deaths, pickups, car state...), so
 // every check works on those packets. Every function runs with m_Mutex held (Handle / Loop).
 //

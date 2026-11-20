@@ -236,7 +236,7 @@ static inline int DzToNext(int points) { int need = 500; while(points >= need) {
 
 
 // ======================================================================================
-// 3.59: the MTA DayZ systems (github.com/ThirtyFoxMCx00E1/mtadayz, 0.9.9.5a) on Project Day Z Legacy
+// 3.59: the MTA DayZ systems (github.com/JebetrexxMC/mtadayz, 0.9.9.5a) on Project Day Z Legacy
 // ======================================================================================
 // conditions (PktDzMe::cond bits)
 enum eDzCond : uint16_t { DZCO_BLEEDING = 1, DZCO_PAIN = 2, DZCO_LEGS = 4, DZCO_ARMS = 8, DZCO_COLD = 16, DZCO_UNCONSCIOUS = 32, DZCO_HELMET = 64, DZCO_KEYCARD = 128 };

@@ -886,7 +886,7 @@ static bool NeonDraw()
             if(s_nNeonPage == NP_ABOUT)
             {
                 char body[400];
-                snprintf(body, sizeof(body), "MP Multiplayer %s for GTA San Andreas (Android, AML).\nby ThirtyFoxMCx00E1 - mpsamp-open.github.io\nDiscord: %s\n\n"
+                snprintf(body, sizeof(body), "MP Multiplayer %s for GTA San Andreas (Android, AML).\nby JebetrexxMC - mpsamp-open.github.io\nDiscord: %s\n\n"
                          "Neon menu art: San Andreas fan art (GTA V style). Fonts: UnifrakturMaguntia, Cinzel (SIL OFL 1.1).", MP_VERSION_STR, MP_AUTH_DISCORD_URL);
                 bool y = false, n = false; NeonDialog(dl, ds, "About", body, "CLOSE", nullptr, &y, &n);
                 if(y) s_nNeonPage = NP_MAIN;
@@ -1101,8 +1101,8 @@ static int s_nNeonMus = 0;                   // 0 off, 1 playing, -1 failed (try
 static uint64_t s_nNeonMusAt = 0;
 static std::atomic<int> s_nNeonMusDl{0};     // the local copy: 0 not asked, 1 downloading, 2 done, 3 failed
 #define NEON_MUSIC_FILE "neon_mainmenu.mp3"
-#define NEON_MUSIC_URL1 "https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/main/Host/Media/" NEON_MUSIC_FILE
-#define NEON_MUSIC_URL2 "https://thirtyfoxmcx00e1.github.io/wagu/Host/Media/" NEON_MUSIC_FILE
+#define NEON_MUSIC_URL1 "https://raw.githubusercontent.com/JebetrexxMC/wagu/main/Host/Media/" NEON_MUSIC_FILE
+#define NEON_MUSIC_URL2 "https://jebetrexxmc.github.io/wagu/Host/Media/" NEON_MUSIC_FILE
 // 5.01.16: why it still stopped after ~3 s: the download (HttpsFetch, 60 s timeout) kept whatever had arrived when the
 // time ran out - on a slow connection the first few hundred KB = a few seconds of the 5:46 track - and saved it as
 // neon_mainmenu.mp3. Every start then played those seconds and "ended". Now: a cut download is never saved (the body
@@ -2062,7 +2062,7 @@ static void NeonPDialog(float W, float H, float u)
     if(about)
     {
         snprintf(l[n++], 120, "MP Multiplayer %s for GTA San Andreas (Android, AML).", MP_VERSION_STR);
-        snprintf(l[n++], 120, "by ThirtyFoxMCx00E1 - mpsamp-open.github.io");
+        snprintf(l[n++], 120, "by JebetrexxMC - mpsamp-open.github.io");
         snprintf(l[n++], 120, "Discord: %s", MP_AUTH_DISCORD_URL);
         snprintf(l[n++], 120, "Fonts: UnifrakturMaguntia, Cinzel, Fredoka (SIL OFL 1.1).");
     }

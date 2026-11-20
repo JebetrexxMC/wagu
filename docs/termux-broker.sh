@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # MP region broker on an Android phone (Termux), 24/7.
-#   curl -fsSL https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/main/docs/termux-broker.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/JebetrexxMC/wagu/main/docs/termux-broker.sh | bash
 #   curl -fsSL .../termux-broker.sh | bash -s -- DUCKDNS_TOKEN   (also points the 4 duckdns names at this phone's IP)
 #   ~/mp-broker.sh status | stop | start
 # Router: forward TCP 1883 and 8883 to this phone's Wi-Fi IP (Settings > Wi-Fi > IP address).

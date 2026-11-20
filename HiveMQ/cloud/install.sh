@@ -16,7 +16,7 @@ done
 [ "$(id -u)" = 0 ] || { echo "Run as root (sudo)."; exit 1; }
 . /etc/os-release
 export DEBIAN_FRONTEND=noninteractive
-APP=/opt/mp-cloud; DATA=/var/lib/mp-cloud; REPO=https://github.com/ThirtyFoxMCx00E1/wagu.git
+APP=/opt/mp-cloud; DATA=/var/lib/mp-cloud; REPO=https://github.com/JebetrexxMC/wagu.git
 say(){ printf '\n== %s\n' "$*"; }
 
 say "Packages"

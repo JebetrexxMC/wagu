@@ -8381,7 +8381,7 @@ void MP::Init(const char* dataDir)
     }
     // 4.12.2: ScreenGuard - recording / screenshots are black without a valid MP/src_Access.txt
     if(ScreenGuard::Locked())
-        SysMsg(COL_YELLOW, "Screen recording is locked on MP. To record, DM ThirtyFox on Discord (discord.gg/QSdtut3SWV) for your src_Access.txt, put it in the MP folder and restart the game.");
+        SysMsg(COL_YELLOW, "Screen recording is locked on MP. To record, DM JebetrexxMC on Discord (discord.gg/QSdtut3SWV) for your src_Access.txt, put it in the MP folder and restart the game.");
 }
 
 // 5.01.01: a held "left the server" line that nobody joined back for

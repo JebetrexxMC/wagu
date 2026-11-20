@@ -442,7 +442,7 @@
   function renderShell() {
     var A = $('#app');
     A.innerHTML = '<div class="win glass"><div class="titlebar"><div class="lights"><i></i><i></i><i></i></div><div class="ttl">Moquil - ' + esc(SESSION.user) + '</div><span class="tiny dim">web</span></div>' +
-      '<div class="mp-bar"><b>PLAY</b><span>Moquil ' + VERSION + ' &middot; <span id="netst">connecting...</span></span><i>powered by HiveMQ/ThirtyFoxMC</i></div>' +
+      '<div class="mp-bar"><b>PLAY</b><span>Moquil ' + VERSION + ' &middot; <span id="netst">connecting...</span></span><i>powered by HiveMQ/JebetrexxMC</i></div>' +
       '<div class="shell"><aside class="rail scroll" id="rail"></aside><aside class="side" id="side"></aside><main class="main"><div class="topbar" id="top"></div><div class="page scroll" id="page"></div></main><aside class="right" id="right"></aside></div></div>' +
       '<nav class="nav" id="nav"></nav><div class="ubar" id="ubar"></div>';
     soonShell();
@@ -463,7 +463,7 @@
       '<div class="scroll grow" style="padding:6px 0">' + item('home', 'Home', 'home') + item('search', 'Search', 'search') + item('store', 'Store', 'store') + item('library', 'Library', 'library') + item('social', 'Social', 'chat', u) + item('settings', 'Settings', 'gear') +
       '<div class="grp">My apps</div>' + favMods.map(function (m) { return '<div class="mini" data-mod="' + m.id + '"><div class="ic" style="background-image:url(' + m.cover + ')"></div><div class="grow ell">' + esc(m.name) + '</div></div>'; }).join('') +
       '<div class="grp">My servers<a href="#" data-act="newcom">' + ic('plus', 's') + '</a></div>' + (coms.length ? coms.map(function (c) { return '<div class="mini' + (CUR.arg === c.cid ? ' on' : '') + '" data-com="' + esc(c.cid) + '"><div class="ic" style="background:' + colorOf(c.cid) + ';display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff">' + esc(c.name[0] || '#') + '</div><div class="grow ell">' + esc(c.name) + '</div></div>'; }).join('') : '<div class="tiny dim" style="padding:2px 16px">None yet</div>') +
-      '</div><div class="footer-link">' + ic('sparkle', 's') + '<span>By ThirtyFox &middot; Powered by HiveMQ</span></div>';
+      '</div><div class="footer-link">' + ic('sparkle', 's') + '<span>By JebetrexxMC &middot; Powered by HiveMQ</span></div>';
   }
   // right panel (Ankama friends list)
   var friendQ = '', friendTab = 'friends';
@@ -794,7 +794,7 @@
     }
     return { top: top, body: body, after: function () { var q = $('#fq2'); if (q) { q.oninput = function () { FQ = q.value; var p = q.selectionStart; render(); var q2 = $('#fq2'); if (q2) { q2.focus(); q2.setSelectionRange(p, p); } }; } } };
   };
-  // 4.13.2: Open source communities living on Discord (github.com/ThirtyFoxMCx00E1/discord-open-source)
+  // 4.13.2: Open source communities living on Discord (github.com/JebetrexxMC/discord-open-source)
   var OSS_ALL = false;
   function ossSection(q) {
     var L = (G.MOQ_OSS || []).filter(function (o) { return !q || (o.t + ' ' + o.q).toLowerCase().indexOf(q) >= 0; });
@@ -996,7 +996,7 @@
       '<div class="sec" style="padding:0 16px">About</div><div style="padding:0 16px;opacity:.92">' + esc(m.desc) + '</div>' +
       '<div class="sec" style="padding:0 16px">Features</div><ul class="feat">' + m.features.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' +
       '<div class="sec" style="padding:0 16px">Rate it</div><div style="padding:0 16px" class="row">' + stars(r.mine, true, m.id) + '<span class="small dim">' + (r.mine ? 'Your rating: ' + r.mine : 'Tap a star') + '</span></div>' +
-      '<div class="card by"><div class="row">' + ic('user') + '<div><div class="tiny dim up">Made by</div><div class="b">ThirtyFox (ThirtyFoxMC)</div></div></div><div class="row">' + ic('sparkle') + '<div><div class="tiny dim up">Powered by</div><div class="b">HiveMQ</div></div></div>' +
+      '<div class="card by"><div class="row">' + ic('user') + '<div><div class="tiny dim up">Made by</div><div class="b">JebetrexxMC</div></div></div><div class="row">' + ic('sparkle') + '<div><div class="tiny dim up">Powered by</div><div class="b">HiveMQ</div></div></div>' +
       '<div class="row">' + ic('heart') + '<div><div class="tiny dim up">Sponsor</div><div class="b">MP community &middot; TYFMC</div></div></div><div class="row">' + ic('shield') + '<div><div class="tiny dim up">Safe download</div><div class="b">From the MP website</div></div></div></div>' +
       '</div></div>';
     D.body.appendChild(bg);
@@ -1246,7 +1246,7 @@
       var items = g[1].filter(function (i) { return !q || i[1].toLowerCase().indexOf(q) >= 0; }); if (!items.length) return;
       body += '<div class="sec">' + g[0] + '</div><div class="card list">' + items.map(function (i) { return '<div class="li" data-set="' + i[0] + '">' + ic(i[2]) + '<div class="grow">' + i[1] + '</div>' + (i[0] === 'version' ? '<span class="dim small">' + VERSION + (IS_WEB ? ' web' : '') + '</span>' : ic('chev', 's')) + '</div>'; }).join('') + '</div>';
     });
-    if (!q) body += '<div class="card list" style="margin-top:16px"><div class="li danger" data-act="logout">' + ic('out') + '<div class="grow b">Log Out</div></div></div><div class="tiny dim" style="text-align:center;margin:14px 0">Moquil ' + VERSION + ' &middot; by ThirtyFox &middot; powered by HiveMQ</div>';
+    if (!q) body += '<div class="card list" style="margin-top:16px"><div class="li danger" data-act="logout">' + ic('out') + '<div class="grow b">Log Out</div></div></div><div class="tiny dim" style="text-align:center;margin:14px 0">Moquil ' + VERSION + ' &middot; by JebetrexxMC &middot; powered by HiveMQ</div>';
     return { top: title('Settings', CUR.page === 'settings' && D.documentElement.classList.contains('portrait')) + topRight(), body: body, after: function () { var i = $('#setq'); i.oninput = function () { SETQ = i.value; var p = i.selectionStart; render(); var j = $('#setq'); j.focus(); j.setSelectionRange(p, p); }; } };
   };
   function sw(k, label, sub) { return '<div class="li" data-sw="' + k + '"><div class="grow"><div>' + label + '</div>' + (sub ? '<div class="tiny dim">' + sub + '</div>' : '') + '</div><div class="sw' + (SET[k] ? ' on' : '') + '"></div></div>'; }
@@ -1304,7 +1304,7 @@
     quests: function () { setTimeout(function () { go('store', '', 'quests'); }, 0); return { t: 'Quests', b: '' }; },
     support: function () { return { t: 'Support', b: '<div class="card list"><div class="li" data-open="discord">' + ic('chat') + '<div class="grow"><div class="b">MP Discord server</div><div class="tiny dim">Ask the staff and the server</div></div>' + ic('chev', 's') + '</div><div class="li" data-open="site">' + ic('game') + '<div class="grow"><div class="b">MP website</div><div class="tiny dim">Downloads and guides</div></div>' + ic('chev', 's') + '</div></div>' }; },
     debug: function () { return { t: 'Upload debug logs', b: '<div class="card pad small">Copy the logs and paste them in the MP Discord #support channel.</div><button class="btn go wide" style="margin-top:12px" data-act="copylogs">' + ic('copy', 's') + ' Copy logs</button>' }; },
-    ack: function () { return { t: 'Acknowledgements', b: '<div class="card pad small" style="line-height:1.6">Moquil by ThirtyFox (ThirtyFoxMC).<br>Messaging over the public <b>HiveMQ</b> MQTT broker (broker.hivemq.com).<br>Voice with WebRTC and Google STUN.<br>MP Multiplayer, MLG Production and CamFX by the TYFMC team.<br>Layout ideas from the Ankama Launcher and Discord. No code or art from them is included.</div>' }; },
+    ack: function () { return { t: 'Acknowledgements', b: '<div class="card pad small" style="line-height:1.6">Moquil by JebetrexxMC.<br>Messaging over the public <b>HiveMQ</b> MQTT broker (broker.hivemq.com).<br>Voice with WebRTC and Google STUN.<br>MP Multiplayer, MLG Production and CamFX by the TYFMC team.<br>Layout ideas from the Ankama Launcher and Discord. No code or art from them is included.</div>' }; },
     getapp: function () {
       var apk = MOQ_SITE + 'downloads/Moquil.apk', web = 'https://mpsamp-open.github.io/moquils-web/';
       return { t: IS_WEB ? 'Get the Android app' : 'Moquil on the web', b: '<div class="card pad col">' +

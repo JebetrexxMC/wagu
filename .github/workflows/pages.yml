@@ -1,5 +1,5 @@
 name: Website (GitHub Pages)
-# 4.12.7: wagu is public again, so it has its own Pages site (thirtyfoxmcx00e1.github.io/wagu) next to
+# 4.12.7: wagu is public again, so it has its own Pages site (jebetrexxmc.github.io/wagu) next to
 # mpsamp-open.github.io
 on:
   push:

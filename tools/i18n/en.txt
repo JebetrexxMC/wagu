@@ -1742,7 +1742,7 @@ Not logged in
 Logged in
 Log in on a server
 MP Launcher
-powered by HiveMQ/ThirtyFoxMC
+powered by HiveMQ/JebetrexxMC
 MP Launcher  v
 Search server
 Nickname

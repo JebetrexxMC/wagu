@@ -6,6 +6,8 @@
 #include <random>
 #include <mutex>
 #include <unordered_set>
+#include <unordered_map>
+#include <atomic>
 
 #include <RakPeer.h>
 #include <SocketLayer.h>
@@ -439,6 +441,51 @@ void SAMPRakNet::SetClientSocket(SOCKET s, bool client)
 {
     std::lock_guard<std::mutex> lk(g_clientSockMx);
     if (client) g_clientSocks.insert(s); else g_clientSocks.erase(s);
+}
+
+// MP 5.02.07: the open.mp launcher client side (see SAMPRakNet.hpp)
+static std::atomic<bool> g_clientOmp { true };
+struct ClientOmpState { int cookies = 0; bool omp = false; bool haveKey = false; uint8_t key[4] = { 0, 0, 0, 0 }; };
+static std::unordered_map<uint64_t, ClientOmpState> g_clientOmpState;
+static uint64_t ClientOmpHash(unsigned int a, unsigned short p) { return ((uint64_t)a << 16) | p; }
+void SAMPRakNet::SetClientOmp(bool on) { g_clientOmp = on; }
+bool SAMPRakNet::ClientOmp() { return g_clientOmp.load(); }
+uint16_t SAMPRakNet::ClientCookieXor(unsigned int binaryAddress, unsigned short port)
+{
+    std::lock_guard<std::mutex> lk(g_clientSockMx);
+    ClientOmpState& st = g_clientOmpState[ClientOmpHash(binaryAddress, port)];
+    st.haveKey = false;
+    // 1st cookie: the omp answer; a 2nd one = the server did not take it (plain SA-MP): the SA-MP answer from then on
+    // (and every other try flips, so a lost reply can't lock either way)
+    st.omp = g_clientOmp.load() && (st.cookies % 2) == 0;
+    ++st.cookies;
+    return st.omp ? (uint16_t)OMP_PETARDED : (uint16_t)SAMP_PETARDED;
+}
+bool SAMPRakNet::ClientUsedOmp(unsigned int binaryAddress, unsigned short port)
+{
+    std::lock_guard<std::mutex> lk(g_clientSockMx);
+    auto it = g_clientOmpState.find(ClientOmpHash(binaryAddress, port));
+    return it != g_clientOmpState.end() && it->second.omp;
+}
+int SAMPRakNet::ClientReceive(unsigned int binaryAddress, unsigned short port, char* data, int len)
+{
+    std::lock_guard<std::mutex> lk(g_clientSockMx);
+    auto it = g_clientOmpState.find(ClientOmpHash(binaryAddress, port));
+    if (it == g_clientOmpState.end() || !it->second.omp) return len;
+    ClientOmpState& st = it->second;
+    uint32_t magic = 0;
+    if (len == 13 && (unsigned char)data[0] == (unsigned char)RakNet::ID_USER_PACKET_ENUM && (memcpy(&magic, data + 1, 4), magic == (uint32_t)MAGIC_OMP_IDENTIFICATION_NUMBER))
+    {   // the server's key: from now on every datagram it sends = checksum byte + bytes ^ key
+        memcpy(st.key, data + 5, 4); st.haveKey = true;
+        return -1;
+    }
+    if (!st.haveKey || len < 2) return len;
+    uint8_t plain[MAXIMUM_MTU_SIZE]; if (len - 1 > (int)sizeof(plain)) return len;
+    uint8_t chk = 0;
+    for (int i = 0; i < len - 1; ++i) { plain[i] = (uint8_t)data[i + 1] ^ st.key[i % 4]; chk ^= plain[i] & 0xAA; }
+    if (chk != (uint8_t)data[0]) return len;   // not one of the encrypted ones (keep it as it came)
+    memcpy(data, plain, (size_t)(len - 1));
+    return len - 1;
 }
 
 bool SAMPRakNet::IsClientSocket(SOCKET s)

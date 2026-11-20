@@ -16,7 +16,7 @@ from PIL import Image, ImageEnhance, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(ROOT, "tools", "bg_cache")
-UA = "MPLauncherBackgrounds/4.03 (https://github.com/ThirtyFoxMCx00E1/wagu)"
+UA = "MPLauncherBackgrounds/4.03 (https://github.com/JebetrexxMC/wagu)"
 W, H = 512, 256
 OK_LIC = re.compile(r"^(CC0|Public domain|PD|CC BY(-SA)? [1-4]\.0|CC BY(-SA)? 2\.5|CC BY(-SA)? 3\.0.*)$", re.I)
 

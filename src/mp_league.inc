@@ -1,7 +1,7 @@
 // MP 4.13.4 (included by mp.cpp): Rocket League (4.13.10 name; was San Andreas Online League) - the phone side of Rocket Soccer.
 //
 // The HUD is the one of the original SA:O / MTA Neon "GTA Rocket League" (DryxioGTA,
-// github.com/ThirtyFoxMCx00E1/san-andreas-online):
+// github.com/JebetrexxMC/san-andreas-online):
 //   lobby (Grove Street at night): the cars parked with their RL name in white caps over them, cyan
 //     "ROCKET LEAGUE" at the top, a small "Choose a car. Settings: ..." line top left and
 //     "Choose a car, then your game mode and arena" at the bottom

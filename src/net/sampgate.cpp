@@ -603,7 +603,7 @@ int SampGate::AnswerQuery(const char* in, int inLen, char* out, int outCap)
     switch(in[10])
     {
         case 'i': o += (char)0; u16((uint32_t)m_p->qCount); u16((uint32_t)m_p->qMax); s32(m_p->hostname); s32("MP crossplay"); s32("English"); break;
-        case 'r': u16(4); s8("lagcomp"); s8("On"); s8("mapname"); s8("San Andreas"); s8("version"); s8("omp 1.6.7 (MP)"); s8("weburl"); s8("github.com/ThirtyFoxMCx00E1/wagu"); break;
+        case 'r': u16(4); s8("lagcomp"); s8("On"); s8("mapname"); s8("San Andreas"); s8("version"); s8("omp 1.6.7 (MP)"); s8("weburl"); s8("github.com/JebetrexxMC/wagu"); break;
         case 'c': { int n = std::min<int>((int)m_p->qPlayers.size(), 100); u16((uint32_t)n); for(int i = 0; i < n; ++i) { s8(m_p->qPlayers[i].first); u32((uint32_t)m_p->qPlayers[i].second); } break; }
         case 'd': { int n = std::min<int>((int)m_p->qPlayers.size(), 100); u16((uint32_t)n); for(int i = 0; i < n; ++i) { o += (char)i; s8(m_p->qPlayers[i].first); u32((uint32_t)m_p->qPlayers[i].second); u32(60); } break; }
         case 'p': if(inLen >= 15) o.append(in + 11, 4); break;
@@ -724,6 +724,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         {          // no answer to 0x48 treat the player as an Android client / bot and many PC servers kick them.
             uint8_t type = 0; uint32_t addr = 0; uint16_t off = 0, cnt = 0;
             if(!bs.Read(type) || !bs.Read(addr)) break; bs.Read(off); bs.Read(cnt);
+            if(dbg) printf("[crossplay] ClientCheck type 0x%02X addr 0x%08X off %u count %u\n", type, addr, off, cnt);
             BitStream o; o.Write(type); o.Write(addr); o.Write((uint8_t)0); CliRpc(I, 103, o);
             break;
         }
@@ -1048,6 +1049,9 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                 BitStream in(pk->data, pk->length, false); in.IgnoreBits(8 + 32 + 16 + 16); uint32_t chal = 0; in.Read(chal);
                 BitStream o; o.Write(kSampVersion); o.Write((uint8_t)1); WrStr8(o, I.rName); o.Write((uint32_t)(chal ^ kSampVersion));
                 WrStr8(o, Gpci()); WrStr8(o, "0.3.7-R2");
+                // 5.02.07: what the open.mp launcher's client adds: its omp version (IsPlayerUsingOfficialClient = true
+                // on open.mp; SA-MP 0.3.7 servers ignore the extra bytes). Off: MP_GATE_OMP=0
+                if(SAMPRakNet::ClientOmp()) o.Write((uint32_t)SAMPRakNet::CURRENT_OMP_CLIENT_MOD_VERSION);
                 I.C->RPC((RPCID)25, &o, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
                 I.phase = 2; I.phaseAt = now;
                 break;
@@ -1124,6 +1128,7 @@ bool SampGate::StartRemote(MPServer* srv, const char* host, uint16_t port, const
     { std::lock_guard<std::mutex> lk(I.sm); I.rServerName.clear(); }
     static ICore core; core.fn = LogThunk;
     SAMPRakNet::Init(&core);
+    if(const char* e = getenv("MP_GATE_OMP")) SAMPRakNet::SetClientOmp(atoi(e) != 0);   // 5.02.07: the launcher identity
     I.C = RakNetworkFactory::GetRakClientInterface();
     RegisterAll(I.C, &I);
     srv->BridgeEnable(true);

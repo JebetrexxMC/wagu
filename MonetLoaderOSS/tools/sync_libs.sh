@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 4.0.0-mp: refresh dist/lib from the real library repositories (proper require layout: lib/<mod>.lua, lib/<mod>/init.lua).
-# Usage: tools/sync_libs.sh <dir with the clones>   (clone names as on github.com/ThirtyFoxMCx00E1/<name>)
+# Usage: tools/sync_libs.sh <dir with the clones>   (clone names as on github.com/JebetrexxMC/<name>)
 # MonetLoader's own files (moonloader.lua, monetloader.lua, memory.lua, mimgui/, samp/ events glue, sampfuncs.lua,
 # vkeys.lua, game/, imgui.lua MoonImGui layer ...) are left alone.
 set -euo pipefail

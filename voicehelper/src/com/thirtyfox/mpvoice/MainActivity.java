@@ -64,7 +64,7 @@ public class MainActivity extends Activity {
         FrameLayout.LayoutParams pp = new FrameLayout.LayoutParams(-1, -1);
         int m = dp(14); pp.setMargins(m, m, m, m);
         root.addView(panel, pp);
-        // title bar: PLAY  MP Voice vX ............ powered by HiveMQ/ThirtyFoxMC
+        // title bar: PLAY  MP Voice vX ............ powered by HiveMQ/JebetrexxMC
         LinearLayout bar = new LinearLayout(this);
         bar.setOrientation(LinearLayout.HORIZONTAL); bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setPadding(dp(16), 0, dp(16), 0);
@@ -76,7 +76,7 @@ public class MainActivity extends Activity {
         ver.setText("MP Voice  v" + VERSION); ver.setTextSize(14); ver.setTextColor(DIM); ver.setPadding(dp(14), 0, 0, 0);
         bar.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
         TextView pw = new TextView(this);
-        pw.setText("powered by HiveMQ/ThirtyFoxMC"); pw.setTextSize(11); pw.setTextColor(Color.rgb(110, 200, 90)); pw.setTypeface(Typeface.DEFAULT_BOLD);
+        pw.setText("powered by HiveMQ/JebetrexxMC"); pw.setTextSize(11); pw.setTextColor(Color.rgb(110, 200, 90)); pw.setTypeface(Typeface.DEFAULT_BOLD);
         bar.addView(pw);
         panel.addView(bar, new LinearLayout.LayoutParams(-1, dp(48)));
         panel.addView(line());

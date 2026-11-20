@@ -11,6 +11,6 @@ login / register / forgot / reset password with your MP account (the Discord `/g
 Build: GitHub Actions > **MP Textdraw Editor** > Run workflow (the APK is the run's artifact; fill in a
 release tag to attach it to that release). Locally: `SDK=... JAVA_HOME=... KEYSTORE=... KEYPASS=... bash build.sh`.
 
-Login pages after [bootstrap-5-login-page](https://github.com/ThirtyFoxMCx00E1/bootstrap-5-login-page) (MIT,
-Muhamad Nauval Azhar). Editor after [samp-textdraw-editor](https://github.com/ThirtyFoxMCx00E1/samp-textdraw-editor).
+Login pages after [bootstrap-5-login-page](https://github.com/JebetrexxMC/bootstrap-5-login-page) (MIT,
+Muhamad Nauval Azhar). Editor after [samp-textdraw-editor](https://github.com/JebetrexxMC/samp-textdraw-editor).
 Bootstrap 5.3.3 CSS is bundled (MIT).

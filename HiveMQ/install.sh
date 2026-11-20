@@ -21,25 +21,25 @@
 #     (players stay connected). The kit now lives in the wagu repo (HiveMQ/ folder) - one repo for everything.
 set -euo pipefail
 
-# 3.25: HiveMQ CE comes from our own fork first (ThirtyFoxMCx00E1/hivemq-community-edition, Apache 2.0,
+# 3.25: HiveMQ CE comes from our own fork first (JebetrexxMC/hivemq-community-edition, Apache 2.0,
 # built by its "MP build" workflow into the release mp-<version>); the official release is the fallback.
 # HIVEMQ_SOURCE=official in mp.env (or the environment) skips the fork.
-HIVEMQ_FORK="ThirtyFoxMCx00E1/hivemq-community-edition"
+HIVEMQ_FORK="JebetrexxMC/hivemq-community-edition"
 HIVEMQ_FORK_VER="2026.6"
 HIVEMQ_FORK_URL="https://github.com/${HIVEMQ_FORK}/releases/download/mp-${HIVEMQ_FORK_VER}/hivemq-ce-${HIVEMQ_FORK_VER}.zip"
 HIVEMQ_VER="2026.5"
 HIVEMQ_URL="https://github.com/hivemq/hivemq-community-edition/releases/download/${HIVEMQ_VER}/hivemq-ce-${HIVEMQ_VER}.zip"
 # 3.25: prebuilt copy in the wagu v3.25 release (same file as the official 2026.5 zip, sha256 below);
 # used before github.com/hivemq for the official build, the official link stays as the last fallback
-HIVEMQ_MIRROR_URL="https://github.com/ThirtyFoxMCx00E1/wagu/releases/download/v3.25/hivemq-ce-${HIVEMQ_VER}.zip"
+HIVEMQ_MIRROR_URL="https://github.com/JebetrexxMC/wagu/releases/download/v3.25/hivemq-ce-${HIVEMQ_VER}.zip"
 HIVEMQ_SHA256="fd005e535eca0baffb085e11b1512885d06ce00786f961701c76449816f7dec5"
 RBAC_VER="4.6.18"
 RBAC_URL="https://github.com/hivemq/hivemq-file-rbac-extension/releases/download/${RBAC_VER}/hivemq-file-rbac-extension-${RBAC_VER}.zip"
 RBAC_SHA256="4089d09e5d2b6621a07aa86032230dce5aefbcc37130ef5c714fb6fa7185e3e6"
-JDK_X64_URL="https://github.com/ThirtyFoxMCx00E1/wagu/releases/download/Assets-1-2-3/OpenJDK21U-jdk_x64_linux_hotspot_21.0.13_9.tar.gz"   # 3.10: wagu release "HiveMQ + OpenJDK Java 21" (3.40.1: tag Assets-1-2-3)
+JDK_X64_URL="https://github.com/JebetrexxMC/wagu/releases/download/Assets-1-2-3/OpenJDK21U-jdk_x64_linux_hotspot_21.0.13_9.tar.gz"   # 3.10: wagu release "HiveMQ + OpenJDK Java 21" (3.40.1: tag Assets-1-2-3)
 JDK_X64_FALLBACK="https://api.adoptium.net/v3/binary/latest/21/ga/linux/x64/jdk/hotspot/normal/eclipse"
 JDK_ARM_URL="https://api.adoptium.net/v3/binary/latest/21/ga/linux/aarch64/jdk/hotspot/normal/eclipse"
-MOD_REPO="https://github.com/ThirtyFoxMCx00E1/wagu.git"
+MOD_REPO="https://github.com/JebetrexxMC/wagu.git"
 # 3.37 VPS: the kit is the HiveMQ/ folder of wagu (the separate HiveMQ repo is no longer used)
 KIT_REPO="$MOD_REPO"
 

@@ -1064,7 +1064,7 @@ static void PageAbout(float W)
         VPill(dl, a, b, IM_COL32(24, 27, 32, 200), IM_COL32(255, 92, 180, 120));
         dl->AddRectFilled(ImVec2(a.x, a.y + UI::S(10)), ImVec2(a.x + UI::S(5), b.y - UI::S(10)), IM_COL32(255, 92, 180, 255));
         dl->AddText(UI::Font(), fs * 1.45f, ImVec2(a.x + UI::S(26), a.y + fs * 0.55f), IM_COL32_WHITE, "VICE Loader");
-        dl->AddText(ImVec2(a.x + UI::S(26), a.y + fs * 2.45f), kVDim, "Version " VL_VERSION "   -   created by ThirtyFoxMC (ThirtyFoxMCx00E1)");
+        dl->AddText(ImVec2(a.x + UI::S(26), a.y + fs * 2.45f), kVDim, "Version " VL_VERSION "   -   created by JebetrexxMC");
         dl->AddText(ImVec2(a.x + UI::S(26), a.y + fs * 3.35f), kVDim, "The MP Multiplayer launcher for GTA Vice City on Android");
         ImGui::Dummy(ImVec2(W, fs * 4.6f + UI::S(12)));
     }
@@ -1085,19 +1085,19 @@ static void PageAbout(float W)
           "floating menu of its own. No login: CONNECT joins directly.", kVText, 0.88f);
     Heading("ABOUT THIS MOD");
     Label("MP Multiplayer is an independent, non-commercial project designed, programmed and maintained by one developer, "
-          "ThirtyFoxMC. The networking and sync, the server browser and launcher, the game modes, the dedicated server and "
+          "JebetrexxMC. The networking and sync, the server browser and launcher, the game modes, the dedicated server and "
           "the tools behind them are the result of many months of daily work and testing on real phones.", kVText, 0.88f);
     Heading("AUTHORSHIP AND CREDIT");
-    Label("MP Multiplayer and VICE Loader, their code, interface, artwork and names are the original work of ThirtyFoxMC. All "
+    Label("MP Multiplayer and VICE Loader, their code, interface, artwork and names are the original work of JebetrexxMC. All "
           "rights are reserved by the author. You may share the official download link and make videos and reviews as long as "
           "the author is credited. Re-uploads need the author's permission and visible credit; removing the author's name, "
           "renaming it as a new project or selling it is not allowed. Edited versions must say they are based on MP "
-          "Multiplayer by ThirtyFoxMC.", kVText, 0.88f);
+          "Multiplayer by JebetrexxMC.", kVText, 0.88f);
     Heading("THIRD-PARTY COMPONENTS");
     Label("GTA Vice City and GTA San Andreas are the property of Rockstar Games; MP is a fan-made mod and is not affiliated with "
           "or endorsed by Rockstar Games or Take-Two Interactive. MP uses AndroidModLoader, SAUtils, MonetLoader (OSS), Dear "
           "ImGui, mbedTLS, Opus, SQLite and other open-source libraries under their own licences.", kVText, 0.88f);
-    Label("(c) ThirtyFoxMC (ThirtyFoxMCx00E1). All rights reserved.   powered by HiveMQ/ThirtyFoxMC", kVDim, 0.78f);
+    Label("(c) JebetrexxMC. All rights reserved.   powered by HiveMQ/JebetrexxMC", kVDim, 0.78f);
     ImGui::Dummy(ImVec2(1, UI::S(20)));
 }
 
@@ -1396,7 +1396,7 @@ static void Launcher(float dw, float dh)
         dl->AddText(ImVec2(nx, wp.y + UI::S(8)), IM_COL32_WHITE, s_P.nick);
         dl->AddText(ImGui::GetFont(), ImGui::GetFontSize() * 0.78f, ImVec2(nx, wp.y + UI::S(40)), GameLinked() ? IM_COL32(95, 211, 95, 255) : IM_COL32(150, 150, 150, 255), st);
         dl->AddCircleFilled(ImVec2(nx - UI::S(20), wp.y + titleH * 0.5f), UI::S(7), GameLinked() ? IM_COL32(67, 181, 129, 255) : IM_COL32(116, 127, 141, 255), 16);
-        const char* wm = "powered by HiveMQ/ThirtyFoxMC";
+        const char* wm = "powered by HiveMQ/JebetrexxMC";
         float wx = nx - UI::S(60) - ImGui::CalcTextSize(wm).x * 0.8f;
         if(wx > px + ImGui::CalcTextSize(sub).x + UI::S(30)) dl->AddText(ImGui::GetFont(), ImGui::GetFontSize() * 0.8f, ImVec2(wx, ty2 + UI::S(3)), IM_COL32(95, 211, 95, 110), wm);
         dl->AddLine(ImVec2(wp.x, wp.y + titleH), ImVec2(wp.x + ws.x, wp.y + titleH), kVLine, UI::S(1));

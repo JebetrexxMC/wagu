@@ -7,7 +7,7 @@
 #   SOURCE=archive ./get_iso.sh
 cd "$(dirname "$0")" || exit 1
 NAME=ubuntu-26.04.1-live-server-amd64.iso
-REL=https://github.com/ThirtyFoxMCx00E1/wagu/releases/download/v4.13.45
+REL=https://github.com/JebetrexxMC/wagu/releases/download/v4.13.45
 ARCHIVE=https://archive.org/download/ubuntu-26.04.1-live-server-amd64/$NAME
 SHA256=cc8a95cde20f6ced61a322420de00f10cc3c90ced545daa46cb9c1a117f1d927
 SHA1=b23aa96b8398cccf2204b4a435139be691c46785

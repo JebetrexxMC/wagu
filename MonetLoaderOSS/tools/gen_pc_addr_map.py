@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate cpp/script/pc_addr_map.inc from plugin-sdk-sa (https://github.com/ThirtyFoxMCx00E1/plugin-sdk-sa).
+"""Generate cpp/script/pc_addr_map.inc from plugin-sdk-sa (https://github.com/JebetrexxMC/plugin-sdk-sa).
 
 Every PC GTA:SA 1.0 US address that plugin-sdk names (variables `T& Class::name = *(T*)0xADDR;`, arrays
 `T* Class::name = (T*)0xADDR;` and functions `// Converted from <cc> <ret> Class::Name(params) 0xADDR`) becomes

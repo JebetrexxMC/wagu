@@ -14,7 +14,7 @@
 set -uo pipefail
 RW_VERSION="4.13.16"
 DEFAULT_APP="discordpy-bot"
-DEFAULT_REPO="https://github.com/ThirtyFoxMCx00E1/discordpy-bot.git"
+DEFAULT_REPO="https://github.com/JebetrexxMC/discordpy-bot.git"
 SELF_URL="https://mpsamp-open.github.io/HiveMQ/railway/mp-railway.sh"
 
 SINCE=""; SINCE_LINE=0

@@ -1,4 +1,4 @@
-module github.com/ThirtyFoxMCx00E1/wagu/HiveMQ/providers/vultr-go
+module github.com/JebetrexxMC/wagu/HiveMQ/providers/vultr-go
 
 go 1.23
 

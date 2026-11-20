@@ -371,7 +371,10 @@ int SocketLayer::RecvFrom( const SOCKET s, RakPeer *rakPeer, int *errorCode )
 	if ( len != SOCKET_ERROR )
 	{
 		if (SAMPRakNet::IsClientSocket(s))
-		{   // MP 5.02: a phone joining a PC server: the server's datagrams are not encrypted
+		{   // MP 5.02: a phone joining a PC server: the server's datagrams are not SA-MP encrypted
+			// MP 5.02.07: an open.mp server with network.use_omp_encryption xors them with the key it gave us
+			len = SAMPRakNet::ClientReceive(sa.sin_addr.s_addr, ntohs(sa.sin_port), data, len);
+			if (len < 0) return 1;
 			ProcessNetworkPacket(sa.sin_addr.s_addr, ntohs(sa.sin_port), data, len, rakPeer);
 			return 1;
 		}

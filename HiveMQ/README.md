@@ -1,6 +1,6 @@
 # HiveMQ regional brokers for MP Multiplayer
 
-Self-hosted lobby servers for [MP Multiplayer](https://github.com/ThirtyFoxMCx00E1/wagu) (GTA SA Android), one per region: **Asia, Europe, NA, Oceania**. Each server runs, always on:
+Self-hosted lobby servers for [MP Multiplayer](https://github.com/JebetrexxMC/wagu) (GTA SA Android), one per region: **Asia, Europe, NA, Oceania**. Each server runs, always on:
 
 - **HiveMQ Community Edition** (free, no connection limit) with logins and topic rules (File RBAC extension)
 - the region's **24/7 default server** (`mp_server`, "MP LAN Server", UDP 1922)
@@ -126,9 +126,9 @@ From Termux on a phone: `pkg install -y openssh && ssh root@YOUR_VPS_IP "curl -f
 ## MP Oracle: free Oracle server by itself
 
 [`oracle/mp_oracle.py`](oracle/mp_oracle.py) is our own Oracle Cloud Always Free claimer, built from
-[oracle-freetier-instance-creation](https://github.com/ThirtyFoxMCx00E1/oracle-freetier-instance-creation),
-[oracle-cloud-free-arm-instance](https://github.com/ThirtyFoxMCx00E1/oracle-cloud-free-arm-instance) and
-[oci-claimer](https://github.com/ThirtyFoxMCx00E1/oci-claimer), plus the MP setup. It:
+[oracle-freetier-instance-creation](https://github.com/JebetrexxMC/oracle-freetier-instance-creation),
+[oracle-cloud-free-arm-instance](https://github.com/JebetrexxMC/oracle-cloud-free-arm-instance) and
+[oci-claimer](https://github.com/JebetrexxMC/oci-claimer), plus the MP setup. It:
 
 1. checks the Oracle login and shows the home region and the free A1 left
 2. makes the network once (`mp-vcn`, gateway, public subnet) with every MP port open: TCP 22 80 1883 8000 8883 8884 7681, UDP 1922 1930 1931 1932
@@ -185,7 +185,7 @@ Ping depends on where the machine is, not on the system: a Debian PC in the Phil
 
 ## MP 3.21.7: MP Railway - the Discord bot 24/7 on our own server
 
-Railway.app stopped taking new accounts, so the MP login bot ([discordpy-bot](https://github.com/ThirtyFoxMCx00E1/discordpy-bot): `/gen`, `/stats`, `/char`) now runs on **MP Railway**, our own small Railway that is part of this kit. Without a running bot Discord doesn't show `/gen` and nobody can log in on 3.21.6+ servers.
+Railway.app stopped taking new accounts, so the MP login bot ([discordpy-bot](https://github.com/JebetrexxMC/discordpy-bot): `/gen`, `/stats`, `/char`) now runs on **MP Railway**, our own small Railway that is part of this kit. Without a running bot Discord doesn't show `/gen` and nobody can log in on 3.21.6+ servers.
 
 On **one** server (the Asia / bridge server), once:
 
@@ -217,7 +217,7 @@ Without a VPS it also runs on an Android phone in Termux: `curl -fsSL https://mp
 
 ## MP 3.34: region branches, 24/7 bot host, lower ping with many players
 
-This kit now also lives inside the main repo: [wagu/HiveMQ](https://github.com/ThirtyFoxMCx00E1/wagu/tree/main/HiveMQ) (same files, kept in sync), so the mod, the website and the servers are never separated.
+This kit now also lives inside the main repo: [wagu/HiveMQ](https://github.com/JebetrexxMC/wagu/tree/main/HiveMQ) (same files, kept in sync), so the mod, the website and the servers are never separated.
 
 - **Region branches (game branch):** set `branch = on` in `bridge.conf` on the bridge machine. Every phone stays on the broker of **its own region** (Asia, Europe, NA, Oceania) and the bridge carries the game frames VPS to VPS to the region that hosts the server (`s/` phone to host, `c/` host to phone, `b/` host to all). Each VPS is a branch connected to the main HiveMQ machine with the same MQTT broker setup; players only pay the ping to their nearest VPS plus the fast VPS-to-VPS hop. `install.sh --bridge` writes `branch = on` (default); set `GAME_BRANCH=on` in `/etc/mp-hivemq/mp.env` and `tools/make-regions.sh` adds `branch=1` to that region in `regions.txt`, so 3.34 phones know they can stay on their own region.
 - **No ping climb when 25 / 100 players join:** `mp_server` keeps a per-player send budget (far players are sent less often when the server is full, near players and shots always go first), and the phone measures ping on its own channel so it is not stuck behind game packets.
@@ -318,7 +318,7 @@ All four use the same `mp.env` (same `mp` / `web` / bridge / admin passwords); o
 
 Java heap is automatic (3.25): `-Xms8g -Xmx16g` with 26 GB RAM or more (32 GB machine), `-Xms6g -Xmx12g` with 20 GB+ (24 GB machine), `-Xms5g -Xmx10g` with 14 GB+ (16 GB machine), `-Xms4g -Xmx8g` with 10 GB+, `-Xms2g -Xmx4g` with 6 GB+, about 60 % of RAM below that (giving Java all the RAM leaves nothing for Linux and gets HiveMQ killed). Override with `JVM_XMS=5g` / `JVM_XMX=10g` in `/etc/mp-hivemq/mp.env`. `sudo ./update.sh` picks the new heap up by itself. More heap = room for many more phones and no garbage-collection stalls under load; the ping itself depends on the internet line and how close the machine is to the players.
 
-**HiveMQ CE from our fork (3.25):** `install.sh` / `update.sh` install HiveMQ CE built from [ThirtyFoxMCx00E1/hivemq-community-edition](https://github.com/ThirtyFoxMCx00E1/hivemq-community-edition) (Apache 2.0). Its `MP build` workflow builds `hivemq-ce-<version>.zip` on every change and publishes it as the release `mp-<version>` (with a `.sha256`, checked on install). If that release is missing, the official HiveMQ CE release is used. Force the official one with `HIVEMQ_SOURCE=official` in `/etc/mp-hivemq/mp.env`. The official 2026.5 zip is first taken from the prebuilt copy in the [wagu v3.25 release](https://github.com/ThirtyFoxMCx00E1/wagu/releases/tag/v3.25) (`hivemq-ce-2026.5.zip`, same file as HiveMQ's, sha256 `fd005e53...7dec5` checked), then from github.com/hivemq.
+**HiveMQ CE from our fork (3.25):** `install.sh` / `update.sh` install HiveMQ CE built from [JebetrexxMC/hivemq-community-edition](https://github.com/JebetrexxMC/hivemq-community-edition) (Apache 2.0). Its `MP build` workflow builds `hivemq-ce-<version>.zip` on every change and publishes it as the release `mp-<version>` (with a `.sha256`, checked on install). If that release is missing, the official HiveMQ CE release is used. Force the official one with `HIVEMQ_SOURCE=official` in `/etc/mp-hivemq/mp.env`. The official 2026.5 zip is first taken from the prebuilt copy in the [wagu v3.25 release](https://github.com/JebetrexxMC/wagu/releases/tag/v3.25) (`hivemq-ce-2026.5.zip`, same file as HiveMQ's, sha256 `fd005e53...7dec5` checked), then from github.com/hivemq.
 
 Pick each VPS in a data center close to its players, e.g. Singapore or Tokyo for Asia, Frankfurt for Europe, Virginia or Ohio for NA, Sydney for Oceania.
 
@@ -327,7 +327,7 @@ Pick each VPS in a data center close to its players, e.g. Singapore or Tokyo for
 ### 1. First region (with the bridge)
 
 ```bash
-git clone https://github.com/ThirtyFoxMCx00E1/wagu/tree/main/HiveMQ
+git clone https://github.com/JebetrexxMC/wagu/tree/main/HiveMQ
 cd HiveMQ
 sudo ./install.sh --region Asia --domain asia-you.duckdns.org --email you@mail.com --bridge
 ```

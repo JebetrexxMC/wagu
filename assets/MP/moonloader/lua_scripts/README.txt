@@ -30,7 +30,7 @@ New files      are picked up within 5 seconds. Chat: /luascripts, /luascripts li
 Log            moonloader.log, lines "[LuaScripts] ...".
 
 Inside:
-  moonloader-scripts/   https://github.com/ThirtyFoxMCx00E1/moonloader-scripts (ins1x, PC MoonLoader scripts for
+  moonloader-scripts/   https://github.com/JebetrexxMC/moonloader-scripts (ins1x, PC MoonLoader scripts for
                         SA-MP servers: Arizona, Absolute Play, TRAINING, UIF ... - see its README.md). Scripts for a
                         server only do something on that server; Windows-only parts of a script fail in
                         moonloader.log instead of crashing.

@@ -1,6 +1,6 @@
 // 4.13.40: VC:MP-style gamemode on GTA Vice City servers (net/vcmp.h).
 // Classes / teams / server cars from a VC:MP 0.1c server.ini [GAME] section
-// (VC:MP: https://github.com/ThirtyFoxMCx00E1/vc-mp, GPL v2, kyeman / SA:MP team - server/gamemode/generic.cpp,
+// (VC:MP: https://github.com/JebetrexxMC/vc-mp, GPL v2, kyeman / SA:MP team - server/gamemode/generic.cpp,
 // server/netrpc.cpp RequestClass, server/vehiclepool.cpp). Included by server.cpp.
 
 static bool VcmpReadFloats(const char* s, float* out, int n)

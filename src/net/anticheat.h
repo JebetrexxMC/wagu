@@ -1,4 +1,4 @@
-// 3.50: server anti-cheat (based on Nex-AC 1.9.69, https://github.com/ThirtyFoxMCx00E1/Nex-AC)
+// 3.50: server anti-cheat (based on Nex-AC 1.9.69, https://github.com/JebetrexxMC/Nex-AC)
 // Shared by the server (checks) and the phone (Add server page -> Gamemode -> Anti-cheat toggles).
 // Always on (every check) on the default server, Mega Vil Futuristic, Brief Case War and MW3.
 // Custom servers: the host turns it on and picks the checks.

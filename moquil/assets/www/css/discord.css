@@ -175,7 +175,7 @@ html.inchat:not(.portrait) .topbar [data-act="back"] { display: none; }
 .spv .ico { position: absolute; left: 16px; top: 74px; }
 .srv-bn { height: 72px; border-radius: 8px; border: 2px dashed #b5bac1; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 12px; font-weight: 700; color: #b5bac1; cursor: pointer; margin-bottom: 4px; background-size: cover; background-position: center; }
 .srvhd.hasbn { height: 120px; align-items: flex-start; padding-top: 14px; background-size: cover; background-position: center; text-shadow: 0 1px 3px rgba(0,0,0,.8); color: #fff; }
-/* 4.13.2: open source communities on Discord (github.com/ThirtyFoxMCx00E1/discord-open-source) */
+/* 4.13.2: open source communities on Discord (github.com/JebetrexxMC/discord-open-source) */
 .oss { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
 .oss .o { background: var(--d-card); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
 .oss .o .lg { width: 44px; height: 44px; border-radius: 12px; background: #24252b center / 70% no-repeat; flex: none; }

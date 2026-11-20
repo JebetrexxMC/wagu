@@ -5,7 +5,7 @@
 #   or on the server:  sudo bash /opt/mp/kit/update.sh      (Termius console: 7) update)
 set -euo pipefail
 # 3.37 VPS: the kit is the HiveMQ/ folder of the wagu repo (one repo for the mod, the servers and the website)
-KIT_REPO="https://github.com/ThirtyFoxMCx00E1/wagu.git"
+KIT_REPO="https://github.com/JebetrexxMC/wagu.git"
 BASE=/opt/mp
 export MP_FORCE_RESTART="${MP_FORCE_RESTART:-0}"
 say() { printf '\033[1;32m[mp-update]\033[0m %s\n' "$*"; }

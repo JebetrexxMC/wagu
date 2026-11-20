@@ -3941,7 +3941,7 @@ namespace RakNet
 			c[0] = ID_OPEN_CONNECTION_REQUEST;
 			uint16_t cookie;
 			memcpy(&cookie, &data[1], sizeof(cookie));
-			cookie ^= SAMPRakNet::SAMP_PETARDED;
+			cookie ^= SAMPRakNet::ClientCookieXor(playerId.binaryAddress, playerId.port);   // MP 5.02.07: 0x6D70 = the open.mp launcher
 			memcpy(&c[1], &cookie, sizeof(cookie));
 			SocketLayer::Instance()->SendTo( rakPeer->connectionSocket, (char*)&c, 3, playerId.binaryAddress, playerId.port );
 			return;

@@ -723,7 +723,7 @@ static bool s_hhHere = false;                            // 5.01.06: lua_scripts
 
 // 5.01.06: HassleHUD download (raw.githubusercontent.com, no redirect) -> moonloader/lua_scripts/Hasslehud/
 static const char* const kHassleUrls[] = {
-    "https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/main/Host/Mods/Hasslehud.zip" };
+    "https://raw.githubusercontent.com/JebetrexxMC/wagu/main/Host/Mods/Hasslehud.zip" };
 static std::atomic<int> s_hhDl{ 0 };          // 0 idle, 1 downloading, 2 unpacking, 3 done, 4 failed
 static std::atomic<size_t> s_hhGot{ 0 };
 static std::mutex s_hhMx;

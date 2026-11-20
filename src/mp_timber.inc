@@ -1,5 +1,5 @@
 // MP 3.51 - GM_TIMBER: the Timber (lumberjack) job (included by mp.cpp after mp_modes2.inc).
-// After the Wild West Roleplay lumber job (github.com/ThirtyFoxMCx00E1/Wild-West-Roleplay,
+// After the Wild West Roleplay lumber job (github.com/JebetrexxMC/Wild-West-Roleplay,
 // gamemodes/func/jobs/lumber + jobs/core.pwn): Birch / Oak / Yew trees with health, a chainsaw,
 // a cutting progress bar that drops when you stop, stumps after the cut, a woodcutting skill
 // (oak = level 2, yew = level 3), a "you feel tired" cooldown and /checkjobcooldown. Plus the

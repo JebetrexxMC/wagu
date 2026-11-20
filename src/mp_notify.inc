@@ -12,8 +12,8 @@
 // server's HUD colour on custom servers). notify.mp3 plays once when it pops up: streamed from the wagu
 // repo on GitHub (Host/Media) into memory, like dz_ambient / war_ambient - it is never put in files/TYFMC/MP.
 
-#define NOTIFY_SOUND_URL1 "https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/main/Host/Media/notify.mp3"
-#define NOTIFY_SOUND_URL2 "https://thirtyfoxmcx00e1.github.io/wagu/Host/Media/notify.mp3"
+#define NOTIFY_SOUND_URL1 "https://raw.githubusercontent.com/JebetrexxMC/wagu/main/Host/Media/notify.mp3"
+#define NOTIFY_SOUND_URL2 "https://jebetrexxmc.github.io/wagu/Host/Media/notify.mp3"
 #define NOTIFY_IN_MS   420
 #define NOTIFY_OUT_MS  320
 #define NOTIFY_SHOW_MAX 5

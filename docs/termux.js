@@ -7,7 +7,7 @@
   var REG = ['Asia', 'Europe', 'NA', 'Oceania'];
   var PUBLIC = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://test.mosquitto.org:8081/'];
   var ROOT = 'thirtyfox/mp5/', FRESH = 15000;
-  var PORTS = 'https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/live-status/ports.json', lastBroker = 0;
+  var PORTS = 'https://raw.githubusercontent.com/JebetrexxMC/wagu/live-status/ports.json', lastBroker = 0;
   var RAW = 'https://mpsamp-open.github.io/';   // 3.35: openmpsa.com (no repo links)
   var API = 'release.json';
   var $ = function (id) { return document.getElementById(id); };
@@ -204,9 +204,9 @@
     'git-helper': function () {   // 3.40.2: Git helper - removes only Claude from a repo's history
       var G = 'curl -fsSL https://mpsamp-open.github.io/git-helper.sh | bash -s -- ';
       p('m', 'Git helper: removes ONLY Claude (author + Co-authored-by lines) from a GitHub repo, everything else stays.');
-      print('  1. <span class="g">' + esc(G + 'scan ThirtyFoxMCx00E1/REPO') + '</span>  <span class="m">which commits mention Claude</span>');
-      print('  2. <span class="g">' + esc(G + 'clean ThirtyFoxMCx00E1/REPO') + '</span>  <span class="m">dry run + backup .bundle</span>');
-      print('  3. <span class="g">' + esc(G + 'clean ThirtyFoxMCx00E1/REPO --push') + '</span>  <span class="m">rewrite + force-push</span>');
+      print('  1. <span class="g">' + esc(G + 'scan JebetrexxMC/REPO') + '</span>  <span class="m">which commits mention Claude</span>');
+      print('  2. <span class="g">' + esc(G + 'clean JebetrexxMC/REPO') + '</span>  <span class="m">dry run + backup .bundle</span>');
+      print('  3. <span class="g">' + esc(G + 'clean JebetrexxMC/REPO --push') + '</span>  <span class="m">rewrite + force-push</span>');
       p('m', '  run it in Termux (pkg install gh git) after gh auth login. wagu itself is already clean.');
     },
     'xdp-setup': function () {   // 4.13.48: XDP on the VPS (docs/XDP_SETUP.md) - Linux VPS only, not on the phone
@@ -230,7 +230,7 @@
     },
     'phone-broker': function () {   // 5.01.04: the region broker on this phone (docs/termux-broker.sh) + live port check
       lastBroker = Date.now();
-      var ONE = 'curl -fsSL https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/main/docs/termux-broker.sh | bash -s -- YOUR_DUCKDNS_TOKEN';
+      var ONE = 'curl -fsSL https://raw.githubusercontent.com/JebetrexxMC/wagu/main/docs/termux-broker.sh | bash -s -- YOUR_DUCKDNS_TOKEN';
       p('m', 'region broker on a phone (Mosquitto 1883 + 8883, MP login, restarts by itself, DuckDNS every 5 min) - paste in the real Termux app:');
       print('  <span class="g">' + esc(ONE) + '</span>');
       p('m', '  router (http://192.168.1.1) port forwarding to the phone Wi-Fi IP:');

@@ -32,9 +32,9 @@ rm -rf /root/HiveMQ /root/wagu-kit
 # 4.12.7: wagu is private - the kit comes from the website (downloads/HiveMQ-kit.tar.gz), git is the fallback
 if mkdir -p /root/wagu-kit && curl -fsSL --retry 3 https://mpsamp-open.github.io/downloads/HiveMQ-kit.tar.gz | tar -xz -C /root/wagu-kit \
    && [ -f /root/wagu-kit/HiveMQ/install.sh ]; then :
-elif rm -rf /root/wagu-kit; git clone -q --depth 1 --filter=blob:none --sparse https://github.com/ThirtyFoxMCx00E1/wagu /root/wagu-kit </dev/null 2>/dev/null \
+elif rm -rf /root/wagu-kit; git clone -q --depth 1 --filter=blob:none --sparse https://github.com/JebetrexxMC/wagu /root/wagu-kit </dev/null 2>/dev/null \
    && git -C /root/wagu-kit sparse-checkout set HiveMQ </dev/null 2>/dev/null; then :
-else rm -rf /root/wagu-kit; git clone -q --depth 1 https://github.com/ThirtyFoxMCx00E1/wagu /root/wagu-kit </dev/null; fi
+else rm -rf /root/wagu-kit; git clone -q --depth 1 https://github.com/JebetrexxMC/wagu /root/wagu-kit </dev/null; fi
 mv /root/wagu-kit/HiveMQ /root/HiveMQ; rm -rf /root/wagu-kit
 cd /root/HiveMQ
 
@@ -45,7 +45,7 @@ bash ./install.sh "${ARGS[@]}" </dev/null
 
 # the phones already know the passwords in the website's regions.txt: use the same ones
 say "using the passwords from regions.txt"
-RT="$(curl -fsSL https://mpsamp-open.github.io/regions.txt || curl -fsSL https://thirtyfoxmcx00e1.github.io/wagu/regions.txt || true)"   # 4.05.4: new site, old one as backup
+RT="$(curl -fsSL https://mpsamp-open.github.io/regions.txt || curl -fsSL https://jebetrexxmc.github.io/wagu/regions.txt || true)"   # 4.05.4: new site, old one as backup
 blk="$(printf '%s\n' "$RT" | awk -v r="[$REGION]" '$0==r{f=1;next} /^\[/{f=0} f')"
 MPP="$(printf '%s\n' "$blk" | sed -n 's/^pass=//p' | head -1)"
 WBP="$(printf '%s\n' "$blk" | sed -n 's/^web_pass=//p' | head -1)"

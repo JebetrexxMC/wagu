@@ -120,7 +120,7 @@ With `-p deny` the same test lost ARP, so the host went unreachable.
 
 ## Optional: xdp-proxy
 
-[xdp-proxy](https://github.com/ThirtyFoxMCx00E1/xdp-proxy) (fork of gamemann/xdp-proxy) forwards a UDP port to another server in XDP.
+[xdp-proxy](https://github.com/JebetrexxMC/xdp-proxy) (fork of gamemann/xdp-proxy) forwards a UDP port to another server in XDP.
 Use it only to relay players to a second box. It is not needed for filtering.
 
 ## ISO downloads (release v4.13.45)

@@ -1,6 +1,6 @@
 // 4.13.40: VC:MP-style gamemode for GTA Vice City servers (mp_server --game vc).
 //
-// What it brings (the "generic" gamemode of VC:MP 0.1c, https://github.com/ThirtyFoxMCx00E1/vc-mp,
+// What it brings (the "generic" gamemode of VC:MP 0.1c, https://github.com/JebetrexxMC/vc-mp,
 // GPL v2, kyeman / SA:MP team): classes (team, skin, spawn point, 3 spawn weapons), teams without
 // friendly fire, team colours, server cars that respawn, and the server.ini [GAME] file format, so a
 // VC:MP server.ini works as it is:

@@ -1,5 +1,5 @@
 -- txAdmin Open Source by 4trays LazyCat Studios (MIT licence, lib/webviews/LICENSE_txAdmin.txt)
--- https://github.com/ThirtyFoxMCx00E1/MonetLoader-txAdmin - bundled with MP 4.13.53. Open it with /tx or /txadmin.
+-- https://github.com/JebetrexxMC/MonetLoader-txAdmin - bundled with MP 4.13.53. Open it with /tx or /txadmin.
 -- On SA-MP gamemode servers the admin commands go to the gamemode; on MP servers to MP's own admin commands.
 script_name("txAdmin Open Source")
 script_author("4trays LazyCat Studios")

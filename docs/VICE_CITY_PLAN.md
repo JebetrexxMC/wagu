@@ -81,7 +81,7 @@ All 55 script commands used were checked against the Sanny Builder Vice City lib
 
 - 4.13.38 / 4.13.39: Vice City titles (`title2.png` while joining, `title_logo_connected2.png` after the join),
   drawn by the VC layer itself (RwImage -> RwRaster -> RwTexture, CSprite2d::Draw).
-- 4.13.40: VC:MP-style gamemode, from VC:MP 0.1c (https://github.com/ThirtyFoxMCx00E1/vc-mp, GPL v2):
+- 4.13.40: VC:MP-style gamemode, from VC:MP 0.1c (https://github.com/JebetrexxMC/vc-mp, GPL v2):
   - server: `src/net/server_vcmp.inc` reads `vcmp.ini` / `--vcmp <file>` (VC:MP server.ini [GAME] format:
     GameName, Teams, Class, Vehicle, PlayerPos / CamPos / CamLook; MP adds TeamName and VehicleRespawn).
     PKT_VCMP (`src/net/vcmp.h`): INFO, CLASS, VEH, PTEAM (S->C), PICK, TAKE, FREE (C->S). No friendly fire
@@ -94,7 +94,7 @@ All 55 script commands used were checked against the Sanny Builder Vice City lib
   - not ported from VC:MP: the class-selection camera (CamPos / CamLook are sent but the list is a chat
     dialog), special-actor skins above 106, RCON (MP has its own admin commands), the PC-only key / aim
     structures (MP's own aim + bullet sync already covers them).
-- VCS2OMP (https://github.com/ThirtyFoxMCx00E1/VCS2OMP) is a Vice City Stories map for SA open.mp servers with
+- VCS2OMP (https://github.com/JebetrexxMC/VCS2OMP) is a Vice City Stories map for SA open.mp servers with
   2,850 custom models: it belongs to the San Andreas side (open.mp bridge), not the VC layer.
 
 ## Not ported (and why)
@@ -106,8 +106,8 @@ All 55 script commands used were checked against the Sanny Builder Vice City lib
 
 ## Sources used
 
-- `ThirtyFoxMCx00E1/GTAviceCity`: the local clone is re3 (GTA III); used only for engine ideas shared by III and VC, never for VC layouts, CWorld, CPools, CStreaming, CTheScripts (128 scripts, 120 mission scripts), CCutsceneMgr, CGarages, CPickups, CRadar, CHud. This is the "header file" for the VC layer.
-- gta-vice-city-wasm (`ThirtyFoxMCx00E1/gta-vice-city-wasm`): reVC running in a browser, with touch controls, saves (`GTAVCsf1.b` - `GTAVCsf8.b`) and skin import. Useful for testing logic on PC / browser and for the touch-control layout.
+- `JebetrexxMC/GTAviceCity`: the local clone is re3 (GTA III); used only for engine ideas shared by III and VC, never for VC layouts, CWorld, CPools, CStreaming, CTheScripts (128 scripts, 120 mission scripts), CCutsceneMgr, CGarages, CPickups, CRadar, CHud. This is the "header file" for the VC layer.
+- gta-vice-city-wasm (`JebetrexxMC/gta-vice-city-wasm`): reVC running in a browser, with touch controls, saves (`GTAVCsf1.b` - `GTAVCsf8.b`) and skin import. Useful for testing logic on PC / browser and for the touch-control layout.
 - vc-android-sdk: AML template for libGTAVC.so; mods folder `/storage/emulated/0/data/com.rockstargames.gtavc/mods` (AML: `Android/data/com.rockstargames.gtavc/mods`). Symbols: `FindPlayerPed`, `CHud::SetHelpMessage` `_ZN4CHud14SetHelpMessageEPtbbb`, `CHud::SetBigMessage` `_ZN4CHud13SetBigMessageEPtt`.
 - VCMP-Android (fet1sov): an open-source start of VC:MP on Android, both ABIs. Addresses for the 1.09-era libGTAVC.so it targets (32-bit / 64-bit): game state 0x469D24 / 0x991E84 (== 9 = in game), script thread runner 0x144B14 / 0x19D1A4, NvUtilInit 0x3AC59C / 0x3ACE04, touch 0x3ACBA8 / 0x45D4E8, player model change 0x1B9B1C / 0x211730. They must be re-checked on the APK the players use (AML builds of VC 1.09 / 1.12).
 - PC VC:MP 0.4 (vc-mp.org): what players expect: on-foot / vehicle / passenger sync, weapons and damage, animations, scoreboard, chat box, nametags, health bars, server browser, up to 100 players, custom objects / skins / vehicles, server-side anti-cheat.

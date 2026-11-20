@@ -11,7 +11,7 @@ GitHub copy exists but could not be read (network down, wrong key): the bot then
 GitHub stays untouched until the next start.
 
 Settings (environment):
-  DATA_REPO        owner/repo for the data branch (default: GITHUB_REPOSITORY, else ThirtyFoxMCx00E1/discordpy-bot)
+  DATA_REPO        owner/repo for the data branch (default: GITHUB_REPOSITORY, else JebetrexxMC/discordpy-bot)
   DATA_REPO_TOKEN  a GitHub token with contents:write on DATA_REPO (GITHUB_TOKEN works in GitHub Actions)
   DATA_BRANCH      default mp-railway-data
 """
@@ -84,7 +84,7 @@ class GhStore:
         token = os.environ.get("DATA_REPO_TOKEN", "").strip()
         if not token or not private_hex:
             return None
-        repo = os.environ.get("DATA_REPO") or os.environ.get("GITHUB_REPOSITORY") or "ThirtyFoxMCx00E1/discordpy-bot"
+        repo = os.environ.get("DATA_REPO") or os.environ.get("GITHUB_REPOSITORY") or "JebetrexxMC/discordpy-bot"
         return cls(repo, token, private_hex, os.environ.get("DATA_BRANCH", "mp-railway-data"))
 
     # ------------------------------------------------------------------ REST

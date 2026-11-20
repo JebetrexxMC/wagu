@@ -99,7 +99,7 @@ static int  s_nBrokerOverride = -1;
 // 2.20 regional brokers (own HiveMQ per region, see the HiveMQ repo). Built from broker.txt
 // [Region] blocks or regions.txt downloaded from the website. Without them nothing changes.
 #define MP_REGIONS_URL "https://mpsamp-open.github.io/regions.txt"            // 4.05.4: new website (mpsamp-open org)
-#define MP_REGIONS_URL_OLD "https://thirtyfoxmcx00e1.github.io/wagu/regions.txt"  // 4.05.4: old address, used when the new one fails
+#define MP_REGIONS_URL_OLD "https://jebetrexxmc.github.io/wagu/regions.txt"  // 4.05.4: old address, used when the new one fails
 static bool             s_bRegional = false;          // at least one regional broker known
 static std::atomic<int> s_RegionPing[REGION_COUNT];   // TCP connect ms, -1 unknown, -2 unreachable
 // 2.23: regions measured at least once (before that "-1" means "not measured", after it "down")

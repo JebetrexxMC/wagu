@@ -1875,7 +1875,7 @@ static void DzDrawPanel(ImVec2 ds)
                 char l[256]; DzModelsStatusLine(l, sizeof(l)); ImGui::TextWrapped("%s", l);
                 if(ImGui::Button("Retry skipped models")) DzModelsReport(true);
             }
-            ImGui::TextWrapped("Project Day Z Legacy - gamemode Proper DAYZ. Based on Project DayZ SA-MP, made for MP by ThirtyFox.");
+            ImGui::TextWrapped("Project Day Z Legacy - gamemode Proper DAYZ. Based on Project DayZ SA-MP, made for MP by JebetrexxMC.");
             ImGui::TextWrapped("Ambient music: No Man's Land | Metro / S.T.A.L.K.E.R Atmospheric Playlist by Lemuria - youtu.be/aVTcVx1570w (streamed from the MP media host over Wi-Fi / mobile data; a copy at files/TYFMC/MP/dz_ambient.mp3 is used instead if you have one).");
             ImGui::TextWrapped("Global network (4.05): libks, signalwire-c, FreeSWITCH (SignalWire), Eclipse Mosquitto, EMQX, MQTTX, Mainflux, awesome-mqtt, vps-hosting-providers, Sidekick, Aeon-MLTB, whmcs-vps-reseller.");
             break;
@@ -2032,8 +2032,8 @@ static void DzDrawCabin(float t)
         else if(s_Dz.page == 2)
         {
             DzText(fg, UI::S(26), ImVec2(px + UI::S(20), ly), DzCol(DZ_YEL), "CREDITS"); ly += UI::S(44);
-            static const char* const cr[] = { "Project Day Z Legacy (Proper DAYZ) for MP", "Original Project DayZ SA-MP gamemode - github.com/ThirtyFoxMCx00E1/Project-DayZ-SAMP",
-                                              "MP, the Broker 24/7 servers, the HUD and the cabin - ThirtyFox", "Psdk / AML mod loader - the AndroidModLoader team",
+            static const char* const cr[] = { "Project Day Z Legacy (Proper DAYZ) for MP", "Original Project DayZ SA-MP gamemode - github.com/JebetrexxMC/Project-DayZ-SAMP",
+                                              "MP, the Broker 24/7 servers, the HUD and the cabin - JebetrexxMC", "Psdk / AML mod loader - the AndroidModLoader team",
                                               "Ambient music: No Man's Land | Metro / S.T.A.L.K.E.R Atmospheric Playlist - Lemuria (youtube.com/@lemurian.archives, youtu.be/aVTcVx1570w)",
                                               "Global network (4.05): signalwire/libks, signalwire/signalwire-c, signalwire/freeswitch, eclipse-mosquitto/mosquitto, emqx/emqx, emqx/MQTTX, mainflux/mainflux, awesome-mqtt/awesome-mqtt, qfft560/vps-hosting-providers, MightyMoud/sidekick, AeonOrg/Aeon-MLTB, Rad-Web-Hosting/whmcs-vps-reseller (github.com)",
                                               "Thanks to every survivor testing the server." };

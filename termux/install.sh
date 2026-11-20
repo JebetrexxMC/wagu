@@ -48,7 +48,7 @@ BASH_BIN="$(command -v bash)"
 
 mkdir -p "$HOME_DIR"
 say "downloading the server source ($SITE)"
-curl -fsSL "$SITE/downloads/mp-server-src.tar.gz" -o "$HOME_DIR/src.tar.gz" </dev/null || curl -fsSL "https://thirtyfoxmcx00e1.github.io/wagu/downloads/mp-server-src.tar.gz" -o "$HOME_DIR/src.tar.gz" </dev/null || die "download failed (check the internet, then run again)"
+curl -fsSL "$SITE/downloads/mp-server-src.tar.gz" -o "$HOME_DIR/src.tar.gz" </dev/null || curl -fsSL "https://jebetrexxmc.github.io/wagu/downloads/mp-server-src.tar.gz" -o "$HOME_DIR/src.tar.gz" </dev/null || die "download failed (check the internet, then run again)"
 rm -rf "$SRC.new"; mkdir -p "$SRC.new"
 tar --no-same-owner -xzf "$HOME_DIR/src.tar.gz" -C "$SRC.new" || die "the source download is broken - run again"
 rm -rf "$SRC"; mv "$SRC.new" "$SRC"; rm -f "$HOME_DIR/src.tar.gz"

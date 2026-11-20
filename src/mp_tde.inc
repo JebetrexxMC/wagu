@@ -1,6 +1,6 @@
 // ================================================================================================
 // 3.50: in-game MP Textdraw Editor (/tde). Works like samp-textdraw-editor (Nexor,
-// https://github.com/ThirtyFoxMCx00E1/samp-textdraw-editor): a toolbar with the same 35 tools
+// https://github.com/JebetrexxMC/samp-textdraw-editor): a toolbar with the same 35 tools
 // (assets/MP/tde_icons.png, 7 x 5 cells of 64 px), tap a textdraw to select it, drag to move /
 // resize, palettes, the sprite browser, the deleted textdraws depot, undo / redo, global or player
 // textdraws, preview models. Projects are one file each: files/TYFMC/MP/tde/projects/<name>.mptd (JSON,

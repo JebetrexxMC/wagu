@@ -1,7 +1,7 @@
 #!/bin/bash
 # 5.02: boots the Ubuntu 26.04.1 live server ISO in QEMU (install once into disk.qcow2, then it boots
 # from the disk). Ports 1922/udp (MP) and 7777/udp (SA-MP / open.mp crossplay) reach the VM, 2222 = SSH.
-# Inside the VM:  git clone https://github.com/ThirtyFoxMCx00E1/wagu && cd wagu/server && make
+# Inside the VM:  git clone https://github.com/JebetrexxMC/wagu && cd wagu/server && make
 #                 ./mp_server 1922 "MP LAN Server" 100 Asia --persistent --samp-port 7777
 #   RAM=4096 CPUS=4 DISK=40G ./run_qemu.sh      NOGUI=1 for a serial console
 cd "$(dirname "$0")" || exit 1

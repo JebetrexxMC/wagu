@@ -1,6 +1,6 @@
 #!/bin/bash
 # 4.13: copies the Moquil app (moquil/assets/www, the files inside the APK) to the website:
-#   docs/moquil/  -> mpsamp-open.github.io/moquil/ and thirtyfoxmcx00e1.github.io/wagu/moquil/
+#   docs/moquil/  -> mpsamp-open.github.io/moquil/ and jebetrexxmc.github.io/wagu/moquil/
 #   and, with a checkout path, to the mpsamp-open/moquils-web repo (mpsamp-open.github.io/moquils-web/)
 #   bash tools/sync_moquil_web.sh [path-to-moquils-web-checkout]
 set -e
