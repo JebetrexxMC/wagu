@@ -1,0 +1,73 @@
+name: Docker images (Ubuntu 26.04 / Debian 12)
+# 5.02.01: builds and checks the docker/ images on a real Docker host: the build image builds server/mp_server
+# and test/sampgate_test, the run image starts the MP server with the SA-MP port, the open.mp image runs a real
+# omp-server, then the crossplay test joins that open.mp server and the SA-MP query is asked of both.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docker/**'
+      - 'Dockerfile'
+      - 'server/**'
+      - 'src/net/**'
+      - 'third_party/omp-raknet/**'
+      - 'test/sampgate_test.cpp'
+      - '.github/workflows/docker.yml'
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [ubuntu-26.04, debian-12]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            docker
+            server
+            src/net
+            third_party
+            test/sampgate_test.cpp
+            Dockerfile
+      - name: Build image + mp_server + sampgate_test
+        run: DISTRO=${{ matrix.distro }} BUILD_TESTS=1 bash docker/build.sh
+      - name: Run image (MP 1922 + SA-MP 7778)
+        run: |
+          MP_PORT=1922 SAMP_PORT=7778 DETACH=1 DISTRO=${{ matrix.distro }} bash docker/run.sh
+          sleep 6; docker logs mp-${{ matrix.distro }} 2>&1 | tail -20
+      - name: open.mp image (omp-server on 7777)
+        run: |
+          DETACH=1 DISTRO=${{ matrix.distro }} bash docker/omp/run_omp.sh
+          sleep 6; docker logs omp-${{ matrix.distro }} 2>&1 | tail -20
+      - name: SA-MP query of both servers
+        run: |
+          cat > /tmp/q.py <<'EOF'
+          import socket, struct, sys
+          port = int(sys.argv[1])
+          s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.settimeout(2)
+          for _ in range(5):
+              s.sendto(b"SAMP" + bytes([127, 0, 0, 1]) + struct.pack("<H", port) + b"i", ("127.0.0.1", port))
+              try: d, _ = s.recvfrom(2048); break
+              except socket.timeout: d = None
+          if not d: sys.exit("no answer on %d" % port)
+          o = 11; pw = d[o]; pl, mx = struct.unpack("<HH", d[o+1:o+5]); o += 5
+          n = struct.unpack("<I", d[o:o+4])[0]; name = d[o+4:o+4+n].decode("latin1")
+          print("port %d: %s  %d/%d  password=%d" % (port, name, pl, mx, pw))
+          if len(sys.argv) > 2 and sys.argv[2] not in name: sys.exit("unexpected name")
+          EOF
+          python3 /tmp/q.py 7778 "MP LAN Server"
+          python3 /tmp/q.py 7777
+      - name: Crossplay test (phone -> MP proxy -> open.mp server)
+        run: |
+          docker run --rm --network host -v "$PWD":/code -w /code/test mp/build:${{ matrix.distro }} \
+            timeout 90 ./sampgate_test 127.0.0.1 7777
+          docker logs omp-${{ matrix.distro }} 2>&1 | grep -E "join|chat|part" || true
+      - name: Root Dockerfile (24/7 servers image)
+        if: matrix.distro == 'debian-12'
+        run: docker build -t mp/247 .
+      - name: Images
+        if: always()
+        run: |
+          docker images --format '{{.Repository}}:{{.Tag}}  {{.Size}}' | grep -E '^mp/' || true
+          docker stop mp-${{ matrix.distro }} omp-${{ matrix.distro }} >/dev/null 2>&1 || true

@@ -13,5 +13,6 @@ if [ ! -x Server/omp-server ]; then
     tar xzf open.mp-linux-x86.tar.gz && rm -f open.mp-linux-x86.tar.gz || exit 1
 fi
 docker build -t mp/omp:${distro} --build-arg BASE="${distro/-/:}" . || exit 1
-docker run --rm -ti -v "$PWD/Server":/omp -w /omp -p ${port}:${port}/udp -p ${port}:${port}/tcp mp/omp:${distro} \
+mode=(-ti); [ "$DETACH" = 1 ] && mode=(-d --name omp-${distro})   # DETACH=1: in the background
+docker run --rm "${mode[@]}" -v "$PWD/Server":/omp -w /omp -p ${port}:${port}/udp -p ${port}:${port}/tcp mp/omp:${distro} \
     ./omp-server -c network.port=${port}

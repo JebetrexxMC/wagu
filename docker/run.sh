@@ -5,6 +5,7 @@
 #   DISTRO=debian-12 ./run.sh
 #   MP_PORT=1940 MP_NAME="My Server" MP_MAX=50 SAMP_PORT=7778 REGION=Europe ./run.sh
 #   SAMP_PORT=0 ./run.sh                       no PC crossplay
+#   DETACH=1 ./run.sh                          in the background (container name mp-<distro>; docker logs / docker stop)
 cd "$(dirname "$0")" || exit 1
 [[ -z "$CONFIG" ]] && config=Release || config="$CONFIG"
 [[ -z "$UBUNTU_VERSION" ]] && ubuntu_version=26.04 || ubuntu_version="$UBUNTU_VERSION"
@@ -25,9 +26,10 @@ rm -rf run_${distro}/mp
 [ ! -d './data' ] && mkdir data
 ports=(-p ${mp_port}:${mp_port}/udp)
 [ "$samp_port" != 0 ] && ports+=(-p ${samp_port}:${samp_port}/udp)
+mode=(-ti); [ "$DETACH" = 1 ] && mode=(-d --name mp-${distro})
 docker run \
     --rm \
-    -ti \
+    "${mode[@]}" \
     -w /data \
     -v "$PWD/data":/data \
     "${ports[@]}" \

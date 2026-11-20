@@ -14,7 +14,11 @@ def tree(z, src, dst, skip=()):
             z.write(p, dst + "/" + rel.replace(os.sep, "/"))
 # 5.01.16: the neon backgrounds/flags are built into libMP*.so (neon_embed writes them to files/TYFMC/MP/neon on start),
 # so the zips leave the loose copies out: the 1080p background pushed MP.zip / the client zip past GitHub's 100 MB.
-ASKIP = ("MP.zip", "neon/nb_bg1080.png", "neon/nb_bg.png", "neon/nb_flags.png")
+ASKIP = ("MP.zip", "neon/nb_bg1080.png", "neon/nb_bg.png", "neon/nb_flags.png",
+         "Screenshot_")   # 5.02.01: the README preview picture (not used by the game)
+# 5.02.01: the zips committed to the repo (assets/MP/MP.zip, release/MP-<v>-client.zip) leave out the APKs too:
+# they are separate release assets, and MP.zip reached 99.75 MB of GitHub's 100 MB file limit.
+REPO_LIMIT = 95 * 1024 * 1024
 def zf(path): return zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=9)
 old = zipfile.ZipFile("release/MP-3.32-client.zip")
 inst = old.read("MP-3.31-client/INSTALL.txt").decode("utf-8", "replace").replace("3.31", V).replace("3.32", V)
@@ -49,7 +53,7 @@ on the 4 default servers. Without the key the name box says "Reserved (moderator
 kit_skip = ("oracle/", "cloud/")   # the kit zip keeps the 3.33 file set; the full repo has everything
 with zf("release/MP-%s-client.zip" % V) as z:
     c = "MP-%s-client" % V
-    z.write("release/MP-Voice.apk", c + "/MP-Voice.apk"); z.write("release/MP-Textdraw-Editor.apk", c + "/MP-Textdraw-Editor.apk")   # 3.59: both APKs
+    # 3.59: both APKs (5.02.01: no longer inside, they are release assets: MP-Voice.apk, MP-Textdraw-Editor.apk)
     z.writestr(c + "/INSTALL.txt", inst); z.writestr(c + "/MODERATOR_README.txt", MOD)
     z.write("bin/libMP64.so", c + "/lib/arm64-v8a/libMP64.so"); z.write("bin/libMP32.so", c + "/lib/armeabi-v7a/libMP32.so")
     tree(z, "assets/MP", c + "/files/TYFMC/MP", ASKIP)   # 4.12.7: files/TYFMC/MP
@@ -66,10 +70,10 @@ if not VL: sys.exit("ViceLoader.apk missing: put the CI build (gh run download <
 APKS = [(n, find_apk(n)) for n in ("ViceLoader.apk", "Moquil.apk", "MP-Voice.apk", "MP-Textdraw-Editor.apk")]
 APKS = [(n, a) for n, a in APKS if a]
 INST = open("tools/INSTALL_template.txt", encoding="utf-8").read().replace("{V}", V)
-def full_zip(path, with_vl=True, package=False):
+def full_zip(path, with_vl=True, package=False, apks=True):
     with zf(path) as z:
         f = ("MP-%s-Package" if package else "MP-%s") % V
-        for n, a in APKS:
+        for n, a in (APKS if apks else []):
             if n == "ViceLoader.apk" and not with_vl: continue
             z.write(a, f + "/apks/" + n)
         z.write("bin/libMP64.so", f + "/lib/arm64-v8a/libMP64.so"); z.write("bin/libMP32.so", f + "/lib/armeabi-v7a/libMP32.so")
@@ -78,13 +82,16 @@ def full_zip(path, with_vl=True, package=False):
         if package:
             inst = inst.replace("  assets/MP/   ", "  " + ("MP_%s.zip" % V).ljust(33) + "the same release as one zip (lib + assets + apks + INSTALL.txt)\n  assets/MP/   ", 1)
             z.write("release/MP-%s-full.zip" % V, f + "/MP_%s.zip" % V)
+        if not apks: inst += "\nThis zip has no apks/ folder: download ViceLoader.apk, Moquil.apk, MP-Voice.apk and\nMP-Textdraw-Editor.apk from the release page (https://github.com/ThirtyFoxMCx00E1/wagu/releases/latest).\n"
         z.writestr(f + "/INSTALL.txt", inst)
 full_zip("release/MP-%s-full.zip" % V)
 full_zip("release/MP-%s-Package.zip" % V, package=True)   # the full zip + everything unpacked next to it
 open("release/INSTALL.txt", "w", encoding="utf-8").write(INST)
 # 4.13.20: assets/MP/MP.zip = the full zip, the direct download link of the Discord /changelog post.
 # 5.01.03: without ViceLoader.apk there (GitHub refuses files over 100 MB in the repo); the release zip has it
-full_zip("assets/MP/MP.zip", with_vl=False)
+full_zip("assets/MP/MP.zip", with_vl=False, apks=False)   # 5.02.01: no APKs (release assets)
+for _p in ("assets/MP/MP.zip", "release/MP-%s-client.zip" % V):
+    if os.path.getsize(_p) > REPO_LIMIT: sys.exit("%s is %d bytes, over the %d limit for files in the repo: add more to ASKIP" % (_p, os.path.getsize(_p), REPO_LIMIT))
 print("release/MP-%s-Package.zip" % V, os.path.getsize("release/MP-%s-Package.zip" % V))
 for n in ("client", "full"): print("release/MP-%s-%s.zip" % (V, n), os.path.getsize("release/MP-%s-%s.zip" % (V, n)))
 print("release/HiveMQ-kit-%s.zip" % V, os.path.getsize("release/HiveMQ-kit-%s.zip" % V))
