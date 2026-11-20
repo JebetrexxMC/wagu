@@ -584,6 +584,16 @@ static void OmpRows(std::vector<LRow>& rows)
         ++shown;
     }
 }
+static int OmpCount() { std::lock_guard<std::mutex> lk(s_OmpMx); return (int)s_OmpList.size(); }
+// 5.02.01: a password server: the password is asked right away (it used to open Add server, where the PC server
+// fields are at the very bottom of a long page)
+static char s_szOmpPwAddr[80] = "";
+static void OnOmpPw(const char* t, void*)
+{
+    if(!t || !t[0] || !s_szOmpPwAddr[0]) return;
+    MP_CopyStr(s_szPcAddr, s_szOmpPwAddr, sizeof(s_szPcAddr)); MP_CopyStr(s_szPcPw, t, sizeof(s_szPcPw));
+    StartPcJoin(s_szOmpPwAddr, s_szPcPw);
+}
 static const char* OmpEmptyText()
 {
     const int st = s_nOmpState;
@@ -794,7 +804,7 @@ static bool LAlreadyOn(const LRow& r)
     SysMsg(COL_SYSTEM, client.GetState() == NET_CONNECTED ? "You are already connected to %s." : "Already connecting to %s...", r.name[0] ? r.name : "this server");
     return true;
 }
-static void LLeave(const LRow& r) { if(r.kind == 0) { if(IsOnDefault()) LeaveServer("Disconnected from the server."); } else LeaveServer("Left the server."); }
+static void LLeave(const LRow& r) { if(r.kind == 8) { StopPcJoin("Left the PC server."); return; } if(r.kind == 0) { if(IsOnDefault()) LeaveServer("Disconnected from the server."); } else LeaveServer("Left the server."); }
 // 4.13.2: the "server in development" notice comes from the server itself (MP_SRVF_DEVSTAGE in the
 // welcome packet: the owner's Add server > Development stage switch, mp_server --dev). A finished
 // server sends no flag, so no notice. It no longer opens before joining over the black connection
@@ -871,7 +881,13 @@ static void LJoinNow(const LRow& r)
         char addr[80]; snprintf(addr, sizeof(addr), "%s:%d", r.ip, r.port);
         if(r.on) { StopPcJoin("Left the PC server."); return; }
         MP_CopyStr(s_szPcAddr, addr, sizeof(s_szPcAddr));
-        if(r.locked) { s_szPcPw[0] = 0; s_nLTab = LT_ADD; SysMsg(COL_YELLOW, "%s has a password: type it under open.mp / SA-MP and tap Join PC server.", r.name); return; }
+        if(r.locked)
+        {   // 5.02.01: ask for the password here (empty / cancelled = no join)
+            MP_CopyStr(s_szOmpPwAddr, addr, sizeof(s_szOmpPwAddr));
+            char t[80]; snprintf(t, sizeof(t), "Password for %s", r.name);
+            VKeyboard::Open(t, "", 32, OnOmpPw);
+            return;
+        }
         s_szPcPw[0] = 0;
         StartPcJoin(addr, "");
         return;
@@ -1199,6 +1215,25 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
         dl->PopClipRect();
         dl->AddLine(ImVec2(p.x, p.y + hdrH), ImVec2(p.x + W, p.y + hdrH), IM_COL32(255, 255, 255, 34), UI::S(1));
         ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + hdrH + UI::S(2)));
+    }
+    if(s_nLTab == LT_INTERNET && s_nInetSub == 2)
+    {   // 5.02.01: open.mp tab: list status + Refresh (reads api.open.mp again now)
+        const float barH = UI::S(60);
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        dl->AddRectFilled(p, ImVec2(p.x + W, p.y + barH), IM_COL32(20, 23, 28, 90));
+        char st[160]; const int st8 = s_nOmpState, n = OmpCount();
+        const unsigned ago = s_nOmpAt ? (unsigned)((MP_NowMs() - s_nOmpAt) / 1000) : 0;
+        if(st8 == 1) snprintf(st, sizeof(st), n ? "Refreshing the open.mp list... (%d servers now)" : "Reading the open.mp server list...", n);
+        else if(st8 == 3) snprintf(st, sizeof(st), "Could not read the open.mp list%s - tap Refresh", n ? " (showing the last one)" : "");
+        else if(st8 == 2) snprintf(st, sizeof(st), "%d servers on open.mp (%d shown)  -  updated %us ago", n, (int)rows.size(), ago);
+        else snprintf(st, sizeof(st), "open.mp server list");
+        const float bh = barH - UI::S(12);
+        const char* bl = "Refresh";
+        const float bw = bh * 0.55f + bh * 0.42f + ImGui::CalcTextSize(bl).x + bh * 0.35f;
+        dl->AddText(ImVec2(p.x + UI::S(14), p.y + (barH - ImGui::GetTextLineHeight()) * 0.5f), IM_COL32(200, 205, 212, 255), st);
+        ImGui::SetCursorScreenPos(ImVec2(p.x + W - bw - UI::S(8), p.y + UI::S(6)));
+        if(LToolButton("omprefresh", IC_REFRESH, bl, bh, st8 != 1)) { OmpListKick(true); if(logger) logger->Info("open.mp list: Refresh tapped"); }
+        ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + barH + UI::S(2)));
     }
     ImGui::BeginChild("##lrows", ImVec2(0, 0), false);
     dl = ImGui::GetWindowDrawList();

@@ -64,7 +64,8 @@ int main(int argc, char** argv)
     // ---- REMOTE role ----
     MPServer proxy; proxy.SetPersistent(true);
     if(!proxy.Start(19791, "proxy", [](const char*){}, 4)) { printf("proxy failed\n"); return 1; }
-    SampGate gate; gate.StartRemote(&proxy, host, port);
+    const char* pw = argc > 3 ? argv[3] : nullptr;   // 5.02.01: a password server (open.mp tab: the password is asked first)
+    SampGate gate; gate.StartRemote(&proxy, host, port, pw);
     MPClient cl; Ev ev; cl.Connect("127.0.0.1", 19791, "Phone Tester", 106);
     uint32_t seq = 1;
     auto pump = [&](int ms, bool move) {
