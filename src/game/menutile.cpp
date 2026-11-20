@@ -17,6 +17,7 @@
 #include <mod/logger.h>
 #include <string.h>
 #include <new>
+#include <link.h>
 #include "game.h"
 #include "../../imgui/rw_glue.h"
 #include "../../imgui/stb_image.h"
@@ -131,6 +132,28 @@ void HookAddAllItems(uint8_t* self)
 
 extern uintptr_t pGameLib;   // main.cpp (global)
 
+// 5.02.05: who else changes CText::Get - CLEO (its FXT text hook, libcleo.mod.so) or a patched first instruction
+// (Thumb LDR.W PC,[PC,#x] / B.W, ARM LDR PC,[PC,#-4] - the jumps AML / Gloss / CLEO / Substrate write). nullptr = nobody.
+static int LibCb(struct dl_phdr_info* i, size_t, void* d)
+{
+    return (i && i->dlpi_name && strstr(i->dlpi_name, (const char*)d)) ? 1 : 0;
+}
+static bool LibLoaded(const char* part) { return dl_iterate_phdr(LibCb, (void*)part) != 0; }   // never loads anything
+static const char* OtherTextGetHook(void* fn)
+{
+    if(aml->HasMod("net.rusjj.cleolib") || LibLoaded("libcleo") || LibLoaded("libCLEOMod")) return "CLEO";
+    const uintptr_t a = (uintptr_t)fn & ~(uintptr_t)1;
+    if(!a) return nullptr;
+    const uint16_t* t = (const uint16_t*)a;
+    if((uintptr_t)fn & 1)
+    {
+        if(t[0] == 0xF8DF && (t[1] & 0xF000) == 0xF000) return "another mod (LDR.W PC patch)";
+        if((t[0] & 0xF800) == 0xF000 && (t[1] & 0xD000) == 0x9000) return "another mod (B.W patch)";
+    }
+    else if(*(const uint32_t*)a == 0xE51FF004u) return "another mod (LDR PC patch)";
+    return nullptr;
+}
+
 bool Game::InstallMainMenuTile(void (*onTap)(void*), bool (*wanted)())
 {
     s_fnTap = onTap; s_fnWanted = wanted;
@@ -151,6 +174,16 @@ bool Game::InstallMainMenuTile(void (*onTap)(void*), bool (*wanted)())
     {
         logger->Error("Main menu tile: AddAllItems %s, CText::Get %s, RwTextureCreate %s - MP's fallback tile is used",
             add ? "yes" : "no", get ? "yes" : "no", TexCreate ? "yes" : "no");
+        return false;
+    }
+    // 5.02.05: crash log (HUAWEI HWSTK-HF, Android 10, 32 mods): SIGSEGV SEGV_ACCERR, PC on the first byte of an
+    // anonymous non-executable page, registers in libGTASA CText::Get / TheText and in CLEO's libcleo.mod.so, while the
+    // game loaded SPANISH.GXT and asked for "CDERROR". CLEO hooks CText::Get too (FXT texts); two code patches on the
+    // same few bytes break the trampoline of whichever came second. MP no longer patches CText::Get when CLEO (or
+    // any other mod that already patched it) is there: the tile goes back to MP's own drawn fallback tile.
+    if(const char* who = OtherTextGetHook(get))
+    {
+        logger->Info("Main menu tile: %s also hooks CText::Get - no second hook there, MP's fallback tile is used", who);
         return false;
     }
     for(size_t i = 0; i < sizeof(kTileText); ++i) s_Text[i] = (uint8_t)kTileText[i];
