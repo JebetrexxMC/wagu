@@ -3863,3 +3863,23 @@
 	url = https://github.com/JebetrexxMC/open.mp-capi
 	branch = master
 	shallow = true
+[submodule "third_party/omp-dev/research-samp/openmultiplayer_archive"]
+	path = third_party/omp-dev/research-samp/openmultiplayer_archive
+	url = https://github.com/openmultiplayer/archive
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/research-samp/pawn-lang_YSI-Includes"]
+	path = third_party/omp-dev/research-samp/pawn-lang_YSI-Includes
+	url = https://github.com/pawn-lang/YSI-Includes
+	branch = 5.x
+	shallow = true
+[submodule "third_party/omp-dev/research-samp/Konstantinos-Sk_Nativechecker"]
+	path = third_party/omp-dev/research-samp/Konstantinos-Sk_Nativechecker
+	url = https://github.com/Konstantinos-Sk/Nativechecker
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/research-samp/JernejL_samp-map-editor"]
+	path = third_party/omp-dev/research-samp/JernejL_samp-map-editor
+	url = https://github.com/JernejL/samp-map-editor
+	branch = master
+	shallow = true
