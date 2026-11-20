@@ -13,8 +13,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: omp-crossplay-check
-  cancel-in-progress: true
+  group: omp-crossplay-check-${{ github.sha }}   # 5.02.14: one per commit, never cancelled by the next push
+  cancel-in-progress: false   # a cancelled run = a red badge; queue the next check instead
 jobs:
   check:
     runs-on: ubuntu-latest
