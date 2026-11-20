@@ -32,18 +32,22 @@ git submodule update --init --depth 1
 
 ## All repositories (5.02.05)
 
-Besides the 11 folders above, 116 more open.mp / SA-MP repositories are git submodules (real addresses, pinned
+Besides the 11 folders above, 675 more open.mp / SA-MP repositories are git submodules (real addresses, pinned
 commits, empty until fetched) under `third_party/omp-dev/<category>/<name>`: `stdlib`, `sdk`, `editors`,
-`includes`, `plugins`, `crypto`, `langs`, `gamemodes`, `tools`. The full list with addresses and commits is
-[REPOS.md](REPOS.md); the source is [repos.tsv](repos.tsv), and `python3 tools/pawn/gen_omp_repos.py` makes REPOS.md
-and `src/ui/omp_repos.h` (the app's About page > open.mp development section) from it.
+`includes`, `plugins`, `crypto`, `langs`, `gamemodes`, `tools`, `omp` (every repository of the
+[openmultiplayer](https://github.com/openmultiplayer) organization, at its real address) and `topic/<owner>/<name>`
+(every repository with the GitHub topic [sa-mp](https://github.com/topics/sa-mp) that is not already here, 532,
+sorted by stars). The full list with addresses and commits is [REPOS.md](REPOS.md); the source is
+[repos.tsv](repos.tsv), and `python3 tools/pawn/gen_omp_repos.py` makes REPOS.md and `src/ui/omp_repos.h` (the app's
+About page > open.mp development section) from it.
 
 ```sh
 git submodule update --init --depth 1 third_party/omp-dev/plugins/Pawn.RakNet   # one repository
 git submodule foreach --quiet 'echo $sm_path'                                    # list them
 ```
 
-Example gamemode: [examples/ysi_freeroam](examples/ysi_freeroam/) (YSI foreach, custom iterator, task / ptask /
+Example gamemodes: [examples/ysi_vehicles](examples/ysi_vehicles/) (custom vehicle iterators, a per-player
+multi-iterator, cleanup / repair tasks) and [examples/ysi_freeroam](examples/ysi_freeroam/) (YSI foreach, custom iterator, task / ptask /
 defer / repeat timers, commands).
 
 ## Compile a gamemode

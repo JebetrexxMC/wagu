@@ -26,6 +26,7 @@
 #include <deque>
 #include <array>
 #include <algorithm>
+#include "sampcp.h"
 #include <random>
 #ifdef _WIN32
 #include <winsock2.h>
@@ -149,6 +150,7 @@ struct SampGate::Impl
     // ---- remote role ----
     RakClientInterface* C = nullptr;
     std::string rHost, rPass, rName, rServerName;
+    int cp = 1252;   // 5.02.05: the PC server's text codepage (SampCp::ForLanguage), chat / dialogs are converted to UTF-8
     uint16_t rPort = 0;
     int phase = 0;                // 0 wait phone, 1 connecting, 2 accepted, 3 in game (class), 4 spawned, 9 ended
     uint64_t phaseAt = 0;
@@ -781,10 +783,10 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 164:  // vehicle stream in (model for the drivers)
             bs.Read(u16a); bs.Read(u32a); I.vehModel[u16a] = (uint16_t)u32a; break;
         case 165: bs.Read(u16a); I.vehModel.erase(u16a); break;
-        case 93: { bs.Read(u32a); std::string t = RdStr32(bs); srv->GateMsg(s, u32a, t.c_str()); break; }
+        case 93: { bs.Read(u32a); std::string t = SampCp::ToUtf8(RdStr32(bs), I.cp); srv->GateMsg(s, u32a, t.c_str()); break; }
         case 101:
         {
-            bs.Read(u16a); std::string t = RdStr8(bs);
+            bs.Read(u16a); std::string t = SampCp::ToUtf8(RdStr8(bs), I.cp);
             if(u16a == I.myId) srv->GateChat(s, t.c_str());
             else if(Impl::Rp* p = RemPlayer(I, u16a))
             {
@@ -820,7 +822,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         }
         case 61:   // dialog
         {
-            int16_t id = -1; bs.Read(id); bs.Read(u8a); std::string cap = RdStr8(bs), b1 = RdStr8(bs), b2 = RdStr8(bs), body = RdCompressed(bs);
+            int16_t id = -1; bs.Read(id); bs.Read(u8a); std::string cap = SampCp::ToUtf8(RdStr8(bs), I.cp), b1 = SampCp::ToUtf8(RdStr8(bs), I.cp), b2 = SampCp::ToUtf8(RdStr8(bs), I.cp), body = SampCp::ToUtf8(RdCompressed(bs), I.cp);
             if(id < 0) srv->GateDialog(s, -1, 0, "", "", "", "");
             else srv->GateDialog(s, id, u8a, cap.c_str(), body.c_str(), b1.c_str(), b2.c_str());
             break;
@@ -996,6 +998,12 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         SetStatus(I, "Connecting to %s:%u as %s...", I.rHost.c_str(), I.rPort, I.rName.c_str());
         char m[200]; snprintf(m, sizeof(m), "[open.mp] Connecting to %s:%u as %s...", I.rHost.c_str(), I.rPort, I.rName.c_str());
         srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m);
+        {   // 5.02.05: the server's language picks the codepage its chat / dialogs are written in (MP_GATE_CP=1251 forces one)
+            SampQueryInfo qi; I.cp = 1252;
+            if(SampGate::Query(I.rHost.c_str(), I.rPort, qi, 1200)) I.cp = SampCp::ForLanguage(qi.language, qi.hostname);
+            if(const char* f = getenv("MP_GATE_CP")) if(atoi(f) > 0) I.cp = atoi(f);
+            printf("[crossplay] text codepage %d (language \"%s\")\n", I.cp, qi.language.c_str());
+        }
         I.C->SetPassword(I.rPass.c_str());
         if(!I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5)) { RemEnd(I, srv, "Could not start the connection."); return; }
         I.phase = 1; I.phaseAt = now;
@@ -1049,7 +1057,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         if(I.phase < 3 || e.slot != I.phoneSlot) continue;
         if(e.kind == HK_CHAT || (e.kind == HK_SAMP && e.op == SPO_CMD))
         {
-            std::string t = e.text; if(t.empty()) continue;
+            std::string t = SampCp::FromUtf8(e.text, I.cp); if(t.empty()) continue;
             if(t[0] == '/') { BitStream o; WrStr32(o, t); CliRpc(I, 50, o); }
             else { BitStream o; WrStr8(o, t.substr(0, 144)); CliRpc(I, 101, o); }
         }
@@ -1061,7 +1069,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         else if(e.kind == HK_SAMP && e.op == SPO_KEYS) { I.heldKeys = (uint32_t)e.val; I.keysUntil = now + 400; }
         else if(e.kind == HK_DIALOG)
         {
-            BitStream o; o.Write((int16_t)e.dialog); o.Write(e.resp); o.Write(e.list); WrStr8(o, e.text); CliRpc(I, 62, o);
+            BitStream o; o.Write((int16_t)e.dialog); o.Write(e.resp); o.Write(e.list); WrStr8(o, SampCp::FromUtf8(e.text, I.cp)); CliRpc(I, 62, o);
             if(I.phase == 3) I.retrySpawnAt = now + 1500;
         }
     }

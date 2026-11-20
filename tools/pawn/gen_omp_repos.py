@@ -5,10 +5,10 @@
 # Run from the repo root: python3 tools/pawn/gen_omp_repos.py
 import os, re
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CATS = [('core', 'Core tools (compiler, stdlib, YSI)'), ('stdlib', 'Standard libraries'), ('sdk', 'SDKs and plugin frameworks'),
+CATS = [('core', 'Core tools (compiler, stdlib, YSI)'), ('omp', 'openmultiplayer organization (all repos)'), ('stdlib', 'Standard libraries'), ('sdk', 'SDKs and plugin frameworks'),
         ('includes', 'Pawn includes'), ('plugins', 'Server plugins'), ('crypto', 'Crypto and hashing'),
         ('langs', 'Other languages (C#, Go, JS, Java, Python, Lua, PHP, Kotlin)'), ('gamemodes', 'Gamemodes and scripts'),
-        ('tools', 'Map, textdraw and animation tools'), ('editors', 'Editors'), ('web', 'Web tools and docs')]
+        ('tools', 'Map, textdraw and animation tools'), ('editors', 'Editors'), ('topic', 'GitHub topic sa-mp (community, by stars)'), ('web', 'Web tools and docs')]
 CORE = [('compiler', 'Pawn compiler (pawncc)', 'https://github.com/ThirtyFoxMCx00E1/compiler'),
         ('omp-stdlib', 'open.mp standard includes', 'https://github.com/mpsamp-open/omp-stdlib'),
         ('qawno', 'open.mp Pawn editor', 'https://github.com/ThirtyFoxMCx00E1/qawno'),
@@ -19,8 +19,7 @@ CORE = [('compiler', 'Pawn compiler (pawncc)', 'https://github.com/ThirtyFoxMCx0
         ('code-parse.inc', 'pre-processor parsing', 'https://github.com/ThirtyFoxMCx00E1/code-parse.inc'),
         ('indirection', 'function pointers', 'https://github.com/ThirtyFoxMCx00E1/indirection'),
         ('md-sort', 'array sorting', 'https://github.com/ThirtyFoxMCx00E1/md-sort'),
-        ('open.mp-gdk', 'server component SDK', 'https://github.com/ThirtyFoxMCx00E1/open.mp-gdk'),
-        ('open.mp', 'open.mp server (crossplay)', 'https://github.com/openmultiplayer/open.mp')]
+        ('open.mp-gdk', 'server component SDK', 'https://github.com/ThirtyFoxMCx00E1/open.mp-gdk')]
 WEB = [('awesome open.mp', 'community list of libraries', 'https://open.mp/docs/awesome'),
        ('Pawn playground', 'compile Pawn in the browser', 'https://pg.open.mp/'),
        ('SA-MP model ids', 'object / model id search', 'https://dev.prineside.com/en/gtasa_samp_model_id/'),

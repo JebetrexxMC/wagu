@@ -633,3 +633,2798 @@
 	url = https://bitbucket.org/Pamdex/pathfinder.git
 	branch = master
 	shallow = true
+[submodule "third_party/omp-dev/tools/launcher"]
+	path = third_party/omp-dev/tools/launcher
+	url = https://github.com/ThirtyFoxMCx00E1/launcher
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/tools/web"]
+	path = third_party/omp-dev/tools/web
+	url = https://github.com/ThirtyFoxMCx00E1/web
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/sdk/cpp-httplib"]
+	path = third_party/omp-dev/sdk/cpp-httplib
+	url = https://github.com/ThirtyFoxMCx00E1/cpp-httplib
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/open.mp"]
+	path = third_party/omp-dev/omp/open.mp
+	url = https://github.com/openmultiplayer/open.mp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/omp-overlay-wine"]
+	path = third_party/omp-dev/omp/omp-overlay-wine
+	url = https://github.com/openmultiplayer/omp-overlay-wine
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/cmake-conan"]
+	path = third_party/omp-dev/omp/cmake-conan
+	url = https://github.com/openmultiplayer/cmake-conan
+	branch = develop
+	shallow = true
+[submodule "third_party/omp-dev/omp/RakNet"]
+	path = third_party/omp-dev/omp/RakNet
+	url = https://github.com/openmultiplayer/RakNet
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/discord-rules"]
+	path = third_party/omp-dev/omp/discord-rules
+	url = https://github.com/openmultiplayer/discord-rules
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/open.mp-network"]
+	path = third_party/omp-dev/omp/open.mp-network
+	url = https://github.com/openmultiplayer/open.mp-network
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/pawn-template"]
+	path = third_party/omp-dev/omp/pawn-template
+	url = https://github.com/openmultiplayer/pawn-template
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/omp-capi"]
+	path = third_party/omp-dev/omp/omp-capi
+	url = https://github.com/openmultiplayer/omp-capi
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/full-template"]
+	path = third_party/omp-dev/omp/full-template
+	url = https://github.com/openmultiplayer/full-template
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/mdx"]
+	path = third_party/omp-dev/omp/mdx
+	url = https://github.com/openmultiplayer/mdx
+	branch = omp
+	shallow = true
+[submodule "third_party/omp-dev/omp/rivershell-cpp"]
+	path = third_party/omp-dev/omp/rivershell-cpp
+	url = https://github.com/openmultiplayer/rivershell-cpp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/pawn-natives"]
+	path = third_party/omp-dev/omp/pawn-natives
+	url = https://github.com/openmultiplayer/pawn-natives
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/upgrade"]
+	path = third_party/omp-dev/omp/upgrade
+	url = https://github.com/openmultiplayer/upgrade
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/empty-template"]
+	path = third_party/omp-dev/omp/empty-template
+	url = https://github.com/openmultiplayer/empty-template
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/basic-template"]
+	path = third_party/omp-dev/omp/basic-template
+	url = https://github.com/openmultiplayer/basic-template
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/dot-github"]
+	path = third_party/omp-dev/omp/dot-github
+	url = https://github.com/openmultiplayer/.github
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/omp/server-beta-old"]
+	path = third_party/omp-dev/omp/server-beta-old
+	url = https://github.com/openmultiplayer/server-beta-old
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/ttmath"]
+	path = third_party/omp-dev/omp/ttmath
+	url = https://github.com/openmultiplayer/ttmath
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/pawndjent"]
+	path = third_party/omp-dev/omp/pawndjent
+	url = https://github.com/openmultiplayer/pawndjent
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/wiki"]
+	path = third_party/omp-dev/omp/wiki
+	url = https://github.com/openmultiplayer/wiki
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/homepage"]
+	path = third_party/omp-dev/omp/homepage
+	url = https://github.com/openmultiplayer/homepage
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/graphics"]
+	path = third_party/omp-dev/omp/graphics
+	url = https://github.com/openmultiplayer/graphics
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/editor"]
+	path = third_party/omp-dev/omp/editor
+	url = https://github.com/openmultiplayer/editor
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/omp/samp-bugs"]
+	path = third_party/omp-dev/omp/samp-bugs
+	url = https://github.com/openmultiplayer/samp-bugs
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NexiusTailer/Nex-AC"]
+	path = third_party/omp-dev/topic/NexiusTailer/Nex-AC
+	url = https://github.com/NexiusTailer/Nex-AC
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/dashr9230/SA-MP"]
+	path = third_party/omp-dev/topic/dashr9230/SA-MP
+	url = https://github.com/dashr9230/SA-MP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Y-Less/sscanf"]
+	path = third_party/omp-dev/topic/Y-Less/sscanf
+	url = https://github.com/Y-Less/sscanf
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Brunoo16/samp-packet-list"]
+	path = third_party/omp-dev/topic/Brunoo16/samp-packet-list
+	url = https://github.com/Brunoo16/samp-packet-list
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/BigETI/SAMPLauncherNET"]
+	path = third_party/omp-dev/topic/BigETI/SAMPLauncherNET
+	url = https://github.com/BigETI/SAMPLauncherNET
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/aurora-mp/omp-cef"]
+	path = third_party/omp-dev/topic/aurora-mp/omp-cef
+	url = https://github.com/aurora-mp/omp-cef
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Agneese-Saini/SA-MP"]
+	path = third_party/omp-dev/topic/Agneese-Saini/SA-MP
+	url = https://github.com/Agneese-Saini/SA-MP
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/nexquery/samp-textdraw-editor"]
+	path = third_party/omp-dev/topic/nexquery/samp-textdraw-editor
+	url = https://github.com/nexquery/samp-textdraw-editor
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Hual/samp-discord-plugin"]
+	path = third_party/omp-dev/topic/Hual/samp-discord-plugin
+	url = https://github.com/Hual/samp-discord-plugin
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SAMPProjects/Open-SAMP-API"]
+	path = third_party/omp-dev/topic/SAMPProjects/Open-SAMP-API
+	url = https://github.com/SAMPProjects/Open-SAMP-API
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/AmyrAhmady/samp-gps-plugin"]
+	path = third_party/omp-dev/topic/AmyrAhmady/samp-gps-plugin
+	url = https://github.com/AmyrAhmady/samp-gps-plugin
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Open-GTO/Open-GTO"]
+	path = third_party/omp-dev/topic/Open-GTO/Open-GTO
+	url = https://github.com/Open-GTO/Open-GTO
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/nexquery/samp-textdraw-streamer"]
+	path = third_party/omp-dev/topic/nexquery/samp-textdraw-streamer
+	url = https://github.com/nexquery/samp-textdraw-streamer
+	branch = v2.0.0
+	shallow = true
+[submodule "third_party/omp-dev/topic/wuzi/samp-missions"]
+	path = third_party/omp-dev/topic/wuzi/samp-missions
+	url = https://github.com/wuzi/samp-missions
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/denis-akazuki/samp-mobile-cef"]
+	path = third_party/omp-dev/topic/denis-akazuki/samp-mobile-cef
+	url = https://github.com/denis-akazuki/samp-mobile-cef
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ikkentim/SanMap"]
+	path = third_party/omp-dev/topic/ikkentim/SanMap
+	url = https://github.com/ikkentim/SanMap
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/PutuSuhartawan/Scripting-Pawn-SAMP-Belajar-Dasar"]
+	path = third_party/omp-dev/topic/PutuSuhartawan/Scripting-Pawn-SAMP-Belajar-Dasar
+	url = https://github.com/PutuSuhartawan/Scripting-Pawn-SAMP-Belajar-Dasar
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/RogueDrifter/Anti_cheat_pack"]
+	path = third_party/omp-dev/topic/RogueDrifter/Anti_cheat_pack
+	url = https://github.com/RogueDrifter/Anti_cheat_pack
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/multitheftauto/amx"]
+	path = third_party/omp-dev/topic/multitheftauto/amx
+	url = https://github.com/multitheftauto/amx
+	branch = develop
+	shallow = true
+[submodule "third_party/omp-dev/topic/dennorske/samp-packet-proxy"]
+	path = third_party/omp-dev/topic/dennorske/samp-packet-proxy
+	url = https://github.com/dennorske/samp-packet-proxy
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/samp-dev/fiddle"]
+	path = third_party/omp-dev/topic/samp-dev/fiddle
+	url = https://github.com/samp-dev/fiddle
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/DevD4v3/Capture-The-Flag"]
+	path = third_party/omp-dev/topic/DevD4v3/Capture-The-Flag
+	url = https://github.com/DevD4v3/Capture-The-Flag
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sreyas-Sreelal/SS-Gang-System-SQLITE"]
+	path = third_party/omp-dev/topic/Sreyas-Sreelal/SS-Gang-System-SQLITE
+	url = https://github.com/Sreyas-Sreelal/SS-Gang-System-SQLITE
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/dockfries/infernus"]
+	path = third_party/omp-dev/topic/dockfries/infernus
+	url = https://github.com/dockfries/infernus
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/karimcambridge/samp-foreach"]
+	path = third_party/omp-dev/topic/karimcambridge/samp-foreach
+	url = https://github.com/karimcambridge/samp-foreach
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Ahmad45123/ExtremeStudio"]
+	path = third_party/omp-dev/topic/Ahmad45123/ExtremeStudio
+	url = https://github.com/Ahmad45123/ExtremeStudio
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/WoutProvost/samp-util"]
+	path = third_party/omp-dev/topic/WoutProvost/samp-util
+	url = https://github.com/WoutProvost/samp-util
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/philip1337/samp-plugin-mapandreas"]
+	path = third_party/omp-dev/topic/philip1337/samp-plugin-mapandreas
+	url = https://github.com/philip1337/samp-plugin-mapandreas
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/abhaysv/SAMP-Discord-Bot-Dumbledore"]
+	path = third_party/omp-dev/topic/abhaysv/SAMP-Discord-Bot-Dumbledore
+	url = https://github.com/abhaysv/SAMP-Discord-Bot-Dumbledore
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/mick88/samp-client"]
+	path = third_party/omp-dev/topic/mick88/samp-client
+	url = https://github.com/mick88/samp-client
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/sec9/SECAC-SAMP"]
+	path = third_party/omp-dev/topic/sec9/SECAC-SAMP
+	url = https://github.com/sec9/SECAC-SAMP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/maddinat0r/samp-log"]
+	path = third_party/omp-dev/topic/maddinat0r/samp-log
+	url = https://github.com/maddinat0r/samp-log
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Open-GTO/protection"]
+	path = third_party/omp-dev/topic/Open-GTO/protection
+	url = https://github.com/Open-GTO/protection
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SA-MP-World/launcher"]
+	path = third_party/omp-dev/topic/SA-MP-World/launcher
+	url = https://github.com/SA-MP-World/launcher
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/TommyB123/samp-map-parser"]
+	path = third_party/omp-dev/topic/TommyB123/samp-map-parser
+	url = https://github.com/TommyB123/samp-map-parser
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/kristoisberg/samp-map-zones"]
+	path = third_party/omp-dev/topic/kristoisberg/samp-map-zones
+	url = https://github.com/kristoisberg/samp-map-zones
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/peterszombati/samp-node-lib"]
+	path = third_party/omp-dev/topic/peterszombati/samp-node-lib
+	url = https://github.com/peterszombati/samp-node-lib
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/AthallahDzaki/SAMPMobile"]
+	path = third_party/omp-dev/topic/AthallahDzaki/SAMPMobile
+	url = https://github.com/AthallahDzaki/SAMPMobile
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/OpenRoleplay/OpenRP.Framework"]
+	path = third_party/omp-dev/topic/OpenRoleplay/OpenRP.Framework
+	url = https://github.com/OpenRoleplay/OpenRP.Framework
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/openmultiplayer/compiler"]
+	path = third_party/omp-dev/topic/openmultiplayer/compiler
+	url = https://github.com/openmultiplayer/compiler
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ins1x/samp-essentials"]
+	path = third_party/omp-dev/topic/ins1x/samp-essentials
+	url = https://github.com/ins1x/samp-essentials
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Fanorisky/PawnRandomix"]
+	path = third_party/omp-dev/topic/Fanorisky/PawnRandomix
+	url = https://github.com/Fanorisky/PawnRandomix
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/MacMailler/GWRP-0.3"]
+	path = third_party/omp-dev/topic/MacMailler/GWRP-0.3
+	url = https://github.com/MacMailler/GWRP-0.3
+	branch = develop
+	shallow = true
+[submodule "third_party/omp-dev/topic/Maxelweb/ServerRemoteConsoleSAMP"]
+	path = third_party/omp-dev/topic/Maxelweb/ServerRemoteConsoleSAMP
+	url = https://github.com/Maxelweb/ServerRemoteConsoleSAMP
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/samp-servers-api"]
+	path = third_party/omp-dev/topic/Southclaws/samp-servers-api
+	url = https://github.com/Southclaws/samp-servers-api
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/AmyrAhmady/gta-samp-mouse-only"]
+	path = third_party/omp-dev/topic/AmyrAhmady/gta-samp-mouse-only
+	url = https://github.com/AmyrAhmady/gta-samp-mouse-only
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp
+	url = https://github.com/The2Alert/node-samp
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/kristoisberg/samp-td-string-width"]
+	path = third_party/omp-dev/topic/kristoisberg/samp-td-string-width
+	url = https://github.com/kristoisberg/samp-td-string-width
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/maddinat0r/samp-log-core"]
+	path = third_party/omp-dev/topic/maddinat0r/samp-log-core
+	url = https://github.com/maddinat0r/samp-log-core
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Pyrax/samp-docker"]
+	path = third_party/omp-dev/topic/Pyrax/samp-docker
+	url = https://github.com/Pyrax/samp-docker
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/markski1/SAMonitor"]
+	path = third_party/omp-dev/topic/markski1/SAMonitor
+	url = https://github.com/markski1/SAMonitor
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/nexquery/samp-vehicle-streamer"]
+	path = third_party/omp-dev/topic/nexquery/samp-vehicle-streamer
+	url = https://github.com/nexquery/samp-vehicle-streamer
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sreyas-Sreelal/samp-ai-chatbot"]
+	path = third_party/omp-dev/topic/Sreyas-Sreelal/samp-ai-chatbot
+	url = https://github.com/Sreyas-Sreelal/samp-ai-chatbot
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/YashasSamaga/SmartCMD"]
+	path = third_party/omp-dev/topic/YashasSamaga/SmartCMD
+	url = https://github.com/YashasSamaga/SmartCMD
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/AkshayMohan/pawn-discord-cmd"]
+	path = third_party/omp-dev/topic/AkshayMohan/pawn-discord-cmd
+	url = https://github.com/AkshayMohan/pawn-discord-cmd
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bios-Marcel/ServerBrowser"]
+	path = third_party/omp-dev/topic/Bios-Marcel/ServerBrowser
+	url = https://github.com/Bios-Marcel/ServerBrowser
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Crayder/Skin-Tags"]
+	path = third_party/omp-dev/topic/Crayder/Skin-Tags
+	url = https://github.com/Crayder/Skin-Tags
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SampSharp/openmp-sampsharp-x64-poc"]
+	path = third_party/omp-dev/topic/SampSharp/openmp-sampsharp-x64-poc
+	url = https://github.com/SampSharp/openmp-sampsharp-x64-poc
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/pawn-uuid"]
+	path = third_party/omp-dev/topic/Southclaws/pawn-uuid
+	url = https://github.com/Southclaws/pawn-uuid
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/novusr/Pawn-MC"]
+	path = third_party/omp-dev/topic/novusr/Pawn-MC
+	url = https://github.com/novusr/Pawn-MC
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/racespeedtime/awesome-sa"]
+	path = third_party/omp-dev/topic/racespeedtime/awesome-sa
+	url = https://github.com/racespeedtime/awesome-sa
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/WoutProvost/FCNPC-AI"]
+	path = third_party/omp-dev/topic/WoutProvost/FCNPC-AI
+	url = https://github.com/WoutProvost/FCNPC-AI
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NullSablex/mysql_samp"]
+	path = third_party/omp-dev/topic/NullSablex/mysql_samp
+	url = https://github.com/NullSablex/mysql_samp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/WroxExM/DubaiRoleplay-V2"]
+	path = third_party/omp-dev/topic/WroxExM/DubaiRoleplay-V2
+	url = https://github.com/WroxExM/DubaiRoleplay-V2
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/PatrickGTR/gta-open-web"]
+	path = third_party/omp-dev/topic/PatrickGTR/gta-open-web
+	url = https://github.com/PatrickGTR/gta-open-web
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sreyas-Sreelal/PacPaw"]
+	path = third_party/omp-dev/topic/Sreyas-Sreelal/PacPaw
+	url = https://github.com/Sreyas-Sreelal/PacPaw
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/bracesoftware/DETUtils-Old"]
+	path = third_party/omp-dev/topic/bracesoftware/DETUtils-Old
+	url = https://github.com/bracesoftware/DETUtils-Old
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/krustowski/samp-server-docker"]
+	path = third_party/omp-dev/topic/krustowski/samp-server-docker
+	url = https://github.com/krustowski/samp-server-docker
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/pawn-lang/YSI"]
+	path = third_party/omp-dev/topic/pawn-lang/YSI
+	url = https://github.com/pawn-lang/YSI
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/r4sheed/3DTryg"]
+	path = third_party/omp-dev/topic/r4sheed/3DTryg
+	url = https://github.com/r4sheed/3DTryg
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/r4sheed/SAMP"]
+	path = third_party/omp-dev/topic/r4sheed/SAMP
+	url = https://github.com/r4sheed/SAMP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bren828/inventory-SAMP"]
+	path = third_party/omp-dev/topic/Bren828/inventory-SAMP
+	url = https://github.com/Bren828/inventory-SAMP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/DignitySAMP/open.mp-linux-launcher"]
+	path = third_party/omp-dev/topic/DignitySAMP/open.mp-linux-launcher
+	url = https://github.com/DignitySAMP/open.mp-linux-launcher
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sancky/pawn-queue"]
+	path = third_party/omp-dev/topic/Sancky/pawn-queue
+	url = https://github.com/Sancky/pawn-queue
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/iamreiyn/samp-mumbai-rp"]
+	path = third_party/omp-dev/topic/iamreiyn/samp-mumbai-rp
+	url = https://github.com/iamreiyn/samp-mumbai-rp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/AmyrAhmady/rwexporter"]
+	path = third_party/omp-dev/topic/AmyrAhmady/rwexporter
+	url = https://github.com/AmyrAhmady/rwexporter
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NexiusTailer/ByFly-GTA-SA-GangWar"]
+	path = third_party/omp-dev/topic/NexiusTailer/ByFly-GTA-SA-GangWar
+	url = https://github.com/NexiusTailer/ByFly-GTA-SA-GangWar
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/PerseweratywneImponderabilia/LangPlus"]
+	path = third_party/omp-dev/topic/PerseweratywneImponderabilia/LangPlus
+	url = https://github.com/PerseweratywneImponderabilia/LangPlus
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/pawn-errors"]
+	path = third_party/omp-dev/topic/Southclaws/pawn-errors
+	url = https://github.com/Southclaws/pawn-errors
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sreyas-Sreelal/matheval"]
+	path = third_party/omp-dev/topic/Sreyas-Sreelal/matheval
+	url = https://github.com/Sreyas-Sreelal/matheval
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Whitetigerswt/attdef"]
+	path = third_party/omp-dev/topic/Whitetigerswt/attdef
+	url = https://github.com/Whitetigerswt/attdef
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/imshooter/3DAndreas"]
+	path = third_party/omp-dev/topic/imshooter/3DAndreas
+	url = https://github.com/imshooter/3DAndreas
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/zionmultiplayer/Client"]
+	path = third_party/omp-dev/topic/zionmultiplayer/Client
+	url = https://github.com/zionmultiplayer/Client
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Brunoo16/samp-chatlog-organizer"]
+	path = third_party/omp-dev/topic/Brunoo16/samp-chatlog-organizer
+	url = https://github.com/Brunoo16/samp-chatlog-organizer
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Crayder/SmartPhones"]
+	path = third_party/omp-dev/topic/Crayder/SmartPhones
+	url = https://github.com/Crayder/SmartPhones
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sreyas-Sreelal/rs-plugin-boilerplate"]
+	path = third_party/omp-dev/topic/Sreyas-Sreelal/rs-plugin-boilerplate
+	url = https://github.com/Sreyas-Sreelal/rs-plugin-boilerplate
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/WoutProvost/samp-sound-array"]
+	path = third_party/omp-dev/topic/WoutProvost/samp-sound-array
+	url = https://github.com/WoutProvost/samp-sound-array
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/daniilkorochansky/spawn"]
+	path = third_party/omp-dev/topic/daniilkorochansky/spawn
+	url = https://github.com/daniilkorochansky/spawn
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Brunoo16/samp-cheats"]
+	path = third_party/omp-dev/topic/Brunoo16/samp-cheats
+	url = https://github.com/Brunoo16/samp-cheats
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/DignitySAMP/Wild-West-Roleplay"]
+	path = third_party/omp-dev/topic/DignitySAMP/Wild-West-Roleplay
+	url = https://github.com/DignitySAMP/Wild-West-Roleplay
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sreyas-Sreelal/forum-py"]
+	path = third_party/omp-dev/topic/Sreyas-Sreelal/forum-py
+	url = https://github.com/Sreyas-Sreelal/forum-py
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sreyas-Sreelal/search-pawn-package"]
+	path = third_party/omp-dev/topic/Sreyas-Sreelal/search-pawn-package
+	url = https://github.com/Sreyas-Sreelal/search-pawn-package
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/adib-yg/SAMP-Mobile-Checker"]
+	path = third_party/omp-dev/topic/adib-yg/SAMP-Mobile-Checker
+	url = https://github.com/adib-yg/SAMP-Mobile-Checker
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/dnlowman/samp-poker"]
+	path = third_party/omp-dev/topic/dnlowman/samp-poker
+	url = https://github.com/dnlowman/samp-poker
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/nexquery/samp-file-system"]
+	path = third_party/omp-dev/topic/nexquery/samp-file-system
+	url = https://github.com/nexquery/samp-file-system
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Dayvison/samp-artificial-intelligence"]
+	path = third_party/omp-dev/topic/Dayvison/samp-artificial-intelligence
+	url = https://github.com/Dayvison/samp-artificial-intelligence
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/samp-zipline"]
+	path = third_party/omp-dev/topic/Southclaws/samp-zipline
+	url = https://github.com/Southclaws/samp-zipline
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Tiaansu/samp-cron"]
+	path = third_party/omp-dev/topic/Tiaansu/samp-cron
+	url = https://github.com/Tiaansu/samp-cron
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/dockfries/infernus-starter"]
+	path = third_party/omp-dev/topic/dockfries/infernus-starter
+	url = https://github.com/dockfries/infernus-starter
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/enginestein/SAMP.py"]
+	path = third_party/omp-dev/topic/enginestein/SAMP.py
+	url = https://github.com/enginestein/SAMP.py
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ikkentim/SampSharp-streamer"]
+	path = third_party/omp-dev/topic/ikkentim/SampSharp-streamer
+	url = https://github.com/ikkentim/SampSharp-streamer
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bren828/vehicle-radar"]
+	path = third_party/omp-dev/topic/Bren828/vehicle-radar
+	url = https://github.com/Bren828/vehicle-radar
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Fernando-A-Rocha/mta-samp-maploader"]
+	path = third_party/omp-dev/topic/Fernando-A-Rocha/mta-samp-maploader
+	url = https://github.com/Fernando-A-Rocha/mta-samp-maploader
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/LDami/Dami-Land"]
+	path = third_party/omp-dev/topic/LDami/Dami-Land
+	url = https://github.com/LDami/Dami-Land
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/LopezDev7/SampLive"]
+	path = third_party/omp-dev/topic/LopezDev7/SampLive
+	url = https://github.com/LopezDev7/SampLive
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sergtek/SampRcon"]
+	path = third_party/omp-dev/topic/Sergtek/SampRcon
+	url = https://github.com/Sergtek/SampRcon
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Shiska/rotations"]
+	path = third_party/omp-dev/topic/Shiska/rotations
+	url = https://github.com/Shiska/rotations
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/TShoKT/SA-MP-PY-Control-Panel"]
+	path = third_party/omp-dev/topic/TShoKT/SA-MP-PY-Control-Panel
+	url = https://github.com/TShoKT/SA-MP-PY-Control-Panel
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/kristoisberg/samp-td-streamer"]
+	path = third_party/omp-dev/topic/kristoisberg/samp-td-streamer
+	url = https://github.com/kristoisberg/samp-td-streamer
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/nexquery/samp-multi-work-studio"]
+	path = third_party/omp-dev/topic/nexquery/samp-multi-work-studio
+	url = https://github.com/nexquery/samp-multi-work-studio
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/rodrigreatest/SAMP-Exploit-IPT-Rules"]
+	path = third_party/omp-dev/topic/rodrigreatest/SAMP-Exploit-IPT-Rules
+	url = https://github.com/rodrigreatest/SAMP-Exploit-IPT-Rules
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/spmn/samp-saa2-extract"]
+	path = third_party/omp-dev/topic/spmn/samp-saa2-extract
+	url = https://github.com/spmn/samp-saa2-extract
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ufteers/samp-query-info"]
+	path = third_party/omp-dev/topic/ufteers/samp-query-info
+	url = https://github.com/ufteers/samp-query-info
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/zile42O/samp-rce"]
+	path = third_party/omp-dev/topic/zile42O/samp-rce
+	url = https://github.com/zile42O/samp-rce
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Brunoo16/samp-crashfix"]
+	path = third_party/omp-dev/topic/Brunoo16/samp-crashfix
+	url = https://github.com/Brunoo16/samp-crashfix
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Ghecco/SAMP-stamina"]
+	path = third_party/omp-dev/topic/Ghecco/SAMP-stamina
+	url = https://github.com/Ghecco/SAMP-stamina
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ImSoheilPx/SA-MP-StatusBot"]
+	path = third_party/omp-dev/topic/ImSoheilPx/SA-MP-StatusBot
+	url = https://github.com/ImSoheilPx/SA-MP-StatusBot
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SA-MP-Android/App"]
+	path = third_party/omp-dev/topic/SA-MP-Android/App
+	url = https://github.com/SA-MP-Android/App
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/San-Andreas-Roleplay-ES/samp-codigo-abierto"]
+	path = third_party/omp-dev/topic/San-Andreas-Roleplay-ES/samp-codigo-abierto
+	url = https://github.com/San-Andreas-Roleplay-ES/samp-codigo-abierto
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/samp-prophunt"]
+	path = third_party/omp-dev/topic/Southclaws/samp-prophunt
+	url = https://github.com/Southclaws/samp-prophunt
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/XiaoNiaoa/openmp-SC-RP"]
+	path = third_party/omp-dev/topic/XiaoNiaoa/openmp-SC-RP
+	url = https://github.com/XiaoNiaoa/openmp-SC-RP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ilhamjaya08/samp-query-ts"]
+	path = third_party/omp-dev/topic/ilhamjaya08/samp-query-ts
+	url = https://github.com/ilhamjaya08/samp-query-ts
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ilynyne/Windows-Launcher-Samp"]
+	path = third_party/omp-dev/topic/ilynyne/Windows-Launcher-Samp
+	url = https://github.com/ilynyne/Windows-Launcher-Samp
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ins1x/moonloader-scripts"]
+	path = third_party/omp-dev/topic/ins1x/moonloader-scripts
+	url = https://github.com/ins1x/moonloader-scripts
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/kristoisberg/samp-screen-colour-fader"]
+	path = third_party/omp-dev/topic/kristoisberg/samp-screen-colour-fader
+	url = https://github.com/kristoisberg/samp-screen-colour-fader
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/smes"]
+	path = third_party/omp-dev/topic/qrluke/smes
+	url = https://github.com/qrluke/smes
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/sstt"]
+	path = third_party/omp-dev/topic/qrluke/sstt
+	url = https://github.com/qrluke/sstt
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/0Kamil/samp-argon2"]
+	path = third_party/omp-dev/topic/0Kamil/samp-argon2
+	url = https://github.com/0Kamil/samp-argon2
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Brunoo16/samp-motion-blur"]
+	path = third_party/omp-dev/topic/Brunoo16/samp-motion-blur
+	url = https://github.com/Brunoo16/samp-motion-blur
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Brunoo16/samp-pagesize"]
+	path = third_party/omp-dev/topic/Brunoo16/samp-pagesize
+	url = https://github.com/Brunoo16/samp-pagesize
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/DANGER1979/Open-VirtualWorld"]
+	path = third_party/omp-dev/topic/DANGER1979/Open-VirtualWorld
+	url = https://github.com/DANGER1979/Open-VirtualWorld
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Fr0syaGod/SAMP-Cheat-Tables-"]
+	path = third_party/omp-dev/topic/Fr0syaGod/SAMP-Cheat-Tables-
+	url = https://github.com/Fr0syaGod/SAMP-Cheat-Tables-
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/IstuntmanI/samp-includes"]
+	path = third_party/omp-dev/topic/IstuntmanI/samp-includes
+	url = https://github.com/IstuntmanI/samp-includes
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Lordzy/safeDialogs"]
+	path = third_party/omp-dev/topic/Lordzy/safeDialogs
+	url = https://github.com/Lordzy/safeDialogs
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NexiusTailer/Admin-System"]
+	path = third_party/omp-dev/topic/NexiusTailer/Admin-System
+	url = https://github.com/NexiusTailer/Admin-System
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/RogueDrifter/Rewind"]
+	path = third_party/omp-dev/topic/RogueDrifter/Rewind
+	url = https://github.com/RogueDrifter/Rewind
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ScavengeSurvive/inventory"]
+	path = third_party/omp-dev/topic/ScavengeSurvive/inventory
+	url = https://github.com/ScavengeSurvive/inventory
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ScavengeSurvive/item"]
+	path = third_party/omp-dev/topic/ScavengeSurvive/item
+	url = https://github.com/ScavengeSurvive/item
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/pawn-fsutil"]
+	path = third_party/omp-dev/topic/Southclaws/pawn-fsutil
+	url = https://github.com/Southclaws/pawn-fsutil
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sreyas-Sreelal/samp-chatbot-plugin"]
+	path = third_party/omp-dev/topic/Sreyas-Sreelal/samp-chatbot-plugin
+	url = https://github.com/Sreyas-Sreelal/samp-chatbot-plugin
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/basdon/documented-samp-pawn-api"]
+	path = third_party/omp-dev/topic/basdon/documented-samp-pawn-api
+	url = https://github.com/basdon/documented-samp-pawn-api
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/itskoleban/IndexWeaver"]
+	path = third_party/omp-dev/topic/itskoleban/IndexWeaver
+	url = https://github.com/itskoleban/IndexWeaver
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/karimcambridge/samp-twisted-metal"]
+	path = third_party/omp-dev/topic/karimcambridge/samp-twisted-metal
+	url = https://github.com/karimcambridge/samp-twisted-metal
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/knryuu/pawnplus-bcrypt-next"]
+	path = third_party/omp-dev/topic/knryuu/pawnplus-bcrypt-next
+	url = https://github.com/knryuu/pawnplus-bcrypt-next
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/maddinat0r/samp-mysql-yinline-include"]
+	path = third_party/omp-dev/topic/maddinat0r/samp-mysql-yinline-include
+	url = https://github.com/maddinat0r/samp-mysql-yinline-include
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/roseeast/OxTarget"]
+	path = third_party/omp-dev/topic/roseeast/OxTarget
+	url = https://github.com/roseeast/OxTarget
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/yugecin/samp-client-auto-version-selector"]
+	path = third_party/omp-dev/topic/yugecin/samp-client-auto-version-selector
+	url = https://github.com/yugecin/samp-client-auto-version-selector
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/zeus2198/Dynamic-map-manager-for-SA-MP-servers"]
+	path = third_party/omp-dev/topic/zeus2198/Dynamic-map-manager-for-SA-MP-servers
+	url = https://github.com/zeus2198/Dynamic-map-manager-for-SA-MP-servers
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Basssiiie/Random-Race-Generator"]
+	path = third_party/omp-dev/topic/Basssiiie/Random-Race-Generator
+	url = https://github.com/Basssiiie/Random-Race-Generator
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bren828/promo-code"]
+	path = third_party/omp-dev/topic/Bren828/promo-code
+	url = https://github.com/Bren828/promo-code
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Crayder/FS-Blood-Splatter"]
+	path = third_party/omp-dev/topic/Crayder/FS-Blood-Splatter
+	url = https://github.com/Crayder/FS-Blood-Splatter
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/DevD4v3/Protect-The-President"]
+	path = third_party/omp-dev/topic/DevD4v3/Protect-The-President
+	url = https://github.com/DevD4v3/Protect-The-President
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/HachiroCLI/Airport-System-SAMP"]
+	path = third_party/omp-dev/topic/HachiroCLI/Airport-System-SAMP
+	url = https://github.com/HachiroCLI/Airport-System-SAMP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/KongGithubDev/SAMP-MCP"]
+	path = third_party/omp-dev/topic/KongGithubDev/SAMP-MCP
+	url = https://github.com/KongGithubDev/SAMP-MCP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/NarutoUA/resamp-client"]
+	path = third_party/omp-dev/topic/NarutoUA/resamp-client
+	url = https://github.com/NarutoUA/resamp-client
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NikitaFoxze/Offensive-Core"]
+	path = third_party/omp-dev/topic/NikitaFoxze/Offensive-Core
+	url = https://github.com/NikitaFoxze/Offensive-Core
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/samp-bitmapper"]
+	path = third_party/omp-dev/topic/Southclaws/samp-bitmapper
+	url = https://github.com/Southclaws/samp-bitmapper
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/samp-ini"]
+	path = third_party/omp-dev/topic/Southclaws/samp-ini
+	url = https://github.com/Southclaws/samp-ini
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/samp-objects-api"]
+	path = third_party/omp-dev/topic/Southclaws/samp-objects-api
+	url = https://github.com/Southclaws/samp-objects-api
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/WoutProvost/samp-rec-to-csv"]
+	path = third_party/omp-dev/topic/WoutProvost/samp-rec-to-csv
+	url = https://github.com/WoutProvost/samp-rec-to-csv
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/WoutProvost/samp-server-docker-compose"]
+	path = third_party/omp-dev/topic/WoutProvost/samp-server-docker-compose
+	url = https://github.com/WoutProvost/samp-server-docker-compose
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/YashasSamaga/PAWN-Library-Extension"]
+	path = third_party/omp-dev/topic/YashasSamaga/PAWN-Library-Extension
+	url = https://github.com/YashasSamaga/PAWN-Library-Extension
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/cristeigabriela/SAMPHack"]
+	path = third_party/omp-dev/topic/cristeigabriela/SAMPHack
+	url = https://github.com/cristeigabriela/SAMPHack
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/fabianishere/jsamp"]
+	path = third_party/omp-dev/topic/fabianishere/jsamp
+	url = https://github.com/fabianishere/jsamp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ins1x/sampcac-docs"]
+	path = third_party/omp-dev/topic/ins1x/sampcac-docs
+	url = https://github.com/ins1x/sampcac-docs
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/kristoisberg/pawn-colour-manipulation"]
+	path = third_party/omp-dev/topic/kristoisberg/pawn-colour-manipulation
+	url = https://github.com/kristoisberg/pawn-colour-manipulation
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/kristoisberg/samp-easy-fade"]
+	path = third_party/omp-dev/topic/kristoisberg/samp-easy-fade
+	url = https://github.com/kristoisberg/samp-easy-fade
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/nickdodd25/n_animation"]
+	path = third_party/omp-dev/topic/nickdodd25/n_animation
+	url = https://github.com/nickdodd25/n_animation
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/r4sheed/pawn-plus-tasks"]
+	path = third_party/omp-dev/topic/r4sheed/pawn-plus-tasks
+	url = https://github.com/r4sheed/pawn-plus-tasks
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/wweziza/samp-discord-log"]
+	path = third_party/omp-dev/topic/wweziza/samp-discord-log
+	url = https://github.com/wweziza/samp-discord-log
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/yugecin/pawndocimproved"]
+	path = third_party/omp-dev/topic/yugecin/pawndocimproved
+	url = https://github.com/yugecin/pawndocimproved
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/zeus2198/Chat-Application-for-Pilots-Life-SA-MP"]
+	path = third_party/omp-dev/topic/zeus2198/Chat-Application-for-Pilots-Life-SA-MP
+	url = https://github.com/zeus2198/Chat-Application-for-Pilots-Life-SA-MP
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bren828/control-hints"]
+	path = third_party/omp-dev/topic/Bren828/control-hints
+	url = https://github.com/Bren828/control-hints
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bren828/easy-barrier"]
+	path = third_party/omp-dev/topic/Bren828/easy-barrier
+	url = https://github.com/Bren828/easy-barrier
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/BrownTurbo/BrownTurbo-ExtendedVeh"]
+	path = third_party/omp-dev/topic/BrownTurbo/BrownTurbo-ExtendedVeh
+	url = https://github.com/BrownTurbo/BrownTurbo-ExtendedVeh
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Crayder/Time-Conversion"]
+	path = third_party/omp-dev/topic/Crayder/Time-Conversion
+	url = https://github.com/Crayder/Time-Conversion
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Pyrax/samp-roleplay"]
+	path = third_party/omp-dev/topic/Pyrax/samp-roleplay
+	url = https://github.com/Pyrax/samp-roleplay
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Ramon-Sd/samp-launcher-base"]
+	path = third_party/omp-dev/topic/Ramon-Sd/samp-launcher-base
+	url = https://github.com/Ramon-Sd/samp-launcher-base
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sahiro01/PyRakSamp"]
+	path = third_party/omp-dev/topic/Sahiro01/PyRakSamp
+	url = https://github.com/Sahiro01/PyRakSamp
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Shiska/screentoworld"]
+	path = third_party/omp-dev/topic/Shiska/screentoworld
+	url = https://github.com/Shiska/screentoworld
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/addrian-77/cleo-autofish-LV-SF"]
+	path = third_party/omp-dev/topic/addrian-77/cleo-autofish-LV-SF
+	url = https://github.com/addrian-77/cleo-autofish-LV-SF
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/daniscript18/best-samp-query"]
+	path = third_party/omp-dev/topic/daniscript18/best-samp-query
+	url = https://github.com/daniscript18/best-samp-query
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ins1x/MappingToolkit"]
+	path = third_party/omp-dev/topic/ins1x/MappingToolkit
+	url = https://github.com/ins1x/MappingToolkit
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/killermvc/pawn-vector"]
+	path = third_party/omp-dev/topic/killermvc/pawn-vector
+	url = https://github.com/killermvc/pawn-vector
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateus0sh/Progress"]
+	path = third_party/omp-dev/topic/mateus0sh/Progress
+	url = https://github.com/mateus0sh/Progress
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/pawn-algorithms-library"]
+	path = third_party/omp-dev/topic/mateusware/pawn-algorithms-library
+	url = https://github.com/mateusware/pawn-algorithms-library
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/samp-gtav-menu"]
+	path = third_party/omp-dev/topic/mateusware/samp-gtav-menu
+	url = https://github.com/mateusware/samp-gtav-menu
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/michael-fa/DiscordAMX_net3.1"]
+	path = third_party/omp-dev/topic/michael-fa/DiscordAMX_net3.1
+	url = https://github.com/michael-fa/DiscordAMX_net3.1
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/pawnkit/pawnfmt"]
+	path = third_party/omp-dev/topic/pawnkit/pawnfmt
+	url = https://github.com/pawnkit/pawnfmt
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ulasbayraktar/discord-911pager-bot"]
+	path = third_party/omp-dev/topic/ulasbayraktar/discord-911pager-bot
+	url = https://github.com/ulasbayraktar/discord-911pager-bot
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/zeus2198/Temporary-ban-system-for-SA-MP-servers"]
+	path = third_party/omp-dev/topic/zeus2198/Temporary-ban-system-for-SA-MP-servers
+	url = https://github.com/zeus2198/Temporary-ban-system-for-SA-MP-servers
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Agsyah/Board"]
+	path = third_party/omp-dev/topic/Agsyah/Board
+	url = https://github.com/Agsyah/Board
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/AliLogic/discord-command"]
+	path = third_party/omp-dev/topic/AliLogic/discord-command
+	url = https://github.com/AliLogic/discord-command
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bren828/HitMarker-SA-MP"]
+	path = third_party/omp-dev/topic/Bren828/HitMarker-SA-MP
+	url = https://github.com/Bren828/HitMarker-SA-MP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bren828/action-button"]
+	path = third_party/omp-dev/topic/Bren828/action-button
+	url = https://github.com/Bren828/action-button
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bren828/elevator-plus"]
+	path = third_party/omp-dev/topic/Bren828/elevator-plus
+	url = https://github.com/Bren828/elevator-plus
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bren828/pawn-devTools"]
+	path = third_party/omp-dev/topic/Bren828/pawn-devTools
+	url = https://github.com/Bren828/pawn-devTools
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ByNcodee/-PHP-SA-MP-UCP-RFRP.GE-Ncode"]
+	path = third_party/omp-dev/topic/ByNcodee/-PHP-SA-MP-UCP-RFRP.GE-Ncode
+	url = https://github.com/ByNcodee/-PHP-SA-MP-UCP-RFRP.GE-Ncode
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/CiprianN23/TruckingSharp"]
+	path = third_party/omp-dev/topic/CiprianN23/TruckingSharp
+	url = https://github.com/CiprianN23/TruckingSharp
+	branch = entities
+	shallow = true
+[submodule "third_party/omp-dev/topic/Crayder/Dynamic-Doors"]
+	path = third_party/omp-dev/topic/Crayder/Dynamic-Doors
+	url = https://github.com/Crayder/Dynamic-Doors
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Crayder/Realistic-Garage-Blocking"]
+	path = third_party/omp-dev/topic/Crayder/Realistic-Garage-Blocking
+	url = https://github.com/Crayder/Realistic-Garage-Blocking
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Crayder/Streamer-Position-Compensation"]
+	path = third_party/omp-dev/topic/Crayder/Streamer-Position-Compensation
+	url = https://github.com/Crayder/Streamer-Position-Compensation
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/DedSecLabs/gta-sa-openmp-devkit"]
+	path = third_party/omp-dev/topic/DedSecLabs/gta-sa-openmp-devkit
+	url = https://github.com/DedSecLabs/gta-sa-openmp-devkit
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/DevD4v3/seztion-parser"]
+	path = third_party/omp-dev/topic/DevD4v3/seztion-parser
+	url = https://github.com/DevD4v3/seztion-parser
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/DevD4v3/system-jail-include"]
+	path = third_party/omp-dev/topic/DevD4v3/system-jail-include
+	url = https://github.com/DevD4v3/system-jail-include
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Fernando-A-Rocha/mta-ide-search"]
+	path = third_party/omp-dev/topic/Fernando-A-Rocha/mta-ide-search
+	url = https://github.com/Fernando-A-Rocha/mta-ide-search
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/FreddieCrew/gps-nav"]
+	path = third_party/omp-dev/topic/FreddieCrew/gps-nav
+	url = https://github.com/FreddieCrew/gps-nav
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Newmcpe/RakClient"]
+	path = third_party/omp-dev/topic/Newmcpe/RakClient
+	url = https://github.com/Newmcpe/RakClient
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/NimaBastani/SA-MP-Android"]
+	path = third_party/omp-dev/topic/NimaBastani/SA-MP-Android
+	url = https://github.com/NimaBastani/SA-MP-Android
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NimaBastani/SAMP-AirDrop-System"]
+	path = third_party/omp-dev/topic/NimaBastani/SAMP-AirDrop-System
+	url = https://github.com/NimaBastani/SAMP-AirDrop-System
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/PPC-Trucking/V1"]
+	path = third_party/omp-dev/topic/PPC-Trucking/V1
+	url = https://github.com/PPC-Trucking/V1
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/RogueDrifter/Demo-recorder"]
+	path = third_party/omp-dev/topic/RogueDrifter/Demo-recorder
+	url = https://github.com/RogueDrifter/Demo-recorder
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/RogueDrifter/Tech_Lights"]
+	path = third_party/omp-dev/topic/RogueDrifter/Tech_Lights
+	url = https://github.com/RogueDrifter/Tech_Lights
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ScavengeSurvive/hold-action"]
+	path = third_party/omp-dev/topic/ScavengeSurvive/hold-action
+	url = https://github.com/ScavengeSurvive/hold-action
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sk4r7z/SA-MP-SleepSystem"]
+	path = third_party/omp-dev/topic/Sk4r7z/SA-MP-SleepSystem
+	url = https://github.com/Sk4r7z/SA-MP-SleepSystem
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/go-samp-query"]
+	path = third_party/omp-dev/topic/Southclaws/go-samp-query
+	url = https://github.com/Southclaws/go-samp-query
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/pawn-ctime"]
+	path = third_party/omp-dev/topic/Southclaws/pawn-ctime
+	url = https://github.com/Southclaws/pawn-ctime
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/pawn-requests-example"]
+	path = third_party/omp-dev/topic/Southclaws/pawn-requests-example
+	url = https://github.com/Southclaws/pawn-requests-example
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/samp-nolog"]
+	path = third_party/omp-dev/topic/Southclaws/samp-nolog
+	url = https://github.com/Southclaws/samp-nolog
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp-plugin"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp-plugin
+	url = https://github.com/The2Alert/node-samp-plugin
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/TradeWars/gamemode"]
+	path = third_party/omp-dev/topic/TradeWars/gamemode
+	url = https://github.com/TradeWars/gamemode
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/WoutProvost/samp-forums-link-fixer"]
+	path = third_party/omp-dev/topic/WoutProvost/samp-forums-link-fixer
+	url = https://github.com/WoutProvost/samp-forums-link-fixer
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Xoce02/SAMP-AntiDDoS"]
+	path = third_party/omp-dev/topic/Xoce02/SAMP-AntiDDoS
+	url = https://github.com/Xoce02/SAMP-AntiDDoS
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/hsangrento/samp-bot"]
+	path = third_party/omp-dev/topic/hsangrento/samp-bot
+	url = https://github.com/hsangrento/samp-bot
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/inject3r/mihanrp"]
+	path = third_party/omp-dev/topic/inject3r/mihanrp
+	url = https://github.com/inject3r/mihanrp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/markski1/samp-surf-callbacks"]
+	path = third_party/omp-dev/topic/markski1/samp-surf-callbacks
+	url = https://github.com/markski1/samp-surf-callbacks
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/inline-textdraw-click"]
+	path = third_party/omp-dev/topic/mateusware/inline-textdraw-click
+	url = https://github.com/mateusware/inline-textdraw-click
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/pawn-binary-storage"]
+	path = third_party/omp-dev/topic/mateusware/pawn-binary-storage
+	url = https://github.com/mateusware/pawn-binary-storage
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/samp-ranking"]
+	path = third_party/omp-dev/topic/mateusware/samp-ranking
+	url = https://github.com/mateusware/samp-ranking
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/pawnkit/pawntest"]
+	path = third_party/omp-dev/topic/pawnkit/pawntest
+	url = https://github.com/pawnkit/pawntest
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/camhackww"]
+	path = third_party/omp-dev/topic/qrluke/camhackww
+	url = https://github.com/qrluke/camhackww
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/weather-and-time"]
+	path = third_party/omp-dev/topic/qrluke/weather-and-time
+	url = https://github.com/qrluke/weather-and-time
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/spicybung/ODFF"]
+	path = third_party/omp-dev/topic/spicybung/ODFF
+	url = https://github.com/spicybung/ODFF
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/whoismh11/samp-mapping"]
+	path = third_party/omp-dev/topic/whoismh11/samp-mapping
+	url = https://github.com/whoismh11/samp-mapping
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/zeus2198/pSigBuilder"]
+	path = third_party/omp-dev/topic/zeus2198/pSigBuilder
+	url = https://github.com/zeus2198/pSigBuilder
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/AliLogic/Zombieland-SAMP"]
+	path = third_party/omp-dev/topic/AliLogic/Zombieland-SAMP
+	url = https://github.com/AliLogic/Zombieland-SAMP
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ArTDsL/BIRLSAMP"]
+	path = third_party/omp-dev/topic/ArTDsL/BIRLSAMP
+	url = https://github.com/ArTDsL/BIRLSAMP
+	branch = development
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bios-Marcel/sampcmd-go"]
+	path = third_party/omp-dev/topic/Bios-Marcel/sampcmd-go
+	url = https://github.com/Bios-Marcel/sampcmd-go
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Corso-Project/Corso-RolePlay"]
+	path = third_party/omp-dev/topic/Corso-Project/Corso-RolePlay
+	url = https://github.com/Corso-Project/Corso-RolePlay
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/DevD4v3/antilag-inc"]
+	path = third_party/omp-dev/topic/DevD4v3/antilag-inc
+	url = https://github.com/DevD4v3/antilag-inc
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/HachiroCLI/mapping-samp"]
+	path = third_party/omp-dev/topic/HachiroCLI/mapping-samp
+	url = https://github.com/HachiroCLI/mapping-samp
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Lasho4/samp-hunger"]
+	path = third_party/omp-dev/topic/Lasho4/samp-hunger
+	url = https://github.com/Lasho4/samp-hunger
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/MassonNN/mas_pickups"]
+	path = third_party/omp-dev/topic/MassonNN/mas_pickups
+	url = https://github.com/MassonNN/mas_pickups
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NikitaFoxze/flip-dialog"]
+	path = third_party/omp-dev/topic/NikitaFoxze/flip-dialog
+	url = https://github.com/NikitaFoxze/flip-dialog
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/NimaBastani/C4-samp"]
+	path = third_party/omp-dev/topic/NimaBastani/C4-samp
+	url = https://github.com/NimaBastani/C4-samp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NimaBastani/TS-Controller"]
+	path = third_party/omp-dev/topic/NimaBastani/TS-Controller
+	url = https://github.com/NimaBastani/TS-Controller
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/PatrickGTR/GetTickCount-as-alternative-for-timers"]
+	path = third_party/omp-dev/topic/PatrickGTR/GetTickCount-as-alternative-for-timers
+	url = https://github.com/PatrickGTR/GetTickCount-as-alternative-for-timers
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/RogueDrifter/RogueDrifterZ-Drift"]
+	path = third_party/omp-dev/topic/RogueDrifter/RogueDrifterZ-Drift
+	url = https://github.com/RogueDrifter/RogueDrifterZ-Drift
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/RogueDrifter/Rogue_TDM"]
+	path = third_party/omp-dev/topic/RogueDrifter/Rogue_TDM
+	url = https://github.com/RogueDrifter/Rogue_TDM
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SampSharp/docs"]
+	path = third_party/omp-dev/topic/SampSharp/docs
+	url = https://github.com/SampSharp/docs
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ScavengeSurvive/settings"]
+	path = third_party/omp-dev/topic/ScavengeSurvive/settings
+	url = https://github.com/ScavengeSurvive/settings
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Shiska/nlanguage"]
+	path = third_party/omp-dev/topic/Shiska/nlanguage
+	url = https://github.com/Shiska/nlanguage
+	branch = array
+	shallow = true
+[submodule "third_party/omp-dev/topic/Solpadoin/SAMP-Mobile-v69-72"]
+	path = third_party/omp-dev/topic/Solpadoin/SAMP-Mobile-v69-72
+	url = https://github.com/Solpadoin/SAMP-Mobile-v69-72
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SorayutSirisakhon/samp-android-stable-fps-unlock"]
+	path = third_party/omp-dev/topic/SorayutSirisakhon/samp-android-stable-fps-unlock
+	url = https://github.com/SorayutSirisakhon/samp-android-stable-fps-unlock
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/GMenu"]
+	path = third_party/omp-dev/topic/Straydet/GMenu
+	url = https://github.com/Straydet/GMenu
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Tiaansu/pawn-chalk-old"]
+	path = third_party/omp-dev/topic/Tiaansu/pawn-chalk-old
+	url = https://github.com/Tiaansu/pawn-chalk-old
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/adib-yg/openmp-server-browser"]
+	path = third_party/omp-dev/topic/adib-yg/openmp-server-browser
+	url = https://github.com/adib-yg/openmp-server-browser
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/aujiz11/TOTP"]
+	path = third_party/omp-dev/topic/aujiz11/TOTP
+	url = https://github.com/aujiz11/TOTP
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/dimmyi/modelsizes-sqlite"]
+	path = third_party/omp-dev/topic/dimmyi/modelsizes-sqlite
+	url = https://github.com/dimmyi/modelsizes-sqlite
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/eklypss/null.pwn"]
+	path = third_party/omp-dev/topic/eklypss/null.pwn
+	url = https://github.com/eklypss/null.pwn
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/iamreiyn/uif-discord-plugin"]
+	path = third_party/omp-dev/topic/iamreiyn/uif-discord-plugin
+	url = https://github.com/iamreiyn/uif-discord-plugin
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ikkentim/SampSharp-rivershell"]
+	path = third_party/omp-dev/topic/ikkentim/SampSharp-rivershell
+	url = https://github.com/ikkentim/SampSharp-rivershell
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/inject3r/FakeBots"]
+	path = third_party/omp-dev/topic/inject3r/FakeBots
+	url = https://github.com/inject3r/FakeBots
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/inject3r/antiddos-samp"]
+	path = third_party/omp-dev/topic/inject3r/antiddos-samp
+	url = https://github.com/inject3r/antiddos-samp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/karimcambridge/samp-airbreak-detection"]
+	path = third_party/omp-dev/topic/karimcambridge/samp-airbreak-detection
+	url = https://github.com/karimcambridge/samp-airbreak-detection
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/killermvc/pawn-stack"]
+	path = third_party/omp-dev/topic/killermvc/pawn-stack
+	url = https://github.com/killermvc/pawn-stack
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/knryuu/pawnplus-dialog-pages"]
+	path = third_party/omp-dev/topic/knryuu/pawnplus-dialog-pages
+	url = https://github.com/knryuu/pawnplus-dialog-pages
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/pawnkit/tree-sitter-pawn"]
+	path = third_party/omp-dev/topic/pawnkit/tree-sitter-pawn
+	url = https://github.com/pawnkit/tree-sitter-pawn
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/play-verse/playverse"]
+	path = third_party/omp-dev/topic/play-verse/playverse
+	url = https://github.com/play-verse/playverse
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/supports-heaven"]
+	path = third_party/omp-dev/topic/qrluke/supports-heaven
+	url = https://github.com/qrluke/supports-heaven
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qxlies/satk-gta"]
+	path = third_party/omp-dev/topic/qxlies/satk-gta
+	url = https://github.com/qxlies/satk-gta
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/roseeast/PawnTTS"]
+	path = third_party/omp-dev/topic/roseeast/PawnTTS
+	url = https://github.com/roseeast/PawnTTS
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/spicybung/IV2OMP"]
+	path = third_party/omp-dev/topic/spicybung/IV2OMP
+	url = https://github.com/spicybung/IV2OMP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/vibern0/DynamicData"]
+	path = third_party/omp-dev/topic/vibern0/DynamicData
+	url = https://github.com/vibern0/DynamicData
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/zeus2198/SAMP-server-real-time-signature-builder"]
+	path = third_party/omp-dev/topic/zeus2198/SAMP-server-real-time-signature-builder
+	url = https://github.com/zeus2198/SAMP-server-real-time-signature-builder
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/0xWhyd/gmtime"]
+	path = third_party/omp-dev/topic/0xWhyd/gmtime
+	url = https://github.com/0xWhyd/gmtime
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Basssiiie/Advanced-Fireworks"]
+	path = third_party/omp-dev/topic/Basssiiie/Advanced-Fireworks
+	url = https://github.com/Basssiiie/Advanced-Fireworks
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bren828/dialog-pages"]
+	path = third_party/omp-dev/topic/Bren828/dialog-pages
+	url = https://github.com/Bren828/dialog-pages
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Crayder/Time-Counters"]
+	path = third_party/omp-dev/topic/Crayder/Time-Counters
+	url = https://github.com/Crayder/Time-Counters
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Dayvison/samp-include-dialogs"]
+	path = third_party/omp-dev/topic/Dayvison/samp-include-dialogs
+	url = https://github.com/Dayvison/samp-include-dialogs
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/FreddieCrew/launcher"]
+	path = third_party/omp-dev/topic/FreddieCrew/launcher
+	url = https://github.com/FreddieCrew/launcher
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/MahmoodrezaZ/PySAMP-CLI"]
+	path = third_party/omp-dev/topic/MahmoodrezaZ/PySAMP-CLI
+	url = https://github.com/MahmoodrezaZ/PySAMP-CLI
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NimaBastani/SA-MP-Control-Panel"]
+	path = third_party/omp-dev/topic/NimaBastani/SA-MP-Control-Panel
+	url = https://github.com/NimaBastani/SA-MP-Control-Panel
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NimaBastani/omp-samp-bigint"]
+	path = third_party/omp-dev/topic/NimaBastani/omp-samp-bigint
+	url = https://github.com/NimaBastani/omp-samp-bigint
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NullSablex/https_samp"]
+	path = third_party/omp-dev/topic/NullSablex/https_samp
+	url = https://github.com/NullSablex/https_samp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Pyrax/samp-kitchen-sink"]
+	path = third_party/omp-dev/topic/Pyrax/samp-kitchen-sink
+	url = https://github.com/Pyrax/samp-kitchen-sink
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Rahm4ni/SAMP-JDF"]
+	path = third_party/omp-dev/topic/Rahm4ni/SAMP-JDF
+	url = https://github.com/Rahm4ni/SAMP-JDF
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Ramon-Sd/RTimer"]
+	path = third_party/omp-dev/topic/Ramon-Sd/RTimer
+	url = https://github.com/Ramon-Sd/RTimer
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SA-MP-Android/Plugin-Tools"]
+	path = third_party/omp-dev/topic/SA-MP-Android/Plugin-Tools
+	url = https://github.com/SA-MP-Android/Plugin-Tools
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SampSharp/SampSharp-UI"]
+	path = third_party/omp-dev/topic/SampSharp/SampSharp-UI
+	url = https://github.com/SampSharp/SampSharp-UI
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SampSharp/SampSharp-visualstudio"]
+	path = third_party/omp-dev/topic/SampSharp/SampSharp-visualstudio
+	url = https://github.com/SampSharp/SampSharp-visualstudio
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/San-Andreas-Roleplay-ES/crc32"]
+	path = third_party/omp-dev/topic/San-Andreas-Roleplay-ES/crc32
+	url = https://github.com/San-Andreas-Roleplay-ES/crc32
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ScavengeSurvive/item-dictionary"]
+	path = third_party/omp-dev/topic/ScavengeSurvive/item-dictionary
+	url = https://github.com/ScavengeSurvive/item-dictionary
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ScavengeSurvive/itemtype-bag"]
+	path = third_party/omp-dev/topic/ScavengeSurvive/itemtype-bag
+	url = https://github.com/ScavengeSurvive/itemtype-bag
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ScavengeSurvive/language"]
+	path = third_party/omp-dev/topic/ScavengeSurvive/language
+	url = https://github.com/ScavengeSurvive/language
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/Date-and-Time"]
+	path = third_party/omp-dev/topic/Straydet/Date-and-Time
+	url = https://github.com/Straydet/Date-and-Time
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp-amx"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp-amx
+	url = https://github.com/The2Alert/node-samp-amx
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp-streamer"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp-streamer
+	url = https://github.com/The2Alert/node-samp-streamer
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/WoutProvost/FCNPC-MMO"]
+	path = third_party/omp-dev/topic/WoutProvost/FCNPC-MMO
+	url = https://github.com/WoutProvost/FCNPC-MMO
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/addrian-77/cleo-auto-trucker"]
+	path = third_party/omp-dev/topic/addrian-77/cleo-auto-trucker
+	url = https://github.com/addrian-77/cleo-auto-trucker
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/alexandr-gnrk/samp-frontend"]
+	path = third_party/omp-dev/topic/alexandr-gnrk/samp-frontend
+	url = https://github.com/alexandr-gnrk/samp-frontend
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/aronk02/insiderpg"]
+	path = third_party/omp-dev/topic/aronk02/insiderpg
+	url = https://github.com/aronk02/insiderpg
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/aujiz11/omp-starter"]
+	path = third_party/omp-dev/topic/aujiz11/omp-starter
+	url = https://github.com/aujiz11/omp-starter
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/bashovski/sao"]
+	path = third_party/omp-dev/topic/bashovski/sao
+	url = https://github.com/bashovski/sao
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/by-not/samp-cameditor"]
+	path = third_party/omp-dev/topic/by-not/samp-cameditor
+	url = https://github.com/by-not/samp-cameditor
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/caysonrodrigues/samp-chat"]
+	path = third_party/omp-dev/topic/caysonrodrigues/samp-chat
+	url = https://github.com/caysonrodrigues/samp-chat
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/cefetmg-samp/fcnpc-sampgdk"]
+	path = third_party/omp-dev/topic/cefetmg-samp/fcnpc-sampgdk
+	url = https://github.com/cefetmg-samp/fcnpc-sampgdk
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/chevrolet231/California-Stories"]
+	path = third_party/omp-dev/topic/chevrolet231/California-Stories
+	url = https://github.com/chevrolet231/California-Stories
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/christiann-pro/samp-cpf-fixed"]
+	path = third_party/omp-dev/topic/christiann-pro/samp-cpf-fixed
+	url = https://github.com/christiann-pro/samp-cpf-fixed
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/darviewyrl/pawn-skills"]
+	path = third_party/omp-dev/topic/darviewyrl/pawn-skills
+	url = https://github.com/darviewyrl/pawn-skills
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/demian-gg/pawn-humanize"]
+	path = third_party/omp-dev/topic/demian-gg/pawn-humanize
+	url = https://github.com/demian-gg/pawn-humanize
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/derrick0930/FileDetect"]
+	path = third_party/omp-dev/topic/derrick0930/FileDetect
+	url = https://github.com/derrick0930/FileDetect
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/dockfries/samp-node"]
+	path = third_party/omp-dev/topic/dockfries/samp-node
+	url = https://github.com/dockfries/samp-node
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/dockfries/samp-unicode"]
+	path = third_party/omp-dev/topic/dockfries/samp-unicode
+	url = https://github.com/dockfries/samp-unicode
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/dpteam/Neodream"]
+	path = third_party/omp-dev/topic/dpteam/Neodream
+	url = https://github.com/dpteam/Neodream
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/dpteam/OpenGM"]
+	path = third_party/omp-dev/topic/dpteam/OpenGM
+	url = https://github.com/dpteam/OpenGM
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/eklypss/MTAConvert"]
+	path = third_party/omp-dev/topic/eklypss/MTAConvert
+	url = https://github.com/eklypss/MTAConvert
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/guil2k7/samp-plugin-sdk"]
+	path = third_party/omp-dev/topic/guil2k7/samp-plugin-sdk
+	url = https://github.com/guil2k7/samp-plugin-sdk
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ikkentim/SampSharp-grandlarc"]
+	path = third_party/omp-dev/topic/ikkentim/SampSharp-grandlarc
+	url = https://github.com/ikkentim/SampSharp-grandlarc
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/killermvc/pawn-idgen"]
+	path = third_party/omp-dev/topic/killermvc/pawn-idgen
+	url = https://github.com/killermvc/pawn-idgen
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/kristoisberg/samp-grayscale-bitmap"]
+	path = third_party/omp-dev/topic/kristoisberg/samp-grayscale-bitmap
+	url = https://github.com/kristoisberg/samp-grayscale-bitmap
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/lunosat/Headphone-Filterscript-SA-MP"]
+	path = third_party/omp-dev/topic/lunosat/Headphone-Filterscript-SA-MP
+	url = https://github.com/lunosat/Headphone-Filterscript-SA-MP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/samp-chatlog"]
+	path = third_party/omp-dev/topic/mateusware/samp-chatlog
+	url = https://github.com/mateusware/samp-chatlog
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/samp-helpdev"]
+	path = third_party/omp-dev/topic/mateusware/samp-helpdev
+	url = https://github.com/mateusware/samp-helpdev
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/samp-progress"]
+	path = third_party/omp-dev/topic/mateusware/samp-progress
+	url = https://github.com/mateusware/samp-progress
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/michael-fa/GTA-City-Remake"]
+	path = third_party/omp-dev/topic/michael-fa/GTA-City-Remake
+	url = https://github.com/michael-fa/GTA-City-Remake
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/pizzast/samp-freeroam-basic-gamemode"]
+	path = third_party/omp-dev/topic/pizzast/samp-freeroam-basic-gamemode
+	url = https://github.com/pizzast/samp-freeroam-basic-gamemode
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/punkochel/PrivateArea.inc"]
+	path = third_party/omp-dev/topic/punkochel/PrivateArea.inc
+	url = https://github.com/punkochel/PrivateArea.inc
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/fixator"]
+	path = third_party/omp-dev/topic/qrluke/fixator
+	url = https://github.com/qrluke/fixator
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/samp-pvp.ru"]
+	path = third_party/omp-dev/topic/qrluke/samp-pvp.ru
+	url = https://github.com/qrluke/samp-pvp.ru
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/roseeast/async-crypto"]
+	path = third_party/omp-dev/topic/roseeast/async-crypto
+	url = https://github.com/roseeast/async-crypto
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/roseeast/mapstealer"]
+	path = third_party/omp-dev/topic/roseeast/mapstealer
+	url = https://github.com/roseeast/mapstealer
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/sec9/LoslandLauncher"]
+	path = third_party/omp-dev/topic/sec9/LoslandLauncher
+	url = https://github.com/sec9/LoslandLauncher
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/shisisan/samp-gamemode-template"]
+	path = third_party/omp-dev/topic/shisisan/samp-gamemode-template
+	url = https://github.com/shisisan/samp-gamemode-template
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/spicybung/Xezios"]
+	path = third_party/omp-dev/topic/spicybung/Xezios
+	url = https://github.com/spicybung/Xezios
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/staark-dev/omp-voice"]
+	path = third_party/omp-dev/topic/staark-dev/omp-voice
+	url = https://github.com/staark-dev/omp-voice
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/th1nk-er/MediaBuildingElevator"]
+	path = third_party/omp-dev/topic/th1nk-er/MediaBuildingElevator
+	url = https://github.com/th1nk-er/MediaBuildingElevator
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ukrainian-freedom/ompua"]
+	path = third_party/omp-dev/topic/ukrainian-freedom/ompua
+	url = https://github.com/ukrainian-freedom/ompua
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/unknownzall/SAMP-Discord-Bot-Underworld"]
+	path = third_party/omp-dev/topic/unknownzall/SAMP-Discord-Bot-Underworld
+	url = https://github.com/unknownzall/SAMP-Discord-Bot-Underworld
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/waverso/waversomapstudio"]
+	path = third_party/omp-dev/topic/waverso/waversomapstudio
+	url = https://github.com/waverso/waversomapstudio
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/zeus2198/Web-scraper-for-SA-MP-search-result"]
+	path = third_party/omp-dev/topic/zeus2198/Web-scraper-for-SA-MP-search-result
+	url = https://github.com/zeus2198/Web-scraper-for-SA-MP-search-result
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/5456SoDa/sonic-samp-launcher"]
+	path = third_party/omp-dev/topic/5456SoDa/sonic-samp-launcher
+	url = https://github.com/5456SoDa/sonic-samp-launcher
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ArTDsL/ARTDSL-ICL-SAMP"]
+	path = third_party/omp-dev/topic/ArTDsL/ARTDSL-ICL-SAMP
+	url = https://github.com/ArTDsL/ARTDSL-ICL-SAMP
+	branch = development
+	shallow = true
+[submodule "third_party/omp-dev/topic/BN-M/Api"]
+	path = third_party/omp-dev/topic/BN-M/Api
+	url = https://github.com/BN-M/Api
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/BrownTurbo/BrownTurbo-DX"]
+	path = third_party/omp-dev/topic/BrownTurbo/BrownTurbo-DX
+	url = https://github.com/BrownTurbo/BrownTurbo-DX
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/BrownTurbo/BrownTurbo-ExtendedGame"]
+	path = third_party/omp-dev/topic/BrownTurbo/BrownTurbo-ExtendedGame
+	url = https://github.com/BrownTurbo/BrownTurbo-ExtendedGame
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/BrownTurbo/SAMP-LiteClient"]
+	path = third_party/omp-dev/topic/BrownTurbo/SAMP-LiteClient
+	url = https://github.com/BrownTurbo/SAMP-LiteClient
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Crayder/Over-Heated"]
+	path = third_party/omp-dev/topic/Crayder/Over-Heated
+	url = https://github.com/Crayder/Over-Heated
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Daniel-Cortez/pawn-misc"]
+	path = third_party/omp-dev/topic/Daniel-Cortez/pawn-misc
+	url = https://github.com/Daniel-Cortez/pawn-misc
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/DevD4v3/GameMode.Common"]
+	path = third_party/omp-dev/topic/DevD4v3/GameMode.Common
+	url = https://github.com/DevD4v3/GameMode.Common
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/DevD4v3/SampSharp.MapObjects"]
+	path = third_party/omp-dev/topic/DevD4v3/SampSharp.MapObjects
+	url = https://github.com/DevD4v3/SampSharp.MapObjects
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Engkqq/engkqSelections"]
+	path = third_party/omp-dev/topic/Engkqq/engkqSelections
+	url = https://github.com/Engkqq/engkqSelections
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Haumea-Team/Haumea-Server"]
+	path = third_party/omp-dev/topic/Haumea-Team/Haumea-Server
+	url = https://github.com/Haumea-Team/Haumea-Server
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/HugeBrain16/drvrpcpp"]
+	path = third_party/omp-dev/topic/HugeBrain16/drvrpcpp
+	url = https://github.com/HugeBrain16/drvrpcpp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Jacob-Tr/SAMPMkDir"]
+	path = third_party/omp-dev/topic/Jacob-Tr/SAMPMkDir
+	url = https://github.com/Jacob-Tr/SAMPMkDir
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Joshua-Bomba/jbcars2"]
+	path = third_party/omp-dev/topic/Joshua-Bomba/jbcars2
+	url = https://github.com/Joshua-Bomba/jbcars2
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Juice288/pp-library"]
+	path = third_party/omp-dev/topic/Juice288/pp-library
+	url = https://github.com/Juice288/pp-library
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Lasho4/AntiCarPush"]
+	path = third_party/omp-dev/topic/Lasho4/AntiCarPush
+	url = https://github.com/Lasho4/AntiCarPush
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Lasho4/samp-realtime-weather"]
+	path = third_party/omp-dev/topic/Lasho4/samp-realtime-weather
+	url = https://github.com/Lasho4/samp-realtime-weather
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Lordzy/L_Lag"]
+	path = third_party/omp-dev/topic/Lordzy/L_Lag
+	url = https://github.com/Lordzy/L_Lag
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Mac-Andreas/omp-wine-injector"]
+	path = third_party/omp-dev/topic/Mac-Andreas/omp-wine-injector
+	url = https://github.com/Mac-Andreas/omp-wine-injector
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Marevin/samp-plugin-xml"]
+	path = third_party/omp-dev/topic/Marevin/samp-plugin-xml
+	url = https://github.com/Marevin/samp-plugin-xml
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Muteo42/GTA-SA-MP-Client-Launcher"]
+	path = third_party/omp-dev/topic/Muteo42/GTA-SA-MP-Client-Launcher
+	url = https://github.com/Muteo42/GTA-SA-MP-Client-Launcher
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NimaBastani/pawn-json-parser"]
+	path = third_party/omp-dev/topic/NimaBastani/pawn-json-parser
+	url = https://github.com/NimaBastani/pawn-json-parser
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/NullSablex/email-samp"]
+	path = third_party/omp-dev/topic/NullSablex/email-samp
+	url = https://github.com/NullSablex/email-samp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NullSablex/env-samp"]
+	path = third_party/omp-dev/topic/NullSablex/env-samp
+	url = https://github.com/NullSablex/env-samp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Se8870/samp-base-launcher"]
+	path = third_party/omp-dev/topic/Se8870/samp-base-launcher
+	url = https://github.com/Se8870/samp-base-launcher
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/SeniorAm/BanSystem"]
+	path = third_party/omp-dev/topic/SeniorAm/BanSystem
+	url = https://github.com/SeniorAm/BanSystem
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/SeniorAm/Taturial-pawno"]
+	path = third_party/omp-dev/topic/SeniorAm/Taturial-pawno
+	url = https://github.com/SeniorAm/Taturial-pawno
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Shazanxz/FovChanger"]
+	path = third_party/omp-dev/topic/Shazanxz/FovChanger
+	url = https://github.com/Shazanxz/FovChanger
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Southclaws/samp-balloon"]
+	path = third_party/omp-dev/topic/Southclaws/samp-balloon
+	url = https://github.com/Southclaws/samp-balloon
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Sreyas-Sreelal/SA-MP-Concepts"]
+	path = third_party/omp-dev/topic/Sreyas-Sreelal/SA-MP-Concepts
+	url = https://github.com/Sreyas-Sreelal/SA-MP-Concepts
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/Clan-System-and-Zones"]
+	path = third_party/omp-dev/topic/Straydet/Clan-System-and-Zones
+	url = https://github.com/Straydet/Clan-System-and-Zones
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/Event-System"]
+	path = third_party/omp-dev/topic/Straydet/Event-System
+	url = https://github.com/Straydet/Event-System
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/House-System"]
+	path = third_party/omp-dev/topic/Straydet/House-System
+	url = https://github.com/Straydet/House-System
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/JakAdmin4"]
+	path = third_party/omp-dev/topic/Straydet/JakAdmin4
+	url = https://github.com/Straydet/JakAdmin4
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp-cli"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp-cli
+	url = https://github.com/The2Alert/node-samp-cli
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp-core"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp-core
+	url = https://github.com/The2Alert/node-samp-core
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp-crashdetect"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp-crashdetect
+	url = https://github.com/The2Alert/node-samp-crashdetect
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp-decorators"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp-decorators
+	url = https://github.com/The2Alert/node-samp-decorators
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp-javascript-starter"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp-javascript-starter
+	url = https://github.com/The2Alert/node-samp-javascript-starter
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Tiaansu/JSONLang"]
+	path = third_party/omp-dev/topic/Tiaansu/JSONLang
+	url = https://github.com/Tiaansu/JSONLang
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/TradeWars/warehouse"]
+	path = third_party/omp-dev/topic/TradeWars/warehouse
+	url = https://github.com/TradeWars/warehouse
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Trou95/open.go"]
+	path = third_party/omp-dev/topic/Trou95/open.go
+	url = https://github.com/Trou95/open.go
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/VIRUXE/samp-scavenge-nostalgia"]
+	path = third_party/omp-dev/topic/VIRUXE/samp-scavenge-nostalgia
+	url = https://github.com/VIRUXE/samp-scavenge-nostalgia
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/VIRUXE/scavengesurvive-mta"]
+	path = third_party/omp-dev/topic/VIRUXE/scavengesurvive-mta
+	url = https://github.com/VIRUXE/scavengesurvive-mta
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Vito-URP/MapTogether"]
+	path = third_party/omp-dev/topic/Vito-URP/MapTogether
+	url = https://github.com/Vito-URP/MapTogether
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/WoutProvost/GTAQuat"]
+	path = third_party/omp-dev/topic/WoutProvost/GTAQuat
+	url = https://github.com/WoutProvost/GTAQuat
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/addrian-77/cleo-autoaccelerate"]
+	path = third_party/omp-dev/topic/addrian-77/cleo-autoaccelerate
+	url = https://github.com/addrian-77/cleo-autoaccelerate
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/addrian-77/cleo-instructor-pack"]
+	path = third_party/omp-dev/topic/addrian-77/cleo-instructor-pack
+	url = https://github.com/addrian-77/cleo-instructor-pack
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/alinaz18/samp-launcher-linux"]
+	path = third_party/omp-dev/topic/alinaz18/samp-launcher-linux
+	url = https://github.com/alinaz18/samp-launcher-linux
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/gurkansahinn/ghostbuster_blacklist"]
+	path = third_party/omp-dev/topic/gurkansahinn/ghostbuster_blacklist
+	url = https://github.com/gurkansahinn/ghostbuster_blacklist
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/hilsetapp/samp-pulse"]
+	path = third_party/omp-dev/topic/hilsetapp/samp-pulse
+	url = https://github.com/hilsetapp/samp-pulse
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ikkentim/SampSharp-build"]
+	path = third_party/omp-dev/topic/ikkentim/SampSharp-build
+	url = https://github.com/ikkentim/SampSharp-build
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ilham60b-ship-it/SA-MP-SSI"]
+	path = third_party/omp-dev/topic/ilham60b-ship-it/SA-MP-SSI
+	url = https://github.com/ilham60b-ship-it/SA-MP-SSI
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/irsyaddza/samp-losjawa-rp"]
+	path = third_party/omp-dev/topic/irsyaddza/samp-losjawa-rp
+	url = https://github.com/irsyaddza/samp-losjawa-rp
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/kolor4do/action-text"]
+	path = third_party/omp-dev/topic/kolor4do/action-text
+	url = https://github.com/kolor4do/action-text
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/lightningpriest/samp-highmild"]
+	path = third_party/omp-dev/topic/lightningpriest/samp-highmild
+	url = https://github.com/lightningpriest/samp-highmild
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/lunosat/Ruby-Roleplay"]
+	path = third_party/omp-dev/topic/lunosat/Ruby-Roleplay
+	url = https://github.com/lunosat/Ruby-Roleplay
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/pawn-rcon-random"]
+	path = third_party/omp-dev/topic/mateusware/pawn-rcon-random
+	url = https://github.com/mateusware/pawn-rcon-random
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/samp-dialog-stealer"]
+	path = third_party/omp-dev/topic/mateusware/samp-dialog-stealer
+	url = https://github.com/mateusware/samp-dialog-stealer
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ne0de/cwtg-gamemode"]
+	path = third_party/omp-dev/topic/ne0de/cwtg-gamemode
+	url = https://github.com/ne0de/cwtg-gamemode
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ne0de/latam-multi-cwtg"]
+	path = third_party/omp-dev/topic/ne0de/latam-multi-cwtg
+	url = https://github.com/ne0de/latam-multi-cwtg
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/noiseXYZ/openmp-asf"]
+	path = third_party/omp-dev/topic/noiseXYZ/openmp-asf
+	url = https://github.com/noiseXYZ/openmp-asf
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/pawn-lang-es/YSI-Spanish"]
+	path = third_party/omp-dev/topic/pawn-lang-es/YSI-Spanish
+	url = https://github.com/pawn-lang-es/YSI-Spanish
+	branch = 5.x
+	shallow = true
+[submodule "third_party/omp-dev/topic/pawnkit/pawn-actions"]
+	path = third_party/omp-dev/topic/pawnkit/pawn-actions
+	url = https://github.com/pawnkit/pawn-actions
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ppassinho/samp-utils"]
+	path = third_party/omp-dev/topic/ppassinho/samp-utils
+	url = https://github.com/ppassinho/samp-utils
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ppassinho/samp-vehicles-data-formatter"]
+	path = third_party/omp-dev/topic/ppassinho/samp-vehicles-data-formatter
+	url = https://github.com/ppassinho/samp-vehicles-data-formatter
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/adblock"]
+	path = third_party/omp-dev/topic/qrluke/adblock
+	url = https://github.com/qrluke/adblock
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/animkrug"]
+	path = third_party/omp-dev/topic/qrluke/animkrug
+	url = https://github.com/qrluke/animkrug
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/anti-casino"]
+	path = third_party/omp-dev/topic/qrluke/anti-casino
+	url = https://github.com/qrluke/anti-casino
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/gmap"]
+	path = third_party/omp-dev/topic/qrluke/gmap
+	url = https://github.com/qrluke/gmap
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/roseeast/PawnMetrics"]
+	path = third_party/omp-dev/topic/roseeast/PawnMetrics
+	url = https://github.com/roseeast/PawnMetrics
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/roseeast/qte"]
+	path = third_party/omp-dev/topic/roseeast/qte
+	url = https://github.com/roseeast/qte
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/seanny/PawnX"]
+	path = third_party/omp-dev/topic/seanny/PawnX
+	url = https://github.com/seanny/PawnX
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/sittiev/pawndex_mcp_server"]
+	path = third_party/omp-dev/topic/sittiev/pawndex_mcp_server
+	url = https://github.com/sittiev/pawndex_mcp_server
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/tacos-private-room/Skins-From-GTA-Underground"]
+	path = third_party/omp-dev/topic/tacos-private-room/Skins-From-GTA-Underground
+	url = https://github.com/tacos-private-room/Skins-From-GTA-Underground
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/teredokot/query-service"]
+	path = third_party/omp-dev/topic/teredokot/query-service
+	url = https://github.com/teredokot/query-service
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/wweziza/SAM-dialog"]
+	path = third_party/omp-dev/topic/wweziza/SAM-dialog
+	url = https://github.com/wweziza/SAM-dialog
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/zxctokyoghoul/absolute-dm"]
+	path = third_party/omp-dev/topic/zxctokyoghoul/absolute-dm
+	url = https://github.com/zxctokyoghoul/absolute-dm
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Agnius/paradise-city"]
+	path = third_party/omp-dev/topic/Agnius/paradise-city
+	url = https://github.com/Agnius/paradise-city
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Agsyah/loadingbar"]
+	path = third_party/omp-dev/topic/Agsyah/loadingbar
+	url = https://github.com/Agsyah/loadingbar
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bios-Marcel/Date-Time-Util"]
+	path = third_party/omp-dev/topic/Bios-Marcel/Date-Time-Util
+	url = https://github.com/Bios-Marcel/Date-Time-Util
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Boomnaja/TH-Font-For-Dialog-SA-MP"]
+	path = third_party/omp-dev/topic/Boomnaja/TH-Font-For-Dialog-SA-MP
+	url = https://github.com/Boomnaja/TH-Font-For-Dialog-SA-MP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Botato300/galaxy-helper"]
+	path = third_party/omp-dev/topic/Botato300/galaxy-helper
+	url = https://github.com/Botato300/galaxy-helper
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Bren828/Custom-Play-Hub"]
+	path = third_party/omp-dev/topic/Bren828/Custom-Play-Hub
+	url = https://github.com/Bren828/Custom-Play-Hub
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/BrownTurbo/BrownTurbo-ChatLogger"]
+	path = third_party/omp-dev/topic/BrownTurbo/BrownTurbo-ChatLogger
+	url = https://github.com/BrownTurbo/BrownTurbo-ChatLogger
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/BrownTurbo/BrownTurbo-DiscordRPC"]
+	path = third_party/omp-dev/topic/BrownTurbo/BrownTurbo-DiscordRPC
+	url = https://github.com/BrownTurbo/BrownTurbo-DiscordRPC
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Clavaria-Roleplay/bot"]
+	path = third_party/omp-dev/topic/Clavaria-Roleplay/bot
+	url = https://github.com/Clavaria-Roleplay/bot
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Corso-Project/Corso-DeathMatch"]
+	path = third_party/omp-dev/topic/Corso-Project/Corso-DeathMatch
+	url = https://github.com/Corso-Project/Corso-DeathMatch
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Corso-Project/Corso-San-Andreas"]
+	path = third_party/omp-dev/topic/Corso-Project/Corso-San-Andreas
+	url = https://github.com/Corso-Project/Corso-San-Andreas
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Crayder/Seeded-Random"]
+	path = third_party/omp-dev/topic/Crayder/Seeded-Random
+	url = https://github.com/Crayder/Seeded-Random
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/DedSecLabs/luahz"]
+	path = third_party/omp-dev/topic/DedSecLabs/luahz
+	url = https://github.com/DedSecLabs/luahz
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Engkq/Camera-Editor-Fly---Open.MP"]
+	path = third_party/omp-dev/topic/Engkq/Camera-Editor-Fly---Open.MP
+	url = https://github.com/Engkq/Camera-Editor-Fly---Open.MP
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Engkq/Streaming"]
+	path = third_party/omp-dev/topic/Engkq/Streaming
+	url = https://github.com/Engkq/Streaming
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Engkqq/Basketball"]
+	path = third_party/omp-dev/topic/Engkqq/Basketball
+	url = https://github.com/Engkqq/Basketball
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Joaaa1/chezandjoa"]
+	path = third_party/omp-dev/topic/Joaaa1/chezandjoa
+	url = https://github.com/Joaaa1/chezandjoa
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/LESS14/yt_api"]
+	path = third_party/omp-dev/topic/LESS14/yt_api
+	url = https://github.com/LESS14/yt_api
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Lasho4/SAMP-AntiFlyHack"]
+	path = third_party/omp-dev/topic/Lasho4/SAMP-AntiFlyHack
+	url = https://github.com/Lasho4/SAMP-AntiFlyHack
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/NimaBastani/SA-MP-PHP-Control-Panel"]
+	path = third_party/omp-dev/topic/NimaBastani/SA-MP-PHP-Control-Panel
+	url = https://github.com/NimaBastani/SA-MP-PHP-Control-Panel
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NimaBastani/Telegram-SAMP-Control-Bot"]
+	path = third_party/omp-dev/topic/NimaBastani/Telegram-SAMP-Control-Bot
+	url = https://github.com/NimaBastani/Telegram-SAMP-Control-Bot
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/NullSablex/PawnPro-Debugger"]
+	path = third_party/omp-dev/topic/NullSablex/PawnPro-Debugger
+	url = https://github.com/NullSablex/PawnPro-Debugger
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/NullSablex/pawn-crypto"]
+	path = third_party/omp-dev/topic/NullSablex/pawn-crypto
+	url = https://github.com/NullSablex/pawn-crypto
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Pokraska/SantropeRP-Launcher"]
+	path = third_party/omp-dev/topic/Pokraska/SantropeRP-Launcher
+	url = https://github.com/Pokraska/SantropeRP-Launcher
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Pranav941/samp_hzg_private_freq"]
+	path = third_party/omp-dev/topic/Pranav941/samp_hzg_private_freq
+	url = https://github.com/Pranav941/samp_hzg_private_freq
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Ptraaah/livingcity"]
+	path = third_party/omp-dev/topic/Ptraaah/livingcity
+	url = https://github.com/Ptraaah/livingcity
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/RASALOP/DUBAI-ROLEPLAY"]
+	path = third_party/omp-dev/topic/RASALOP/DUBAI-ROLEPLAY
+	url = https://github.com/RASALOP/DUBAI-ROLEPLAY
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/RenanMsV/SampSharp-bare"]
+	path = third_party/omp-dev/topic/RenanMsV/SampSharp-bare
+	url = https://github.com/RenanMsV/SampSharp-bare
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SA-MP-Android/SA-MP-Pilot"]
+	path = third_party/omp-dev/topic/SA-MP-Android/SA-MP-Pilot
+	url = https://github.com/SA-MP-Android/SA-MP-Pilot
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SA-MP-Mobile/i18n"]
+	path = third_party/omp-dev/topic/SA-MP-Mobile/i18n
+	url = https://github.com/SA-MP-Mobile/i18n
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SA-MP-Mobile/issue"]
+	path = third_party/omp-dev/topic/SA-MP-Mobile/issue
+	url = https://github.com/SA-MP-Mobile/issue
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SACNR/sa-mp_docker"]
+	path = third_party/omp-dev/topic/SACNR/sa-mp_docker
+	url = https://github.com/SACNR/sa-mp_docker
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SampSharp/SampSharp-mockery"]
+	path = third_party/omp-dev/topic/SampSharp/SampSharp-mockery
+	url = https://github.com/SampSharp/SampSharp-mockery
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ScavengeSurvive/test-boilerplate-npcs"]
+	path = third_party/omp-dev/topic/ScavengeSurvive/test-boilerplate-npcs
+	url = https://github.com/ScavengeSurvive/test-boilerplate-npcs
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/SeniorAm/game-server-payment-gateways"]
+	path = third_party/omp-dev/topic/SeniorAm/game-server-payment-gateways
+	url = https://github.com/SeniorAm/game-server-payment-gateways
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Shiska/nDialog"]
+	path = third_party/omp-dev/topic/Shiska/nDialog
+	url = https://github.com/Shiska/nDialog
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/3DSpeedo"]
+	path = third_party/omp-dev/topic/Straydet/3DSpeedo
+	url = https://github.com/Straydet/3DSpeedo
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/Carfly"]
+	path = third_party/omp-dev/topic/Straydet/Carfly
+	url = https://github.com/Straydet/Carfly
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/Dynamic-Circles"]
+	path = third_party/omp-dev/topic/Straydet/Dynamic-Circles
+	url = https://github.com/Straydet/Dynamic-Circles
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/JaKe-s-Stunt-DM-Freeroam-Minigames-Roleplay"]
+	path = third_party/omp-dev/topic/Straydet/JaKe-s-Stunt-DM-Freeroam-Minigames-Roleplay
+	url = https://github.com/Straydet/JaKe-s-Stunt-DM-Freeroam-Minigames-Roleplay
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/JakAdmin3"]
+	path = third_party/omp-dev/topic/Straydet/JakAdmin3
+	url = https://github.com/Straydet/JakAdmin3
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/LifeArmour-HUD"]
+	path = third_party/omp-dev/topic/Straydet/LifeArmour-HUD
+	url = https://github.com/Straydet/LifeArmour-HUD
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/Menu-Floating"]
+	path = third_party/omp-dev/topic/Straydet/Menu-Floating
+	url = https://github.com/Straydet/Menu-Floating
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/Nitro-Bar"]
+	path = third_party/omp-dev/topic/Straydet/Nitro-Bar
+	url = https://github.com/Straydet/Nitro-Bar
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/Player-Object-System-Bones-Colors-150"]
+	path = third_party/omp-dev/topic/Straydet/Player-Object-System-Bones-Colors-150
+	url = https://github.com/Straydet/Player-Object-System-Bones-Colors-150
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/Rainbow-Textdraw"]
+	path = third_party/omp-dev/topic/Straydet/Rainbow-Textdraw
+	url = https://github.com/Straydet/Rainbow-Textdraw
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Straydet/Test-Reaction"]
+	path = third_party/omp-dev/topic/Straydet/Test-Reaction
+	url = https://github.com/Straydet/Test-Reaction
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/TempoServers/Comunidad"]
+	path = third_party/omp-dev/topic/TempoServers/Comunidad
+	url = https://github.com/TempoServers/Comunidad
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp-docker-starter"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp-docker-starter
+	url = https://github.com/The2Alert/node-samp-docker-starter
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp-fcnpc"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp-fcnpc
+	url = https://github.com/The2Alert/node-samp-fcnpc
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/The2Alert/node-samp-starter"]
+	path = third_party/omp-dev/topic/The2Alert/node-samp-starter
+	url = https://github.com/The2Alert/node-samp-starter
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/VIRUXE/samp-explorarsobreviver"]
+	path = third_party/omp-dev/topic/VIRUXE/samp-explorarsobreviver
+	url = https://github.com/VIRUXE/samp-explorarsobreviver
+	branch = staging
+	shallow = true
+[submodule "third_party/omp-dev/topic/VIRUXE/samp-explorarsobreviver-maps"]
+	path = third_party/omp-dev/topic/VIRUXE/samp-explorarsobreviver-maps
+	url = https://github.com/VIRUXE/samp-explorarsobreviver-maps
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/VIRUXE/samp-gpci-csharp"]
+	path = third_party/omp-dev/topic/VIRUXE/samp-gpci-csharp
+	url = https://github.com/VIRUXE/samp-gpci-csharp
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/VIRUXE/samp-house-shells"]
+	path = third_party/omp-dev/topic/VIRUXE/samp-house-shells
+	url = https://github.com/VIRUXE/samp-house-shells
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/VIRUXE/samp-nostalgia-anticheat"]
+	path = third_party/omp-dev/topic/VIRUXE/samp-nostalgia-anticheat
+	url = https://github.com/VIRUXE/samp-nostalgia-anticheat
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/VIRUXE/samp-nostalgia-api"]
+	path = third_party/omp-dev/topic/VIRUXE/samp-nostalgia-api
+	url = https://github.com/VIRUXE/samp-nostalgia-api
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/VIRUXE/samp-nostalgia-discord-bot"]
+	path = third_party/omp-dev/topic/VIRUXE/samp-nostalgia-discord-bot
+	url = https://github.com/VIRUXE/samp-nostalgia-discord-bot
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/VIRUXE/samp-nostalgia-launcher"]
+	path = third_party/omp-dev/topic/VIRUXE/samp-nostalgia-launcher
+	url = https://github.com/VIRUXE/samp-nostalgia-launcher
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Vektor010/mta-sa-stability-settings"]
+	path = third_party/omp-dev/topic/Vektor010/mta-sa-stability-settings
+	url = https://github.com/Vektor010/mta-sa-stability-settings
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/XiaoNiaoa/open.mp-beginner-tutorial"]
+	path = third_party/omp-dev/topic/XiaoNiaoa/open.mp-beginner-tutorial
+	url = https://github.com/XiaoNiaoa/open.mp-beginner-tutorial
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/Yiin/story-of-cities-2013"]
+	path = third_party/omp-dev/topic/Yiin/story-of-cities-2013
+	url = https://github.com/Yiin/story-of-cities-2013
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/addrian-77/cleo-contract-placer"]
+	path = third_party/omp-dev/topic/addrian-77/cleo-contract-placer
+	url = https://github.com/addrian-77/cleo-contract-placer
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/addrian-77/cleo-helpercmd"]
+	path = third_party/omp-dev/topic/addrian-77/cleo-helpercmd
+	url = https://github.com/addrian-77/cleo-helpercmd
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/addrian-77/lua-auto-getmats"]
+	path = third_party/omp-dev/topic/addrian-77/lua-auto-getmats
+	url = https://github.com/addrian-77/lua-auto-getmats
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/addrian-77/lua-quest-helper"]
+	path = third_party/omp-dev/topic/addrian-77/lua-quest-helper
+	url = https://github.com/addrian-77/lua-quest-helper
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/basdon/colandreas-db-modelselector"]
+	path = third_party/omp-dev/topic/basdon/colandreas-db-modelselector
+	url = https://github.com/basdon/colandreas-db-modelselector
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/by-not/samp-edit-attacher-object"]
+	path = third_party/omp-dev/topic/by-not/samp-edit-attacher-object
+	url = https://github.com/by-not/samp-edit-attacher-object
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/daniscript18/clan-wars-old"]
+	path = third_party/omp-dev/topic/daniscript18/clan-wars-old
+	url = https://github.com/daniscript18/clan-wars-old
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/daniscript18/pterodactyl"]
+	path = third_party/omp-dev/topic/daniscript18/pterodactyl
+	url = https://github.com/daniscript18/pterodactyl
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/disemay12/proxybox"]
+	path = third_party/omp-dev/topic/disemay12/proxybox
+	url = https://github.com/disemay12/proxybox
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/eoussama/GTA-SA-MP-Weapon-Viewer"]
+	path = third_party/omp-dev/topic/eoussama/GTA-SA-MP-Weapon-Viewer
+	url = https://github.com/eoussama/GTA-SA-MP-Weapon-Viewer
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ilham60b-ship-it/closed-economy-samp"]
+	path = third_party/omp-dev/topic/ilham60b-ship-it/closed-economy-samp
+	url = https://github.com/ilham60b-ship-it/closed-economy-samp
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/imshooter/MySQL"]
+	path = third_party/omp-dev/topic/imshooter/MySQL
+	url = https://github.com/imshooter/MySQL
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/imshooter/Tracer"]
+	path = third_party/omp-dev/topic/imshooter/Tracer
+	url = https://github.com/imshooter/Tracer
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/janvrska/amx2pwn"]
+	path = third_party/omp-dev/topic/janvrska/amx2pwn
+	url = https://github.com/janvrska/amx2pwn
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/kainure-gamemode"]
+	path = third_party/omp-dev/topic/mateusware/kainure-gamemode
+	url = https://github.com/mateusware/kainure-gamemode
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/samp-chat"]
+	path = third_party/omp-dev/topic/mateusware/samp-chat
+	url = https://github.com/mateusware/samp-chat
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mateusware/samp-plugin-template"]
+	path = third_party/omp-dev/topic/mateusware/samp-plugin-template
+	url = https://github.com/mateusware/samp-plugin-template
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/mehadh/LS-RP-AFK-Script"]
+	path = third_party/omp-dev/topic/mehadh/LS-RP-AFK-Script
+	url = https://github.com/mehadh/LS-RP-AFK-Script
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/ne0de/cwtg-plugin"]
+	path = third_party/omp-dev/topic/ne0de/cwtg-plugin
+	url = https://github.com/ne0de/cwtg-plugin
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/ne0de/wtx-cwtg-gamemode"]
+	path = third_party/omp-dev/topic/ne0de/wtx-cwtg-gamemode
+	url = https://github.com/ne0de/wtx-cwtg-gamemode
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/neikiri/neiki-cwtg-samp"]
+	path = third_party/omp-dev/topic/neikiri/neiki-cwtg-samp
+	url = https://github.com/neikiri/neiki-cwtg-samp
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/diescream"]
+	path = third_party/omp-dev/topic/qrluke/diescream
+	url = https://github.com/qrluke/diescream
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/getgun"]
+	path = third_party/omp-dev/topic/qrluke/getgun
+	url = https://github.com/qrluke/getgun
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/giftmap"]
+	path = third_party/omp-dev/topic/qrluke/giftmap
+	url = https://github.com/qrluke/giftmap
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/giftmap-easter22"]
+	path = third_party/omp-dev/topic/qrluke/giftmap-easter22
+	url = https://github.com/qrluke/giftmap-easter22
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/giftmap-halloween"]
+	path = third_party/omp-dev/topic/qrluke/giftmap-halloween
+	url = https://github.com/qrluke/giftmap-halloween
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/giftmap-ny2022"]
+	path = third_party/omp-dev/topic/qrluke/giftmap-ny2022
+	url = https://github.com/qrluke/giftmap-ny2022
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/githelper"]
+	path = third_party/omp-dev/topic/qrluke/githelper
+	url = https://github.com/qrluke/githelper
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/glonass"]
+	path = third_party/omp-dev/topic/qrluke/glonass
+	url = https://github.com/qrluke/glonass
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/locator"]
+	path = third_party/omp-dev/topic/qrluke/locator
+	url = https://github.com/qrluke/locator
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/offmembers"]
+	path = third_party/omp-dev/topic/qrluke/offmembers
+	url = https://github.com/qrluke/offmembers
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/pisser"]
+	path = third_party/omp-dev/topic/qrluke/pisser
+	url = https://github.com/qrluke/pisser
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/rphelper"]
+	path = third_party/omp-dev/topic/qrluke/rphelper
+	url = https://github.com/qrluke/rphelper
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/rtimer"]
+	path = third_party/omp-dev/topic/qrluke/rtimer
+	url = https://github.com/qrluke/rtimer
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/score"]
+	path = third_party/omp-dev/topic/qrluke/score
+	url = https://github.com/qrluke/score
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/srating"]
+	path = third_party/omp-dev/topic/qrluke/srating
+	url = https://github.com/qrluke/srating
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/qrluke/waypoint"]
+	path = third_party/omp-dev/topic/qrluke/waypoint
+	url = https://github.com/qrluke/waypoint
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/redstarxx/SAMPChatlogArchiver"]
+	path = third_party/omp-dev/topic/redstarxx/SAMPChatlogArchiver
+	url = https://github.com/redstarxx/SAMPChatlogArchiver
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/reydiazz/samp-traitor-mode"]
+	path = third_party/omp-dev/topic/reydiazz/samp-traitor-mode
+	url = https://github.com/reydiazz/samp-traitor-mode
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/roseeast/ucp-website"]
+	path = third_party/omp-dev/topic/roseeast/ucp-website
+	url = https://github.com/roseeast/ucp-website
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/rq27/afkassistant"]
+	path = third_party/omp-dev/topic/rq27/afkassistant
+	url = https://github.com/rq27/afkassistant
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/singhdilveer1/sa-mp"]
+	path = third_party/omp-dev/topic/singhdilveer1/sa-mp
+	url = https://github.com/singhdilveer1/sa-mp
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/sklawik/szkodnik-rp"]
+	path = third_party/omp-dev/topic/sklawik/szkodnik-rp
+	url = https://github.com/sklawik/szkodnik-rp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/sonik-boom71/omp-moderator"]
+	path = third_party/omp-dev/topic/sonik-boom71/omp-moderator
+	url = https://github.com/sonik-boom71/omp-moderator
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/tahaahmed10/ptl"]
+	path = third_party/omp-dev/topic/tahaahmed10/ptl
+	url = https://github.com/tahaahmed10/ptl
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/theamiwn/nex-ac-plus"]
+	path = third_party/omp-dev/topic/theamiwn/nex-ac-plus
+	url = https://github.com/theamiwn/nex-ac-plus
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/vico93/xsk"]
+	path = third_party/omp-dev/topic/vico93/xsk
+	url = https://github.com/vico93/xsk
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/wweziza/SAM-scoreboard"]
+	path = third_party/omp-dev/topic/wweziza/SAM-scoreboard
+	url = https://github.com/wweziza/SAM-scoreboard
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/topic/xNewz/samp-api"]
+	path = third_party/omp-dev/topic/xNewz/samp-api
+	url = https://github.com/xNewz/samp-api
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/topic/yungtry/gtasa-d3dhook"]
+	path = third_party/omp-dev/topic/yungtry/gtasa-d3dhook
+	url = https://github.com/yungtry/gtasa-d3dhook
+	branch = master
+	shallow = true
