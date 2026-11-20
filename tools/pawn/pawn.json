@@ -1,0 +1,16 @@
+{
+	"user": "JebetrexxMC",
+	"repo": "wagu",
+	"entry": "examples/omp_hello.pwn",
+	"output": "examples/omp_hello.amx",
+	"dependencies": [
+		"openmultiplayer/omp-stdlib",
+		"pawn-lang/samp-stdlib@open.mp",
+		"pawn-lang/pawn-stdlib@open.mp"
+	],
+	"runtime": {
+		"version": "latest",
+		"mode": "server",
+		"runtime_type": "openmp"
+	}
+}
