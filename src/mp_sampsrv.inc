@@ -45,6 +45,7 @@ static void SampSrvReset()
     for(auto& kv : s_SS.actors) if(kv.second.ped > 0) Game::DeleteChar(kv.second.ped);
     if(s_SS.audio) Sound::StreamStop();
     s_SS = SampSrvState();
+    s_PcList.clear();
 }
 
 static void SampSrvOnPacket(const uint8_t* d, int len)
@@ -176,6 +177,16 @@ static void SampSrvOnPacket(const uint8_t* d, int len)
             if(p.b) Game::LockCar(car, p.b == 2);
             break;
         }
+        case SPO_PCLIST:   // 5.02.12: the PC server's whole player list (only the nearby ones are in players[])
+            if(p.a == 0) s_PcList.clear();
+            else if(p.a == 2) s_PcList.erase(p.val);
+            else if(p.a == 1 && p.val >= 0 && p.val < 1000)
+            {
+                PcListEntry& e = s_PcList[p.val];
+                if(p.text[0]) e.name = p.text;
+                e.score = (int)p.f[0]; e.ping = p.f[1] > 0 ? (int)p.f[1] : (e.ping >= 0 ? e.ping : -1); e.me = p.b != 0;
+            }
+            break;
         default: break;   // SPO_SOUND / SPO_REMOVEBLD: not on MP yet
     }
 }

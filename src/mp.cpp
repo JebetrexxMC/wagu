@@ -2698,6 +2698,8 @@ static void SampOnChat(int id, const char* text);
 static bool IsSampActor(int h);
 static bool RpIsInfoPed(int h);   // mp_rp_life.inc
 static void ProcessSamp(int ped, uint64_t now);
+struct PcListEntry { std::string name; int score = 0, ping = -1; bool me = false; };   // 5.02.12: everyone on the PC server (SPO_PCLIST)
+static std::map<int, PcListEntry> s_PcList;
 static void SampSrvReset(); static void SampSrvRender(ImDrawList* dl); static bool SampSrvCommand(const char* text);   // 4.11: mp_sampsrv.inc
 static void SampSrvOnPacket(const uint8_t* d, int len); static void DzMapTick(const Vec3& me, uint64_t now); static void SampSrvProcess(int ped, uint64_t now);
 static int SampSrvZones(Game::RadarZone* out, int maxOut); static bool SampSrvTagHidden(int id);   // 4.13.53: mp_sampsrv.inc
@@ -5957,7 +5959,7 @@ void MP::SaveConfig()
     F("NametagSize", settings.nametagSize); F("NametagDistance", settings.nametagDistance);
     B("ShowOwnNametag", settings.showOwnTag); B("ShowHealthBars", settings.showHealthBars); B("ShowRadarIcons", settings.showRadarIcons);
     B("ShowChat", settings.showChat); B("ShowKillFeed", settings.showKillFeed); B("ShowStatus", settings.showStatus);
-    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); B("HostWelcomeOn", settings.hostWelcomeOn); S("HostWelcome", settings.hostWelcome); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); B("HostPcGate", settings.hostPcGate); { char m[12]; snprintf(m, sizeof(m), "%d", settings.hostPcPort); S("HostPcPort", m); } S("PcServer", settings.pcServer); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
+    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); B("HostWelcomeOn", settings.hostWelcomeOn); S("HostWelcome", settings.hostWelcome); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); B("HostPcGate", settings.hostPcGate); { char m[12]; snprintf(m, sizeof(m), "%d", settings.hostPcPort); S("HostPcPort", m); } S("PcServer", settings.pcServer); S("PcName", settings.pcName); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
     F("ChatX", settings.chatX); F("ChatY", settings.chatY); I("Skin", settings.skin);
     I("ChatLines", settings.chatLines); F("ChatSize", settings.chatSize); F("ChatScale", settings.chatScale); F("ChatWidth", settings.chatWidth);   // 2.19.6
     I("ChatFade", settings.chatFade); B("ChatFadeOn", settings.chatFadeOn); B("ChatBackground", settings.chatBg);
@@ -6025,6 +6027,7 @@ static void LoadConfig()
     settings.hostPcGate      = ::cfg->GetBool("HostPcGate", false, "MP");      // 5.02
     { char m[12] = ""; ::cfg->GetString(m, sizeof(m), "HostPcPort", "7777", "MP"); settings.hostPcPort = atoi(m) > 0 && atoi(m) < 65536 ? atoi(m) : 7777; }
     ::cfg->GetString(settings.pcServer, sizeof(settings.pcServer), "PcServer", "", "MP");
+    ::cfg->GetString(settings.pcName, sizeof(settings.pcName), "PcName", "", "MP");   // 5.02.12
     { char m[24] = ""; ::cfg->GetString(m, sizeof(m), "HostAntiCheatMask", "FFFFFFFFFF", "MP"); settings.hostAcMask = strtoull(m, nullptr, 16) & AC_ALL_MASK; }
     settings.hitSound = ::cfg->GetBool("HitSound", true, "MP");               // 3.00
     settings.chatBubbles = ::cfg->GetBool("ChatBubbles", false, "MP");

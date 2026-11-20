@@ -1179,6 +1179,29 @@ static void LDetailPlayers(const LRow& r, std::vector<std::string>& out)
         return;
     }
     if(r.mine) { std::vector<MPServer::PlayerView> pv; s_Server.GetPlayers(pv); for(auto& v : pv) out.push_back(v.name); return; }
+    if(r.kind == 8)
+    {   // 5.02.12: open.mp tab - ask the server itself (SA-MP query 'c'), cached 20 s, in the background
+        struct OmpNames { uint64_t at = 0; bool busy = false, hidden = false; std::vector<std::string> names; };
+        static std::mutex mx; static std::map<std::string, std::shared_ptr<OmpNames>> cache;
+        char key[80]; snprintf(key, sizeof(key), "%s:%d", r.ip, r.port);
+        std::shared_ptr<OmpNames> e;
+        { std::lock_guard<std::mutex> lk(mx); auto& c = cache[key]; if(!c) c = std::make_shared<OmpNames>(); e = c; if(cache.size() > 200) { cache.clear(); cache[key] = e; } }
+        const uint64_t now = MP_NowMs();
+        {
+            std::lock_guard<std::mutex> lk(mx);
+            if(!e->busy && (e->at == 0 || now - e->at > 20000))
+            {
+                e->busy = true; e->at = now; std::string h = r.ip; const uint16_t pt = (uint16_t)r.port;
+                std::thread([e, h, pt] {
+                    SampQueryInfo qi; SampGate::Query(h.c_str(), pt, qi, 2500, true);
+                    std::lock_guard<std::mutex> lk2(mx); e->names = qi.names; e->hidden = qi.namesHidden; e->busy = false;
+                }).detach();
+            }
+            out = e->names;
+            if(out.empty() && (e->hidden || r.players > 100)) { out.push_back("Names hidden: over 100 players"); out.push_back("(same on the PC launcher)"); out.push_back("Join: Player list shows all"); }
+        }
+        return;
+    }
     std::string d, pl; LRow tmp = r;
     if(r.token && Online::Details(r.token, d) && LParseDetails(d, tmp, &pl))
     {

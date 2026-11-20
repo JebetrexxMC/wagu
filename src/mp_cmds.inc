@@ -527,7 +527,7 @@ static void PagePlayers(void* openPtr)
     {
         const char* sn = IsConnected() ? (client.GetServerName()[0] ? client.GetServerName() : s_szCurServer) : "Not connected";
         ImGui::TextUnformatted(sn);
-        char pl[48]; snprintf(pl, sizeof(pl), "Players: %d", IsConnected() ? MP::OnlineCount() : 0);
+        char pl[48]; snprintf(pl, sizeof(pl), "Players: %d", IsConnected() ? (s_PcList.empty() ? MP::OnlineCount() : (int)s_PcList.size()) : 0);   // 5.02.12: PC server = its whole list
         ImGui::SameLine(ImGui::GetContentRegionMax().x - ImGui::CalcTextSize(pl).x);
         ImGui::TextUnformatted(pl);
     }
@@ -585,7 +585,30 @@ static void PagePlayers(void* openPtr)
         dl->AddText(ImVec2(a.x + cPing, ty), IM_COL32_WHITE, buf);
         ImGui::PopID();
     }
-    if(!n) ImGui::TextDisabled("Not connected. Server > Connect, or join a custom server.");
+    if(IsConnected() && !s_PcList.empty())
+    {   // 5.02.12: on an open.mp / SA-MP server: everyone on it (like the PC Tab list), not only the players near you
+        ImGui::Dummy(ImVec2(W, UI::S(6)));
+        ImGui::TextColored(ImVec4(0.66f, 0.77f, 0.89f, 1.0f), "Everyone on the PC server (%d)", (int)s_PcList.size());
+        ImGuiListClipper clip; clip.Begin((int)s_PcList.size(), UI::S(40) + ImGui::GetStyle().ItemSpacing.y);
+        std::vector<const std::pair<const int, PcListEntry>*> rowsPc; rowsPc.reserve(s_PcList.size());
+        for(auto& kv : s_PcList) rowsPc.push_back(&kv);
+        while(clip.Step())
+            for(int k = clip.DisplayStart; k < clip.DisplayEnd; ++k)
+            {
+                const auto& e = *rowsPc[k];
+                ImVec2 a = ImGui::GetCursorScreenPos(); ImGui::Dummy(ImVec2(W, UI::S(40)));
+                if(k % 2 == 0) dl->AddRectFilled(a, ImVec2(a.x + W, a.y + UI::S(40)), IM_COL32(255, 255, 255, 10), UI::S(6));
+                const float ty = a.y + (UI::S(40) - ImGui::GetTextLineHeight()) * 0.5f; char buf[48];
+                snprintf(buf, sizeof(buf), "%d", e.first); dl->AddText(ImVec2(a.x + cId + UI::S(10), ty), IM_COL32(200, 200, 200, 255), buf);
+                std::string nm = e.second.name; if(e.second.me) nm += " (you)";
+                dl->AddText(ImVec2(a.x + cName, ty), e.second.me ? IM_COL32(255, 230, 120, 255) : IM_COL32_WHITE, nm.c_str());
+                snprintf(buf, sizeof(buf), "%d", e.second.score); dl->AddText(ImVec2(a.x + cScore, ty), IM_COL32_WHITE, buf);
+                if(e.second.ping >= 0) snprintf(buf, sizeof(buf), "%d", e.second.ping); else snprintf(buf, sizeof(buf), "-");
+                dl->AddText(ImVec2(a.x + cPing, ty), IM_COL32_WHITE, buf);
+            }
+        clip.End();
+    }
+    if(!n && s_PcList.empty()) ImGui::TextDisabled("Not connected. Server > Connect, or join a custom server.");
     ImGui::EndChild();
     ImGui::Separator();
     // selected player: status + Mission sync / behind

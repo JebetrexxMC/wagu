@@ -35,5 +35,7 @@ enum eSampOp : uint8_t
     SPO_WEAPON,       // S->C  a = 0 armed weapon (val) / 1 ammo (b = weapon, val = ammo)
     SPO_TAGS,         // S->C  a = 0 every tag (b = show, f[0] = distance) / 1 one player's tag (val = player id, b = show)
     SPO_VEHPARAMS,    // S->C  my car: a = engine + 1, b = doors locked + 1 (0 = unset), val = lights (-1 unset)
+    SPO_PCLIST,       // S->C  5.02.12: everyone on the PC server (the Tab list): a = 0 clear / 1 add or update (val = id, text = name,
+                      //       f[0] = score, f[1] = ping, b = 1 me) / 2 remove (val = id)
 };
 struct PktSamp { uint8_t type, op, a, b; int32_t val; float f[4]; char text[200]; };

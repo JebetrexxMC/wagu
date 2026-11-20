@@ -45,6 +45,18 @@
 
 using namespace RakNet;
 
+// 5.02.12: crossplay lines also go to the app log (mp_log.txt) - before, phone logs had no [crossplay] lines at all
+static void (*g_GateLog)(const char*) = nullptr;
+static int GatePrintf(const char* fmt, ...)
+{
+    char b[1024]; va_list ap; va_start(ap, fmt); int n = vsnprintf(b, sizeof(b), fmt, ap); va_end(ap);
+    fputs(b, stdout);
+    if(g_GateLog) { size_t l = strlen(b); while(l && (b[l-1] == '\n' || b[l-1] == '\r')) b[--l] = 0; if(l) g_GateLog(b); }
+    return n;
+}
+#define printf GatePrintf
+void SampGate::SetLogHook(void (*fn)(const char*)) { g_GateLog = fn; }
+
 namespace {
 
 const uint32_t kSampVersion = 4057;          // SA-MP 0.3.7-R2/R3 netgame version
@@ -164,12 +176,17 @@ struct SampGate::Impl
     // server's "version" rule says DL; MP_GATE_CLIENT=r2 / r5 / dl forces one). A server that kicks one right at
     // the join gets the other one once.
     uint32_t cliVer = 4057; std::string cliVerStr = "0.3.7-R5"; bool verSwapped = false;
+    int rejectN = 0; uint64_t rejoinAt = 0;   // 5.02.12: ConnectionRejected (RPC 130) retries
+    int lostN = 0; uint64_t gameAt = 0;   // gameAt: InitGame time (a kick in the first minute is the script, not a restart)
+    std::string forceName;                    // 5.02.12: the name for PC servers (empty = the MP name without rank tags)
     std::unordered_map<int32_t, int32_t> modelBase;   // 5.02.08: 0.3.DL custom model id -> its base model (RPC 179)
     int phoneSlot = -1;
     int myId = -1;
     struct Spawn { uint32_t skin = 0; float pos[3] = { 0, 0, 3 }; float rot = 0; uint32_t w[3] = { 0, 0, 0 }, ammo[3] = { 0, 0, 0 }; bool have = false; } spawn;
     struct Rp { std::string name; uint32_t color = 0xFFFFFFFF; uint16_t skin = 0; int slot = -1; SyncData last; bool hasPos = false; int vehicle = -1; };
     std::map<int, Rp> rp;                                  // remote player id -> ghost
+    std::map<int, std::pair<int32_t, uint32_t>> pcScore;  // 5.02.12: id -> score, ping (RPC 155) for the phone's player list
+    uint64_t scoreAskAt = 0;
     std::map<int, uint16_t> vehModel;                      // remote vehicle id -> model
     std::map<int, int> tdSlot;                             // wire textdraw id -> MP textdraw slot
     int tdOwner[kTdSlots];                       // MP slot -> wire id (-1)
@@ -217,7 +234,17 @@ template<class T> static void RegisterAll(T* peer, Impl* I)
 std::string SampGate::SampName(const char* mpName)
 {
     std::string o;
-    for(const char* p = mpName ? mpName : ""; *p && o.size() < 20; ++p)
+    const char* src = mpName ? mpName : "";
+    // 5.02.12: MP rank tags ("[MOD] ", "[VIP] ", "[ADMIN] ") are not part of the name - PC servers got "[MOD]_moquil"
+    // and refused or kicked it at once (name rules, RP Firstname_Lastname checks), so every server dropped mod players
+    for(;;)
+    {
+        while(*src == ' ') ++src;
+        if(*src != '[') break;
+        const char* e = strchr(src, ']'); if(!e || e - src > 10 || !e[1]) break;
+        src = e + 1;
+    }
+    for(const char* p = src; *p && o.size() < 20; ++p)
     {
         char c = *p;
         if(isalnum((unsigned char)c) || strchr("_[]()$@.=", c)) o += c;
@@ -249,7 +276,7 @@ static bool Resolve(const char* host, uint32_t* addr)
     *addr = ((sockaddr_in*)res->ai_addr)->sin_addr.s_addr; freeaddrinfo(res); return true;
 }
 
-bool SampGate::Query(const char* host, uint16_t port, SampQueryInfo& out, int timeoutMs)
+bool SampGate::Query(const char* host, uint16_t port, SampQueryInfo& out, int timeoutMs, bool wantNames)
 {
     out = SampQueryInfo();
     uint32_t ip; if(!Resolve(host, &ip)) return false;
@@ -293,6 +320,20 @@ bool SampGate::Query(const char* host, uint16_t port, SampQueryInfo& out, int ti
                 if(nm == "version") out.version = vl;
             }
         }
+        if(wantNames && out.players > 100) out.namesHidden = true;
+        else if(wantNames && out.players > 0)
+        {   // 5.02.12: 'c' = u16 count, then u8 length + name + int32 score
+            std::vector<uint8_t> c;
+            if(ask('c', c, nullptr) && c.size() >= 2)
+            {
+                size_t k = 2; const int cnt = c[0] | c[1] << 8;
+                for(int i = 0; i < cnt && k < c.size(); ++i)
+                {
+                    const int ln = c[k++]; if(k + ln > c.size()) break;
+                    out.names.emplace_back((const char*)c.data() + k, ln); k += ln + 4;
+                }
+            }
+        }
     }
 #ifdef _WIN32
     closesocket(s);
@@ -312,7 +353,8 @@ std::string SampGate::RemoteName() { std::lock_guard<std::mutex> lk(m_p->sm); re
 static void SetStatus(Impl& I, const char* fmt, ...)
 {
     char b[256]; va_list ap; va_start(ap, fmt); vsnprintf(b, sizeof(b), fmt, ap); va_end(ap);
-    std::lock_guard<std::mutex> lk(I.sm); I.status = b;
+    bool changed; { std::lock_guard<std::mutex> lk(I.sm); changed = I.status != b; I.status = b; }
+    if(changed && strncmp(b, "PC players: ", 12) && strncmp(b, "In game", 7)) printf("[crossplay] status: %s\n", b);   // 5.02.12: the join steps in mp_log.txt
 }
 
 // ---- hooks (MPServer mutex held: queue only) ----------------------------------------------------
@@ -681,7 +723,8 @@ static void CliRpc(Impl& I, int id, BitStream& bs) { if(I.C) I.C->RPC((RPCID)id,
 static void RemReset(Impl& I, MPServer* srv)
 {   // ghosts, objects and textdraws of the PC server go away
     for(auto& kv : I.rp) if(kv.second.slot >= 0) srv->BridgeRemove(kv.second.slot);
-    I.rp.clear(); I.vehModel.clear();
+    I.rp.clear(); I.vehModel.clear(); I.pcScore.clear(); I.scoreAskAt = 0;
+    if(I.phoneSlot >= 0) srv->GateOp(I.phoneSlot, SPO_PCLIST, 0, 0, 0);
     for(auto& kv : I.objs) { float z[3] = { 0, 0, 0 }; srv->GateObject(kv.second.row, kv.second.model, z, z, false); }
     I.objs.clear();
     for(auto& kv : I.picks) { float z[3] = { 0, 0, 0 }; srv->GateObject(kv.second.o.row, kv.second.o.model, z, z, false); }
@@ -697,7 +740,6 @@ static void RemEnd(Impl& I, MPServer* srv, const char* why)
     if(I.phase == 9) return;
     char b[200]; snprintf(b, sizeof(b), "[open.mp] %s", why);
     if(I.phoneSlot >= 0) srv->GateMsg(I.phoneSlot, 0xFF6060FF, b);
-    printf("[crossplay] %s\n", why);
     RemReset(I, srv);
     if(I.C) I.C->Disconnect(100);
     I.phase = 9; I.phaseAt = NowMs();
@@ -780,7 +822,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         {
             bool b; float f;
             for(int i = 0; i < 4; ++i) bs.Read(b); bs.Read(f); bs.Read(b); bs.Read(f); bs.Read(b); bs.Read(b); bs.Read(b);
-            bs.Read(u32a); uint16_t id = 0; bs.Read(id); I.myId = id;
+            bs.Read(u32a); uint16_t id = 0; bs.Read(id); I.myId = id; I.gameAt = NowMs(); { float f4[4] = { 0, 0, 0, 0 }; srv->GateOp(s, SPO_PCLIST, 1, 1, (int32_t)id, f4, I.rName.c_str()); }   // 5.02.12: me in the player list
             bs.Read(b); bs.Read(u32a); uint8_t hour = 12, weather = 1; bs.Read(hour); bs.Read(weather);
             bs.Read(f); bs.Read(b); bs.Read(u32a); bs.Read(b); for(int i = 0; i < 5; ++i) bs.Read(u32a);
             std::string name = RdStr8(bs);
@@ -835,9 +877,23 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             bs.Read(u16a); bs.Read(u32a); bs.Read(u8a); std::string nm = RdStr8(bs);
             if(u16a == I.myId) break;
             Impl::Rp& p = I.rp[u16a]; p.name = nm; p.color = u32a;
+            float f4[4] = { 0, 0, 0, 0 }; srv->GateOp(s, SPO_PCLIST, 1, 0, (int32_t)u16a, f4, nm.c_str());   // 5.02.12: the full player list
             break;
         }
-        case 138: bs.Read(u16a); if(Impl::Rp* p = RemPlayer(I, u16a)) { if(p->slot >= 0) srv->BridgeRemove(p->slot); I.rp.erase(u16a); } break;
+        case 138: bs.Read(u16a); if(Impl::Rp* p = RemPlayer(I, u16a)) { if(p->slot >= 0) srv->BridgeRemove(p->slot); I.rp.erase(u16a); } I.pcScore.erase(u16a); srv->GateOp(s, SPO_PCLIST, 2, 0, (int32_t)u16a); break;
+        case 155:  // 5.02.12: scores + pings (the answer to our RPC 155, like the PC client's Tab list)
+        {
+            uint16_t id; int32_t sc; uint32_t pg;
+            while(bs.GetNumberOfUnreadBits() >= 80 && bs.Read(id) && bs.Read(sc) && bs.Read(pg))
+            {
+                auto& old = I.pcScore[id]; if(old.first == sc && old.second == pg && id != I.myId) continue;
+                old = { sc, pg };
+                const std::string nm = id == I.myId ? I.rName : (RemPlayer(I, id) ? RemPlayer(I, id)->name : std::string());
+                if(nm.empty()) continue;
+                float f4[4] = { (float)sc, (float)pg, 0, 0 }; srv->GateOp(s, SPO_PCLIST, 1, id == I.myId ? 1 : 0, (int32_t)id, f4, nm.c_str());
+            }
+            break;
+        }
         case 32:   // stream in
         {
             bs.Read(u16a); bs.Read(u8a); bs.Read(u32a); RdVec(bs, v); bs.Read(fa); bs.Read(u32b);
@@ -917,6 +973,8 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             bs.Read(u16a); std::string nm = RdStr8(bs);
             if((int)u16a == I.myId) { if(!nm.empty()) I.rName = nm; }
             else if(Impl::Rp* p = RemPlayer(I, u16a)) p->name = nm;
+            { auto it = I.pcScore.find(u16a); float f4[4] = { it != I.pcScore.end() ? (float)it->second.first : 0.f, it != I.pcScore.end() ? (float)it->second.second : 0.f, 0, 0 };
+              srv->GateOp(s, SPO_PCLIST, 1, (int)u16a == I.myId ? 1 : 0, (int32_t)u16a, f4, nm.c_str()); }
             break;
         }
         case 12: case 13:
@@ -1118,6 +1176,35 @@ static void RemSendFoot(Impl& I, const SyncData& d)
 
 // 5.02.06: "The PC server did not answer" came up for busy servers that just drop the first connection request (their
 // flood guard) - the client now tries 3 times (a new socket each time) before the red message
+// 5.02.12: connect the way samp.exe / the open.mp launcher do: the browser query first ('i', 'r', 'c', 'p'), then the
+// RakNet connect. DDoS filters on SA-MP hosts (OVH game, path.net, ServerProject Umbrella...) only let in an IP that
+// queried the server first; the retries used to connect without it, so their second try was always dropped.
+static bool RemConnect(Impl& I)
+{
+    SampQueryInfo qi; SampGate::Query(I.rHost.c_str(), I.rPort, qi, 700, true);
+    {   // 'p' ping (4 random bytes, echoed back) - the launcher sends it every few seconds
+        uint32_t ip = 0;
+        if(Resolve(I.rHost.c_str(), &ip))
+        {
+            int sk = (int)socket(AF_INET, SOCK_DGRAM, 0);
+            if(sk >= 0)
+            {
+                sockaddr_in sa; memset(&sa, 0, sizeof(sa)); sa.sin_family = AF_INET; sa.sin_port = htons(I.rPort); sa.sin_addr.s_addr = ip;
+                uint8_t q[15] = { 'S', 'A', 'M', 'P' }; memcpy(q + 4, &ip, 4); q[8] = (uint8_t)(I.rPort & 255); q[9] = (uint8_t)(I.rPort >> 8); q[10] = 'p';
+                const uint32_t r = (uint32_t)NowMs() * 2654435761u; memcpy(q + 11, &r, 4);
+                sendto(sk, (const char*)q, 15, 0, (sockaddr*)&sa, sizeof(sa));
+#ifdef _WIN32
+                closesocket(sk);
+#else
+                close(sk);
+#endif
+            }
+        }
+    }
+    I.C->SetPassword(I.rPass.c_str());
+    return SAMPRakNet::ClientOmpReset(), I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5);
+}
+
 static bool RemRetry(Impl& I, MPServer* srv, uint64_t now)
 {
     if(I.tries >= 2) return false;
@@ -1126,8 +1213,7 @@ static bool RemRetry(Impl& I, MPServer* srv, uint64_t now)
     char m[160]; snprintf(m, sizeof(m), "[open.mp] No answer yet, trying again (%d of 3)...", I.tries + 1);
     srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m);
     I.C->Disconnect(100);
-    I.C->SetPassword(I.rPass.c_str());
-    if(!(SAMPRakNet::ClientOmpReset(), I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5))) return false;
+    if(!RemConnect(I)) return false;
     I.phaseAt = now;
     return true;
 }
@@ -1140,7 +1226,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
     {
         srv->BridgePeers(peers);
         if(peers.empty()) { if(now - I.phaseAt > 60000) { I.phase = 9; SetStatus(I, "No phone player joined"); } return; }
-        I.phoneSlot = peers[0].slot; I.rName = SampGate::SampName(peers[0].name);
+        I.phoneSlot = peers[0].slot; I.rName = SampGate::SampName(I.forceName.empty() ? peers[0].name : I.forceName.c_str());   // 5.02.12: Settings > Name on PC servers
         SetStatus(I, "Connecting to %s:%u as %s...", I.rHost.c_str(), I.rPort, I.rName.c_str());
         char m[200]; snprintf(m, sizeof(m), "[open.mp] Connecting to %s:%u as %s...", I.rHost.c_str(), I.rPort, I.rName.c_str());
         srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m);
@@ -1153,13 +1239,23 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             if(const char* f = getenv("MP_GATE_CP")) if(atoi(f) > 0) I.cp = atoi(f);
             printf("[crossplay] text codepage %d (language \"%s\")\n", I.cp, qi.language.c_str());
         }
-        I.C->SetPassword(I.rPass.c_str());
-        if(!(SAMPRakNet::ClientOmpReset(), I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5))) { RemEnd(I, srv, "Could not start the connection."); return; }
+        if(!RemConnect(I)) { RemEnd(I, srv, "Could not start the connection."); return; }
         I.phase = 1; I.phaseAt = now;
         return;
     }
     if(I.phase == 9) return;
+    if(I.phase == 8)
+    {   // 5.02.12: waiting to join again after a ConnectionRejected (name in use / no slot)
+        if(now < I.rejoinAt) return;
+        if(!RemConnect(I)) { RemEnd(I, srv, "Could not start the connection."); return; }
+        I.phase = 1; I.phaseAt = now; return;
+    }
     if(I.phase == 1 && now - I.phaseAt > 12000 && RemRetry(I, srv, now)) return;
+    if(I.phase == 2 && now - I.phaseAt > 60000 && !getenv("MP_GATE_NOJOINTIMEOUT"))
+    {   // 5.02.12: connected but the game never starts (no InitGame) - the server waits for its own client's handshake
+        // (Rio Rise and other "own app" servers: they list as omp but only let their app in) or a login queue
+        RemEnd(I, srv, "The PC server connected but never started the game (1 min). It only lets in its own app / launcher (for example Rio Rise), or it has a join queue."); return;
+    }
     if(I.phase == 1 && now - I.phaseAt > 15000) { RemEnd(I, srv, "The PC server did not answer (closed, wrong port or not SA-MP 0.3.7 / open.mp)."); return; }
 
     for(Packet* pk = I.C->Receive(); pk; I.C->DeallocatePacket(pk), pk = I.C->Receive())
@@ -1200,16 +1296,65 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             case ID_CONNECTION_BANNED: RemEnd(I, srv, "You are banned from this PC server."); break;
             case ID_INVALID_PASSWORD: RemEnd(I, srv, "Wrong server password."); break;
             case ID_DISCONNECTION_NOTIFICATION:
+            {
+                // 5.02.12: RPC 130 ConnectionRejected comes right before - 1 version, 2 name (in use / not allowed),
+                // 3 mod, 4 no player slot. It was not read, so every one of them looked like "kicked / server restart".
+                int why = -1;
+                { std::lock_guard<std::mutex> lk(I.qm); for(auto& q : I.rpcs) if(q.id == 130 && !q.data.empty()) why = q.data[0]; }
+                if(why >= 0) printf("[crossplay] the PC server rejected the join (reason %d)\n", why);
+                if(I.phase == 2 && (why == 2 || why == 4) && I.rejectN < 2)
+                {   // the name is still taken by our last connection (a phone that lost the network comes back before the
+                    // server dropped the old one, or two joins from one IP) / no slot: wait and join again
+                    ++I.rejectN; const int sec = why == 2 ? 15 : 10;
+                    char m[220];
+                    if(why == 2) snprintf(m, sizeof(m), "[open.mp] The server says the name %s is in use (your last connection may still be on it). Joining again in %d s...", I.rName.c_str(), sec);
+                    else snprintf(m, sizeof(m), "[open.mp] The server had no free player slot. Joining again in %d s...", sec);
+                    srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m); printf("%s\n", m);
+                    { std::lock_guard<std::mutex> lk(I.qm); I.rpcs.clear(); }
+                    I.C->Disconnect(100); I.phase = 8; I.rejoinAt = now + (uint64_t)sec * 1000; break;
+                }
+                if(I.phase == 2 && why == 2)
+                {
+                    char m[220]; snprintf(m, sizeof(m), "The server refused the name %s (in use, or not allowed - RP servers want Firstname_Lastname). Change it in Settings > Name.", I.rName.c_str());
+                    RemEnd(I, srv, m); break;
+                }
+                if(I.phase == 2 && why == 4) { RemEnd(I, srv, "The PC server has no free player slot right now."); break; }
+                if(I.phase == 2 && why < 0 && I.rejectN == 0)
+                {   // dropped at the join without a reason: most often our last connection from this IP is still on the server
+                    // (Horizon RP and others drop a second join from one IP) - wait for it to time out, same version first
+                    ++I.rejectN;
+                    srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] The server dropped the join (your last connection may still be on it). Joining again in 12 s...");
+                    printf("[crossplay] dropped at the join - again in 12 s\n");
+                    { std::lock_guard<std::mutex> lk(I.qm); I.rpcs.clear(); }
+                    I.C->Disconnect(100); I.phase = 8; I.rejoinAt = now + 12000; break;
+                }
+                if(I.phase >= 3)
+                {   // 5.02.12: in the game this is a kick (a restart drops the link = ID_CONNECTION_LOST, which reconnects);
+                    // the PC client does not rejoin either. The gamemode's last chat line says why.
+                    RemEnd(I, srv, (I.gameAt && now - I.gameAt < 60000) ? "The PC server kicked you soon after the join (its own check: account, name, anti-cheat...). See its last chat message."
+                                                                        : "The PC server closed the connection (Server closed the connection / kicked)."); break;
+                }
                 if(I.phase == 2 && !I.verSwapped && !getenv("MP_GATE_CLIENT"))
                 {   // 5.02.08: kicked at the join (before the game start): try the other SA-MP client version once
                     I.verSwapped = true; RemSetClient(I, I.cliVer != kSampVersionDL);
                     printf("[crossplay] kicked at the join - trying again as SA-MP %s\n", I.cliVerStr.c_str());
                     char m[160]; snprintf(m, sizeof(m), "[open.mp] Trying again as SA-MP %s...", I.cliVerStr.c_str()); srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m);
-                    I.C->Disconnect(100); I.C->SetPassword(I.rPass.c_str());
-                    if((SAMPRakNet::ClientOmpReset(), I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5))) { I.phase = 1; I.phaseAt = now; break; }
+                    I.C->Disconnect(100);
+                    if(RemConnect(I)) { I.phase = 1; I.phaseAt = now; break; }
                 }
                 RemEnd(I, srv, "The PC server closed the connection (kicked / server restart)."); break;
-            case ID_CONNECTION_LOST: RemEnd(I, srv, "Lost the connection to the PC server."); break;
+            }
+            case ID_CONNECTION_LOST:
+                if(I.phase >= 2 && I.lostN < 3 && !getenv("MP_GATE_NORECONNECT"))
+                {   // 5.02.12: like the PC client ("Lost connection to the server. Reconnecting..."): a phone on mobile data
+                    // loses packets for a few seconds all the time
+                    ++I.lostN; RemReset(I, srv);
+                    char m[200]; snprintf(m, sizeof(m), "[open.mp] Lost connection to the server. Reconnecting (%d of 3)...", I.lostN);
+                    srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m); printf("%s\n", m);
+                    { std::lock_guard<std::mutex> lk(I.qm); I.rpcs.clear(); }
+                    I.C->Disconnect(100); I.phase = 8; I.rejoinAt = now + 5000ull * (uint64_t)I.lostN; I.rejectN = 0; break;
+                }
+                RemEnd(I, srv, "Lost the connection to the PC server."); break;
             case kPlayerSync: RemFootIn(I, srv, pk, false); break;
             case kVehicleSync: RemFootIn(I, srv, pk, true); break;
             default: break;
@@ -1270,6 +1415,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                 else RemSpawned(I, srv);
             }
             I.wasDead = dead;
+            if(now - I.scoreAskAt >= 8000) { I.scoreAskAt = now; BitStream o; CliRpc(I, 155, o); }   // 5.02.12: scores / pings for the player list
             if(!dead) RemSendFoot(I, me->d);
             if(!dead) for(auto& kv : I.picks)
             {   // 5.02.11: walking into a pickup (houses, jobs, info icons) - like the PC client, once per walk-in
@@ -1290,7 +1436,8 @@ bool SampGate::StartRemote(MPServer* srv, const char* host, uint16_t port, const
     Stop();
     m_pSrv = srv; m_nPort = port; m_bRemote = true; m_bJoined = false;
     Impl& I = *m_p; I.joinedFlag = &m_bJoined; I.rHost = host ? host : ""; I.rPort = port; I.rPass = password ? password : "";
-    I.phase = 0; I.phaseAt = NowMs(); I.phoneSlot = -1; I.myId = -1; I.rp.clear(); I.objs.clear(); I.picks.clear(); I.tdSlot.clear(); I.tdDef.clear(); I.zones.clear();
+    I.rejectN = 0; I.lostN = 0; I.verSwapped = false; I.rejoinAt = 0; I.gameAt = 0;
+    I.phase = 0; I.phaseAt = NowMs(); I.phoneSlot = -1; I.myId = -1; I.rp.clear(); I.pcScore.clear(); I.scoreAskAt = 0; I.objs.clear(); I.picks.clear(); I.tdSlot.clear(); I.tdDef.clear(); I.zones.clear();
     for(int& t : I.tdOwner) t = -1;
     { std::lock_guard<std::mutex> lk(I.sm); I.rServerName.clear(); }
     static ICore core; core.fn = LogThunk;
@@ -1318,6 +1465,7 @@ void SampGate::Loop()
 
 bool SampGate::Ended() const { return m_bRemote && m_p->phase == 9; }
 
+void SampGate::SetRemoteName(const char* name) { m_p->forceName = name ? name : ""; }
 void SampGate::SetAnnounce(bool on) { m_p->announce = on; m_p->annAt = 0; }
 
 void SampGate::Stop()

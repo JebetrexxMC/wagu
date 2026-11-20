@@ -13,6 +13,7 @@ static SampGate  s_HostGate;             // SERVER role (PC players on the serve
 static uint16_t  s_nSampProxyPort = 0;
 static uint64_t  s_nSampStartAt = 0, s_nSampEndAt = 0, s_nSampAwayAt = 0;
 static bool      s_bSampEndSaid = false;
+static void GateLog(const char* m) { if(logger) logger->Info("%s", m); }   // 5.02.12: [crossplay] lines in mp_log.txt
 static char      s_szPcAddr[80] = "";
 static char      s_szPcPw[33] = "";
 static uint64_t  s_nHostGateRetryAt = 0;
@@ -73,13 +74,14 @@ static void StartPcJoin(const char* addr, const char* pw)
         if(s_SampProxy.Start(port, nm, ServerLog, 2, settings.region)) { ok = true; s_nSampProxyPort = port; }
     }
     if(!ok) { SysMsg(COL_RED, "Could not open the local crossplay port."); return; }
+    SampGate::SetLogHook(GateLog); s_SampGate.SetRemoteName(settings.pcName);   // 5.02.12
     if(!s_SampGate.StartRemote(&s_SampProxy, h, p, pw && *pw ? pw : nullptr))
     { s_SampProxy.Stop(); s_nSampProxyPort = 0; SysMsg(COL_RED, "Could not start the open.mp connection."); return; }
     MP_CopyStr(settings.pcServer, addr, sizeof(settings.pcServer)); SaveConfig();
     s_nSampStartAt = MP_NowMs(); s_nSampEndAt = s_nSampAwayAt = 0; s_bSampEndSaid = false;
     s_bConnectingDefault = false;
     MP_CopyStr(s_szJoinPw, spw, sizeof(s_szJoinPw));
-    SysMsg(COL_SYSTEM, "Joining the PC server %s:%u (open.mp / SA-MP) as %s ...", h, p, SampGate::SampName(settings.name).c_str());
+    SysMsg(COL_SYSTEM, "Joining the PC server %s:%u (open.mp / SA-MP) as %s ...", h, p, SampGate::SampName(settings.pcName[0] ? settings.pcName : settings.name).c_str());
     JoinOverlayStart();
     DoConnect("127.0.0.1", s_nSampProxyPort);
 }
@@ -107,6 +109,7 @@ static void CrossplayTick(uint64_t now)
     {
         if(s_Server.GetPort() == settings.hostPcPort)
         { SysMsg(COL_RED, "Your server already uses port %d - pick another SA-MP port for PC players.", settings.hostPcPort); s_nHostGateRetryAt = now + 30000; return; }
+        SampGate::SetLogHook(GateLog);
         if(s_HostGate.StartServer(&s_Server, (uint16_t)settings.hostPcPort, s_Server.GetName(), std::max(1, std::min(s_Server.GetMaxPlayers(), 100))))
             SysMsg(COL_GREEN, "PC players can join \"%s\" with SA-MP 0.3.7 / open.mp on UDP port %d.", s_Server.GetName(), settings.hostPcPort);
         else { SysMsg(COL_RED, "SA-MP port %d is busy - PC crossplay is off for now.", settings.hostPcPort); s_nHostGateRetryAt = now + 30000; }
@@ -115,6 +118,7 @@ static void CrossplayTick(uint64_t now)
 
 static void OnPcAddr(const char* t, void*) { MP_CopyStr(s_szPcAddr, t ? t : "", sizeof(s_szPcAddr)); char* c = s_szPcAddr; while(*c == ' ') memmove(c, c + 1, strlen(c)); }
 static void OnPcPw(const char* t, void*) { MP_CopyStr(s_szPcPw, t ? t : "", sizeof(s_szPcPw)); }
+static void OnPcName(const char* t, void*) { MP_CopyStr(settings.pcName, t ? t : "", sizeof(settings.pcName)); SaveConfig(); }   // 5.02.12
 static void OnPcPort(const char* t, void*) { const int p = atoi(t ? t : ""); if(p > 0 && p < 65536) { settings.hostPcPort = p; SaveConfig(); } }
 
 // Add server page: "open.mp / SA-MP (PC crossplay)"
@@ -126,6 +130,7 @@ static void CrossplaySection()
     if(!s_szPcAddr[0] && settings.pcServer[0]) MP_CopyStr(s_szPcAddr, settings.pcServer, sizeof(s_szPcAddr));
     FloatMenu::TextField("PC server  (IP:port)", s_szPcAddr, "e.g. 51.89.1.2:7777", 79, OnPcAddr);
     FloatMenu::TextField("PC server password (optional)", s_szPcPw, "Password", 32, OnPcPw, nullptr, false, true);
+    FloatMenu::TextField("Name on PC servers (RP servers: Firstname_Lastname)", settings.pcName, "empty = your MP name", 23, OnPcName);   // 5.02.12
     if(FloatMenu::BigButton(s_nPcQState == 1 ? "Asking the server..." : "Server info")) PcQueryStart(s_szPcAddr);
     if((s_nPcQState == 2 || s_nPcQState == 3) && !strcmp(s_szPcQAddr, s_szPcAddr))
     {

@@ -34,6 +34,8 @@ struct SampQueryInfo
     bool password = false;
     int players = 0, maxPlayers = 0, ping = -1;
     std::string hostname, gamemode, language, version;
+    std::vector<std::string> names;   // 5.02.12: Query(..., wantNames): the 'c' list (servers send it only up to 100 players)
+    bool namesHidden = false;         // more than 100 players: SA-MP / open.mp servers never send the names (same on the PC launchers)
 };
 
 class SampGate
@@ -49,6 +51,8 @@ public:
     void Stop();
     // 5.02.11 server role: list it on the open.mp internet list (SA-MP / open.mp launchers), like open.mp's announce=true
     void SetAnnounce(bool on);
+    // 5.02.12 remote role: the name on the PC server ("Firstname_Lastname" for RP); empty = the MP name without [MOD] / [VIP] tags
+    void SetRemoteName(const char* name);
 
     bool Running() const { return m_bRun; }
     bool IsRemote() const { return m_bRemote; }
@@ -65,11 +69,12 @@ public:
     bool OnDialog(int slot, uint16_t dialogId, uint8_t response, int16_t listItem, const char* input);
 
     // SA-MP browser query of any SA-MP / open.mp server (blocking, timeoutMs)
-    static bool Query(const char* host, uint16_t port, SampQueryInfo& out, int timeoutMs = 1500);
+    static bool Query(const char* host, uint16_t port, SampQueryInfo& out, int timeoutMs = 1500, bool wantNames = false);
     // "1.2.3.4:7777" / "host" (port 7777) -> host + port
     static bool ParseAddr(const char* text, char* host, int hostCap, uint16_t* port);
     // MP name -> a SA-MP name (3..20 of A-Z a-z 0-9 _ [ ] ( ) $ @ . =)
     static std::string SampName(const char* mpName);
+    static void SetLogHook(void (*fn)(const char*));   // 5.02.12: [crossplay] lines into mp_log.txt
 
     // answer of the gate's SA-MP query responder (server role), called from the RakNet socket thread
     int  AnswerQuery(const char* in, int inLen, char* out, int outCap);
