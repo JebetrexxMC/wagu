@@ -15,7 +15,10 @@ def tree(z, src, dst, skip=()):
 # 5.01.16: the neon backgrounds/flags are built into libMP*.so (neon_embed writes them to files/TYFMC/MP/neon on start),
 # so the zips leave the loose copies out: the 1080p background pushed MP.zip / the client zip past GitHub's 100 MB.
 ASKIP = ("MP.zip", "neon/nb_bg1080.png", "neon/nb_bg.png", "neon/nb_flags.png",
-         "Screenshot_")   # 5.02.01: the README preview picture (not used by the game)
+         "Screenshot_",   # 5.02.01: the README preview picture (not used by the game)
+         # 5.02.01: the same file as moonloader/lib/fAwesome6.lua (2.9 MB); a mod's own lib/ is searched after
+         # moonloader/lib, so HassleHUD gets the same file - MP.zip was 101.8 MB with it
+         "moonloader/lua_scripts/Hasslehud/lib/fAwesome6.lua")
 # 5.02.01: the zips committed to the repo (assets/MP/MP.zip, release/MP-<v>-client.zip) leave out the APKs too:
 # they are separate release assets, and MP.zip reached 99.75 MB of GitHub's 100 MB file limit.
 REPO_LIMIT = 95 * 1024 * 1024
