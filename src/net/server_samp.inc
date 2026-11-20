@@ -1479,13 +1479,20 @@ int MPServer::SampSelfTest(const char* dir, const char* cmds)
     uint64_t t0 = MP_NowMs();
     std::string list = cmds ? cmds : "";
     size_t at = 0;
-    while(MP_NowMs() - t0 < 6000)
+    uint64_t endAt = t0 + 6000, holdUntil = 0;   // 5.02.05: "wait:<ms>" holds the next command (timer tests), the run grows with it
+    while(MP_NowMs() < endAt)
     {
         SampTick(MP_NowMs());
-        if(MP_NowMs() - t0 > 2500 && at < list.size())
+        if(MP_NowMs() - t0 > 2500 && at < list.size() && MP_NowMs() >= holdUntil)
         {
             size_t e = list.find(';', at); std::string c = list.substr(at, e == std::string::npos ? std::string::npos : e - at); at = e == std::string::npos ? list.size() : e + 1;
-            if(c.rfind("dlg:", 0) == 0)
+            if(c.rfind("wait:", 0) == 0)
+            {
+                int ms = std::max(0, std::min(600000, atoi(c.c_str() + 5)));
+                holdUntil = MP_NowMs() + (uint64_t)ms; endAt = std::max(endAt, holdUntil + 3500);
+                SampLog("---- wait %d ms ----", ms);
+            }
+            else if(c.rfind("dlg:", 0) == 0)
             {   // dlg:<response>:<listitem>:<text>
                 PktDialogResp r; memset(&r, 0, sizeof(r)); r.dialogId = (uint16_t)std::max(0, g_SampPl[slot].dialog);
                 int resp = 1, li = 0; char txt[64] = ""; sscanf(c.c_str() + 4, "%d:%d:%63[^\n]", &resp, &li, txt);

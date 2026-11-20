@@ -46,7 +46,8 @@ git submodule update --init --depth 1 third_party/omp-dev/plugins/Pawn.RakNet   
 git submodule foreach --quiet 'echo $sm_path'                                    # list them
 ```
 
-Example gamemodes: [examples/ysi_vehicles](examples/ysi_vehicles/) (custom vehicle iterators, a per-player
+Example gamemodes: [examples/ysi_pickups](examples/ysi_pickups/) (custom pickup iterators, respawn / expiry
+tasks, a cooldown timer), [examples/ysi_vehicles](examples/ysi_vehicles/) (custom vehicle iterators, a per-player
 multi-iterator, cleanup / repair tasks) and [examples/ysi_freeroam](examples/ysi_freeroam/) (YSI foreach, custom iterator, task / ptask /
 defer / repeat timers, commands).
 
@@ -55,7 +56,7 @@ defer / repeat timers, commands).
 ```sh
 sh tools/pawn/build_pawncc.sh                      # builds tools/pawn/bin/pawncc (needs cmake, make, gcc)
 sh tools/pawn/compile.sh mymode.pwn                # -> mymode.amx, includes omp-stdlib + YSI
-server/mp_server --samp-test mymode.amx            # one pretend player on the MP server
+server/mp_server --samp-test mymode.amx "/help;wait:5000;/cmd"   # one pretend player on the MP server (wait:<ms> for timers)
 server/mp_server 1922 "My server" 50 --samp mymode.amx --samp-port 7777   # MP phones + PC open.mp players
 ```
 
