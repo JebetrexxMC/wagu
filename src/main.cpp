@@ -109,6 +109,7 @@ static void JPatchGuardSetup();
 DECL_HOOKv(CGame_Process)
 {
     JPatchGuardSetup();   // 4.13.8 (normally done in OnAllModsLoaded already)
+    { static int n = 0; if(n < 120 && ++n == 120) ScriptGuard::InitKeyGuard(pGameHandle); }   // 5.02.15: 2 s in, every mod has hooked
     CGame_Process();
     ScriptGuard::Tick();   // 3.21.3
     MP::Process();

@@ -10,4 +10,6 @@ namespace ScriptGuard
     // not the game). Call after Init, so it wraps the guards above. Tick: once per game frame.
     void InitFaultGuard(void* gameHandle);
     void Tick();
+    // 5.02.15: after all mods are loaded: guard the key-event chain (CLEO_ImGui's AND_KeyboardEvent hook crash)
+    void InitKeyGuard(void* gameHandle);
 }

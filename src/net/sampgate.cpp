@@ -191,6 +191,11 @@ struct SampGate::Impl
     std::map<int, int> tdSlot;                             // wire textdraw id -> MP textdraw slot
     int tdOwner[kTdSlots];                       // MP slot -> wire id (-1)
     std::map<int, PktTextDraw> tdDef;
+    // 5.02.15: 3D text labels attached to a player / vehicle - the gate sends them as world labels that follow it
+    struct ALabel { uint16_t ap = 0xFFFF, avh = 0xFFFF; float off[3] = { 0, 0, 0 }; float dist = 20; uint32_t color = 0xFFFFFFFF; std::string text; bool shown = false; float at[3] = { 0, 0, 0 }; };
+    std::map<int, ALabel> alabels;
+    std::map<int, std::array<float, 3>> vehPos;            // remote vehicle id -> last known spot (stream in / driver sync)
+    uint64_t labelTickAt = 0;
     struct Obj { uint32_t row; uint16_t model; float p[3], r[3]; };
     std::map<int, Obj> objs;
     struct Pick { Obj o; bool inside = false; };   // 5.02.11: pickups (CreatePickup) - shown as objects, walking in sends OnPlayerPickUpPickup
@@ -744,6 +749,8 @@ static void RemReset(Impl& I, MPServer* srv)
     I.picks.clear();
     for(int i = 0; i < kTdSlots; ++i) if(I.tdOwner[i] >= 0) { PktTextDraw t; memset(&t, 0, sizeof(t)); t.type = PKT_TEXTDRAW; t.tdId = (uint16_t)i; t.show = 0; srv->GateTextDraw(I.phoneSlot, t); I.tdOwner[i] = -1; }
     I.tdSlot.clear(); I.tdDef.clear();
+    for(auto& kv : I.alabels) if(kv.second.shown && I.phoneSlot >= 0) srv->GateLabel(I.phoneSlot, kv.first, false, nullptr, 0, 0, "");   // 5.02.15
+    I.alabels.clear(); I.vehPos.clear();
     for(auto& kv : I.zones) { float f[4]; memcpy(f, kv.second.data(), sizeof(f)); char m[2] = { 4, 0 }; srv->GateOp(I.phoneSlot, SPO_ZONE, (uint8_t)(kv.first & 255), (uint8_t)(kv.first >> 8), 0, f, m); }
     I.zones.clear();
 }
@@ -954,8 +961,10 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             break;
         case 72: bs.Read(u16a); bs.Read(u32a); if(Impl::Rp* p = RemPlayer(I, u16a)) p->color = u32a; break;
         case 164:  // vehicle stream in (model for the drivers)
-            bs.Read(u16a); bs.Read(u32a); I.vehModel[u16a] = (uint16_t)u32a; break;
-        case 165: bs.Read(u16a); I.vehModel.erase(u16a); break;
+            bs.Read(u16a); bs.Read(u32a); I.vehModel[u16a] = (uint16_t)u32a;
+            if(RdVec(bs, v)) { std::array<float, 3> vp = { v[0], v[1], v[2] }; I.vehPos[u16a] = vp; }   // 5.02.15: labels on parked cars
+            break;
+        case 165: bs.Read(u16a); I.vehModel.erase(u16a); I.vehPos.erase(u16a); break;
         case 93: { bs.Read(u32a); std::string t = SampCp::ToUtf8(RdStr32(bs), I.cp); srv->GateMsg(s, u32a, t.c_str()); break; }
         case 101:
         {
@@ -1058,9 +1067,20 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             int cs = RemTdSlot(I, wire, true); if(cs < 0) break;
             PktTextDraw t; memset(&t, 0, sizeof(t)); t.type = PKT_TEXTDRAW; t.show = 1; t.tdId = (uint16_t)cs;
             t.x = px; t.y = py; t.letterX = lx; t.letterY = ly; t.boxX = tx; t.color = Bswap(lc); t.boxColor = Bswap(bc); t.bgColor = Bswap(bg);
-            t.font = style; t.align = (uint8_t)((flags >> 1) & 3); if(!t.align) t.align = 1; t.outline = outline; t.shadow = shadow; t.useBox = flags & 1; t.proportional = (flags >> 4) & 1;
+            // 5.02.15: open.mp / SA-MP flags = box | align << 1 | proportional << 4 with align 1 = left, 2 = right, 4 = centre
+            // (was read as & 3: right came out centred and centred came out left - "the textdraws are not aligned")
+            {
+                const int al = (flags >> 1) & 7;
+                t.align = (al & 4) ? 2 : (al & 2) ? 3 : 1;
+            }
+            t.outline = outline; t.shadow = shadow; t.useBox = flags & 1; t.proportional = (flags >> 4) & 1;
+            t.font = style;
+            // SA-MP: a centred textdraw's box width is TextSize Y (the PC client swaps them); the phone draws align 2 as
+            // |boxX - x| wide, so boxX = x + width
+            if(t.align == 2) t.boxX = px + fabsf(ty);
             t.pad[0] = selectable ? 1 : 0;
-            MP_CopyStr(t.text, text.c_str(), sizeof(t.text));
+            if(style == 4 || style == 5) MP_CopyStr(t.text, text.c_str(), sizeof(t.text));   // sprite names stay as they are
+            else MP_CopyStr(t.text, SampCp::ToUtf8(text, I.cp).c_str(), sizeof(t.text));   // 5.02.15: the server's codepage
             I.tdDef[wire] = t; srv->GateTextDraw(s, t);
             break;
         }
@@ -1075,7 +1095,8 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         {
             uint16_t wire; bs.Read(wire); std::string text = RdStr16(bs);
             auto it = I.tdDef.find(wire); if(it == I.tdDef.end()) break;
-            MP_CopyStr(it->second.text, text.c_str(), sizeof(it->second.text)); srv->GateTextDraw(s, it->second);
+            const bool spr = it->second.font == 4 || it->second.font == 5;
+            MP_CopyStr(it->second.text, spr ? text.c_str() : SampCp::ToUtf8(text, I.cp).c_str(), sizeof(it->second.text)); srv->GateTextDraw(s, it->second);
             break;
         }
         case 83: { bool on = false; bs.Read(on); bs.Read(u32a); I.tdSel = on; if(I.phase == 3) I.retrySpawnAt = on ? 0 : NowMs() + 1500; srv->GateOp(s, SPO_TDSELECT, on ? 1 : 0, 0, (int32_t)u32a); break; }
@@ -1128,12 +1149,17 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 36:   // 3D text label
         {
             uint16_t id, ap, avh; uint8_t los; bs.Read(id); bs.Read(u32a); RdVec(bs, v); bs.Read(fa); bs.Read(los); bs.Read(ap); bs.Read(avh);
-            std::string t = RdCompressed(bs);
-            if(ap != kInvalid || avh != kInvalid) break;   // attached labels: not yet
+            std::string t = SampCp::ToUtf8(RdCompressed(bs), I.cp);   // 5.02.15: the server's codepage (was raw bytes)
+            I.alabels.erase(id);
+            if(ap != kInvalid || avh != kInvalid)
+            {   // 5.02.15: labels on a player / vehicle ("[AFK]", "For sale", taxi signs): RemTick moves them with it
+                Impl::ALabel& a = I.alabels[id]; a.ap = ap; a.avh = avh; memcpy(a.off, v, sizeof(a.off)); a.dist = fa; a.color = u32a; a.text = t;
+                break;
+            }
             srv->GateLabel(s, id, true, v, fa, u32a, t.c_str());
             break;
         }
-        case 58: bs.Read(u16a); srv->GateLabel(s, u16a, false, nullptr, 0, 0, ""); break;
+        case 58: bs.Read(u16a); I.alabels.erase(u16a); srv->GateLabel(s, u16a, false, nullptr, 0, 0, ""); break;
         case 157: RdVec(bs, v); srv->GateOp(s, SPO_CAMERA, 1, 0, 0, v); break;
         case 158: RdVec(bs, v); srv->GateOp(s, SPO_CAMERA, 2, 0, 0, v); break;
         case 162: srv->GateOp(s, SPO_CAMERA, 0, 0, 0); break;
@@ -1177,6 +1203,7 @@ static void RemFootIn(Impl& I, MPServer* srv, Packet* pk, bool vehicle)
         d = FootToSync(pos, QuatHeading(q[0], q[1], q[2], q[3]), vel, h, a, wp, keys, p->skin);
         if(sa == 1) d.flags |= SYNC_DUCKING;
         if(ud || lr) d.speed = std::max(d.speed, 3.0f);
+        p->vehicle = -1;
     }
     else
     {
@@ -1189,6 +1216,8 @@ static void RemFootIn(Impl& I, MPServer* srv, Packet* pk, bool vehicle)
         auto it = I.vehModel.find(vid);
         d.carModel = it != I.vehModel.end() ? it->second : 0;
         if(d.carModel) { d.flags |= SYNC_IN_CAR | SYNC_DRIVER; memcpy(d.carPos, pos, sizeof(d.carPos)); d.carHeading = hd; }
+        { std::array<float, 3> vp = { pos[0], pos[1], pos[2] }; I.vehPos[vid] = vp; }
+        p->vehicle = vid;
     }
     p->last = d; p->hasPos = true;
     srv->BridgeSync(p->slot, d);
@@ -1251,15 +1280,44 @@ static bool RemConnect(Impl& I)
 
 static bool RemRetry(Impl& I, MPServer* srv, uint64_t now)
 {
-    if(I.tries >= 2) return false;
+    // 5.02.15: 5 tries, 2 / 4 / 6 / 8 s apart (was 3 tries straight after each other). Busy servers behind a flood
+    // filter (Brasil Roleplay: 600+ players) ignore connects that come too fast; each try asks the server info
+    // again first (RemConnect), like the launchers' server list does before a join.
+    if(I.tries >= 4) return false;
     ++I.tries;
-    printf("[crossplay] no answer yet - connect try %d of 3\n", I.tries + 1);
-    char m[160]; snprintf(m, sizeof(m), "[open.mp] No answer yet, trying again (%d of 3)...", I.tries + 1);
+    printf("[crossplay] no answer yet - connect try %d of 5\n", I.tries + 1);
+    char m[160]; snprintf(m, sizeof(m), "[open.mp] No answer yet (busy server), trying again in %d s (%d of 5)...", 2 * I.tries, I.tries + 1);
     srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m);
     I.C->Disconnect(100);
-    if(!RemConnect(I)) return false;
-    I.phaseAt = now;
+    I.phase = 8; I.rejoinAt = now + 2000ull * (uint64_t)I.tries;   // phase 8 connects again (RemConnect) when the time is up
     return true;
+}
+
+// 5.02.15: labels attached to a player / vehicle follow it (sent again when it moved 0.5 m, hidden when it is gone)
+static void RemLabelTick(Impl& I, MPServer* srv, uint64_t now)
+{
+    if(I.alabels.empty() || now < I.labelTickAt || I.phoneSlot < 0) return;
+    I.labelTickAt = now + 150;
+    for(auto& kv : I.alabels)
+    {
+        Impl::ALabel& a = kv.second;
+        bool have = false; float at[3] = { 0, 0, 0 };
+        if(a.ap != 0xFFFF && (int)a.ap != I.myId)
+        {
+            Impl::Rp* p = RemPlayer(I, a.ap);
+            if(p && p->hasPos) { have = true; for(int k = 0; k < 3; ++k) at[k] = p->last.pos[k] + a.off[k]; }
+        }
+        else if(a.avh != 0xFFFF)
+        {
+            auto it = I.vehPos.find(a.avh);
+            if(it != I.vehPos.end()) { have = true; for(int k = 0; k < 3; ++k) at[k] = it->second[k] + a.off[k]; }
+        }
+        if(!have) { if(a.shown) { srv->GateLabel(I.phoneSlot, kv.first, false, nullptr, 0, 0, ""); a.shown = false; } continue; }
+        const float dx = at[0] - a.at[0], dy = at[1] - a.at[1], dz = at[2] - a.at[2];
+        if(a.shown && dx * dx + dy * dy + dz * dz < 0.25f) continue;
+        memcpy(a.at, at, sizeof(a.at)); a.shown = true;
+        srv->GateLabel(I.phoneSlot, kv.first, true, at, a.dist, a.color, a.text.c_str());
+    }
 }
 
 static void RemTick(SampGate* g, Impl& I, MPServer* srv)
@@ -1301,6 +1359,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         RemEnd(I, srv, "The PC server connected but never started the game (1 min). It only lets in its own app / launcher (for example Rio Rise), or it has a join queue."); return;
     }
     if(I.phase == 1 && now - I.phaseAt > 15000) { RemEnd(I, srv, "The PC server did not answer (closed, wrong port or not SA-MP 0.3.7 / open.mp)."); return; }
+    if(I.phase >= 3) RemLabelTick(I, srv, now);   // 5.02.15
 
     for(Packet* pk = I.C->Receive(); pk; I.C->DeallocatePacket(pk), pk = I.C->Receive())
     {

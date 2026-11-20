@@ -61,8 +61,13 @@ namespace ScriptFault
     inline struct sigaction& OldBus()  { static struct sigaction s; return s; }
     inline volatile sig_atomic_t& Faults() { static volatile sig_atomic_t n = 0; return n; }
 
+    // 5.02.15: a guarded call on any thread (the key-event guard: Android key events come in on their own thread).
+    // Touched once outside the handler first (TlJmp() = nullptr in CallAny), so the handler never allocates.
+    inline sigjmp_buf*& TlJmp() { static __thread sigjmp_buf* j = nullptr; return j; }
+
     inline void Handler(int sig, siginfo_t* si, void* uc)
     {
+        if(sigjmp_buf* t = TlJmp()) { TlJmp() = nullptr; ++Faults(); siglongjmp(*t, 1); }
         Guard& g = G();
         if(g.jmp && g.threadSet && pthread_equal(pthread_self(), g.thread))
         {
@@ -89,6 +94,23 @@ namespace ScriptFault
         sigaction(SIGSEGV, &sa, &OldSegv());
         sigaction(SIGBUS, &sa, &OldBus());
         return true;
+    }
+
+    // 5.02.15: runs fn(args...) guarded on whatever thread this is. Returns false when it faulted.
+    template<typename... A>
+    inline bool CallAny(void (*fn)(A...), A... a)
+    {
+        sigjmp_buf here;
+        sigjmp_buf* outer = TlJmp();
+        if(sigsetjmp(here, 0) == 0)
+        {
+            TlJmp() = &here;
+            fn(a...);
+            TlJmp() = outer;
+            return true;
+        }
+        TlJmp() = outer;
+        return false;
     }
 
     // Runs fn(script, opcode) guarded. Returns false when it faulted.

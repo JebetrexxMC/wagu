@@ -181,9 +181,16 @@ static void SampSrvOnPacket(const uint8_t* d, int len)
             break;
         }
         case SPO_CLASSSEL:   // 5.02.13
+        {
+            const bool was = s_SS.pcClass;
             s_SS.pcClass = p.a != 0; s_SS.pcClassIdx = p.val;
             if(p.a) s_SS.pcSpawned = false; else if(p.b) s_SS.pcSpawned = true;
+            // 5.02.15: login servers (SkillArenica, Brasil RP...) hide the class selection themselves and spawn you after
+            // their login / register window - there is no Spawn button there on PC either
+            if(was && !p.a && !p.b && !s_SS.pcSpawned)
+                SysMsg(COL_SYSTEM, "This server spawns you after its login - answer its window (password / register). There is no Spawn button on it, on PC too.");
             break;
+        }
         case SPO_PCLIST:   // 5.02.12: the PC server's whole player list (only the nearby ones are in players[])
             if(p.a == 0) s_PcList.clear();
             else if(p.a == 2) s_PcList.erase(p.val);

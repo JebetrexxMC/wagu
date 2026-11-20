@@ -3883,3 +3883,48 @@
 	url = https://github.com/JernejL/samp-map-editor
 	branch = master
 	shallow = true
+[submodule "third_party/omp-dev/tools/omp-launcher-official"]
+	path = third_party/omp-dev/tools/omp-launcher-official
+	url = https://github.com/openmultiplayer/launcher
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/mpsamp-open/mpsamp-open.github.io"]
+	path = third_party/omp-dev/mpsamp-open/mpsamp-open.github.io
+	url = https://github.com/mpsamp-open/mpsamp-open.github.io
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/mpsamp-open/moquils-web"]
+	path = third_party/omp-dev/mpsamp-open/moquils-web
+	url = https://github.com/mpsamp-open/moquils-web
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/mpsamp-open/SAMP-Mobile32"]
+	path = third_party/omp-dev/mpsamp-open/SAMP-Mobile32
+	url = https://github.com/mpsamp-open/SAMP-Mobile32
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/mpsamp-open/SAShaderLPC"]
+	path = third_party/omp-dev/mpsamp-open/SAShaderLPC
+	url = https://github.com/mpsamp-open/SAShaderLPC
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/mpsamp-open/imguiPC"]
+	path = third_party/omp-dev/mpsamp-open/imguiPC
+	url = https://github.com/mpsamp-open/imguiPC
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/mpsamp-open/SF.lua"]
+	path = third_party/omp-dev/mpsamp-open/SF.lua
+	url = https://github.com/mpsamp-open/SF.lua
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/mpsamp-open/open.mp"]
+	path = third_party/omp-dev/mpsamp-open/open.mp
+	url = https://github.com/mpsamp-open/open.mp
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/mpsamp-open/sscanf"]
+	path = third_party/omp-dev/mpsamp-open/sscanf
+	url = https://github.com/mpsamp-open/sscanf
+	branch = master
+	shallow = true

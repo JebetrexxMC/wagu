@@ -41,7 +41,8 @@ struct Ev : INetEvents {
     void OnPause(const PktPause&) override {}
     void OnStatus(const PktStatus&) override {}
     void OnWorld(const PktWorld&) override {}
-    void OnDialog(const PktDialog& d) override { ++dialogs; printf("  dialog %u style %u: %.60s\n", d.dialogId, d.style, d.caption); }
+    int lastDlg = -1; uint8_t lastStyle = 0;
+    void OnDialog(const PktDialog& d) override { ++dialogs; lastDlg = d.dialogId; lastStyle = d.style; printf("  dialog %u style %u [%s|%s]: %.60s\n     %.200s\n", d.dialogId, d.style, d.button1, d.button2, d.caption, d.info); }
     void OnTextDraw(const PktTextDraw& t) override { ++tds; if(tds <= 3) printf("  textdraw %u show %u: %.40s\n", t.tdId, t.show, t.text); }
     void OnSamp(const uint8_t* d, int) override { ++samp;
         if(d[1] == SPO_CLASSSEL) { PktSamp p; memcpy(&p, d, sizeof(p)); if(p.a) ++classShow; else if(p.b) ++classSpawned; printf("  SPO_CLASSSEL show %u spawned %u class %d\n", p.a, p.b, p.val); }
@@ -107,6 +108,18 @@ int main(int argc, char** argv)
         sp.a = 0; cl.Send(&sp, sizeof(sp));   // Spawn
         pump(3000, true);
         CHECK(ev.classSpawned > 0, "Spawn button spawned the phone on the PC server");
+    }
+    if(const char* dpw = getenv("MP_TEST_DIALOG"))
+    {   // 5.02.14: answer the PC server's dialogs like a player (button 1, first item, MP_TEST_DIALOG as the text) - login flows
+        for(int n = 0; n < 8; ++n)
+        {
+            for(int w = 0; w < 15 && ev.lastDlg < 0; ++w) pump(1000, true);
+            if(ev.lastDlg < 0) break;
+            PktDialogResp r; memset(&r, 0, sizeof(r)); r.type = PKT_DIALOG_RESPONSE; r.response = 1; r.dialogId = (uint16_t)ev.lastDlg; r.listItem = 0;
+            MP_CopyStr(r.input, dpw, sizeof(r.input)); printf("  -> answer dialog %d\n", ev.lastDlg); ev.lastDlg = -1;
+            cl.Send(&r, sizeof(r)); pump(3000, true);
+        }
+        printf("  after the dialogs: class shown %d, spawned %d\n", ev.classShow, ev.classSpawned);
     }
     if(getenv("MP_TEST_HOLD")) pump(atoi(getenv("MP_TEST_HOLD")), true);   // 5.02.13: two testers - stay to hear the other one's chat
     printf("  messages %d, dialogs %d, textdraws %d, samp ops %d, cg acts %d, joins %d\n", ev.msgs, ev.dialogs, ev.tds, ev.samp, ev.cg, ev.joins);

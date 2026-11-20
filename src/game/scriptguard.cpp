@@ -15,6 +15,8 @@
 // else - and every valid handle - goes straight to the game's original code.
 #include <mod/amlmod.h>
 #include <mod/logger.h>
+#include <dlfcn.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include "scriptguard.h"
@@ -405,4 +407,40 @@ void ScriptGuard::Tick()
     static int n = 0;
     if(++n % 60) return;   // about once a second: still first in line for SIGSEGV?
     if(ScriptFault::Install()) logger->Info("ScriptGuard: fault handler put back in front (another mod had replaced it)");
+}
+
+// ---- 5.02.15: key-event guard ------------------------------------------------------------------------
+// Crash log (realme RE6054, Android 16, 70 AML mods): SIGSEGV SEGV_MAPERR, fault address 0x92, in
+// libCLEO_ImGui.so + 0x6FCF4 (HookOf_GTA_KeyboardEvent(bool, int, int, int)) - CLEO_ImGui (MatiDragon, 1.2.0)
+// hooks the game's Android key handler AND_KeyboardEvent and reads its own ImGui state through a null pointer
+// when a key comes in before / while it isn't ready (the Back button, a phone keyboard, a server dialog's input).
+// MP hooks the same handler after every mod is loaded (so MP's hook is called first) and runs the rest of the
+// chain - CLEO_ImGui's hook, then the game - inside a fault guard: a crash in there drops that one key event and
+// the game keeps running. Only when libCLEO_ImGui.so (or another mod hooking it) is loaded; MP_KEYGUARD=0 = off.
+typedef void (*KeyEvFn)(bool, int, int, bool);
+static KeyEvFn s_KeyOrig = nullptr;
+static int s_nKeyFaults = 0;
+static void KeyEvHook(bool pressed, int key, int meta, bool force)
+{
+    if(!s_KeyOrig) return;
+    if(ScriptFault::CallAny<bool, int, int, bool>(s_KeyOrig, pressed, key, meta, force)) return;
+    ++s_nKeyFaults;
+    if(s_nKeyFaults <= 10 || s_nKeyFaults % 200 == 0)
+        logger->Info("KeyGuard: a mod's key hook crashed on key %d (%s) - that key press is dropped, the game keeps running (#%d). "
+                     "Usually libCLEO_ImGui.so: update or remove it if keys stop working.", key, pressed ? "down" : "up", s_nKeyFaults);
+}
+void ScriptGuard::InitKeyGuard(void* h)
+{
+    static bool done = false; if(done) return; done = true;
+    if(const char* e = getenv("MP_KEYGUARD")) if(e[0] == '0') return;
+    void* imgui = dlopen("libCLEO_ImGui.so", RTLD_NOW | RTLD_NOLOAD);
+    if(!imgui) { logger->Info("KeyGuard: libCLEO_ImGui.so is not loaded - not needed"); return; }
+    dlclose(imgui);
+    void* f = (void*)aml->GetSym(h, "_Z17AND_KeyboardEventbiib");
+    if(!f) { logger->Info("KeyGuard: AND_KeyboardEvent not found - off"); return; }
+    ScriptFault::Install();
+    (void)ScriptFault::TlJmp();
+    if(aml->Hook(f, (void*)&KeyEvHook, (void**)&s_KeyOrig) && s_KeyOrig)
+        logger->Info("KeyGuard: on - CLEO_ImGui's key hook runs inside a fault guard (a crash there no longer closes the game)");
+    else { s_KeyOrig = nullptr; logger->Info("KeyGuard: could not hook AND_KeyboardEvent"); }
 }
