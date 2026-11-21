@@ -624,7 +624,7 @@ static const char* OmpEmptyText()
     return "Reading the open.mp server list...";
 }
 
-// 5.02.17: the ReSA tab - Alyn's ReSA list first, then the open.mp / SA-MP list.
+// 5.02.17: the ReSA tab - Alyn's ReSA list (5.02.18: only that; the open.mp servers stay in the open.mp tab).
 // 5.02.18: Join = MP crossplay (like the open.mp tab), right here in the game: tapping Join used to hand the server to
 // ReSA Multiplayer (com.alyn.resamp) and, with no ReSA app taking resa://, ended in Chrome on resa-mp.com/join.
 // "Open in ReSA" (details panel) still opens ReSA Multiplayer on that server with ReSA's own link format:
@@ -727,14 +727,7 @@ static void ResaRows(std::vector<LRow>& rows)
         OmpCut(q.desc, sizeof(q.desc), d);
         rows.push_back(q);
     }
-    for(LRow& q : omp)
-    {   // then every open.mp / SA-MP server - ReSA joins those too
-        q.kind = 9;   // 5.02.18: q.on comes from OmpRows (the crossplay join)
-        snprintf(q.tags, sizeof(q.tags), "%s", "open.mp");
-        char d[200]; snprintf(d, sizeof(d), "%s:%d - Join plays it here through MP crossplay; Open in ReSA hands it to ReSA Multiplayer. Same server as PC and ReSA players.", q.ip, q.port);
-        OmpCut(q.desc, sizeof(q.desc), d);
-        rows.push_back(q);
-    }
+    // 5.02.18: only the ReSA list here - the open.mp servers stay in the open.mp tab (they were appended and mixed in)
 }
 static uint64_t s_nResaAskAt = 0;   // 5.02.18: waiting for the answer of the resa:// hand-off
 static void ResaOpen(const char* ip, int port)
@@ -1407,7 +1400,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
         else if(st8 == 3) snprintf(st, sizeof(st), "Could not read the open.mp list%s - tap Refresh", n ? " (showing the last one)" : "");
         else if(st8 == 2) snprintf(st, sizeof(st), "%d servers on open.mp (%d shown%s)  -  updated %us ago", n, (int)rows.size(), (OmpSearchPw() ? OmpSearchPw() : s_nOmpPwFilter) == 1 ? ", with a password" : (OmpSearchPw() ? OmpSearchPw() : s_nOmpPwFilter) == 2 ? ", no password" : "", ago);
         else snprintf(st, sizeof(st), "open.mp server list");
-        if(s_nInetSub == 3) snprintf(st, sizeof(st), "%d ReSA + %d open.mp servers - Join plays here (crossplay), Open in ReSA hands it to ReSA", AlynCount(), n);   // 5.02.18
+        if(s_nInetSub == 3) snprintf(st, sizeof(st), s_nAlynState == 1 && !AlynCount() ? "Reading the ReSA server list..." : "%d ReSA servers (%d shown) - Join plays here (crossplay), Open in ReSA hands it to ReSA", AlynCount() ? AlynCount() : (int)rows.size(), (int)rows.size());   // 5.02.18: ReSA only
         ResaTick();   // 5.02.18
         const float bh = barH - UI::S(12);
         const char* bl = "Refresh";
@@ -1562,7 +1555,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
             float y0 = d.y + pad;
             // 1: description, IP, favourite
             dl->AddText(ImVec2(c1, y0), hc, "Server Description");
-            LWrapText(dl, ImVec2(c1, y0 + lh + UI::S(6)), c2 - c1 - pad, e.y - lh * 2.6f, tc, r.desc[0] ? r.desc : "No description.");
+            LWrapText(dl, ImVec2(c1, y0 + lh + UI::S(6)), c2 - c1 - pad, e.y - pad - lh * 2.0f - UI::S(28), tc, r.desc[0] ? r.desc : "No description.");
             {
                 char ip[96];
                 if(r.kind == 2 && r.saved >= 0) { ServerEntry* se = ServerList::Get(r.saved); snprintf(ip, sizeof(ip), "IP: %s:%d", se ? se->host : "?", r.port); }
@@ -1572,10 +1565,19 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
                 else if(r.kind == 0 || r.kind >= 3) snprintf(ip, sizeof(ip), "IP: 24/7 internet lobby, port %d", r.port);
                 else if(r.internet) snprintf(ip, sizeof(ip), "IP: internet lobby, port %d", r.port);
                 else snprintf(ip, sizeof(ip), "IP: hidden, port %d", r.port);
-                dl->AddText(ImGui::GetFont(), ImGui::GetFontSize() * 0.86f, ImVec2(c1, e.y - pad - lh), hc, ip);
                 // Favourite toggle (star)
                 bool fav = LIsFav(r.name, r.port);
                 ImVec2 sa(c2 - pad - UI::S(150), e.y - pad - lh - UI::S(10)), sb(c2 - pad, e.y - pad + UI::S(4));
+                {   // 5.02.18: the IP on its own line above the buttons, shrunk / clipped to the column (long open.mp
+                    // host names ran under Favorite / Open in ReSA)
+                    const float cw = c2 - c1 - pad;
+                    float fs = ImGui::GetFontSize() * 0.86f;
+                    const float tw = ImGui::GetFont()->CalcTextSizeA(fs, FLT_MAX, 0.0f, ip).x;
+                    if(tw > cw && tw > 0.0f) fs = std::max(ImGui::GetFontSize() * 0.62f, fs * cw / tw);
+                    dl->PushClipRect(ImVec2(c1, sa.y - fs - UI::S(10)), ImVec2(c2 - pad, sa.y), true);
+                    dl->AddText(ImGui::GetFont(), fs, ImVec2(c1, sa.y - fs - UI::S(6)), hc, ip);
+                    dl->PopClipRect();
+                }
                 ImGui::SetCursorScreenPos(sa);
                 if(ImGui::InvisibleButton("##fav", ImVec2(sb.x - sa.x, sb.y - sa.y))) { LSetFav(r.name, r.port, !fav); fav = !fav; }
                 dl->AddRectFilled(sa, sb, ImGui::IsItemActive() ? IM_COL32(255, 255, 255, 40) : IM_COL32(255, 255, 255, 14));
@@ -2748,7 +2750,7 @@ static void RenderLauncher(void* openPtr)
         ImGui::SetCursorScreenPos(ImVec2(rx, y));
         if(LInputBox("search", s_szSearch, "Search", searchW, btnH, IC_SEARCH)) VKeyboard::Open("Search server", s_szSearch, 31, OnSearch);
         ImGui::SameLine(0, UI::S(6));
-        if(LToolButton("refresh", IC_REFRESH, nullptr, btnH)) { if(s_nLTab == LT_INTERNET && OmpSub()) OmpListKick(true); ServerList::Refresh(); if(s_bHasNetwork) { s_nNearbyTime = MP_NowMs(); StartJob(JOB_SCAN, false, "", MP_DEFAULT_PORT); } }
+        if(LToolButton("refresh", IC_REFRESH, nullptr, btnH)) { if(s_nLTab == LT_INTERNET && OmpSub()) { OmpListKick(true); if(s_nInetSub == 3) AlynListKick(true); } ServerList::Refresh(); if(s_bHasNetwork) { s_nNearbyTime = MP_NowMs(); StartJob(JOB_SCAN, false, "", MP_DEFAULT_PORT); } }
         ImGui::SameLine(0, UI::S(6));
         s_vRegionBtn = ImGui::GetCursorScreenPos(); s_fRegionBtn = btnH;   // 3.25.1: region switch
         // 4.05.3: the only toolbar button that TOGGLES - one tap that arrived twice (press seen twice) opened
