@@ -38,11 +38,35 @@ void MPServer::GateLabel(int slot, int id, bool add, const float* pos, float dis
 
 void MPServer::GateMsg(int slot, uint32_t color, const char* text)
 {   // SA-MP lines are 144 chars, MP chat lines 128: longer ones go in two lines
+    // 5.02.21: the cut is at a space (or a whole UTF-8 letter), never inside a {RRGGBB} code, and the second line
+    // keeps the colour the first one ended with. Before, a 140-letter line was cut at byte 127: half a letter or half a
+    // colour code, and the rest of the line came out in the wrong colour / as garbage.
     std::string s = text ? text : "";
     PktServerMsg m; memset(&m, 0, sizeof(m)); m.type = PKT_SERVER_MSG; m.color = color | 0xFF;
-    std::lock_guard<std::mutex> lk(m_Mutex);
+    const size_t room = sizeof(m.text) - 1;
+    auto isCode = [&](size_t i) { if(i + 7 >= s.size() || s[i] != '{' || s[i + 7] != '}') return false; for(int k = 1; k <= 6; ++k) if(!isxdigit((unsigned char)s[i + k])) return false; return true; };
+    std::vector<std::string> parts;
+    std::string carry;   // the colour code in effect where the next part starts
     size_t at = 0;
-    do { MP_CopyStr(m.text, s.c_str() + at, sizeof(m.text)); GATE_EACH(slot, SendTo(to, &m, (int)sizeof(m))); at += sizeof(m.text) - 1; } while(at < s.size());
+    while(at < s.size())
+    {
+        const size_t lim = room > carry.size() ? room - carry.size() : room;
+        size_t n = std::min(lim, s.size() - at);
+        if(at + n < s.size())
+        {
+            size_t cut = n;
+            for(size_t k = n; k > n / 2; --k) if(s[at + k] == ' ') { cut = k; break; }   // a space in the second half
+            while(cut > 1 && ((unsigned char)s[at + cut] & 0xC0) == 0x80) --cut;          // not inside a UTF-8 letter
+            for(size_t k = (cut > 7 ? cut - 7 : 0); k < cut; ++k) if(isCode(at + k)) { cut = k ? k : cut; break; }   // not inside {RRGGBB}
+            n = cut;
+        }
+        parts.push_back(carry + s.substr(at, n));
+        for(size_t k = at; k < at + n; ++k) if(isCode(k)) carry = s.substr(k, 8);
+        at += n; while(at < s.size() && s[at] == ' ') ++at;
+    }
+    if(parts.empty()) parts.push_back("");
+    std::lock_guard<std::mutex> lk(m_Mutex);
+    for(const std::string& p : parts) { MP_CopyStr(m.text, p.c_str(), sizeof(m.text)); GATE_EACH(slot, SendTo(to, &m, (int)sizeof(m))); }
 }
 
 void MPServer::GateChat(int fromSlot, const char* text)

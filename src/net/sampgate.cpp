@@ -207,6 +207,7 @@ struct SampGate::Impl
     bool wantClass = false;
     bool dlgOpen = false, tdSel = false, spect = false, noAuto = false;   // noAuto: the server sent us back to class selection - wait for the player    // 5.02.10: no auto-spawn while a login dialog / clickable-textdraw login is up (a PC player can't press Spawn then)                 // 5.02.09: ForceClassSelection waits for the next respawn (like the PC client)
     uint64_t spawnAnsAt = 0; int spawnSilent = 0; bool directSpawn = false;   // 5.02.20: Spawn never answered -> spawn here
+    uint64_t blankAt = 0; uint32_t blankN = 0, pcChatN = 0, srvMsgN = 0;   // 5.02.21: chat clears / chat seen (mp_log.txt)
     uint64_t spawnAskAt = 0, refuseMsgAt = 0, classAt = 0;   // 5.02.17: one RequestSpawn in flight (taps flooded: kicked), refusal note, class selection since
     bool finDl = false;   // 5.02.17: FinishDownload (184) sent - scripts that open their login in OnPlayerFinishedDownloading
     int tdShown = 0;      // 5.02.17: textdraws the server showed (log)
@@ -786,6 +787,31 @@ static int32_t RemModel(Impl& I, int32_t m)
 {   // 5.02.08: a 0.3.DL custom model (skin 20001+, object -1000..-30000) shows as its base model on the phone
     auto it = I.modelBase.find(m); return it != I.modelBase.end() ? it->second : m;
 }
+// 5.02.21: a chat line with nothing to see: only spaces / {RRGGBB} codes / no-break spaces. Servers send 20-100 of
+// them to "clear the chat" (on join, after login, /clearchat) - on the phone they pushed every real line out of the box
+// and looked like players chatting with blank messages.
+static bool ChatBlank(const std::string& t)
+{
+    for(size_t i = 0; i < t.size(); )
+    {
+        const unsigned char c = (unsigned char)t[i];
+        if(c == ' ' || c == '\t' || c == '\r' || c == '\n') { ++i; continue; }
+        if(c == 0xC2 && i + 1 < t.size() && (unsigned char)t[i + 1] == 0xA0) { i += 2; continue; }   // UTF-8 no-break space
+        if(c == '{' && i + 7 < t.size() && t[i + 7] == '}')
+        {
+            bool hex = true; for(int k = 1; k <= 6; ++k) if(!isxdigit((unsigned char)t[i + k])) hex = false;
+            if(hex) { i += 8; continue; }
+        }
+        return false;
+    }
+    return true;
+}
+static void RemChatBlank(Impl& I)
+{
+    ++I.blankN; const uint64_t n = NowMs();
+    if(n - I.blankAt > 5000) { I.blankAt = n; printf("[crossplay] the server cleared the chat - empty lines left out (%u so far)\n", I.blankN); }
+}
+
 static Impl::Rp* RemPlayer(Impl& I, int id) { auto it = I.rp.find(id); return it == I.rp.end() ? nullptr : &it->second; }
 
 static void RemGhostIn(Impl& I, MPServer* srv, int id, const float* pos, float ang)
@@ -999,10 +1025,18 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             if(RdVec(bs, v)) { std::array<float, 3> vp = { v[0], v[1], v[2] }; I.vehPos[u16a] = vp; }   // 5.02.15: labels on parked cars
             break;
         case 165: bs.Read(u16a); I.vehModel.erase(u16a); I.vehPos.erase(u16a); break;
-        case 93: { bs.Read(u32a); std::string t = SampCp::ToUtf8(RdStr32(bs), I.cp); srv->GateMsg(s, u32a, t.c_str()); break; }
+        case 93:
+        {
+            bs.Read(u32a); std::string t = SampCp::ToUtf8(RdStr32(bs), I.cp);
+            if(ChatBlank(t)) { RemChatBlank(I); break; }   // 5.02.21
+            if(I.srvMsgN < 3) { ++I.srvMsgN; printf("[crossplay] server message %08X: %.100s\n", u32a, t.c_str()); }
+            srv->GateMsg(s, u32a, t.c_str()); break;
+        }
         case 101:
         {
             bs.Read(u16a); std::string t = SampCp::ToUtf8(RdStr8(bs), I.cp);
+            if(ChatBlank(t)) { RemChatBlank(I); break; }   // 5.02.21
+            if(I.pcChatN < 5) { ++I.pcChatN; printf("[crossplay] player chat from id %u: %.100s\n", (unsigned)u16a, t.c_str()); }   // 5.02.21: shows in mp_log.txt that PC chat arrives
             if(u16a == I.myId) { srv->GateChat(s, t.c_str()); break; }
             // 5.02.13: every PC chat line is a chat line on the phone. Before, a streamed-in player's line went out as
             // that ghost's own chat packet - dropped on the phone whenever the ghost was not (or no longer) in its player

@@ -749,6 +749,12 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+- **5.02.21** (app: libMP32.so / libMP64.so, MP_BUILD 50221): **PC players' chat shows, with no blank lines.**
+  - **Blank chat lines are left out:** many PC servers "clear the chat" by sending 20-100 empty lines (only spaces or `{RRGGBB}` codes) on join, after login or with /clearchat. On the phone, those empty lines pushed every real line (players' chat too) out of the chat box and looked like players sending blank messages. The gate now leaves them out, and `mp_log.txt` gets `[crossplay] the server cleared the chat - empty lines left out (N so far)`.
+  - **Long lines split cleanly:** SA-MP lines are up to 144 characters and MP chat lines 128. A longer line is now cut at a space, never inside a letter (ñ, é...) or a `{RRGGBB}` code, and the second part keeps the colour the first one ended with. Before, the rest of the line came out in the wrong colour or as garbage.
+  - **No blank rows from scripts:** if a MonetLoader script's `onServerMessage` hands a line back empty, MP shows the server's line instead (a script can still hide a line by returning false). A line can no longer be fully transparent.
+  - **No translation of PC-server lines:** MP's chat translation no longer touches a PC server's lines, so it can't turn a player's "Name: text" into one of MP's own messages.
+  - `mp_log.txt` now shows the first 5 player chat lines and the first 3 server messages from the PC server (`[crossplay] player chat from id N: ...`), so a log shows whether players' chat reaches the phone.
 - **5.02.20** (app: libMP32.so / libMP64.so, MP_BUILD 50220): **Servers with no Spawn button, smooth PC players, the key bar and HassleHUD.**
   - **No Spawn button:** some servers (such as Zona America del Sur FreeRoam) never answer Spawn, so the phone stayed in class selection. MP now sends RequestClass + RequestSpawn once more. If there is still no answer, it spawns you directly at the server's spawn point, or at **Grove Street** (2495.08, -1687.43, 13.52) with the server's skin when it gave none. Chat says "[open.mp] This server has no Spawn button - you spawned at Grove Street." and `mp_log.txt` gets a `[crossplay]` line. This works the same for open.mp, SA-MP and ReSA servers, because all of them use the same 0.3.7 Spawn messages.
   - **PC players move smoothly:** players from a PC server are now sent to the phone every tick, not only when they move. They no longer freeze and then jump, which looked like reconnecting.

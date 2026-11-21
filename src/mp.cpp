@@ -3081,8 +3081,18 @@ public:
         if(!settings.globalChat && RpOnServer() && !strncmp(m.text, "(( [OOC]", 8)) return;   // 3.35: player Settings > Global Chat off
         if(m.color == MP_WELCOME_COLOR) { MP_CopyStr(s_szCustomWelcome, m.text, sizeof(s_szCustomWelcome)); return; }   // 5.00.08: shown by FinishJoin
         uint32_t col = m.color; std::string t = m.text;
+        const std::string orig = t;
         if(!LuaOnClientMessage(col, t)) return;   // 4.13.29: samp.events onServerMessage
+        // 5.02.21: a script that hands the line back empty (a wrong return in onServerMessage, a cp1251 decode of a
+        // UTF-8 line) made PC players' chat show as blank rows: keep the server's line. Blocking still works (return false).
+        if(t.find_first_not_of(" \t") == std::string::npos && !orig.empty()) { t = orig; col = m.color; }
+        if((col & 0xFF) == 0) col |= 0xFF;   // never an invisible line
+        // 5.02.21: a PC server's lines (crossplay) are in its own language - MP's chat translation could match a player's
+        // "Name: text" line to one of MP's own message patterns and show something else (or nothing)
+        const bool pc = ConnectedToSampProxy();
+        if(pc) s_bChatTranslated = true;
         MP::AddSystemMessage(col, t.c_str());
+        if(pc) s_bChatTranslated = false;
     }
     void OnSetColor(const PktSetColor& c) override { ApplyPlayerColor(c.id, c.color); }
     void OnVoice(int id, uint16_t seq, uint8_t flags, const uint8_t* opus, int len) override   // 3.11
