@@ -29,6 +29,7 @@ namespace Voice
     int   HelperState();                    // 0 not used, 1 waiting for MP Voice, 2 getting your voice
     void  OpenUrl(const char* url);         // 3.21.6: open a link (browser / Discord app)
     void  OpenUrlOr(const char* url, const char* fallback);   // 5.02.17: app link (resa://), else the web page
+    int   OpenUrlResult();                  // 5.02.18: last OpenUrl / OpenUrlOr: 0 pending, 1 opened, 2 no app took it
     void  OpenHelperApp();                  // opens MP Voice (it turns its mic on and comes back)
     // 4.03: + Add server > Upload preview image: MP Voice opens the Files app (JPG / PNG), makes it a
     // 512x256 JPEG and sends it back on 127.0.0.1:19231 (the game cannot get the Files app answer itself)

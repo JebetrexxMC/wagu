@@ -440,11 +440,15 @@ static void OpenHelperOnUi(void*)
 static char s_szOpenUrl[256];
 static char s_szOpenUrlAlt[256];   // 5.02.17: opened when no app takes s_szOpenUrl (ActivityNotFoundException)
 static bool OpenUrlTry(const char* url);
+static std::atomic<int> s_nUrlResult{0};   // 5.02.18
 static void OpenUrlOnUi(void*)
 {
-    if(!OpenUrlTry(s_szOpenUrl) && s_szOpenUrlAlt[0]) OpenUrlTry(s_szOpenUrlAlt);
+    bool ok = OpenUrlTry(s_szOpenUrl);
+    if(!ok && s_szOpenUrlAlt[0]) ok = OpenUrlTry(s_szOpenUrlAlt);
     s_szOpenUrlAlt[0] = 0;
+    s_nUrlResult = ok ? 1 : 2;
 }
+int Voice::OpenUrlResult() { return s_nUrlResult.load(); }
 static bool OpenUrlTry(const char* url)
 {
     JNIEnv* e = Env();
@@ -471,12 +475,14 @@ static bool OpenUrlTry(const char* url)
 }
 void Voice::OpenUrlOr(const char* url, const char* fallback)
 {
+    s_nUrlResult = 0;
     snprintf(s_szOpenUrl, sizeof(s_szOpenUrl), "%s", url ? url : "");
     snprintf(s_szOpenUrlAlt, sizeof(s_szOpenUrlAlt), "%s", fallback ? fallback : "");
     if(!aml->PushToJavaUIThread(OpenUrlOnUi, nullptr)) OpenUrlOnUi(nullptr);
 }
 void Voice::OpenUrl(const char* url)
 {
+    s_nUrlResult = 0;
     s_szOpenUrlAlt[0] = 0;
     snprintf(s_szOpenUrl, sizeof(s_szOpenUrl), "%s", url ? url : "");
     if(!aml->PushToJavaUIThread(OpenUrlOnUi, nullptr)) OpenUrlOnUi(nullptr);

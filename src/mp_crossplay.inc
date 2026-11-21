@@ -30,13 +30,30 @@ static bool ConnectedToSampProxy()
     return s_SampGate.Running() && client.GetState() != NET_DISCONNECTED && IsLocalHost(client.GetHost()) && client.GetPort() == s_nSampProxyPort;
 }
 
+// 5.02.18: Disconnect on an open.mp server froze the game. The PC connection (RakNet) and the private local
+// server were stopped on the game thread, and their thread joins / RakNet's Disconnect() can wait a long time
+// (forever when RakNet's network thread had hit a socket error - fixed in RakPeer.cpp too). Now the game thread
+// only leaves the local server (one UDP packet); the rest closes on its own thread, and a new PC join waits for it.
+static std::atomic<bool> s_bPcStopping{false};
+static char              s_szPcNextAddr[80] = "", s_szPcNextPw[33] = "";   // a join tapped while the last one closes
+static uint64_t          s_nPcStopAt = 0;
+static bool PcStopping() { return s_bPcStopping.load(); }
 static void StopPcJoin(const char* why)
 {
     if(ConnectedToSampProxy()) LeaveServer(nullptr);
-    s_SampGate.Stop();
-    s_SampProxy.Stop();
     s_nSampProxyPort = 0; s_nSampStartAt = s_nSampEndAt = s_nSampAwayAt = 0; s_bSampEndSaid = false;
     if(why) SysMsg(COL_YELLOW, "%s", why);
+    if(s_bPcStopping) return;                                   // already closing
+    if(!s_SampGate.Running() && !s_SampProxy.IsRunning()) return;
+    s_bPcStopping = true; s_nPcStopAt = MP_NowMs();
+    if(logger) logger->Info("[crossplay] closing the PC connection (in the background)");
+    std::thread([]() {   // detached: a static std::thread left joinable would abort the game at exit
+        const uint64_t t0 = MP_NowMs();
+        s_SampGate.Stop();    // RakNet Disconnect + the gate thread
+        s_SampProxy.Stop();   // the private 127.0.0.1 server
+        if(logger) logger->Info("[crossplay] PC connection closed (%u ms)", (unsigned)(MP_NowMs() - t0));
+        s_bPcStopping = false;
+    }).detach();
 }
 
 static void PcQueryStart(const char* addr)
@@ -61,6 +78,12 @@ static void StartPcJoin(const char* addr, const char* pw)
     if(IsBusy()) { SysMsg(COL_YELLOW, "Please wait..."); return; }
     if(CheatMenuBlocks(h, false)) return;
     if(s_SampGate.Running()) StopPcJoin(nullptr);
+    if(PcStopping())
+    {   // 5.02.18: the last PC connection is still closing on its thread - join right after it (CrossplayTick)
+        MP_CopyStr(s_szPcNextAddr, addr, sizeof(s_szPcNextAddr)); MP_CopyStr(s_szPcNextPw, pw ? pw : "", sizeof(s_szPcNextPw));
+        SysMsg(COL_SYSTEM, "Closing the last PC connection, then joining %s:%u ...", h, p);
+        return;
+    }
     LeaveServer(nullptr);
     // the private server: 127.0.0.1 only matters to this phone; a random password keeps LAN players out
     char spw[MP_PASSWORD_LEN + 1]; snprintf(spw, sizeof(spw), "pc%08X", (unsigned)(MP_NowMs() * 2654435761u) ^ (unsigned)rand());
@@ -89,6 +112,17 @@ static void StartPcJoin(const char* addr, const char* pw)
 // every game frame (ProcessLan)
 static void CrossplayTick(uint64_t now)
 {
+    if(!PcStopping() && s_szPcNextAddr[0])
+    {   // 5.02.18: a join that waited for the last PC connection to close
+        char a[80], w[33]; MP_CopyStr(a, s_szPcNextAddr, sizeof(a)); MP_CopyStr(w, s_szPcNextPw, sizeof(w));
+        s_szPcNextAddr[0] = s_szPcNextPw[0] = 0;
+        StartPcJoin(a, w);
+    }
+    else if(PcStopping() && s_nPcStopAt && now - s_nPcStopAt > 20000)
+    {   // still closing after 20 s: say so once (the game keeps running; MP's own servers work)
+        s_nPcStopAt = 0; if(logger) logger->Error("[crossplay] the PC connection is still closing after 20 s");
+        SysMsg(COL_YELLOW, "The last open.mp connection is still closing - PC joins wait for it.");
+    }
     if(s_SampGate.Running())
     {
         if(s_SampGate.Ended())

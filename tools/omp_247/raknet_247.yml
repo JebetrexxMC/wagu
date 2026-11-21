@@ -12,7 +12,17 @@ backup_every: 1800            # seconds between backups of scriptfiles/ + logs (
 backup_keep: 48               # newest backups kept, older ones deleted
 backup_dir: ./backups
 console_fifo: ./omp_console   # echo "say hello" > omp_console  -> typed into the server console
-# Optional MQTT (HiveMQ or any broker; needs mosquitto-clients). Empty mqtt_host = off.
+state_file: ./omp_247.state   # 5.02.18: what omp_status.py publishes (state, pid, restarts, last backup)
+# MQTT status (HiveMQ or any broker). Empty mqtt_host = off.
+#  - omp_status.py (Python only): retained JSON on <topic>/status every status_every s, last will {"online":false}
+#  - console lines from <topic>/cmd need mosquitto-clients (mosquitto_sub)
+# On a server with the MP HiveMQ kit (HiveMQ/install.sh): mqtt_host 127.0.0.1, mqtt_user bridge, mqtt_pass_env BRIDGE_PASS
 mqtt_host:
 mqtt_port: 1883
-mqtt_topic: wagu/openmp       # status -> <topic>/status, console lines from <topic>/cmd
+mqtt_user:
+mqtt_pass:
+mqtt_pass_env:                # read the password from /etc/mp-hivemq/mp.env (e.g. BRIDGE_PASS)
+mqtt_topic: thirtyfox/mp4/omp/myserver   # status -> <topic>/status, console lines from <topic>/cmd
+name:                         # shown in the status (empty = last part of mqtt_topic)
+public_host:                  # address shown in the status (empty = host)
+status_every: 10

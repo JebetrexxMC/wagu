@@ -624,13 +624,19 @@ static const char* OmpEmptyText()
     return "Reading the open.mp server list...";
 }
 
-// 5.02.17: the ReSA tab - the same open.mp / SA-MP list, but Join opens ReSA Multiplayer (com.alyn.resamp, its own
-// engine for SA-MP 0.3.7 / 0.3.DL / open.mp) on that server: resa://connect?host=IP&port=PORT (resa-mp.com/join links).
-// Not installed: resa-mp.com/join?host=..&port=.. opens instead (its Download button). The APK is a release asset.
+// 5.02.17: the ReSA tab - Alyn's ReSA list first, then the open.mp / SA-MP list.
+// 5.02.18: Join = MP crossplay (like the open.mp tab), right here in the game: tapping Join used to hand the server to
+// ReSA Multiplayer (com.alyn.resamp) and, with no ReSA app taking resa://, ended in Chrome on resa-mp.com/join.
+// "Open in ReSA" (details panel) still opens ReSA Multiplayer on that server with ReSA's own link format:
+//   app link:  resa://connect?host=IP&port=PORT   (com.alyn.resamp JoinLinkActivity, exported, VIEW + BROWSABLE)
+//   web link:  https://resa-mp.com/join?host=IP&port=PORT   (Discord / website Join buttons; the page opens resa://)
+// and never falls back to the browser: no ReSA app = a chat line with where to get it (the APK is a release asset).
 // 5.02.17: Alyn's own ReSA server list (alynsampmobile.pro/servers) comes first: its JSON API
 // {"servers":[{"host":"185.239.237.91","port":"7777","featured":true,"verified":true},...]} has no names, so a name
 // comes from the open.mp list (same address), else the names the site showed (Nov 2026), else host:port.
 #define MP_ALYN_LIST_URL "https://alynsampmobile.pro/api/servers"
+// 5.02.18: the ReSA launcher (resa-windows-1.1.8 app.so) reads the same list from resa-mp.com/api/servers - the fallback.
+#define MP_RESA_LIST_URL "https://resa-mp.com/api/servers"
 struct AlynSrv { std::string host; int port = 0; bool featured = false, verified = false; };
 static std::vector<AlynSrv> s_AlynList;   // under s_OmpMx
 static std::atomic<int>     s_nAlynState{0};
@@ -675,8 +681,15 @@ static void AlynListKick(bool force = false)
     s_nAlynAt = now; s_nAlynState = 1;
     std::thread([]() {
         std::string body, why; std::vector<AlynSrv> v;
-        const bool ok = Online::HttpsFetch(MP_ALYN_LIST_URL, body, 15000, why, 1u << 20);
+        bool ok = Online::HttpsFetch(MP_ALYN_LIST_URL, body, 15000, why, 1u << 20);
         if(ok) AlynParse(body, v);
+        if(v.empty())
+        {   // alynsampmobile.pro down or empty: the resa-mp.com copy of the list
+            body.clear(); std::string why2;
+            ok = Online::HttpsFetch(MP_RESA_LIST_URL, body, 15000, why2, 1u << 20);
+            if(ok) AlynParse(body, v);
+            if(!why2.empty()) why = why.empty() ? why2 : why + "; " + why2;
+        }
         const bool good = ok && !v.empty();
         if(logger) logger->Info("ReSA list: %s (%d servers%s%s)", good ? "ok" : "failed", (int)v.size(), why.empty() ? "" : ", ", why.c_str());
         { std::lock_guard<std::mutex> lk(s_OmpMx); if(good) s_AlynList.swap(v); }
@@ -708,27 +721,38 @@ static void ResaRows(std::vector<LRow>& rows)
             OmpCut(q.lang, sizeof(q.lang), rg);
             if(s_szSearch[0] && !LMatch(q.name) && !LMatch(addr)) continue;
         }
-        q.kind = 9; q.on = false;
+        q.kind = 9; q.on = SampProxyActive() && !strcmp(s_szPcAddr, addr) && client.GetState() != NET_DISCONNECTED;   // 5.02.18
         snprintf(q.tags, sizeof(q.tags), "%s", a.featured ? "ReSA featured" : a.verified ? "ReSA verified" : "ReSA");
-        char d[200]; snprintf(d, sizeof(d), "On the ReSA list (alynsampmobile.pro). Opens %s in ReSA Multiplayer.", addr);
+        char d[200]; snprintf(d, sizeof(d), "On the ReSA list (alynsampmobile.pro). Join plays %s here through MP crossplay; Open in ReSA hands it to ReSA Multiplayer.", addr);
         OmpCut(q.desc, sizeof(q.desc), d);
         rows.push_back(q);
     }
     for(LRow& q : omp)
     {   // then every open.mp / SA-MP server - ReSA joins those too
-        q.kind = 9; q.on = false;
+        q.kind = 9;   // 5.02.18: q.on comes from OmpRows (the crossplay join)
         snprintf(q.tags, sizeof(q.tags), "%s", "open.mp");
-        char d[200]; snprintf(d, sizeof(d), "Opens %s:%d in ReSA Multiplayer (mobile SA-MP / open.mp client). Same server as PC and MP crossplay players.", q.ip, q.port);
+        char d[200]; snprintf(d, sizeof(d), "%s:%d - Join plays it here through MP crossplay; Open in ReSA hands it to ReSA Multiplayer. Same server as PC and ReSA players.", q.ip, q.port);
         OmpCut(q.desc, sizeof(q.desc), d);
         rows.push_back(q);
     }
 }
+static uint64_t s_nResaAskAt = 0;   // 5.02.18: waiting for the answer of the resa:// hand-off
 static void ResaOpen(const char* ip, int port)
 {
     char u[200]; snprintf(u, sizeof(u), "resa://connect?host=%s&port=%d", ip, port);
-    char w[200]; snprintf(w, sizeof(w), "https://resa-mp.com/join?host=%s&port=%d", ip, port);
-    if(logger) logger->Info("ReSA tab: open %s:%d in ReSA Multiplayer", ip, port);
-    Voice::OpenUrlOr(u, w);
+    if(logger) logger->Info("ReSA tab: open %s:%d in ReSA Multiplayer (%s)", ip, port, u);
+    Voice::OpenUrlOr(u, nullptr);   // 5.02.18: no resa-mp.com fallback - that only opened Chrome
+    s_nResaAskAt = MP_NowMs();
+}
+static void ResaTick()
+{   // 5.02.18: no app took resa:// = ReSA Multiplayer is not installed
+    if(!s_nResaAskAt) return;
+    const int r = Voice::OpenUrlResult();
+    if(r == 0 && MP_NowMs() - s_nResaAskAt < 5000) return;
+    s_nResaAskAt = 0;
+    if(r == 1) return;
+    if(logger) logger->Error("ReSA tab: no app opened resa://connect (ReSA Multiplayer com.alyn.resamp not installed)");
+    SysMsg(COL_YELLOW, "ReSA Multiplayer is not installed. Install resa-android-1.1.7 from the MP release (or resa-mp.com/download) - or tap Join to play the server here.");
 }
 static inline bool OmpSub() { return s_nInetSub == 2 || s_nInetSub == 3; }   // 5.02.17: open.mp + ReSA tabs share the list
 
@@ -936,7 +960,7 @@ static bool LAlreadyOn(const LRow& r)
     SysMsg(COL_SYSTEM, client.GetState() == NET_CONNECTED ? "You are already connected to %s." : "Already connecting to %s...", r.name[0] ? r.name : "this server");
     return true;
 }
-static void LLeave(const LRow& r) { if(r.kind == 8) { StopPcJoin("Left the PC server."); return; } if(r.kind == 0) { if(IsOnDefault()) LeaveServer("Disconnected from the server."); } else LeaveServer("Left the server."); }
+static void LLeave(const LRow& r) { if(r.kind == 8 || r.kind == 9) { StopPcJoin("Left the PC server."); return; } if(r.kind == 0) { if(IsOnDefault()) LeaveServer("Disconnected from the server."); } else LeaveServer("Left the server."); }
 // 4.13.2: the "server in development" notice comes from the server itself (MP_SRVF_DEVSTAGE in the
 // welcome packet: the owner's Add server > Development stage switch, mp_server --dev). A finished
 // server sends no flag, so no notice. It no longer opens before joining over the black connection
@@ -1008,9 +1032,9 @@ static void LJoinNow(const LRow& r)
     if(r.kind == 5) { if(!MP::IsOnRp()) LeaveServer(nullptr); MP::JoinRp(); return; }     // 3.25
     if(r.kind == 6) { if(!MP::IsOnDz()) LeaveServer(nullptr); MP::JoinDz(); return; }     // 3.58
     if(r.kind == 7) { if(!MP::IsOnLg()) LeaveServer(nullptr); MP::JoinLg(); return; }     // 4.13.4
-    if(r.kind == 9) { ResaOpen(r.ip, r.port); return; }   // 5.02.17: ReSA tab
-    if(r.kind == 8)
+    if(r.kind == 8 || r.kind == 9)
     {   // 5.02.01: an open.mp / SA-MP PC server (open.mp tab): crossplay join
+        // 5.02.18: the ReSA tab joins the same way (Open in ReSA = the details panel button)
         char addr[80]; snprintf(addr, sizeof(addr), "%s:%d", r.ip, r.port);
         if(r.on) { StopPcJoin("Left the PC server."); return; }
         MP_CopyStr(s_szPcAddr, addr, sizeof(s_szPcAddr));
@@ -1383,7 +1407,8 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
         else if(st8 == 3) snprintf(st, sizeof(st), "Could not read the open.mp list%s - tap Refresh", n ? " (showing the last one)" : "");
         else if(st8 == 2) snprintf(st, sizeof(st), "%d servers on open.mp (%d shown%s)  -  updated %us ago", n, (int)rows.size(), (OmpSearchPw() ? OmpSearchPw() : s_nOmpPwFilter) == 1 ? ", with a password" : (OmpSearchPw() ? OmpSearchPw() : s_nOmpPwFilter) == 2 ? ", no password" : "", ago);
         else snprintf(st, sizeof(st), "open.mp server list");
-        if(s_nInetSub == 3) snprintf(st, sizeof(st), "%d ReSA + %d open.mp servers - Join opens ReSA Multiplayer (no ReSA yet: its download page opens)", AlynCount(), n);   // 5.02.17
+        if(s_nInetSub == 3) snprintf(st, sizeof(st), "%d ReSA + %d open.mp servers - Join plays here (crossplay), Open in ReSA hands it to ReSA", AlynCount(), n);   // 5.02.18
+        ResaTick();   // 5.02.18
         const float bh = barH - UI::S(12);
         const char* bl = "Refresh";
         const float bw = bh * 0.55f + bh * 0.42f + ImGui::CalcTextSize(bl).x + bh * 0.35f;
@@ -1543,7 +1568,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
                 if(r.kind == 2 && r.saved >= 0) { ServerEntry* se = ServerList::Get(r.saved); snprintf(ip, sizeof(ip), "IP: %s:%d", se ? se->host : "?", r.port); }
                 else if(r.kind == 1 && !r.internet && r.ip[0]) snprintf(ip, sizeof(ip), "IP: %s:%d (Wi-Fi)", r.ip, r.port);
                 else if(r.kind == 8) snprintf(ip, sizeof(ip), "IP: %s:%d (open.mp, PC crossplay)", r.ip, r.port);   // 5.02.01
-                else if(r.kind == 9) snprintf(ip, sizeof(ip), "IP: %s:%d (opens in ReSA Multiplayer)", r.ip, r.port);   // 5.02.17
+                else if(r.kind == 9) snprintf(ip, sizeof(ip), "IP: %s:%d (crossplay / ReSA)", r.ip, r.port);   // 5.02.18
                 else if(r.kind == 0 || r.kind >= 3) snprintf(ip, sizeof(ip), "IP: 24/7 internet lobby, port %d", r.port);
                 else if(r.internet) snprintf(ip, sizeof(ip), "IP: internet lobby, port %d", r.port);
                 else snprintf(ip, sizeof(ip), "IP: hidden, port %d", r.port);
@@ -1556,6 +1581,15 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
                 dl->AddRectFilled(sa, sb, ImGui::IsItemActive() ? IM_COL32(255, 255, 255, 40) : IM_COL32(255, 255, 255, 14));
                 dl->AddText(ImVec2(sa.x + UI::S(10), sa.y + (sb.y - sa.y - lh) * 0.5f), tc, "Favorite");
                 LStar(dl, ImVec2(sb.x - UI::S(22), (sa.y + sb.y) * 0.5f), UI::S(11), IM_COL32(240, 200, 60, 255), fav);
+                if(r.kind == 9)
+                {   // 5.02.18: ReSA tab: hand the server to ReSA Multiplayer (resa://connect?host=&port=)
+                    const char* ol = "Open in ReSA";
+                    ImVec2 da(sa.x - UI::S(30) - ImGui::CalcTextSize(ol).x, sa.y), db(sa.x - UI::S(10), sb.y);
+                    ImGui::SetCursorScreenPos(da);
+                    if(ImGui::InvisibleButton("##resa", ImVec2(db.x - da.x, db.y - da.y))) ResaOpen(r.ip, r.port);
+                    dl->AddRectFilled(da, db, ImGui::IsItemActive() ? IM_COL32(126, 178, 226, 120) : IM_COL32(126, 178, 226, 50));
+                    dl->AddText(ImVec2(da.x + UI::S(10), da.y + (db.y - da.y - lh) * 0.5f), tc, ol);
+                }
                 if(r.kind == 2 && r.saved >= 0 && !r.mine)
                 {   // saved server: Delete (the old trash button)
                     ImVec2 da(sa.x - UI::S(130), sa.y), db(sa.x - UI::S(10), sb.y);

@@ -617,6 +617,9 @@ bool RakPeer::Connect( const char* host, unsigned short remotePort, char* passwo
 // Description:
 // Stops the network threads and close all connections.  Multiple calls are ok.
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// MP 5.02.18: the RakPeer whose network thread is the current thread (none on other threads)
+static thread_local RakPeer* t_mpUpdatePeer = nullptr;
+
 void RakPeer::Disconnect( unsigned int blockDuration, unsigned char orderingChannel )
 {
 	unsigned i,j;
@@ -679,7 +682,8 @@ void RakPeer::Disconnect( unsigned int blockDuration, unsigned char orderingChan
 #endif
 	}
 
-	while ( isMainLoopThreadActive )
+	// MP 5.02.18: never wait for ourselves (a Disconnect() reached from the network thread)
+	while ( isMainLoopThreadActive && t_mpUpdatePeer != this )
 		RakSleep(15);
 
 	// remoteSystemList in Single thread
@@ -4349,8 +4353,9 @@ namespace RakNet
 	#endif
 						// Some kind of critical error
 						// peer->isRecvfromThreadActive=false;
+						// MP 5.02.18: no Disconnect() here - this is the network thread, and Disconnect() waits for the
+						// network thread to end (it waited for itself forever = the game froze on the next Disconnect)
 						endThreads = true;
-						Disconnect( 0, 0 );
 						return false;
 					}
 
@@ -4358,8 +4363,9 @@ namespace RakNet
 				if ( errorCode == -1 )
 				{
 					// isRecvfromThreadActive=false;
+					// MP 5.02.18: no Disconnect() from the network thread (it waited for itself forever).
+					// The owner's Disconnect() cleans up once this thread has ended.
 					endThreads = true;
-					Disconnect( 0 );
 					return false;
 				}
 	#endif
@@ -5131,6 +5137,7 @@ namespace RakNet
 	#endif
 
 		rakPeer->isMainLoopThreadActive = true;
+		t_mpUpdatePeer = rakPeer;   // MP 5.02.18
 
 		while ( rakPeer->endThreads == false )
 		{
