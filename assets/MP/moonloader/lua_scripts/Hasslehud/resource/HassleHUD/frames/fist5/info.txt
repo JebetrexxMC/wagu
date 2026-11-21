@@ -1,0 +1,10 @@
+frames=266
+fps=60
+cols=10
+rows=13
+cw=192
+ch=156
+sheets=3
+sheet0=1920 2028
+sheet1=1920 2028
+sheet2=1152 156

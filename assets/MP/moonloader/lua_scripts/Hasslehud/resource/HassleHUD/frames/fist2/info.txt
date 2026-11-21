@@ -1,0 +1,8 @@
+frames=63
+fps=60
+cols=10
+rows=10
+cw=192
+ch=192
+sheets=1
+sheet0=1920 1344

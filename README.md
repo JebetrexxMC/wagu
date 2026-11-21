@@ -749,6 +749,12 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.42
+- HassleHUD: the animated fist (the GIF in the HUD circle) shows again, now at 60 fps. Why it was missing: since 5.02.36 libGIF.so was swapped for MP's own extractGif, but MP checked for that function right at ffi.load, before HassleHUD declares it with ffi.cdef. LuaJIT says "missing declaration" there, so the check failed every time, HassleHUD got the stub that returns 0 and had no fist frames at all.
+- The GIFs are no longer decoded on the phone (up to 100 BMP files, 65 MB, written to the SD card while the HUD starts). tools/hasslehud_frames.py turned fist.gif ... fist5.gif into 60 fps sprite sheets in resource/HassleHUD/frames/ (each GIF frame held for its own delay, then cross-faded into the next, 192 px, 1 to 3 PNG sheets per fist). HassleHUD itself flips its frames every 0.07 s (14 fps) whatever the GIF says; MP now gives it one placeholder frame and the HUD's DrawList draws the 60 fps cell of the moment, so every fist plays at its real speed. A HassleHUD folder without frames/ still works the old way (MP's extractGif, now found correctly).
+- /hasslehud started the mod with a runner that missed the 5.02.20 HassleHUD fixes (mimgui texture for the fist, the .gif folder, the HUD pulled back onto a smaller screen). MP's runner and lua_scripts_loader.lua (1.5-mp) now write the same code.
+- The HassleHUD download (Script Manager) has the 60 fps frames too: 57 MB.
+
 ### 5.02.41
 - Launcher, server list: the Gamemode column shows only the first gamemode. A server with more gets a small "+" chip next to it; every gamemode is still listed in the details panel. The default server (Broker MQQ) now shows Bounty Hunter as its gamemode (red), with Freeroam and Deathmatch behind the "+".
 - Launcher, Lan tab: the Offline play card has no orange outline any more, and its height follows the font, so the info line no longer sits on top of the Host / Find host / How to buttons.

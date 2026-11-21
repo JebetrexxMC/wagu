@@ -1,6 +1,6 @@
 script_name('MP Lua Scripts Loader')
 script_author('JebetrexxMC')
-script_version('1.4-mp')
+script_version('1.5-mp')
 script_description('Starts every .lua / .luac script in moonloader/lua_scripts/, loose or inside .zip files')
 
 -- Entry point of moonloader/lua_scripts/. MonetLoader only starts the scripts right in moonloader/; this one starts:
@@ -334,16 +334,121 @@ do
   --  * libGIF.so writes the frames to resource/HassleHUD/.gif/, which nobody created;
   --  * the HUD position is saved in screen pixels (2222 x 150 in the shipped config, a 2400 px wide screen): on a
   --    smaller game resolution the HUD was drawn off the screen. It is pulled back inside the screen before the start.
+  -- 5.02.42: the fist GIF is no longer decoded on the phone. tools/hasslehud_frames.py turned every fistN.gif into a
+  --  60 fps sprite sheet (resource/HassleHUD/frames/fistN/: real GIF timing, cross-faded in-between frames).
+  --  HassleHUD gets one placeholder frame from extractGif and the HUD's DrawList draws the 60 fps cell of the moment.
+  --  Without frames/ (an older HassleHUD folder) the GIF is decoded by MP's extractGif as before.
+  local __mp_hhseq
   local __mp_hh = io.open(__mp_pkg .. '/config/HassleHUD.json', 'rb')
   if __mp_hh then
     __mp_hh:close()
     pcall(function() local okl, lfs = pcall(require, 'lfs') if okl then lfs.mkdir(__mp_pkg .. '/resource/HassleHUD/.gif') end end)
     local okm, mim = pcall(require, 'mimgui')
-    if okm and type(mim) == 'table' then
+    local okx, xffi = pcall(require, 'ffi')
+    if okm and type(mim) == 'table' and okx then
+      local function addr(t)
+        if t == nil then return nil end
+        local ok, a = pcall(function() return tonumber(xffi.cast('uintptr_t', t)) end)
+        return ok and a or nil
+      end
+      local clock = (type(localClock) == 'function' and pcall(localClock)) and localClock or os.clock
+      local seq
+      __mp_hhseq = function(gif)
+        local stem = tostring(gif):gsub('\\', '/'):match('([^/]+)%.[gG][iI][fF]$')
+        if not stem then return nil end
+        if seq and seq.stem == stem then return seq.n end
+        local dir = __mp_pkg .. '/resource/HassleHUD/frames/' .. stem
+        local f = io.open(dir .. '/info.txt', 'rb')
+        if not f then return nil end
+        local s = f:read('*a') f:close()
+        local v = {}
+        for k, x in s:gmatch('(%w+)=([^\r\n]+)') do v[k] = x end
+        local q = { stem = stem, dir = dir, n = tonumber(v.frames), fps = tonumber(v.fps) or 60, cols = tonumber(v.cols),
+          rows = tonumber(v.rows), cw = tonumber(v.cw), ch = tonumber(v.ch), sheets = tonumber(v.sheets), dims = {}, tex = {} }
+        if not (q.n and q.n > 0 and q.cols and q.rows and q.cw and q.ch and q.sheets and q.sheets > 0) then return nil end
+        q.per = q.cols * q.rows
+        for i = 0, q.sheets - 1 do
+          local w, h = (v['sheet' .. i] or ''):match('(%d+)%s+(%d+)')
+          if not w or not doesFileExist(dir .. '/sheet' .. i .. '.png') then return nil end
+          q.dims[i] = { tonumber(w), tonumber(h) }
+        end
+        seq = q
+        return q.n
+      end
+      local function seqLoad()
+        if not seq then return false end
+        if seq.loaded ~= nil then return seq.loaded end
+        seq.loaded = false
+        for i = 0, seq.sheets - 1 do
+          local ok, t = pcall(mim.CreateTextureFromFile, seq.dir .. '/sheet' .. i .. '.png')
+          if not ok or t == nil then
+            print('[LuaScripts] HassleHUD: ' .. seq.stem .. ' sheet' .. i .. '.png does not load - the fist stays still')
+            return false
+          end
+          seq.tex[i] = t
+        end
+        seq.mark, seq.t0, seq.loaded = addr(seq.tex[0]), clock(), true
+        print(('[LuaScripts] HassleHUD: %s.gif -> %d frames at %d fps (%d sheet(s))'):format(seq.stem, seq.n, seq.fps, seq.sheets))
+        return true
+      end
+      local V2 = mim.ImVec2
+      local function cell(ua, ub)   -- the cell of this moment + its UV (the mod's own UV crop kept)
+        local i = math.floor((clock() - seq.t0) * seq.fps) % seq.n
+        local sh, j = math.floor(i / seq.per), i % seq.per
+        local d = seq.dims[sh]
+        local x0, y0 = (j % seq.cols) * seq.cw, math.floor(j / seq.cols) * seq.ch
+        local ax, ay = ua and ua.x or 0, ua and ua.y or 0
+        local bx, by = ub and ub.x or 1, ub and ub.y or 1
+        local function u(t) return (x0 + 0.5 + t * (seq.cw - 1)) / d[1] end
+        local function w(t) return (y0 + 0.5 + t * (seq.ch - 1)) / d[2] end
+        return seq.tex[sh], V2(u(ax), w(ay)), V2(u(bx), w(by))
+      end
+      local function isMark(t) return seq and seq.loaded and t ~= nil and addr(t) == seq.mark end
       renderLoadTextureFromFile = function(p)
-        if type(p) ~= 'string' or not doesFileExist(p) then return nil end
+        if type(p) ~= 'string' then return nil end
+        if seq and p:gsub('\\', '/'):match('/%.gif/%d+%.bmp$') and seqLoad() then return seq.tex[0] end
+        if not doesFileExist(p) then return nil end
         local ok, t = pcall(mim.CreateTextureFromFile, p)
         return ok and t or nil
+      end
+      -- the DrawLists the HUD gets: AddImage / AddImageRounded of the placeholder draw the 60 fps cell instead
+      local proxies = {}
+      local function proxy(dl)
+        if dl == nil or not (seq and seq.loaded) then return dl end
+        local k = addr(dl)
+        if not k then return dl end
+        local p = proxies[k]
+        if p then return p end
+        local fns = {}
+        p = setmetatable({}, { __index = function(_, key)
+          local f = fns[key]
+          if f then return f end
+          local fv = dl[key]
+          if type(fv) ~= 'function' then return fv end
+          if key == 'AddImage' or key == 'AddImageRounded' then
+            f = function(_, tex, a, b, ua, ub, ...)
+              if isMark(tex) then tex, ua, ub = cell(ua, ub) end
+              return fv(dl, tex, a, b, ua, ub, ...)
+            end
+          else
+            f = function(_, ...) return fv(dl, ...) end
+          end
+          fns[key] = f
+          return f
+        end })
+        proxies[k] = p
+        return p
+      end
+      for _, g in ipairs({ 'GetBackgroundDrawList', 'GetForegroundDrawList', 'GetWindowDrawList' }) do
+        local okg, orig = pcall(function() return mim[g] end)
+        if okg and type(orig) == 'function' then mim[g] = function(...) return proxy(orig(...)) end end
+      end
+      local okI, img = pcall(function() return mim.Image end)
+      if okI and type(img) == 'function' then
+        mim.Image = function(tex, size, ua, ub, ...)
+          if isMark(tex) then tex, ua, ub = cell(ua, ub) end
+          return img(tex, size, ua, ub, ...)
+        end
       end
     end
     pcall(function()
@@ -372,11 +477,14 @@ do
   if okf and type(ffi) == 'table' and ffi.load then
     local load, pkgn = ffi.load, n(__mp_pkg .. '/')
     -- 5.02.36: HassleHUD's libGIF.so never loads from shared storage (Android does not dlopen a .so from there): MP
-    -- exports the same extractGif(), so the fist GIF frames are made by MP's own library
+    -- exports the same extractGif(). 5.02.42: that never worked - libMP was tested with lib.extractGif right at
+    -- ffi.load, before the mod's ffi.cdef declares it ("missing declaration"), so the mod got the 0-stub and the
+    -- fist had no frames. libGIF.so is now a Lua table: extractGif() uses the 60 fps frames, else MP's extractGif.
     local mpgif
     local function mpLib()
       if mpgif ~= nil then return mpgif or nil end
       mpgif = false
+      pcall(ffi.cdef, 'int extractGif(const char* inPath, const char* outDir);')
       local so = ffi.abi('64bit') and 'libMP64.so' or 'libMP32.so'
       local names = { so:sub(4, -4), so }
       local maps = io.open('/proc/self/maps', 'r')
@@ -390,10 +498,24 @@ do
       end
       return mpgif or nil
     end
+    local gifLib = setmetatable({
+      extractGif = function(inp, out)
+        local s = type(inp) == 'string' and inp or (inp ~= nil and pcall(ffi.string, inp) and ffi.string(inp)) or ''
+        if __mp_hhseq then
+          local c = __mp_hhseq(s)
+          if c then return 1 end
+        end
+        local lib = mpLib()
+        if not lib then print('[LuaScripts] HassleHUD: no extractGif in libMP - the fist stays still') return 0 end
+        local ok, c = pcall(function() return lib.extractGif(inp, out) end)
+        if not ok then print('[LuaScripts] HassleHUD: extractGif failed: ' .. tostring(c)) return 0 end
+        print('[LuaScripts] HassleHUD: ' .. s .. ' -> ' .. tostring(c) .. ' frames (MP\'s extractGif)')
+        return tonumber(c) or 0
+      end }, { __index = function() return function() return 0 end end })
     ffi.load = function(name, ...)
       if type(name) == 'string' and n(name):match('libgif%.so$') then
-        local lib = mpLib()
-        if lib then print('[LuaScripts] ' .. name .. ' -> MP\'s built-in extractGif') return lib end
+        print('[LuaScripts] ' .. name .. ' -> MP (60 fps fist frames / built-in extractGif)')
+        return gifLib
       end
       local ok, lib = pcall(load, name, ...)
       if ok then return lib end
