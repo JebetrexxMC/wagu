@@ -182,7 +182,14 @@ struct SampGate::Impl
     std::unordered_map<int32_t, int32_t> modelBase;   // 5.02.08: 0.3.DL custom model id -> its base model (RPC 179)
     int phoneSlot = -1;
     int myId = -1;
-    struct Spawn { uint32_t skin = 0; float pos[3] = { 0, 0, 3 }; float rot = 0; uint32_t w[3] = { 0, 0, 0 }, ammo[3] = { 0, 0, 0 }; bool have = false; } spawn;
+    struct Spawn { uint32_t skin = 0; uint8_t team = 255; float pos[3] = { 0, 0, 3 }; float rot = 0; uint32_t w[3] = { 0, 0, 0 }, ammo[3] = { 0, 0, 0 }; bool have = false; } spawn;
+    // 5.02.23: OnPlayerRequestClass can return 0 (class locked: admins only, not logged in yet). The PC client then never
+    // sends RequestSpawn for that class - we ask the class again first and only spawn once the server says it is selectable
+    bool classOk = true, spawnAfterClass = false;
+    // 5.02.23: chat to the PC server - 128 bytes per line (SA-MP / open.mp drop longer ones), long lines split at a
+    // space and sent 1 s apart (script anti-spam kicks), and a check that the server showed our line back
+    std::deque<std::string> chatOut; uint64_t chatOutAt = 0;
+    std::string echoWant; uint64_t echoAt = 0; uint32_t chatSentN = 0, echoMissN = 0; bool echoHint = false;
     struct Rp { std::string name; uint32_t color = 0xFFFFFFFF; uint16_t skin = 0; int slot = -1; SyncData last; bool hasPos = false; int vehicle = -1; };
     std::map<int, Rp> rp;                                  // remote player id -> ghost
     std::map<int, std::pair<int32_t, uint32_t>> pcScore;  // 5.02.12: id -> score, ping (RPC 155) for the phone's player list
@@ -818,6 +825,51 @@ static void RemChatSum(Impl& I)
     if(n - I.chatSumAt < 60000) return; I.chatSumAt = n;
     printf("[crossplay] chat so far: %u server messages, %u player chat lines, %u empty lines left out\n", I.tot93, I.tot101, I.blankN);
 }
+// 5.02.23: chat to the PC server works like samp.exe's chat box. SA-MP / open.mp read at most 128 bytes (a longer
+// line is dropped, nobody sees it), so a long line is split at a space into parts of 128. Parts go 1 s apart - many
+// scripts kick for 3 lines in 2 s. open.mp's chat_input_filter turns % and ~k into # and {RRGGBB} into a space.
+// What the server does with the line is its OnPlayerText: return 1 = the server sends it to everyone (RPC 101),
+// return 0 = the script sends its own line (SendClientMessage(ToAll) / ProxDetector local chat / SendPlayerMessageToAll)
+// or nothing (muted, not logged in). We watch for our line coming back to tell the phone player once if it never does.
+static void RemChatQueue(Impl& I, const std::string& t)
+{
+    std::string rest = t;
+    while(!rest.empty() && I.chatOut.size() < 8)
+    {
+        if(rest.size() <= 128) { I.chatOut.push_back(rest); break; }
+        size_t cut = rest.rfind(' ', 128); if(cut == std::string::npos || cut < 64) cut = 128;
+        I.chatOut.push_back(rest.substr(0, cut));
+        rest = rest.substr(cut); while(!rest.empty() && rest[0] == ' ') rest.erase(0, 1);
+    }
+}
+static void RemChatSend(Impl& I, MPServer* srv, uint64_t now)
+{
+    if(!I.echoWant.empty() && I.echoAt && now - I.echoAt > 5000)
+    {   // nothing with our text came back in 5 s
+        ++I.echoMissN; printf("[crossplay] your chat line did not come back from the server (%u so far) - its OnPlayerText returned 0 without resending it\n", I.echoMissN);
+        I.echoWant.clear();
+        if(!I.echoHint && I.echoMissN >= 2)
+        {
+            I.echoHint = true;
+            srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, I.phase < 4 ? "[open.mp] This server does not show chat before you spawn / log in."
+                                                             : "[open.mp] This server did not show your chat - it may use local chat (only players near you see it), want a login, or you are muted.");
+        }
+    }
+    if(I.chatOut.empty() || I.phase < 3 || now - I.chatOutAt < 1000) return;
+    const std::string t = I.chatOut.front(); I.chatOut.pop_front(); I.chatOutAt = now;
+    BitStream o; WrStr8(o, t); CliRpc(I, 101, o);
+    if(I.chatSentN < 5) { ++I.chatSentN; printf("[crossplay] chat sent (%u bytes): %.100s\n", (unsigned)t.size(), t.c_str()); }
+    // the start of the line as the server shows it (after chat_input_filter), in UTF-8 like the lines that come back
+    // (up to the first % ~ { - the filter changes those), lower case: RP scripts often capitalise the first letter
+    std::string w = SampCp::ToUtf8(t, I.cp);
+    w = w.substr(0, w.find_first_of("%~{"));
+    while(!w.empty() && w[0] == ' ') w.erase(0, 1);
+    if(w.size() > 20) w.resize(20);
+    while(!w.empty() && ((unsigned char)w.back() >= 0x80 || w.back() == ' ')) w.pop_back();   // never end inside a letter
+    for(char& c : w) c = (char)tolower((unsigned char)c);
+    if(w.size() >= 3) { I.echoWant = w; I.echoAt = now; } else I.echoWant.clear();
+}
+
 static Impl::Rp* RemPlayer(Impl& I, int id) { auto it = I.rp.find(id); return it == I.rp.end() ? nullptr : &it->second; }
 
 static void RemGhostIn(Impl& I, MPServer* srv, int id, const float* pos, float ang)
@@ -872,9 +924,12 @@ static void RemSpawned(Impl& I, MPServer* srv)
     BitStream o; CliRpc(I, 52, o);
 }
 
-static bool RdSpawn(BitStream& bs, Impl::Spawn& sp)
-{
-    uint8_t team, unk; if(!bs.Read(team) || !bs.Read(sp.skin) || !bs.Read(unk) || !RdVec(bs, sp.pos) || !bs.Read(sp.rot)) return false;
+static bool RdSpawn(BitStream& bs, Impl::Spawn& sp, bool dl)
+{   // 5.02.23: 0.3.DL class answer (128) / SetSpawnInfo (68) have a custom skin (uint32) right after the skin. It was read
+    // as the spawn position: on DL servers the phone spawned at a wrong / garbage spot with no weapons
+    uint8_t team, unk; uint32_t custom = 0;
+    if(!bs.Read(team) || !bs.Read(sp.skin) || (dl && !bs.Read(custom)) || !bs.Read(unk) || !RdVec(bs, sp.pos) || !bs.Read(sp.rot)) return false;
+    sp.team = team;
     for(int i = 0; i < 3; ++i) bs.Read(sp.w[i]); for(int i = 0; i < 3; ++i) bs.Read(sp.ammo[i]);
     sp.have = true; return true;
 }
@@ -914,6 +969,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             I.dlgOpen = false; I.tdSel = false; I.spect = false; I.noAuto = false; I.wantClass = false; I.autoSpawnN = 0; I.retrySpawnAt = 0;
             I.spawnAskAt = 0; I.finDl = false; I.tdShown = 0; I.classAt = NowMs();
             I.spawnAnsAt = 0; I.spawnSilent = 0; I.directSpawn = false;
+            I.classOk = true; I.spawnAfterClass = false; I.chatOut.clear(); I.echoWant.clear(); I.echoAt = 0;   // 5.02.23
             bool b; float f;
             for(int i = 0; i < 4; ++i) bs.Read(b); bs.Read(f); bs.Read(b); bs.Read(f); bs.Read(b); bs.Read(b); bs.Read(b);
             bs.Read(u32a); uint16_t id = 0; bs.Read(id); I.myId = id; I.gameAt = NowMs(); { float f4[4] = { 0, 0, 0, 0 }; srv->GateOp(s, SPO_PCLIST, 1, 1, (int32_t)id, f4, I.rName.c_str()); }   // 5.02.12: me in the player list
@@ -941,7 +997,11 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         }
         case 128:  // class answer
         {
-            uint8_t sel = 0; bs.Read(sel); Impl::Spawn sp; if(RdSpawn(bs, sp)) I.spawn = sp;
+            uint8_t sel = 0; bs.Read(sel); Impl::Spawn sp;
+            // 5.02.23: Selectable 0 = OnPlayerRequestClass returned 0 - the rest of the answer is zeros, keep the old spawn
+            if(RdSpawn(bs, sp, I.cliVer == kSampVersionDL) && sel) I.spawn = sp;
+            const bool wasOk = I.classOk; I.classOk = sel != 0;
+            if(wasOk != I.classOk) printf("[crossplay] class %d %s\n", I.classIdx, sel ? "selectable" : "locked by OnPlayerRequestClass (return 0)");
             {   // 5.02.20: in mp_log.txt once per join - a server with no classes leaves Spawn unanswered
                 static uint64_t said = 0; if(said != I.classAt) { said = I.classAt;
                     printf("[crossplay] class answer: selectable %u, skin %u, spawn %.0f %.0f %.0f\n", (unsigned)sel, (unsigned)I.spawn.skin, I.spawn.pos[0], I.spawn.pos[1], I.spawn.pos[2]); }
@@ -950,7 +1010,14 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             {
                 const uint64_t now = NowMs();
                 if(now - I.autoSpawnWin > 30000) { I.autoSpawnWin = now; I.autoSpawnN = 0; }
-                (void)now; if(!I.spect && !I.dlgOpen && !I.tdSel && !I.noAuto) I.retrySpawnAt = NowMs() + 5000;   // 5 s: account loading, then the login dialog   // 5.02.10: wait - a login dialog usually comes right after the class answer
+                if(I.spawnAfterClass)
+                {   // the phone pressed Spawn on a locked class: asked again, now spawn (or say why not)
+                    I.spawnAfterClass = false;
+                    if(sel) { BitStream o; CliRpc(I, 129, o); I.spawnAskAt = now; break; }
+                    if(now - I.refuseMsgAt > 8000) { I.refuseMsgAt = now; srv->GateMsg(s, 0xA9C4E4FF, "[open.mp] The server does not let you spawn with this class yet - log in first, or pick another class with < >."); }
+                    break;
+                }
+                if(sel && !I.spect && !I.dlgOpen && !I.tdSel && !I.noAuto) I.retrySpawnAt = NowMs() + 5000;   // 5 s: account loading, then the login dialog   // 5.02.10: wait - a login dialog usually comes right after the class answer
             }
             break;
         }
@@ -973,7 +1040,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
                 }
             }
             break;
-        case 68: { Impl::Spawn sp; if(RdSpawn(bs, sp)) I.spawn = sp; break; }
+        case 68: { Impl::Spawn sp; if(RdSpawn(bs, sp, I.cliVer == kSampVersionDL)) I.spawn = sp; break; }   // SetSpawnInfo
         case 74:   // ForceClassSelection
             if(I.phase >= 4) I.wantClass = true;   // 5.02.09: the PC client only goes back on the next respawn / spectate off
             break;
@@ -1009,7 +1076,9 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         }
         case 32:   // stream in
         {
-            bs.Read(u16a); bs.Read(u8a); bs.Read(u32a); RdVec(bs, v); bs.Read(fa); bs.Read(u32b);
+            bs.Read(u16a); bs.Read(u8a); bs.Read(u32a);
+            if(I.cliVer == kSampVersionDL) { uint32_t custom = 0; bs.Read(custom); }   // 5.02.23: DL custom skin - was read as the position
+            RdVec(bs, v); bs.Read(fa); bs.Read(u32b);
             if(Impl::Rp* p = RemPlayer(I, u16a))
             {
                 static const bool dbg = getenv("MP_GATE_DEBUG") != nullptr;
@@ -1020,7 +1089,8 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         }
         case 163: bs.Read(u16a); if(Impl::Rp* p = RemPlayer(I, u16a)) { if(p->slot >= 0) srv->BridgeRemove(p->slot); p->slot = -1; } break;
         case 153:  // skin
-            bs.Read(u32a); bs.Read(u32b);
+            // 5.02.23: 0.3.DL: uint16 player id + skin + custom skin (0.3.7: uint32 id + skin) - DL skins went to the wrong player
+            if(I.cliVer == kSampVersionDL) { bs.Read(u16a); u32a = u16a; bs.Read(u32b); } else { bs.Read(u32a); bs.Read(u32b); }
             u32b = (uint32_t)RemModel(I, (int32_t)u32b);
             if((int)u32a == I.myId) { srv->GateAct(s, CGA_SKIN, 0, 0, (int32_t)u32b); I.spawn.skin = u32b; }   // 5.02.20: kept for a direct spawn
             else if(Impl::Rp* p = RemPlayer(I, (int)u32a)) p->skin = (uint16_t)u32b;
@@ -1036,6 +1106,11 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             bs.Read(u32a); std::string t = SampCp::ToUtf8(RdStr32(bs), I.cp);
             if(ChatBlank(t)) { RemChatBlank(I); break; }   // 5.02.21
             ++I.tot93;
+            if(!I.echoWant.empty())
+            {   // 5.02.23: own chat came back as a server line (server chat / ProxDetector local chat)
+                std::string lo = t; for(char& c : lo) c = (char)tolower((unsigned char)c);
+                if(lo.find(I.echoWant) != std::string::npos) I.echoWant.clear();
+            }   // 5.02.23: own chat came back (server chat / ProxDetector)
             if(I.srvMsgN < 10) { ++I.srvMsgN; printf("[crossplay] server message %08X: %.100s\n", u32a, t.c_str()); }
             else if(I.nameMsgN < 15)
             {   // 5.02.22: servers with their own chat (OnPlayerText return 0) send players' chat as server messages
@@ -1052,7 +1127,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             if(ChatBlank(t)) { RemChatBlank(I); break; }   // 5.02.21
             ++I.tot101; RemChatSum(I);
             if(I.pcChatN < 10) { ++I.pcChatN; printf("[crossplay] player chat from id %u: %.100s\n", (unsigned)u16a, t.c_str()); }   // 5.02.21: shows in mp_log.txt that PC chat arrives
-            if(u16a == I.myId) { srv->GateChat(s, t.c_str()); break; }
+            if(u16a == I.myId) { I.echoWant.clear(); srv->GateChat(s, t.c_str()); break; }
             // 5.02.13: every PC chat line is a chat line on the phone. Before, a streamed-in player's line went out as
             // that ghost's own chat packet - dropped on the phone whenever the ghost was not (or no longer) in its player
             // list (stream in / out, a just-joined player), and a player missing from our list was dropped completely.
@@ -1579,8 +1654,12 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         if(e.kind == HK_CHAT || (e.kind == HK_SAMP && e.op == SPO_CMD))
         {
             std::string t = SampCp::FromUtf8(e.text, I.cp); if(t.empty()) continue;
-            if(t[0] == '/') { BitStream o; WrStr32(o, t); CliRpc(I, 50, o); if(I.phase == 3) { I.noAuto = false; I.autoSpawnN = 0; I.retrySpawnAt = now + 2500; } }   // 5.02.10: /login etc.
-            else { BitStream o; WrStr8(o, t.substr(0, 144)); CliRpc(I, 101, o); }
+            if(t[0] == '/')
+            {   // 5.02.10: /login etc. 5.02.23: 128 bytes at most (SA-MP / open.mp drop a longer command without a word)
+                if(t.size() > 128) { printf("[crossplay] command cut to 128 characters (was %u)\n", (unsigned)t.size()); t.resize(128); }
+                BitStream o; WrStr32(o, t); CliRpc(I, 50, o); if(I.phase == 3) { I.noAuto = false; I.autoSpawnN = 0; I.retrySpawnAt = now + 2500; }
+            }
+            else if(!ChatBlank(t)) RemChatQueue(I, t);   // 5.02.23: no blank lines (the PC client never sends them)
         }
         else if(e.kind == HK_SAMP && e.op == SPO_TDCLICK)
         {
@@ -1604,8 +1683,9 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             {   // 5.02.17: one RequestSpawn until the server answers (2 s at most) - 20 taps in 5 s flooded the server (Lost connection)
                 if(I.spawnAskAt && now - I.spawnAskAt < 1500) continue;   // also after an answer: a tap every 1.5 s at most
                 if(I.dlgOpen) { if(now - I.refuseMsgAt > 5000) { I.refuseMsgAt = now; srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] Answer the server's window first (login / register) - then Spawn."); } continue; }
-                I.spawnAskAt = now;
-                BitStream o; CliRpc(I, 129, o); I.noAuto = false; I.autoSpawnN = 0; I.retrySpawnAt = 0;
+                I.spawnAskAt = now; I.noAuto = false; I.autoSpawnN = 0; I.retrySpawnAt = 0;
+                if(!I.classOk) { I.spawnAfterClass = true; BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); }   // 5.02.23: locked class - ask again first
+                else { BitStream o; CliRpc(I, 129, o); }
                 printf("[crossplay] spawn button (dialog %d, select %d, spectating %d)\n", (int)I.dlgOpen, (int)I.tdSel, (int)I.spect);
             }
             else { I.classIdx = std::max(0, I.classIdx + (e.a == 1 ? -1 : 1)); BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); }
@@ -1625,6 +1705,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             if(I.phase == 3) { I.retrySpawnAt = now + 1500; I.autoSpawnN = 0; }
         }
     }
+    RemChatSend(I, srv, now);
     if(I.phase == 3 && !I.finDl && I.classAt && now - I.classAt >= 4000 && !I.dlgOpen && !I.tdSel)
     {   // 5.02.17: 0.3.DL scripts open their login in OnPlayerFinishedDownloading (the DL client sends 184 when its models are
         // done). Nothing came 4 s into class selection: send it once, like a client with nothing to download
@@ -1634,7 +1715,11 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
     {   // 5.02.10: capped (3 per 30 s, a dialog answer resets it) so a login / tutorial screen can't loop or get "spawn before login" kicks
         I.retrySpawnAt = 0;
         if(now - I.autoSpawnWin > 30000) { I.autoSpawnWin = now; I.autoSpawnN = 0; }
-        if(++I.autoSpawnN <= 3) { BitStream o; CliRpc(I, 129, o); I.spawnAskAt = now; }
+        if(++I.autoSpawnN <= 3)
+        {   // 5.02.23: a locked class (OnPlayerRequestClass return 0): ask the class again, Spawn follows if it opened up
+            if(!I.classOk) { I.spawnAfterClass = true; BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); }
+            else { BitStream o; CliRpc(I, 129, o); I.spawnAskAt = now; }
+        }
         else if(I.autoSpawnN == 4) srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] The server keeps you in class selection - log in / finish its dialog first.");
     }
 

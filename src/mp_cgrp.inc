@@ -207,7 +207,7 @@ static void CgOnAct(const PktCgAct& A)
     const int car = Game::IsCharInAnyCar(ped) ? Game::GetCarCharIsIn(ped) : 0;
     const uint64_t now = MP_NowMs();
     auto pend = [&](uint8_t act, int a, int b, int32_t val, Vec3 pp, float h, const char* text) {
-        CgClient::Pend q{ act, a, b, val, pp, h, text ? text : "", now + 6000 };
+        CgClient::Pend q{ act, a, b, val, pp, h, text ? text : "", now + (act == CGA_SKIN ? 20000 : 6000) };   // 5.02.23: a skin waits for the respawn / standing up
         if(!CgDoPend(q, ped)) s_Cg.pend.push_back(q);
     };
     switch(A.act)

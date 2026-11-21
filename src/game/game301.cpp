@@ -42,6 +42,9 @@ bool Game::SetLocalModel(int model)
     if(model != 0 && !IsSafePedModel(model)) return false;
     if(model != 0 && !LoadModelNow(model)) return false;   // your own skin change: one model, blocking is fine
     if(IsCharInAnyCar(ped)) return false;   // the game swaps the model only on foot
+    // 5.02.23: like SetPlayerSkin's known bugs on PC: a skin change while dead or crouching freezes / glitches the ped -
+    // wait (the caller tries again) until the player is alive and standing
+    if(GetCharHealth(ped) <= 0 || IsCharDucking(ped)) return false;
     CALLSCM(SET_PLAYER_MODEL, 0, model);
     if(model == 0) CALLSCM(BUILD_PLAYER_MODEL, 0);   // CJ: put his clothes back on
     return true;
