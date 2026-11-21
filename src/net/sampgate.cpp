@@ -948,6 +948,9 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             uint8_t type = 0; uint32_t addr = 0; uint16_t off = 0, cnt = 0;
             if(!bs.Read(type) || !bs.Read(addr)) break; bs.Read(off); bs.Read(cnt);
             if(dbg) printf("[crossplay] ClientCheck type 0x%02X addr 0x%08X off %u count %u\n", type, addr, off, cnt);
+            // 5.02.23: 0x48 (72) answers with the computer's uptime in the address field (open.mp opcodes page) - samp.exe
+            // sends GetTickCount(). 0 looked like no PC client to scripts that check memaddr too
+            if(type == 0x48) { static const uint32_t base = 3600000u + (uint32_t)(NowMs() % 7200000u); addr = base + (uint32_t)NowMs(); }
             BitStream o; o.Write(type); o.Write(addr); o.Write((uint8_t)0); CliRpc(I, 103, o);
             break;
         }

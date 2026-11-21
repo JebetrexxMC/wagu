@@ -139,6 +139,12 @@ static void CloseDialog(int response)
     SampDialog d = s_Dlg; s_Dlg.open = false;
     if(VKeyboard::IsOpen() && !VKeyboard::IsChat()) VKeyboard::Close();
     int item = (d.style == DIALOG_STYLE_LIST || d.style == DIALOG_STYLE_TABLIST || d.style == DIALOG_STYLE_TABLIST_HEADERS) ? d.sel : -1;
+    if(d.fromServer && item >= 0 && item < (int)d.rows.size() && !d.input[0])
+    {   // 5.02.23: like samp.exe - a list dialog's inputtext is the picked row's text (TABLIST: its first column).
+        // It was empty: scripts that read inputtext (teleport / shop / skin lists, strcmp(inputtext, "...")) did nothing
+        const std::string& row = d.rows[item];
+        MP_CopyStr(d.input, row.substr(0, row.find('\t')).c_str(), sizeof(d.input));
+    }
     if(d.fromServer)
     {
         if(client.GetState() != NET_CONNECTED) return;
