@@ -368,6 +368,7 @@ namespace Game
     void  SetCarHealth(int car, int hp);
     void  ExplodeCar(int car);
     bool  IsCarDead(int car);
+    bool  GetWaypoint(Vec3& out);      // 5.02.25: the map waypoint (false = none)
     void  SetCarColours(int car, int c1, int c2);
     bool  GetCarColours(int car, uint8_t out[4]);   // 2.19.1: the colours the car really has
     int   GetWantedLevel();

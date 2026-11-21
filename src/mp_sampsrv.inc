@@ -8,6 +8,7 @@
 struct SsLabel { Vec3 p; float dist; uint32_t color; std::string text; };
 struct SsAttach { int obj = 0; int model = -1; Vec3 off{ 0, 0, 0 }, rot{ 0, 0, 0 }; uint64_t tryAt = 0; };
 struct SsZone { float r[4] = { 0, 0, 0, 0 }; uint32_t col = 0, flash = 0; };   // 4.13.53: gang zones
+struct SsVeh { int model = 0, c1 = -1, c2 = -1; Vec3 p{ 0, 0, 0 }; float h = 0; int car = 0; uint64_t tryAt = 0; bool taken = false, locked = false, deadSent = false; };   // 5.02.25
 struct SsActor { int model = 0; Vec3 p{ 0, 0, 0 }; float h = 0; bool invul = true; int ped = 0; std::string anim; bool animDone = false; uint64_t tryAt = 0; };
 static struct SampSrvState
 {
@@ -28,6 +29,10 @@ static struct SampSrvState
     bool tags = true; float tagDist = 0.0f; bool tagOff[MP_MAX_PLAYERS] = {};
     // 5.02.13: PC server class selection (SPO_CLASSSEL): < Spawn > like samp.exe, and "spawned" ends the join screen
     bool pcClass = false, pcSpawned = false; int pcClassIdx = 0;
+    // 5.02.25: the PC server's cars (CreateVehicle / AddStaticVehicle) + the callbacks samp.exe fires
+    std::map<int, SsVeh> vehs;
+    int myVeh = -1, mySeat = 0, area = -1, warpVeh = -1, warpSeat = 0; uint64_t warpAt = 0;
+    Vec3 wp{ 0, 0, 0 }; bool haveWp = false;
 } s_SS;
 static bool SampSrvPcSpawned() { return s_SS.pcSpawned; }
 
@@ -40,6 +45,8 @@ static void SampSrvSend(uint8_t op, uint8_t a, uint8_t b, int32_t val, const cha
     client.Send(&p, sizeof(p));
 }
 
+static void SampSrvClickPlayer(int id) { if(SampSrvOn()) SampSrvSend(SPO_CLICKPLAYER, 0, 0, id); }   // 5.02.25
+
 static void SampSrvReset()
 {
     for(auto& b : s_SS.icon) if(b) { Game::RemoveBlip(b); b = 0; }
@@ -47,6 +54,7 @@ static void SampSrvReset()
     if(s_SS.cam) Game::RestoreCamera();
     if(s_SS.frozen) Game::SetPlayerControl(true);
     for(auto& kv : s_SS.actors) if(kv.second.ped > 0) Game::DeleteChar(kv.second.ped);
+    for(auto& kv : s_SS.vehs) if(kv.second.car > 0) Game::DeleteCar(kv.second.car);
     if(s_SS.audio) Sound::StreamStop();
     s_SS = SampSrvState();
     s_PcList.clear();
@@ -145,6 +153,28 @@ static void SampSrvOnPacket(const uint8_t* d, int len)
             }
             else if(p.a == 2) { a.anim = p.text; a.animDone = false; }
             else { a.anim.clear(); a.animDone = true; if(a.ped > 0) Game::ClearTasksNow(a.ped); }
+            break;
+        }
+        case SPO_VEHICLE:
+        {   // 5.02.25: a PC server car (made near me by SampSrvVehicles)
+            auto it = s_SS.vehs.find(p.val);
+            if(p.a == 0)
+            {
+                if(it == s_SS.vehs.end()) break;
+                if(it->second.car > 0 && !(ped && Game::IsCharInAnyCar(ped) && Game::GetCarCharIsIn(ped) == it->second.car)) Game::DeleteCar(it->second.car);
+                s_SS.vehs.erase(it); break;
+            }
+            SsVeh& v = s_SS.vehs[p.val];
+            if(p.a == 1)
+            {
+                int model = 0, c2 = -1; sscanf(p.text, "%d %d", &model, &c2);
+                if(v.car > 0 && model != v.model) { Game::DeleteCar(v.car); v.car = 0; }
+                v.model = model; v.c1 = p.b; v.c2 = c2; v.p = f; v.h = p.f[3]; v.taken = false; v.deadSent = false;
+                if(v.car > 0 && s_SS.myVeh != p.val) { Game::SetCarPos(v.car, v.p, 0.0f); Game::SetCarHeading(v.car, v.h); Game::SetCarColours(v.car, v.c1, v.c2); }
+            }
+            else if(p.a == 2) { v.taken = true; if(v.car > 0 && s_SS.myVeh != p.val) { Game::DeleteCar(v.car); v.car = 0; } }
+            else if(p.a == 3) { s_SS.warpVeh = p.val; s_SS.warpSeat = p.b; s_SS.warpAt = 0; }
+            else if(p.a == 4) { v.locked = p.b != 0; if(v.car > 0) Game::LockCar(v.car, v.locked); }
             break;
         }
         case SPO_AUDIO:
@@ -275,6 +305,59 @@ static void SampSrvActorsAudio(const Vec3& me, uint64_t now)
     }
 }
 
+// 5.02.25: the PC server's cars near me, the car I sit in (OnPlayerEnterVehicle / ExitVehicle), OnVehicleDeath,
+// OnPlayerInteriorChange and OnPlayerClickMap (the map waypoint)
+static void SampSrvVehicles(int ped, const Vec3& me, uint64_t now)
+{
+    int made = 0, inCar = 0;
+    if(Game::IsCharInAnyCar(ped)) inCar = Game::GetCarCharIsIn(ped);
+    int my = -1, seat = 0;
+    for(auto& kv : s_SS.vehs)
+    {
+        SsVeh& v = kv.second;
+        if(v.car > 0 && v.car == inCar) { my = kv.first; seat = Game::GetDriverOfCar(inCar) == ped ? 0 : 1; }
+        if(v.car > 0 && !v.deadSent && Game::IsCarDead(v.car)) { v.deadSent = true; SampSrvSend(SPO_VEHDEATH, 0, 0, kv.first); }
+        const float dx = v.p.x - me.x, dy = v.p.y - me.y, d2 = dx * dx + dy * dy;
+        if(v.car > 0 && v.car != inCar)
+        {
+            Vec3 cp; if(Game::GetCarPos(v.car, cp)) v.p = cp;   // pushed / driven away and left: it stays there
+            if(d2 > 300.0f * 300.0f || v.taken) { Game::DeleteCar(v.car); v.car = 0; }
+            continue;
+        }
+        if(v.car > 0 || v.taken || d2 > 250.0f * 250.0f || v.model < 400 || v.model > 611) continue;
+        if(now < v.tryAt || made >= 2) continue;
+        v.tryAt = now + 400;
+        const int c = Game::CreateCar(v.model, v.p);   // 0 while the model streams in
+        if(c <= 0) continue;
+        ++made; v.car = c;
+        Game::SetCarHeading(c, v.h); Game::KeepMissionCar(c);
+        if(v.c1 >= 0 || v.c2 >= 0) Game::SetCarColours(c, v.c1 >= 0 ? v.c1 : 1, v.c2 >= 0 ? v.c2 : 1);
+        if(v.locked) Game::LockCar(c, true);
+    }
+    if(my != s_SS.myVeh || (my >= 0 && seat != s_SS.mySeat)) { s_SS.myVeh = my; s_SS.mySeat = seat; SampSrvSend(SPO_MYCAR, (uint8_t)seat, 0, my); }
+    if(s_SS.warpVeh >= 0 && now >= s_SS.warpAt)
+    {   // PutPlayerInVehicle: the car may still be streaming in
+        auto it = s_SS.vehs.find(s_SS.warpVeh); s_SS.warpAt = now + 300;
+        if(it == s_SS.vehs.end() || s_SS.myVeh == s_SS.warpVeh) s_SS.warpVeh = -1;
+        else if(it->second.car > 0)
+        {
+            if(s_SS.warpSeat == 0) Game::WarpIntoCar(ped, it->second.car); else Game::WarpIntoCarAsPassenger(ped, it->second.car, s_SS.warpSeat - 1);
+            s_SS.warpVeh = -1;
+        }
+        else if(it->second.model >= 400 && it->second.model <= 611) it->second.tryAt = 0;
+        else s_SS.warpVeh = -1;
+    }
+    const int area = Game::GetCharArea(ped);
+    if(area != s_SS.area) { if(s_SS.area >= 0) SampSrvSend(SPO_INTERIOR, (uint8_t)area, 0, 0); s_SS.area = area; }
+    Vec3 w; const bool have = Game::GetWaypoint(w);
+    if(have && (!s_SS.haveWp || fabsf(w.x - s_SS.wp.x) > 0.5f || fabsf(w.y - s_SS.wp.y) > 0.5f))
+    {
+        PktSamp q; memset(&q, 0, sizeof(q)); q.type = PKT_SAMP; q.op = SPO_CLICKMAP; q.f[0] = w.x; q.f[1] = w.y; q.f[2] = w.z;
+        client.Send(&q, sizeof(q));
+    }
+    s_SS.haveWp = have; if(have) s_SS.wp = w;
+}
+
 // every frame: checkpoints, attached objects, the dynamic map objects, a fixed camera
 static void SampSrvProcess(int ped, uint64_t now)
 {
@@ -297,6 +380,7 @@ static void SampSrvProcess(int ped, uint64_t now)
         if(o > 0) { a.obj = o; Game::SetObjectCollision(o, false); Game::AttachObjectToCharRot(o, ped, a.off, a.rot); }
     }
     SampSrvActorsAudio(me, now);   // 4.13.53
+    SampSrvVehicles(ped, me, now);   // 5.02.25
     if(!DzOnServer()) DzMapTick(me, now);   // CreateObject / CreateDynamicObject of the gamemode (PKT_DZ_MAP)
     if(s_SS.cam && now % 1000 < 40) Game::SetFixedCamera(s_SS.camPos, s_SS.camLook);
 }

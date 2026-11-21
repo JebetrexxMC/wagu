@@ -749,6 +749,15 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+- **5.02.25** (app + gate: libMP32.so / libMP64.so, MP_BUILD 50225): **the callbacks samp.exe fires, now from the phone too** ([open.mp callbacks](https://open.mp/docs/scripting/callbacks), [functions](https://open.mp/docs/server/omp-functions)).
+  - **Server cars on the phone**: CreateVehicle / AddStaticVehicle cars (models 400-611) appear near you with their colours and angle, SetVehiclePos / SetVehicleZAngle / SetVehicleParamsEx (doors) / DestroyVehicle follow, a PC player driving one hides the parked copy.
+  - **OnPlayerEnterVehicle / OnPlayerExitVehicle / OnPlayerStateChange**: getting in a server car sends the enter RPC, then driver (200) or passenger (211) sync instead of on-foot sync. PutPlayerInVehicle warps you in, RemovePlayerFromVehicle and SetVehicleHealth work on your car.
+  - **OnVehicleMod / OnVehiclePaintjob / OnVehicleRespray / OnEnterExitModShop / OnVehicleDamageStatusUpdate / OnVehicleDeath / OnVehicleSirenStateChange** from your car (Transfender, Loco Low Co, Wheel Arch Angels detected by position).
+  - **OnPlayerWeaponShot** (bullet sync 206 for every bullet, hit = PC player / server car), **OnPlayerGiveDamage** (you hit a PC player), **OnPlayerTakeDamage** (a PC player's bullet hits you: SA-MP's default weapon damage, armour first; falls / fire / explosions with INVALID_PLAYER_ID). SetPlayerTeam: same team = no damage.
+  - **OnPlayerClickPlayer** (tap a name in the PC server player list), **OnPlayerClickMap** (set a map waypoint), **OnPlayerInteriorChange**.
+  - **Menus** (CreateMenu / ShowMenuForPlayer / HideMenuForPlayer) as a list dialog: OnPlayerSelectedMenuRow / OnPlayerExitedMenu. **Actors** (CreateActor, ApplyActorAnimation, ClearActorAnimations, SetActorPos / FacingAngle / Invulnerable, DestroyActor).
+  - Not yet: object editing (EditObject / SelectObject), OnPlayerGiveDamageActor, 0.3.DL custom car models.
+
 - **5.02.24** (app: libMP32.so / libMP64.so, MP_BUILD 50224): **samp.exe's client commands on PC servers** ([open.mp Client Commands](https://open.mp/docs/client/ClientCommands)).
   - **/save [note]** writes `AddPlayerClass(skin,x,y,z,angle,0,0,0,0,0,0); // note` (in a car: `AddStaticVehicle(model,x,y,z,angle,-1,-1);`) to `savedpositions.txt`, **/rs [note]** writes `x,y,z,angle` to `rawpositions.txt` (next to the gate) and shows the line in chat - for scripting spawn points and cars.
   - **/interior** and **/vw** show the interior (SetPlayerInterior) and virtual world (SetPlayerVirtualWorld, now tracked) the server put you in.

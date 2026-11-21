@@ -1469,6 +1469,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             if(slot < 0 || len < (int)sizeof(PktDamage)) return;
             PktDamage p = *(const PktDamage*)data;
             p.from = (uint8_t)slot;
+            if(m_pGate && !m_Slots[slot].ghost) m_pGate->OnPhonePkt(slot, data, len);   // 5.02.25: OnPlayerGiveDamage on a PC server
             if(!AcDamage(slot, p)) return;   // 3.50: pro aim
             // paused players and players on a mission / in a cutscene can't be hurt (or hurt others)
             // 2.19: mission-sync partners share one story world: they can hurt each other on a mission
@@ -1593,6 +1594,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             if(m.count > MP_SHOT_MAX) m.count = MP_SHOT_MAX;
             if(!m.count) return;
             m.id = (uint8_t)slot;
+            if(m_pGate && !m_Slots[slot].ghost) m_pGate->OnPhonePkt(slot, data, len);   // 5.02.25: OnPlayerWeaponShot
             if(!AcShot(slot, m)) return;   // 3.50: rapid fire, no reload
             float sp[3]; memcpy(sp, m.e[0].a, sizeof(sp));       // aligned copy (see PKT_EXPLOSION)
             RelayNearOrPartner(slot, sp, &m, MP_PKT_SHOT_HDR + m.count * (int)sizeof(ShotEntry));
@@ -1603,6 +1605,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             if(slot < 0 || len < (int)sizeof(PktVehState)) return;
             PktVehState v; memcpy(&v, data, sizeof(v));
             v.id = (uint8_t)slot;
+            if(m_pGate && !m_Slots[slot].ghost) m_pGate->OnPhonePkt(slot, data, len);   // 5.02.25: mods / paintjob / damage / siren
             if(!AcVehState(slot, v)) return;   // 3.50: tuning hack / crashers
             float vp[3]; memcpy(vp, v.pos, sizeof(vp));
             RelayNearOrPartner(slot, vp, &v, sizeof(v));

@@ -612,7 +612,11 @@ static void PagePlayers(void* openPtr)
             for(int k = clip.DisplayStart; k < clip.DisplayEnd; ++k)
             {
                 const auto& e = *rowsPc[k];
-                ImVec2 a = ImGui::GetCursorScreenPos(); ImGui::Dummy(ImVec2(W, UI::S(40)));
+                ImVec2 a = ImGui::GetCursorScreenPos();
+                ImGui::PushID(100000 + e.first);
+                // 5.02.25: tap a row = OnPlayerClickPlayer (double click in the samp.exe Tab list)
+                if(ImGui::InvisibleButton("pcrow", ImVec2(W, UI::S(40)))) SampSrvClickPlayer(e.first);
+                ImGui::PopID();
                 if(k % 2 == 0) dl->AddRectFilled(a, ImVec2(a.x + W, a.y + UI::S(40)), IM_COL32(255, 255, 255, 10), UI::S(6));
                 const float ty = a.y + (UI::S(40) - ImGui::GetTextLineHeight()) * 0.5f; char buf[48];
                 snprintf(buf, sizeof(buf), "%d", e.first); dl->AddText(ImVec2(a.x + cId + UI::S(10), ty), IM_COL32(200, 200, 200, 255), buf);

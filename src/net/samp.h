@@ -39,5 +39,14 @@ enum eSampOp : uint8_t
                       //       f[0] = score, f[1] = ping, b = 1 me) / 2 remove (val = id)
     SPO_CLASSSEL,     // S->C  5.02.13: the PC server's class selection: a = 1 show < Spawn > (val = class index) / 0 hide (spawned / login dialog)
     SPO_SPAWNREQ,     // C->S  5.02.13: the phone's class selection buttons: a = 0 Spawn (RequestSpawn) / 1 previous class / 2 next class
+    // 5.02.25: the PC server's cars on the phone + the callbacks samp.exe fires (old phones / servers ignore them)
+    SPO_VEHICLE,      // S->C  val = server vehicle id. a = 1 add / update (f = x y z angle, b = colour 1, text = "model colour2"),
+                      //       0 remove, 2 a PC player drives it (hide the parked copy), 3 put me in it (b = seat),
+                      //       4 doors (b = 1 locked / 0 open)
+    SPO_MYCAR,        // C->S  the server car I sit in: val = vehicle id (-1 = none), a = seat (0 driver, 1.. passenger)
+    SPO_VEHDEATH,     // C->S  val = vehicle id: the server car blew up / sank (OnVehicleDeath)
+    SPO_CLICKPLAYER,  // C->S  val = PC player id tapped in the player list (OnPlayerClickPlayer)
+    SPO_CLICKMAP,     // C->S  f = x y z of the map waypoint (OnPlayerClickMap)
+    SPO_INTERIOR,     // C->S  a = the interior the phone ped is in now (OnPlayerInteriorChange)
 };
 struct PktSamp { uint8_t type, op, a, b; int32_t val; float f[4]; char text[200]; };

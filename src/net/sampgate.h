@@ -67,6 +67,8 @@ public:
     bool OnChat(int slot, const char* text);           // true = the MP server must not handle it
     bool OnSamp(int slot, const uint8_t* data, int len);
     bool OnDialog(int slot, uint16_t dialogId, uint8_t response, int16_t listItem, const char* input);
+    // 5.02.25: a copy of the phone's damage / shot / car state packets (the MP server still handles them itself)
+    void OnPhonePkt(int slot, const uint8_t* data, int len);
 
     // SA-MP browser query of any SA-MP / open.mp server (blocking, timeoutMs)
     static bool Query(const char* host, uint16_t port, SampQueryInfo& out, int timeoutMs = 1500, bool wantNames = false);

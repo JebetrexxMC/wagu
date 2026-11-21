@@ -1768,6 +1768,21 @@ int Game::ReadMissionBlips(MissionBlip* out, int maxOut, const int* skip, int nS
     return n;
 }
 
+// 5.02.25: the map waypoint the player set (sprite 41) - OnPlayerClickMap on a PC server
+bool Game::GetWaypoint(Vec3& out)
+{
+    if(!s_pRadarTrace) return false;
+    for(int i = 0; i < RT_COUNT; ++i)
+    {
+        u8 t[0x30];
+        if(!SafeRead(s_pRadarTrace + i * RT_SIZE, t, RT_SIZE)) break;
+        if(t[RT_SPRITE] != 41 || !((t[RT_SPRITE + 1] >> 1) & 1)) continue;
+        memcpy(&out, t + 8, 12);
+        return out.x == out.x && !(out.x == 0 && out.y == 0);
+    }
+    return false;
+}
+
 int Game::AddCoordBlip(const Vec3& p, uint32_t colour, int display)
 {
     uint32_t b = 0;
