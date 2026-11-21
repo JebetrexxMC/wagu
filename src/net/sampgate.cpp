@@ -262,6 +262,7 @@ struct SampGate::Impl
     uint32_t heldKeys = 0;
     bool wasDead = false;
     bool wantClass = false;
+    bool loginUi = false, loginWaitSaid = false;   // 5.02.28: the server showed a dialog / clickable textdraws this session (its script spawns us, like on PC)
     bool dlgOpen = false, tdSel = false, spect = false, noAuto = false;   // noAuto: the server sent us back to class selection - wait for the player    // 5.02.10: no auto-spawn while a login dialog / clickable-textdraw login is up (a PC player can't press Spawn then)                 // 5.02.09: ForceClassSelection waits for the next respawn (like the PC client)
     uint64_t spawnAnsAt = 0; int spawnSilent = 0; bool directSpawn = false;   // 5.02.20: Spawn never answered -> spawn here
     uint64_t blankAt = 0, chatSumAt = 0; uint32_t blankN = 0, pcChatN = 0, srvMsgN = 0, nameMsgN = 0, tot93 = 0, tot101 = 0;   // 5.02.21: chat clears / chat seen (mp_log.txt)
@@ -1143,7 +1144,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             if(I.dlgOpen) srv->GateDialog(s, -1, 0, "", "", "", "");
             if(I.tdSel) srv->GateOp(s, SPO_TDSELECT, 0, 0, 0);
             I.dlgOpen = false; I.tdSel = false; I.spect = false; I.noAuto = false; I.wantClass = false; I.autoSpawnN = 0; I.retrySpawnAt = 0;
-            I.spawnAskAt = 0; I.finDl = false; I.tdShown = 0; I.classAt = NowMs();
+            I.loginUi = false; I.loginWaitSaid = false; I.spawnAskAt = 0; I.finDl = false; I.tdShown = 0; I.classAt = NowMs();
             I.spawnAnsAt = 0; I.spawnSilent = 0; I.directSpawn = false;
             I.classOk = true; I.spawnAfterClass = false; I.chatOut.clear(); I.echoWant.clear(); I.echoAt = 0;   // 5.02.23
             bool b; float f;
@@ -1224,6 +1225,13 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             bs.Read(u32a);
             printf("[crossplay] TogglePlayerSpectating %u\n", u32a);   // 5.02.17
             if(!u32a && I.specOn) { I.specOn = false; srv->GateAct(s, CGA_SPEC, 0, 0); srv->GateOp(s, SPO_CAMERA, 0, 0, 0); }   // 5.02.26: spectate ends
+            if(!u32a && I.spect && I.phase == 3 && !I.wantClass && I.spawn.have)
+            {   // 5.02.28: spectating ends in class selection = the PC client spawns by itself (no Spawn button, no
+                // RequestSpawn). Login servers (Life of Player...) spawn you this way after the account step - we sent
+                // RequestSpawn instead, the script refused it and the phone hung on the login camera
+                printf("[crossplay] spectating ended in class selection - spawned like the PC client\n");
+                RemSpawned(I, srv); break;
+            }
             I.spect = u32a != 0;   // 5.02.10: spectating (account loading / login camera) = no Spawn button for a PC player either
             if(I.phase == 3) I.retrySpawnAt = I.spect ? 0 : NowMs() + 1500;
             if(!u32a && I.wantClass && I.phase >= 4) { I.wantClass = false; I.phase = 3; I.noAuto = true;
@@ -1465,7 +1473,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         {
             int16_t id = -1; bs.Read(id); bs.Read(u8a); std::string cap = SampCp::ToUtf8(RdStr8(bs), I.cp), b1 = SampCp::ToUtf8(RdStr8(bs), I.cp), b2 = SampCp::ToUtf8(RdStr8(bs), I.cp), body = SampCp::ToUtf8(RdCompressed(bs), I.cp);
             I.dlgId = id; I.dlgStyle = u8a;
-            I.dlgOpen = id >= 0; if(I.phase == 3) I.retrySpawnAt = I.dlgOpen ? 0 : NowMs() + 1500;   // 5.02.10: login first
+            I.dlgOpen = id >= 0; if(I.dlgOpen) I.loginUi = true; if(I.phase == 3) I.retrySpawnAt = I.dlgOpen ? 0 : NowMs() + 1500;   // 5.02.10: login first
             printf("[crossplay] dialog %d style %u \"%.60s\"\n", (int)id, (unsigned)u8a, cap.c_str());   // 5.02.17: always logged
             if(id < 0) srv->GateDialog(s, -1, 0, "", "", "", "");
             else srv->GateDialog(s, id, u8a, cap.c_str(), body.c_str(), b1.c_str(), b2.c_str());
@@ -1517,7 +1525,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             MP_CopyStr(it->second.text, spr ? text.c_str() : SampCp::ToUtf8(text, I.cp).c_str(), sizeof(it->second.text)); srv->GateTextDraw(s, it->second);
             break;
         }
-        case 83: { bool on = false; bs.Read(on); bs.Read(u32a); I.tdSel = on; printf("[crossplay] SelectTextDraw %s (%d textdraws shown)\n", on ? "on" : "off", I.tdShown); if(I.phase == 3) I.retrySpawnAt = on ? 0 : NowMs() + 1500; srv->GateOp(s, SPO_TDSELECT, on ? 1 : 0, 0, (int32_t)u32a); break; }
+        case 83: { bool on = false; bs.Read(on); bs.Read(u32a); I.tdSel = on; if(on) I.loginUi = true; printf("[crossplay] SelectTextDraw %s (%d textdraws shown)\n", on ? "on" : "off", I.tdShown); if(I.phase == 3) I.retrySpawnAt = on ? 0 : NowMs() + 1500; srv->GateOp(s, SPO_TDSELECT, on ? 1 : 0, 0, (int32_t)u32a); break; }
         case 107: { RdVec(bs, v); bs.Read(fa); float f[4] = { v[0], v[1], v[2], fa }; srv->GateOp(s, SPO_CHECKPOINT, 1, 0, 0, f); srv->GateAct(s, CGA_GPS, 0, 0, 0, v); break; }
         case 37: { float z[4] = { 0, 0, 0, 0 }; srv->GateOp(s, SPO_CHECKPOINT, 0, 0, 0, z); srv->GateAct(s, CGA_GPS, 0, 0, 0, z); break; }
         case 38: { bs.Read(u8a); RdVec(bs, v); RdVec(bs, w3); bs.Read(fa); float f[4] = { v[0], v[1], v[2], fa }; srv->GateOp(s, SPO_CHECKPOINT, 1, 1, 0, f); break; }
@@ -2493,7 +2501,15 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
     }
 
     if(I.phase == 3 && I.spawnAskAt && I.spawnAnsAt < I.spawnAskAt && now - I.spawnAskAt >= 3500 && now - I.classAt >= 8000
-       && !I.dlgOpen && !I.tdSel && !I.spect)
+       && !I.dlgOpen && !I.tdSel && !I.spect && I.loginUi && !I.loginWaitSaid)
+    {   // 5.02.28: a login / tutorial server (it showed a dialog or clickable textdraws): its script spawns us (SpawnPlayer /
+        // spectate off) when its steps are done - spawning here ourselves broke the account step (stuck on Life of Player)
+        I.loginWaitSaid = true; I.spawnAskAt = 0;
+        printf("[crossplay] no answer to Spawn on a login server - waiting for its script to spawn us\n");
+        srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] Finish the server's login / tutorial steps - it spawns you by itself after that.");
+    }
+    if(I.phase == 3 && I.spawnAskAt && I.spawnAnsAt < I.spawnAskAt && now - I.spawnAskAt >= 3500 && now - I.classAt >= 8000
+       && !I.dlgOpen && !I.tdSel && !I.spect && !I.loginUi)
     {   // 5.02.20: Spawn was sent and the server never answered (no 129 at all - not even "refused"). SA-MP 0.3.7 drops
         // RequestSpawn when the player has no spawn info (a gamemode with no AddPlayerClass that spawns its own way),
         // open.mp when it thinks we are already on foot. The PC client would stand in class selection forever, and the

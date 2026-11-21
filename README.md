@@ -749,6 +749,11 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.28
+- Login servers such as Life of Player: once the server turns off its login camera after the account step, the phone spawns by itself, like the PC client does. Before, MP pressed Spawn instead, the server refused it, and you were stuck. 30 s later you were also put at the spawn point with "This server has no Spawn answer".
+- On servers that show a login window or clickable textdraws, MP no longer spawns you by itself. It waits for the server's script and tells you to finish its steps.
+- Note: LOPLauncher.exe only starts SA-MP / the open.mp launcher on PC and installs its modpack. The server does not need it, so phones can join without it.
+
 ### 5.02.27
 - PC servers (open.mp, SA-MP 0.3.7, 0.3.DL): the phone now sends aim sync, so PC players see where you aim and shoot. It also sends spectator sync while a script spectates you, and the player or actor you aim at (weapon target).
 - Special actions (ducking, phone, hands up, drinking and so on) are echoed in on-foot sync.
