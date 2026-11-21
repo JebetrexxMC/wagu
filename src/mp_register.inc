@@ -196,14 +196,29 @@ static void RegReset()
     memset(s_Reg.newPass, 0, sizeof(s_Reg.newPass));
 }
 static bool RegScreenUp() { return s_Reg.active && SampDialogOpen() && s_Dlg.fn == RegDialogFn; }
+// 5.02.35: the < Spawn > picker on the default server waits for the register / login (AuthHoldsJoin)
+static bool RegHoldsJoin(uint64_t now)
+{
+    if(!MP::IsOnDefault()) return false;
+    if(RegScreenUp()) return true;   // also "Registered" / "Logged in" until you close it
+    if(s_Reg.loggedIn) return false;
+    return s_Reg.pending && now - s_Reg.joinedAt < 20000;   // not shown yet: a short wait, never stuck
+}
 static void RegTick(uint64_t now)
 {
     RegBackupTick(now);
     if(!s_Reg.pending || client.GetState() != NET_CONNECTED) return;
     if(!MP::IsOnDefault()) { s_Reg.pending = false; return; }
-    if(JoinFlowActive() || AuthScreenUp() || SampDialogOpen() || now - s_Reg.joinedAt < 3000 || Game::LocalPed() <= 0) return;
+    // 5.02.35: on the connection screen (the Santa Maria Beach camera, after "Connected successfully!"), like SA-MP:
+    // the dialog no longer waits until you picked a spawn place and are standing in the world. The < Spawn >
+    // picker waits for it instead (RegHoldsJoin). Without the join screen (quiet rejoin) it still opens in the world.
+    const bool joinView = JoinFlowActive() && s_nJoinPhase == JP_WAIT && s_nFeedStep < 0 && s_nFeedRes < 0;
+    if((JoinFlowActive() && !joinView) || AuthScreenUp() || SampDialogOpen() || Game::LocalPed() <= 0) return;
+    if(!joinView && now - s_Reg.joinedAt < 3000) return;
     s_Reg.pending = false;
-    if(RegLoad(s_Reg.acc)) RegShow(LOG_PASS); else RegShow(REG_PASS);
+    const bool have = RegLoad(s_Reg.acc);
+    logger->Info("Register: %s dialog on the %s", have ? "login" : "register", joinView ? "connection screen" : "game screen");
+    if(have) RegShow(LOG_PASS); else RegShow(REG_PASS);
 }
 static void RegRender()
 {

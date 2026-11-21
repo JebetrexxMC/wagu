@@ -485,6 +485,8 @@ static void ProcessSamp(int ped, uint64_t now)
 static void RenderSamp()
 {
     // 5.02.16: on a PC server's class selection / login the server's dialogs, textdraws and < Spawn > draw too
+    // 5.02.35: the Broker MQQ register / login dialog draws on the connection screen (only the dialog)
+    if(Game::IsReady() && JoinFlowActive() && !JoinPcClass() && RegScreenUp()) { RenderDialog(); return; }
     if(!Game::IsReady() || (JoinFlowActive() && !JoinPcClass())) { if(s_Dlg.open && !s_Dlg.fromServer) s_Dlg.open = false; return; }
     ImDrawList* dl = ImGui::GetBackgroundDrawList();
     if(client.GetState() == NET_CONNECTED)

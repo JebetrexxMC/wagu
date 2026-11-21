@@ -498,8 +498,10 @@ static void AuthFrame(uint64_t now)
 }
 
 // the < Spawn > buttons (and the Brief Case War teams) wait for the login
+static bool RegHoldsJoin(uint64_t now);   // 5.02.35 (mp_register.inc)
 static bool AuthHoldsJoin(uint64_t now)
 {
+    if(RegHoldsJoin(now)) return true;   // 5.02.35: Broker MQQ register / login on the connection screen first
     // 4.12.8: the spawn picker waits for a save load (default server: the 100% save; another server right
     // after the default one: your own save back). Guests have no login to wait for, so their picker used to
     // open first and the load then moved them away from the spot they picked. Capped at 30 s.

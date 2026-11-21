@@ -1140,10 +1140,19 @@ static void ApplyWorld(uint64_t now)
         // 2.18.2: told only ONCE per connection (time once, weather once) - a script that keeps
         // changing them used to bring the line back every 15 s. The lock itself keeps working.
         int kinds = ((fixed & (Game::WORLD_FIX_TIME | Game::WORLD_FIX_SPEED)) ? 1 : 0) | ((fixed & Game::WORLD_FIX_WEATHER) ? 2 : 0);
+        // 5.02.35: once per server for the whole game session. A reconnect / host change on the same server (the
+        // default server reconnects often) counted as a new connection, so the line came back again and again.
         int fresh = kinds & ~s_nWorldNoticed;
         if(fresh)
         {
             s_nWorldNoticed |= fresh;
+            static std::map<std::string, int> s_Told;   // server name:port -> the kinds already told
+            char key[96]; snprintf(key, sizeof(key), "%s:%d", client.GetServerName(), (int)client.GetPort());
+            int& told = s_Told[key];
+            fresh &= ~told; told |= fresh;
+        }
+        if(fresh)
+        {
             SysMsg(COL_YELLOW, "%s set by the server - change blocked.",
                 fresh == 3 ? "Time and weather are" : (fresh == 2 ? "Weather is" : "Time is"));
             logger->Info("World lock: blocked a change (flags %d, total %d)", fixed, s_nWorldBlocked);

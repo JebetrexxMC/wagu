@@ -749,6 +749,11 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.35
+- Broker MQQ register / login now opens on the connection screen (the Santa Maria Beach camera after "Connected successfully!"), like SA-MP. Before, it waited until you had picked a spawn place and were standing in the world. The < Spawn > picker now opens after you register or log in (it waits at most 20 s if the dialog can't open). A quiet rejoin without the join screen still opens it in the world. The log says "Register: register dialog on the connection screen".
+- "Time is set by the server - change blocked." shows only once per server for the whole game session. Before, it came back after every reconnect or host change on the same server (the default server reconnects often). The server still keeps the time and weather locked.
+- The gamemode logos under the server description in the server list are removed again (added in 5.02.31). The description text gets its full space back.
+
 ### 5.02.34
 - Fixed the crash and the black screen right after a save loads on the 32-bit game (SIGABRT, "Scudo ERROR: CHECK failed ... list.h:330"). MP's log stopped at "Font atlas width: 1024, height: 4096". Since 5.02.31 the symbol characters were drawn 3 times at 2x sharpness into MP's font texture. It grew to 1024x4096 (16 MB, plus 2 copies while it goes to the game), and with many mods the game's memory broke at that moment. MP's screens could not draw, so not even the rescue card showed. Now the symbols come only from the phone's symbol fonts. The texture is 2048 wide at most and about half the size (2048x1024 on a 720p screen). Symbols such as ✓ ★ ❤ still show in chat.
 - Before the font texture goes to the game, MP checks that the game gives a texture of the same size. If not, MP's text is off for that run instead of the heap being damaged. The log says "Font atlas raster: ..." and "5.02.34: font atlas WxH".

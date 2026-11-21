@@ -440,28 +440,6 @@ static ImU32 LModeColorOf(const char* m)   // a stable colour from a gamemode na
     unsigned h = 5381; for(const char* c = m; *c; ++c) h = h * 33 + (unsigned char)tolower((unsigned char)*c);
     return kModeCols[1 + h % (kModeColCount - 1)].col;
 }
-// 5.02.31: a generated round logo for a gamemode (no texture: ring + disc in the mode colour + its initials)
-static void LModeLogo(ImDrawList* dl, ImVec2 c, float r, const char* m)
-{
-    const ImU32 col = LModeColorOf(m) | IM_COL32(0, 0, 0, 255);
-    char ini[4] = ""; int k = 0; bool start = true;
-    for(const char* p = m; *p && k < 2; ++p)
-    {
-        if(start && isalnum((unsigned char)*p)) { ini[k++] = (char)toupper((unsigned char)*p); start = false; }
-        else if(*p == ' ' || *p == '&' || *p == '-' || *p == '/') start = true;
-    }
-    if(k == 1 && m[1] && isalpha((unsigned char)m[1])) ini[k++] = (char)toupper((unsigned char)m[1]);
-    ini[k] = 0;
-    dl->AddCircleFilled(ImVec2(c.x + r * 0.08f, c.y + r * 0.10f), r, IM_COL32(0, 0, 0, 120), 32);
-    dl->AddCircleFilled(c, r, IM_COL32(16, 14, 14, 255), 32);
-    dl->AddCircleFilled(c, r * 0.80f, col, 32);
-    dl->AddCircle(c, r, col, 32, fmaxf(1.0f, r * 0.12f));
-    dl->AddCircle(c, r * 0.80f, IM_COL32(255, 255, 255, 70), 32, fmaxf(1.0f, r * 0.05f));
-    const float fs = r * 0.95f; ImVec2 ts = ImGui::GetFont()->CalcTextSizeA(fs, FLT_MAX, 0, ini);
-    dl->AddText(ImGui::GetFont(), fs, ImVec2(c.x - ts.x * 0.5f + 1, c.y - ts.y * 0.5f + 1), IM_COL32(0, 0, 0, 200), ini);
-    dl->AddText(ImGui::GetFont(), fs, ImVec2(c.x - ts.x * 0.5f, c.y - ts.y * 0.5f), IM_COL32_WHITE, ini);
-}
-
 // featured / default text (nobody can change it)
 static void LFeaturedDetails(LRow& r)
 {
@@ -1642,21 +1620,8 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
             float y0 = d.y + pad;
             // 1: description, IP, favourite
             dl->AddText(ImVec2(c1, y0), hc, "Server Description");
-            const float logoR = UI::S(22), logoY = e.y - pad - lh * 2.0f - UI::S(28) - logoR - UI::S(4);   // 5.02.31: gamemode logos under the text
-            LWrapText(dl, ImVec2(c1, y0 + lh + UI::S(6)), c2 - c1 - pad, logoY - logoR - UI::S(6), tc, r.desc[0] ? r.desc : "No description.");
-            {
-                std::string lm[3]; const int ln = LModesOf(r, lm);
-                float lx = c1;
-                dl->PushClipRect(ImVec2(c1, logoY - logoR - UI::S(4)), ImVec2(c2 - pad, logoY + logoR + UI::S(4)), true);
-                for(int q = 0; q < ln; ++q)
-                {
-                    LModeLogo(dl, ImVec2(lx + logoR, logoY), logoR, lm[q].c_str());
-                    const float lfs = ImGui::GetFontSize() * 0.72f;
-                    dl->AddText(ImGui::GetFont(), lfs, ImVec2(lx + logoR * 2 + UI::S(6), logoY - lfs * 0.5f), tc, lm[q].c_str());
-                    lx += logoR * 2 + UI::S(14) + ImGui::GetFont()->CalcTextSizeA(lfs, FLT_MAX, 0, lm[q].c_str()).x;
-                }
-                dl->PopClipRect();
-            }
+            // 5.02.35: the gamemode logos under the description are gone again (5.02.31 had them): the text gets its space back
+            LWrapText(dl, ImVec2(c1, y0 + lh + UI::S(6)), c2 - c1 - pad, e.y - pad - lh * 2.0f - UI::S(28), tc, r.desc[0] ? r.desc : "No description.");
             {
                 char ip[96];
                 if(r.kind == 2 && r.saved >= 0) { ServerEntry* se = ServerList::Get(r.saved); snprintf(ip, sizeof(ip), "IP: %s:%d", se ? se->host : "?", r.port); }
