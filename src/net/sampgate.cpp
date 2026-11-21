@@ -207,7 +207,7 @@ struct SampGate::Impl
     bool wantClass = false;
     bool dlgOpen = false, tdSel = false, spect = false, noAuto = false;   // noAuto: the server sent us back to class selection - wait for the player    // 5.02.10: no auto-spawn while a login dialog / clickable-textdraw login is up (a PC player can't press Spawn then)                 // 5.02.09: ForceClassSelection waits for the next respawn (like the PC client)
     uint64_t spawnAnsAt = 0; int spawnSilent = 0; bool directSpawn = false;   // 5.02.20: Spawn never answered -> spawn here
-    uint64_t blankAt = 0; uint32_t blankN = 0, pcChatN = 0, srvMsgN = 0;   // 5.02.21: chat clears / chat seen (mp_log.txt)
+    uint64_t blankAt = 0, chatSumAt = 0; uint32_t blankN = 0, pcChatN = 0, srvMsgN = 0, nameMsgN = 0, tot93 = 0, tot101 = 0;   // 5.02.21: chat clears / chat seen (mp_log.txt)
     uint64_t spawnAskAt = 0, refuseMsgAt = 0, classAt = 0;   // 5.02.17: one RequestSpawn in flight (taps flooded: kicked), refusal note, class selection since
     bool finDl = false;   // 5.02.17: FinishDownload (184) sent - scripts that open their login in OnPlayerFinishedDownloading
     int tdShown = 0;      // 5.02.17: textdraws the server showed (log)
@@ -812,6 +812,12 @@ static void RemChatBlank(Impl& I)
     if(n - I.blankAt > 5000) { I.blankAt = n; printf("[crossplay] the server cleared the chat - empty lines left out (%u so far)\n", I.blankN); }
 }
 
+static void RemChatSum(Impl& I)
+{   // 5.02.22: once a minute in mp_log.txt: what came from the PC server
+    const uint64_t n = NowMs(); if(!I.chatSumAt) { I.chatSumAt = n; return; }
+    if(n - I.chatSumAt < 60000) return; I.chatSumAt = n;
+    printf("[crossplay] chat so far: %u server messages, %u player chat lines, %u empty lines left out\n", I.tot93, I.tot101, I.blankN);
+}
 static Impl::Rp* RemPlayer(Impl& I, int id) { auto it = I.rp.find(id); return it == I.rp.end() ? nullptr : &it->second; }
 
 static void RemGhostIn(Impl& I, MPServer* srv, int id, const float* pos, float ang)
@@ -1029,14 +1035,23 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         {
             bs.Read(u32a); std::string t = SampCp::ToUtf8(RdStr32(bs), I.cp);
             if(ChatBlank(t)) { RemChatBlank(I); break; }   // 5.02.21
-            if(I.srvMsgN < 3) { ++I.srvMsgN; printf("[crossplay] server message %08X: %.100s\n", u32a, t.c_str()); }
+            ++I.tot93;
+            if(I.srvMsgN < 10) { ++I.srvMsgN; printf("[crossplay] server message %08X: %.100s\n", u32a, t.c_str()); }
+            else if(I.nameMsgN < 15)
+            {   // 5.02.22: servers with their own chat (OnPlayerText return 0) send players' chat as server messages
+                for(auto& kv : I.rp)
+                    if(kv.second.name.size() > 2 && t.find(kv.second.name) != std::string::npos)
+                    { ++I.nameMsgN; printf("[crossplay] server message with %s's name (server chat): %.100s\n", kv.second.name.c_str(), t.c_str()); break; }
+            }
+            RemChatSum(I);
             srv->GateMsg(s, u32a, t.c_str()); break;
         }
         case 101:
         {
             bs.Read(u16a); std::string t = SampCp::ToUtf8(RdStr8(bs), I.cp);
             if(ChatBlank(t)) { RemChatBlank(I); break; }   // 5.02.21
-            if(I.pcChatN < 5) { ++I.pcChatN; printf("[crossplay] player chat from id %u: %.100s\n", (unsigned)u16a, t.c_str()); }   // 5.02.21: shows in mp_log.txt that PC chat arrives
+            ++I.tot101; RemChatSum(I);
+            if(I.pcChatN < 10) { ++I.pcChatN; printf("[crossplay] player chat from id %u: %.100s\n", (unsigned)u16a, t.c_str()); }   // 5.02.21: shows in mp_log.txt that PC chat arrives
             if(u16a == I.myId) { srv->GateChat(s, t.c_str()); break; }
             // 5.02.13: every PC chat line is a chat line on the phone. Before, a streamed-in player's line went out as
             // that ghost's own chat packet - dropped on the phone whenever the ghost was not (or no longer) in its player

@@ -749,6 +749,7 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+- **5.02.22** (app: libMP32.so / libMP64.so, MP_BUILD 50222): **More chat detail in `mp_log.txt`.** On servers with their own chat system (OnPlayerText return 0, then SendClientMessage), players' chat comes as server messages, not as player chat. The log now shows the first 10 server messages, up to 15 server messages that contain a PC player's name (`[crossplay] server message with NAME's name (server chat): ...`) and up to 10 player chat lines. Once a minute it adds a total: `[crossplay] chat so far: N server messages, M player chat lines, K empty lines left out`.
 - **5.02.21** (app: libMP32.so / libMP64.so, MP_BUILD 50221): **PC players' chat shows, with no blank lines.**
   - **Blank chat lines are left out:** many PC servers "clear the chat" by sending 20-100 empty lines (only spaces or `{RRGGBB}` codes) on join, after login or with /clearchat. On the phone, those empty lines pushed every real line (players' chat too) out of the chat box and looked like players sending blank messages. The gate now leaves them out, and `mp_log.txt` gets `[crossplay] the server cleared the chat - empty lines left out (N so far)`.
   - **Long lines split cleanly:** SA-MP lines are up to 144 characters and MP chat lines 128. A longer line is now cut at a space, never inside a letter (ñ, é...) or a `{RRGGBB}` code, and the second part keeps the colour the first one ended with. Before, the rest of the line came out in the wrong colour or as garbage.
