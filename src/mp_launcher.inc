@@ -627,15 +627,100 @@ static const char* OmpEmptyText()
 // 5.02.17: the ReSA tab - the same open.mp / SA-MP list, but Join opens ReSA Multiplayer (com.alyn.resamp, its own
 // engine for SA-MP 0.3.7 / 0.3.DL / open.mp) on that server: resa://connect?host=IP&port=PORT (resa-mp.com/join links).
 // Not installed: resa-mp.com/join?host=..&port=.. opens instead (its Download button). The APK is a release asset.
+// 5.02.17: Alyn's own ReSA server list (alynsampmobile.pro/servers) comes first: its JSON API
+// {"servers":[{"host":"185.239.237.91","port":"7777","featured":true,"verified":true},...]} has no names, so a name
+// comes from the open.mp list (same address), else the names the site showed (Nov 2026), else host:port.
+#define MP_ALYN_LIST_URL "https://alynsampmobile.pro/api/servers"
+struct AlynSrv { std::string host; int port = 0; bool featured = false, verified = false; };
+static std::vector<AlynSrv> s_AlynList;   // under s_OmpMx
+static std::atomic<int>     s_nAlynState{0};
+static uint64_t             s_nAlynAt = 0;
+static const struct { const char* addr; const char* name; const char* region; } kAlynNames[] = {
+    { "185.239.237.91:7777",          "Life of Player - International RolePlay [Android / PC]", "Germany" },
+    { "193.106.248.215:4050",         ".: Zona America del Sur FreeRoam :. (Android/PC)", "United States" },
+    { "play.zombieland-zrp.net:7777", "ZombieLand Roleplay | [PC/Android]", "United States" },
+    { "play-dsl.com:7777",            ".:( DesmadreSinLimites ):. [ Score x2 ]", "United States" },
+    { "46.174.55.166:7777",           "Meow Freeroam", "Russia" },
+    { "rp.eu-rp.com:7777",            "[ENG] Europa RolePlay | Ship Wars [Android-Pc]", "The Netherlands" },
+    { "51.254.178.238:7777",          "[ENG] Valrise RPG [Android/PC]", "United Kingdom" },
+    { "91.134.166.76:8085",           "..::!! Stunt Earth !!::.. [PC/Android]", "France" },
+    { "104.234.189.170:7777",         "Brasil Play Games", "Brazil" },
+};
+static void AlynParse(const std::string& j, std::vector<AlynSrv>& out)
+{   // flat objects: read "host", "port" (a string or a number), "featured", "verified" of each {...}
+    auto val = [](const std::string& o, const char* k) -> std::string {
+        std::string key = std::string("\"") + k + "\""; size_t p = o.find(key); if(p == std::string::npos) return "";
+        p = o.find(':', p + key.size()); if(p == std::string::npos) return ""; ++p;
+        while(p < o.size() && o[p] == ' ') ++p;
+        if(p < o.size() && o[p] == '"') { size_t e = o.find('"', p + 1); return e == std::string::npos ? "" : o.substr(p + 1, e - p - 1); }
+        size_t e = p; while(e < o.size() && o[e] != ',' && o[e] != '}') ++e; return o.substr(p, e - p);
+    };
+    size_t i = j.find('[');
+    while(i != std::string::npos && out.size() < 500)
+    {
+        size_t a = j.find('{', i); if(a == std::string::npos) break;
+        size_t b = j.find('}', a); if(b == std::string::npos) break;
+        const std::string o = j.substr(a, b - a + 1); i = b + 1;
+        AlynSrv s; s.host = val(o, "host"); s.port = atoi(val(o, "port").c_str());
+        s.featured = val(o, "featured").compare(0, 4, "true") == 0; s.verified = val(o, "verified").compare(0, 4, "true") == 0;
+        if(s.host.empty() || s.host.size() > 60 || s.port <= 0 || s.port > 65535) continue;
+        out.push_back(s);
+    }
+    std::stable_sort(out.begin(), out.end(), [](const AlynSrv& x, const AlynSrv& y) { return (x.featured * 2 + x.verified) > (y.featured * 2 + y.verified); });
+}
+static void AlynListKick(bool force = false)
+{
+    const uint64_t now = MP_NowMs();
+    if(s_nAlynState == 1 || (!force && s_nAlynAt && now - s_nAlynAt < (s_nAlynState == 3 ? 30000u : 120000u))) return;
+    s_nAlynAt = now; s_nAlynState = 1;
+    std::thread([]() {
+        std::string body, why; std::vector<AlynSrv> v;
+        const bool ok = Online::HttpsFetch(MP_ALYN_LIST_URL, body, 15000, why, 1u << 20);
+        if(ok) AlynParse(body, v);
+        const bool good = ok && !v.empty();
+        if(logger) logger->Info("ReSA list: %s (%d servers%s%s)", good ? "ok" : "failed", (int)v.size(), why.empty() ? "" : ", ", why.c_str());
+        { std::lock_guard<std::mutex> lk(s_OmpMx); if(good) s_AlynList.swap(v); }
+        s_nAlynState = good ? 2 : 3;
+    }).detach();
+}
+static int AlynCount() { std::lock_guard<std::mutex> lk(s_OmpMx); return (int)s_AlynList.size(); }
 static void ResaRows(std::vector<LRow>& rows)
 {
-    OmpRows(rows);
-    for(LRow& q : rows)
+    AlynListKick();
+    std::vector<LRow> omp; OmpRows(omp);
+    std::vector<AlynSrv> al; { std::lock_guard<std::mutex> lk(s_OmpMx); al = s_AlynList; }
+    if(al.empty()) for(auto& k : kAlynNames)
+    {   // the list is not read yet (or failed): the servers the site showed
+        AlynSrv a; const char* c = strrchr(k.addr, ':'); a.host.assign(k.addr, c - k.addr); a.port = atoi(c + 1); al.push_back(a);
+    }
+    for(const AlynSrv& a : al)
     {
+        char addr[80]; snprintf(addr, sizeof(addr), "%s:%d", a.host.c_str(), a.port);
+        LRow q; memset(&q, 0, sizeof(q)); bool found = false;
+        for(auto it = omp.begin(); it != omp.end(); ++it)
+            if(it->port == a.port && !strcasecmp(it->ip, a.host.c_str())) { q = *it; omp.erase(it); found = true; break; }
+        if(!found)
+        {
+            const char* nm = addr; const char* rg = "";
+            for(auto& k : kAlynNames) if(!strcasecmp(k.addr, addr)) { nm = k.name; rg = k.region; }
+            OmpCut(q.name, sizeof(q.name), nm); OmpCut(q.ip, sizeof(q.ip), a.host); q.port = a.port;
+            q.ping = -1; q.region = -1; q.saved = -1; q.live = true; q.internet = true; q.players = -1;
+            OmpCut(q.lang, sizeof(q.lang), rg);
+            if(s_szSearch[0] && !LMatch(q.name) && !LMatch(addr)) continue;
+        }
         q.kind = 9; q.on = false;
-        snprintf(q.tags, sizeof(q.tags), "ReSA");
-        char d[160]; snprintf(d, sizeof(d), "Opens %s:%d in ReSA Multiplayer (mobile SA-MP / open.mp client). Same server as PC and MP crossplay players.", q.ip, q.port);
+        snprintf(q.tags, sizeof(q.tags), "%s", a.featured ? "ReSA featured" : a.verified ? "ReSA verified" : "ReSA");
+        char d[200]; snprintf(d, sizeof(d), "On the ReSA list (alynsampmobile.pro). Opens %s in ReSA Multiplayer.", addr);
         OmpCut(q.desc, sizeof(q.desc), d);
+        rows.push_back(q);
+    }
+    for(LRow& q : omp)
+    {   // then every open.mp / SA-MP server - ReSA joins those too
+        q.kind = 9; q.on = false;
+        snprintf(q.tags, sizeof(q.tags), "%s", "open.mp");
+        char d[200]; snprintf(d, sizeof(d), "Opens %s:%d in ReSA Multiplayer (mobile SA-MP / open.mp client). Same server as PC and MP crossplay players.", q.ip, q.port);
+        OmpCut(q.desc, sizeof(q.desc), d);
+        rows.push_back(q);
     }
 }
 static void ResaOpen(const char* ip, int port)
@@ -1298,7 +1383,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
         else if(st8 == 3) snprintf(st, sizeof(st), "Could not read the open.mp list%s - tap Refresh", n ? " (showing the last one)" : "");
         else if(st8 == 2) snprintf(st, sizeof(st), "%d servers on open.mp (%d shown%s)  -  updated %us ago", n, (int)rows.size(), (OmpSearchPw() ? OmpSearchPw() : s_nOmpPwFilter) == 1 ? ", with a password" : (OmpSearchPw() ? OmpSearchPw() : s_nOmpPwFilter) == 2 ? ", no password" : "", ago);
         else snprintf(st, sizeof(st), "open.mp server list");
-        if(s_nInetSub == 3 && st8 == 2) snprintf(st, sizeof(st), "%d servers - Join opens ReSA Multiplayer (no ReSA yet: its download page opens)", n);   // 5.02.17
+        if(s_nInetSub == 3) snprintf(st, sizeof(st), "%d ReSA + %d open.mp servers - Join opens ReSA Multiplayer (no ReSA yet: its download page opens)", AlynCount(), n);   // 5.02.17
         const float bh = barH - UI::S(12);
         const char* bl = "Refresh";
         const float bw = bh * 0.55f + bh * 0.42f + ImGui::CalcTextSize(bl).x + bh * 0.35f;
@@ -1310,7 +1395,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
             dl->PopClipRect();
         }
         ImGui::SetCursorScreenPos(ImVec2(p.x + W - bw - UI::S(8), p.y + UI::S(6)));
-        if(LToolButton("omprefresh", IC_REFRESH, bl, bh, st8 != 1)) { OmpListKick(true); if(logger) logger->Info("open.mp list: Refresh tapped"); }
+        if(LToolButton("omprefresh", IC_REFRESH, bl, bh, st8 != 1)) { OmpListKick(true); if(s_nInetSub == 3) AlynListKick(true); if(logger) logger->Info("open.mp list: Refresh tapped"); }
         {   // 5.02.09: search the open.mp list (name, gamemode, language, IP or ip:port), x clears it
             const ImVec2 sa(p.x + W - bw - UI::S(20) - sw, p.y + UI::S(6));
             ImGui::SetCursorScreenPos(sa);
