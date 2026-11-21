@@ -2028,6 +2028,23 @@ extern "C" __attribute__((visibility("default"))) int MP_PopHit(int* ped, int* t
 // LAN server or the featured servers, never with "Block menu cheats". mods_loader.lua asks every second.
 static std::atomic<bool> s_bLuaCheatsOk{false};
 extern "C" __attribute__((visibility("default"))) int MP_LuaCheatsAllowed() { return s_bLuaCheatsOk.load() ? 1 : 0; }
+// 5.02.36: moonloader/autotranslate.lua (/autotranslate) switches MP's own language too: the request is kept here and
+// applied on the game thread (MP::Process), like picking it in Settings > Language.
+static std::mutex s_LangReqMx; static std::string s_LangReq; static std::atomic<bool> s_bLangReq{false};
+extern "C" __attribute__((visibility("default"))) int MP_LangRequest(const char* code)
+{
+    if(!code || !*code || strlen(code) > 15) return 0;
+    std::lock_guard<std::mutex> lk(s_LangReqMx); s_LangReq = code; s_bLangReq = true; return 1;
+}
+extern "C" __attribute__((visibility("default"))) const char* MP_LangCurrent() { return I18n::CurrentCode(); }
+static void LangReqTick()
+{
+    if(!s_bLangReq.load()) return;
+    std::string c; { std::lock_guard<std::mutex> lk(s_LangReqMx); c = s_LangReq; s_bLangReq = false; }
+    if(!strcmp(c.c_str(), I18n::CurrentCode())) return;
+    if(I18n::Set(c.c_str())) { MP_CopyStr(settings.uiLanguage, c.c_str(), sizeof(settings.uiLanguage)); SaveConfig(); logger->Info("Auto Translate: MP language -> %s", c.c_str()); }
+    else logger->Info("Auto Translate: language %s: %s", c.c_str(), I18n::LastError());
+}
 
 static void PredictKill(int target, float amount, uint8_t weapon)
 {
@@ -4648,6 +4665,7 @@ void MP::Process()
     uint64_t now = MP_NowMs();
     EnforceServerModes();   // 3.35
     LuaCmdTick(now);
+    LangReqTick();   // 5.02.36
     NeonFileTick(now);
     NeonMusicInGame();   // 5.01.11
     {   // 2.18.3: remember where the MP MENU | CHAT buttons were dropped
@@ -7783,6 +7801,9 @@ static void SoloStop() { if(s_bSoloOn) { Sound::StreamStop(); s_bSoloOn = false;
 static void SoloTick()   // the 2nd URL (the release asset) when the media host doesn't answer
 {
     if(!s_bSoloOn) return;
+    // 5.02.36: Solo was silent - the media player connected to the URL but nothing on Broker MQQ called
+    // StreamUpdate (only Day Z / the neon menu / SA-MP audio did), so the ready player was never started.
+    Sound::StreamUpdate();
     if(!Sound::StreamActive())
     {
         const bool failed = !Sound::StreamEnded();
@@ -7817,6 +7838,7 @@ static void SoundsVolumeSection()
     SoundVolLoad();
     const uint64_t now = MP_NowMs();
     SoundScanLocal(now);
+    Sound::StreamUpdate();   // 5.02.36: the Play / Test buttons start here too (in the menu, not only in game)
     bool changed = false;
     ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
     // the Solo media player

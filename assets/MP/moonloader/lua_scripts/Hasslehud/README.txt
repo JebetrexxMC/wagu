@@ -14,5 +14,6 @@ Use      /hasslehud in chat opens the panel (HUD / CORES / CRÉDITOS). The panel
 Missing? moon icon on the top bar > Script Manager > Download HassleHUD (20 MB) puts this folder here
          (Host/Mods/Hasslehud.zip of the wagu repo).
 Switch   moon icon on the top bar > Script Manager > lua_scripts/ > Hasslehud > switch. Kept after a restart.
-Notes    libGIF.so is a 32-bit ARM file: on a 64-bit game the fist animation stays empty, the rest works.
+Notes    libGIF.so (32-bit, and Android never loads a .so from shared storage) is replaced by MP: since 5.02.36
+         MP has the same extractGif(), so the fist GIF frames work on 32-bit and 64-bit games.
          Left out of the zip: Windows .dll files, .svn data, ~ backups and "(1)" copies.

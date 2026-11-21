@@ -1409,7 +1409,30 @@ static std::string LuaModRunner(const std::string& src)
   local okf, ffi = pcall(require, 'ffi')
   if okf and type(ffi) == 'table' and ffi.load then
     local load, pkgn = ffi.load, n(__mp_pkg .. '/')
+    -- 5.02.36: HassleHUD's libGIF.so never loads from shared storage (Android does not dlopen a .so from there): MP
+    -- exports the same extractGif(), so the fist GIF frames are made by MP's own library
+    local mpgif
+    local function mpLib()
+      if mpgif ~= nil then return mpgif or nil end
+      mpgif = false
+      local so = ffi.abi('64bit') and 'libMP64.so' or 'libMP32.so'
+      local names = { so:sub(4, -4), so }
+      local maps = io.open('/proc/self/maps', 'r')
+      if maps then
+        for l in maps:lines() do local p = l:match('(/%S*/' .. so:gsub('%.', '%%.') .. ')$') if p then table.insert(names, 1, p) break end end
+        maps:close()
+      end
+      for _, m in ipairs(names) do
+        local okl, lib = pcall(load, m)
+        if okl and lib and pcall(function() return lib.extractGif end) then mpgif = lib break end
+      end
+      return mpgif or nil
+    end
     ffi.load = function(name, ...)
+      if type(name) == 'string' and n(name):match('libgif%.so$') then
+        local lib = mpLib()
+        if lib then print('[LuaScripts] ' .. name .. ' -> MP\'s built-in extractGif') return lib end
+      end
       local ok, lib = pcall(load, name, ...)
       if ok then return lib end
       if type(name) == 'string' and n(name):sub(1, #pkgn) == pkgn then
