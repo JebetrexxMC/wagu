@@ -103,6 +103,15 @@ public:
     // "Welcome to <server>". {name} / {server} are filled in by the phone, {RRGGBB} colours work.
     void SetWelcome(const char* text) { std::lock_guard<std::mutex> lk(m_WelcomeMx); m_sWelcome = text ? text : ""; if(m_sWelcome.size() > MP_CHAT_LEN - 1) m_sWelcome.resize(MP_CHAT_LEN - 1); }
     std::string GetWelcome() const { std::lock_guard<std::mutex> lk(m_WelcomeMx); return m_sWelcome; }
+    // 5.02.41: BrowserFormat Join/Leave with the owner's own lines ("" = the built in browser format)
+    void SetJoinLeaveFmt(const char* join, const char* leave)
+    {
+        std::lock_guard<std::mutex> lk(m_WelcomeMx);
+        m_sJoinFmt = join ? join : ""; m_sLeaveFmt = leave ? leave : "";
+        if(m_sJoinFmt.size() > MP_CHAT_LEN - 1) m_sJoinFmt.resize(MP_CHAT_LEN - 1);
+        if(m_sLeaveFmt.size() > MP_CHAT_LEN - 1) m_sLeaveFmt.resize(MP_CHAT_LEN - 1);
+    }
+    void GetJoinLeaveFmt(std::string& join, std::string& leave) const { std::lock_guard<std::mutex> lk(m_WelcomeMx); join = m_sJoinFmt; leave = m_sLeaveFmt; }
     // 4.12: open.mp cross-play bridge (crossplay/mp_crossplay.cpp, an open.mp server component).
     // Each PC player on the open.mp server is a "ghost" slot here (no address: nothing is sent to it),
     // each phone player here becomes an open.mp NPC there. All calls lock m_Mutex (any thread).
@@ -344,6 +353,7 @@ private:
     uint8_t m_nModes2 = 0;                    // 5.02.31 (under m_Mutex)
     mutable std::mutex m_WelcomeMx;   // 5.00.08
     std::string m_sWelcome;
+    std::string m_sJoinFmt, m_sLeaveFmt;   // 5.02.41
     std::atomic<uint8_t> m_nGame{0};   // 4.13.35
     std::atomic<bool> m_bBridge{false};                       // 4.12
     class SampGate* m_pGate = nullptr;                        // 5.02 (set / cleared under m_Mutex)

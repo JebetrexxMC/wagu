@@ -856,7 +856,25 @@ static void DrawWeaponIcon(ImDrawList* dl, ImVec2 c, float s, uint8_t weapon)
         L(-0.12f, 0.02f, 0.02f, 0.16f, 0.08f);
         L(0.25f, -0.25f, 0.38f, -0.38f, 0.06f);
     }
-    else if(weapon >= 16 && weapon <= 18 || weapon == 39 || weapon == 51) // explosives
+    else if(weapon == 16)                           // 5.02.41: grenade - a frag grenade with its lever, pin ring and a spark
+    {
+        auto P = [&](float x, float y) { return ImVec2(c.x + x * s, c.y + y * s); };
+        const ImU32 K = IM_COL32(0, 0, 0, 220), O = IM_COL32(255, 150, 30, 255);
+        dl->AddCircleFilled(P(-0.04f, 0.10f), 0.25f * s, W, 20);                              // body
+        L(-0.22f, 0.02f, 0.14f, 0.02f, 0.025f); L(-0.24f, 0.13f, 0.16f, 0.13f, 0.025f);        // the frag grooves
+        L(-0.04f, -0.12f, -0.04f, 0.32f, 0.025f);
+        dl->AddLine(P(-0.22f, 0.02f), P(0.14f, 0.02f), K, 0.025f * s); dl->AddLine(P(-0.24f, 0.13f), P(0.16f, 0.13f), K, 0.025f * s);
+        dl->AddLine(P(-0.04f, -0.12f), P(-0.04f, 0.32f), K, 0.025f * s);
+        R(-0.12f, -0.24f, 0.04f, -0.13f);                                                      // the fuse head
+        dl->AddQuadFilled(P(0.02f, -0.24f), P(0.20f, -0.20f), P(0.22f, 0.04f), P(0.15f, 0.04f), W);   // the lever (spoon)
+        dl->AddCircle(P(-0.19f, -0.23f), 0.075f * s, W, 12, 0.035f * s);                       // the pin ring
+        for(int i = 0; i < 5; ++i)                                                              // spark at the fuse
+        {
+            const float a = -2.6f + i * 0.35f;
+            dl->AddLine(P(-0.04f + cosf(a) * 0.04f, -0.26f + sinf(a) * 0.04f), P(-0.04f + cosf(a) * 0.15f, -0.26f + sinf(a) * 0.15f), O, 0.035f * s);
+        }
+    }
+    else if(weapon >= 17 && weapon <= 18 || weapon == 39 || weapon == 51) // explosives
     {
         dl->AddCircleFilled(c, 0.22f * s, W, 16);
         for(int i = 0; i < 8; ++i) { float a = i * 0.785f; L(cosf(a) * 0.22f, sinf(a) * 0.22f, cosf(a) * 0.40f, sinf(a) * 0.40f, 0.07f); }
@@ -1266,9 +1284,10 @@ static void DrawKillFeed(ImDrawList* dl)
         const float fs = fs0, icon = icon0;
         ImVec2 ic(cx, y + icon * 0.5f);
         dl->AddRectFilled(ImVec2(ic.x - icon * 0.5f, y), ImVec2(ic.x + icon * 0.5f, y + icon), IM_COL32(0, 0, 0, 200), UI::S(4));
+        if(k.weapon == 16 && !(k.airModel && MP_AirKind(k.airModel))) dl->AddRect(ImVec2(ic.x - icon * 0.5f, y), ImVec2(ic.x + icon * 0.5f, y + icon), IM_COL32(255, 150, 30, 200), UI::S(4), 0, UI::S(2));   // 5.02.41: grenade kill
         if(k.airModel && MP_AirKind(k.airModel))   // 5.00.04: died in a heli / jet / plane - crash / shot / blast / fire
             MP_DrawAirKillIcon(dl, ic, icon, MP_AirKind(k.airModel), k.weapon);
-        else if(wtex && k.weapon <= 46 && (k.weapon < 19 || k.weapon > 21))
+        else if(wtex && k.weapon <= 46 && k.weapon != 16 && (k.weapon < 19 || k.weapon > 21))   // 5.02.41: grenade = its own drawn icon
         {
             const int col = k.weapon % 8, row = k.weapon / 8;
             const float e = 0.004f;   // keep the neighbour cell out of the filtering

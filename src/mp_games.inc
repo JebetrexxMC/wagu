@@ -1020,7 +1020,7 @@ static int ScoreSegsBuild(Game::HudSeg* seg)
 }
 static int ScoreBarSegs(Game::HudSeg* out, int maxOut)
 {
-    if(maxOut < 4 || !Game::IsReady() || JoinFlowActive() || client.GetState() != NET_CONNECTED) return 0;
+    if(maxOut < 4 || !Game::IsReady() || JoinFlowActive() || client.GetState() != NET_CONNECTED || FloatMenu::IsModal()) return 0;   // 5.02.41: no score bar over the launcher
     if(UI::PricedownFont()) return 0;   // the Pricedown .ttf is drawn by MP below, not by the game
     return ScoreSegsBuild(out);
 }
@@ -1081,7 +1081,8 @@ static void RenderGames()
     ImDrawList* dl = ImGui::GetBackgroundDrawList();
     const ImVec2 ds = ImGui::GetIO().DisplaySize;
     ImFont* pd = UI::PricedownFont();
-    if(pd || !Game::HudTextActive())   // Pricedown .ttf (or Arial if neither it nor the game font works)
+    const bool launcher = FloatMenu::IsModal();   // 5.02.41: the MP launcher (⋮ > Server) is open: no score bar / DM line over it
+    if(!launcher && (pd || !Game::HudTextActive()))   // Pricedown .ttf (or Arial if neither it nor the game font works)
     {
         ImFont* f = pd ? pd : UI::Font();
         const float fs = pd ? UI::S(34.0f) : UI::S(24.0f), gap = UI::S(16);
@@ -1101,7 +1102,7 @@ static void RenderGames()
         }
     }
     UpdateEventTextDraws();
-    if(s_Ev.kind != EV_DM) return;
+    if(s_Ev.kind != EV_DM || launcher) return;
     char ev[160] = "";
     snprintf(ev, sizeof(ev), "%s  -  kills %d  -  streak %d  -  /leave to quit", kDms[s_Ev.idx].name, s_nDmScore, s_Ev.streak);
     float fe = UI::S(30.0f);

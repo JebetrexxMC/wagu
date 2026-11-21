@@ -14,10 +14,10 @@
 // phones refuse servers older than that too (they would let old phones in).
 // 3.10: build 31000. MP_MIN_BUILD stays 30406 and the lobby stays thirtyfox/mp5/: 3.04.6 (no cheats)
 // and 3.10 phones play together on the same servers; only 3.04.5 and older (mp4) stay shut out.
-#define MP_BUILD 50240
+#define MP_BUILD 50241
 #define MP_MIN_BUILD       30406
 #define MP_AUTH_MIN_BUILD  32106   // 3.21.6: servers with the login system refuse older phones (they could not log in)
-#define MP_VERSION_STR     "5.02.40"
+#define MP_VERSION_STR     "5.02.41"
 #define MP_VOICE_BUILD     31100   // 3.11: phones from this build on get voice packets
 #define MP_DOWNLOAD_URL    "mpsamp-open.github.io"   // 4.05.4: new website (mpsamp-open org); jebetrexxmc.github.io/wagu still works as a backup
 #define MP_DEFAULT_HOST    "127.0.0.1"
@@ -477,6 +477,8 @@ struct PktWelcome3    { PktWelcome2 w2; uint32_t flags; };   // 4.12: + server f
 #define MP_SRVF_BROWSERFMT 0x08   // 5.02.31: Add server > BrowserFormat Join/Leave (the default server: always)
 #define MP_SRVF_WELCOME 0x04   // 5.00.08: a custom welcome message follows the welcome (PktServerMsg, color MP_WELCOME_COLOR)
 #define MP_WELCOME_COLOR 0xFFFFFFFEu   // 5.00.08: 5.00.08+ phones keep it for "Welcome to ..." (older ones just show the line)
+#define MP_JOINFMT_COLOR 0xFFFFFFFDu    // 5.02.41: the custom server's own BrowserFormat join line (sent after the welcome, kept by the phone)
+#define MP_LEAVEFMT_COLOR 0xFFFFFFFCu   // 5.02.41: ... and its leave line. {name} {server} {reason} are filled in by the phone
 struct PktReject      { uint8_t type; uint8_t reason; };
 struct PktPlayerJoin  { uint8_t type; uint8_t id; char name[MP_NAME_LEN]; uint32_t color; uint16_t skin; };
 struct PktPlayerLeave { uint8_t type; uint8_t id; uint8_t reason; };

@@ -131,7 +131,7 @@ static void ProcessSafeZones(int ped, uint64_t now)
 static void RenderSafeZones()
 {
     if(client.GetState() != NET_CONNECTED || BcwOnServer() || Mw3OnServer() || RpOnServer() || !Game::IsReady() || Game::IsPaused()) return;
-    if(MP::AuthScreenShown() || JoinFlowActive()) return;   // 3.21.8: nothing over the login / join screens
+    if(MP::AuthScreenShown() || JoinFlowActive() || FloatMenu::IsModal()) return;   // 5.02.41: + the launcher   // 3.21.8: nothing over the login / join screens
     float now = (float)(MP_NowMs() % 100000000ULL);
     ImDrawList* bg = ImGui::GetBackgroundDrawList();
     for(int i = 0; i < g_MPSafeZoneCount; ++i)

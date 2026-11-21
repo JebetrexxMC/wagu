@@ -137,7 +137,7 @@ static bool HudDrawServerLogo(ImDrawList* dl)
 // ---- HUD Player + Ammo Info (every server except the ones with their own full HUD) ----------------
 static void HudRenderExtras()
 {
-    if(client.GetState() != NET_CONNECTED || !Game::IsReady() || Game::IsPaused() || !myDrawValid || !HudOn()) return;
+    if(client.GetState() != NET_CONNECTED || !Game::IsReady() || Game::IsPaused() || !myDrawValid || !HudOn() || FloatMenu::IsModal()) return;   // 5.02.41
     if(DzOnServer() || Mw3OnServer() || BcwOnServer() || MP::AuthScreenShown()) return;
     int ped = Game::LocalPed(); if(ped <= 0) return;
     ImDrawList* dl = ImGui::GetForegroundDrawList();

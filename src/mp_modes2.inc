@@ -509,7 +509,7 @@ static void Modes2Process(int ped, uint64_t now)
 }
 static void Modes2Render()
 {
-    if(client.GetState() != NET_CONNECTED || Game::IsPaused() || !myDrawValid) return;
+    if(client.GetState() != NET_CONNECTED || Game::IsPaused() || !myDrawValid || FloatMenu::IsModal()) return;   // 5.02.41: not over the launcher
     ImDrawList* bg = ImGui::GetBackgroundDrawList(); ImDrawList* fg = ImGui::GetForegroundDrawList();
     float y = UI::S(170); const float now = (float)ImGui::GetTime();
     CnrRender(fg, y); AdRender(bg, fg, y, now); DriftRender(fg, y); SvRender(bg, fg, y, now); TimberRender(bg, fg, y, now); DefaultLogoRender();

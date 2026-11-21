@@ -220,7 +220,7 @@ static void NeedsIconFuel(ImDrawList* dl, ImVec2 c, float r)
 }
 static void NeedsRender()
 {
-    if(!NeedsOn() || Game::IsPaused() || !myDrawValid) return;
+    if(!NeedsOn() || Game::IsPaused() || !myDrawValid || FloatMenu::IsModal()) return;   // 5.02.41: not over the launcher
     ImDrawList* dl = ImGui::GetForegroundDrawList();
     const ImVec2 ds = ImGui::GetIO().DisplaySize;
     const float sz = UI::S(92.0f), gap = UI::S(10.0f), m = UI::S(18.0f);

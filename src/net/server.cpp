@@ -1138,6 +1138,18 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
                 MP_CopyStr(wm.text, welcome.c_str(), sizeof(wm.text));
                 SendTo(slot, &wm, sizeof(wm));
             }
+            if(m_bBrowserFmt && !IsDefaultServer() && !IsBcwServer() && s.build >= 50241)
+            {   // 5.02.41 (older phones would print the template as a chat line): the owner's own join / leave lines (Add server > BrowserFormat Join/Leave)
+                std::string jf, lf; GetJoinLeaveFmt(jf, lf);
+                for(int k = 0; k < 2; ++k)
+                {
+                    const std::string& f = k ? lf : jf;
+                    if(f.empty()) continue;
+                    PktServerMsg fm; memset(&fm, 0, sizeof(fm)); fm.type = PKT_SERVER_MSG; fm.color = k ? MP_LEAVEFMT_COLOR : MP_JOINFMT_COLOR;
+                    MP_CopyStr(fm.text, f.c_str(), sizeof(fm.text));
+                    SendTo(slot, &fm, sizeof(fm));
+                }
+            }
 
             // tell the newcomer about everyone (including itself, so it knows its final name/colour)
             for(int i = 0; i < MP_MAX_PLAYERS; ++i)

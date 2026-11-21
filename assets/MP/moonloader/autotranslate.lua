@@ -1,11 +1,14 @@
--- MP Auto Translate (MP 5.02.36)
+-- MP Auto Translate (MP 5.02.41)
+-- 5.02.41: the translated line is private - it is added to YOUR chat box only (sampAddChatMessage), nothing is sent
+-- to the server, nobody else sees it. Players' English chat ("hello" -> Indonesian "halo"), server lines and (new)
+-- your own messages get one: "[TR] name: halo". /at test <text> shows a translation right away to check the setup.
 -- /autotranslate (or /auto translate) opens a plain mimgui window - not an MP window - with the 20 languages of
 -- files/TYFMC/MP/lang/. Press your language: English chat lines get a translated line under them, and (optional) MP's
 -- own menus switch to the same language page (lang/<code>.lng). Translations come from Google Translate over the
 -- internet (Wi-Fi or mobile data); nothing is sent when the window is set to "Off (English)".
 script_name('MP Auto Translate')
 script_author('JebetrexxMC')
-script_version('1.0-mp')
+script_version('1.1-mp')
 script_description('/autotranslate - translate English chat into your language (20 languages)')
 
 local imgui = require 'mimgui'
@@ -27,9 +30,9 @@ local LANGS = {
 }
 
 local CFG = getWorkingDirectory() .. '/config/autotranslate.txt'
-local cfg = { lang = '', chat = true, mplang = true, players = true }
+local cfg = { lang = '', chat = true, mplang = true, players = true, mine = true }
 local show = new.bool(false)
-local bChat, bMpLang, bPlayers = new.bool(true), new.bool(true), new.bool(true)
+local bChat, bMpLang, bPlayers, bMine = new.bool(true), new.bool(true), new.bool(true), new.bool(true)
 local cache, cacheN = {}, 0
 local busy, queue = 0, {}
 local MAX_BUSY = 3
@@ -46,7 +49,7 @@ end
 local function saveCfg()
   local f = io.open(CFG, 'w'); if not f then return end
   f:write('# MP Auto Translate (/autotranslate)\n')
-  f:write(('lang=%s\nchat=%s\nmplang=%s\nplayers=%s\n'):format(cfg.lang, cfg.chat and 1 or 0, cfg.mplang and 1 or 0, cfg.players and 1 or 0))
+  f:write(('lang=%s\nchat=%s\nmplang=%s\nplayers=%s\nmine=%s\n'):format(cfg.lang, cfg.chat and 1 or 0, cfg.mplang and 1 or 0, cfg.players and 1 or 0, cfg.mine and 1 or 0))
   f:close()
 end
 
@@ -136,7 +139,12 @@ local function pump()
     busy = busy + 1
     translate(job.text, job.tl, function(out)
       busy = busy - 1
-      if out and out ~= '' then sampAddChatMessage('{9CA3AF}[TR] {E5E7EB}' .. job.who .. out, -1) end
+      if out and out ~= '' then
+        -- local only: this line is never sent, only you see it
+        sampAddChatMessage('{9CA3AF}[TR] {FFFF00}' .. job.who .. '{E5E7EB}' .. out, -1)
+      elseif job.test then
+        say(out == nil and 'no translation (no internet, or it is already in that language).' or 'already in that language.')
+      end
       pump()
     end)
   end
@@ -148,13 +156,19 @@ local function wantLine(t)
   if #t < 2 or #t > 400 then return false end
   return t:find('%a%a') ~= nil
 end
-local function push(text, who)
+local function push(text, who, test)
   local L = langOf(cfg.lang); if not L then return end
   local t = plain(text)
-  if not wantLine(t) then return end
+  if not test and not wantLine(t) then return end
+  if #t < 1 then return end
   if #queue > 20 then table.remove(queue, 1) end
-  queue[#queue + 1] = { text = t, tl = L[3], who = who or '' }
+  queue[#queue + 1] = { text = t, tl = L[3], who = who or '', test = test }
   pump()
+end
+local function myName()
+  local ok, r, id = pcall(sampGetPlayerIdByCharHandle, PLAYER_PED)
+  if ok and r and id then local okn, n = pcall(sampGetPlayerNickname, id) if okn and n then return n end end
+  return 'You'
 end
 
 local function pick(code)
@@ -183,6 +197,7 @@ imgui.OnFrame(function() return show[0] end, function()
     if imgui.Checkbox('Translate the chat', bChat) then cfg.chat = bChat[0]; saveCfg() end
     imgui.SameLine()
     if imgui.Checkbox("Players' chat too", bPlayers) then cfg.players = bPlayers[0]; saveCfg() end
+    if imgui.Checkbox('My own messages too (only I see the line)', bMine) then cfg.mine = bMine[0]; saveCfg() end
     if imgui.Checkbox("Switch MP's menus to the same language", bMpLang) then cfg.mplang = bMpLang[0]; saveCfg() end
     imgui.Separator()
     local avail = imgui.GetContentRegionAvail().x
@@ -197,7 +212,8 @@ imgui.OnFrame(function() return show[0] end, function()
       if i % 2 == 1 then imgui.SameLine() end
     end
     imgui.Separator()
-    imgui.TextDisabled('Uses Google Translate over the internet. Close: the X at the top.')
+    imgui.TextDisabled('The [TR] lines are only in your chat box - nothing is sent, nobody else sees them.')
+    imgui.TextDisabled('Check it: /at test hello. Uses Google Translate over the internet.')
     if imgui.Button('Close', imgui.ImVec2(avail, bh)) then show[0] = false end
   end
   imgui.End()
@@ -208,10 +224,15 @@ local function open() show[0] = not show[0] end
 function main()
   while not isSampLoaded() do wait(100) end
   loadCfg()
-  bChat[0], bMpLang[0], bPlayers[0] = cfg.chat, cfg.mplang, cfg.players
+  bChat[0], bMpLang[0], bPlayers[0], bMine[0] = cfg.chat, cfg.mplang, cfg.players, cfg.mine
   local ok, ev = pcall(require, 'samp.events')
   if ok and ev then
-    local prevS, prevC = ev.onServerMessage, ev.onChatMessage
+    local prevS, prevC, prevO = ev.onServerMessage, ev.onChatMessage, ev.onSendChat
+    ev.onSendChat = function(msg)
+      if prevO then local r = prevO(msg) if r ~= nil then return r end end
+      -- your own line goes to the server unchanged; the translation is only added to your chat box
+      if cfg.mine and type(msg) == 'string' and msg:sub(1, 1) ~= '/' then push(msg, myName() .. ': ') end
+    end
     ev.onServerMessage = function(color, text)
       if prevS then local r = prevS(color, text) if r ~= nil then return r end end
       push(text)
@@ -219,6 +240,9 @@ function main()
     ev.onChatMessage = function(id, text)
       if prevC then local r = prevC(id, text) if r ~= nil then return r end end
       if cfg.players then
+        -- my own line coming back from the server: already shown by onSendChat
+        local okm, r, me = pcall(sampGetPlayerIdByCharHandle, PLAYER_PED)
+        if cfg.mine and okm and r and me == id then return end
         local okn, name = pcall(sampGetPlayerNickname, id)
         push(text, okn and name and (name .. ': ') or '')
       end
@@ -231,6 +255,11 @@ function main()
   sampRegisterChatCommand('auto', function(arg)
     if (arg or ''):lower():match('^%s*translate') then open() else say('type /autotranslate (or /auto translate)') end
   end)
-  sampRegisterChatCommand('at', open)
+  sampRegisterChatCommand('at', function(arg)
+    local t = (arg or ''):match('^%s*test%s+(.+)$')
+    if t then
+      if cfg.lang == '' then say('pick a language first: /autotranslate') else push(t, 'test: ', true) end
+    else open() end
+  end)
   wait(-1)
 end

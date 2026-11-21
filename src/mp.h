@@ -106,6 +106,8 @@ struct MPSettings
     bool  phoneKeyboard     = false;   // 4.12.3: Settings > Display > Keyboard: false = MP keyboard, true = the phone's own
     int   hostModes2        = 0;       // 5.02.31: GM2_* (Bounty Hunter) of a NEW custom server I host
     bool  hostBrowserFmt    = false;   // 5.02.31: Add server > BrowserFormat Join/Leave (the default server: always on)
+    char  hostJoinFmt[MP_CHAT_LEN]  = "";   // 5.02.41: the owner's own join line ("" = the built in browser format), {name} {server}
+    char  hostLeaveFmt[MP_CHAT_LEN] = "";   // 5.02.41: ... and the leave line, {name} {server} {reason}
     bool  bountyWelcomeOn   = true;    // 5.02.31: Bounty Hunter: the bloody deathmatch welcome + blood logo in chat
     bool  bountySound       = true;
     bool  soloOnJoin        = true;    // 5.02.31: Host/Media/solo.m4a plays (to the end) when you join the default server (Broker MQQ)    // 5.02.31: Bounty Hunter: kill / multi-kill sound

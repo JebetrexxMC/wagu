@@ -498,6 +498,7 @@ static char s_szCurServer[32] = "";   // name of the server we are connected to
 static void SoloPlay(); static bool SoloIsOn(); static void SoloStop(); static void SoloTick(); static void SoundVolLoad();   // 5.02.31 (Settings > Sound)
 static void BountyOnJoined(); static void RegOnJoined();                                           // 5.02.31 (mp_bounty.inc / mp_register.inc)
 static char s_szCustomWelcome[MP_CHAT_LEN] = "";   // 5.00.08: the server's own welcome message (MP_SRVF_WELCOME)
+static char s_szSrvJoinFmt[MP_CHAT_LEN] = "", s_szSrvLeaveFmt[MP_CHAT_LEN] = "";   // 5.02.41: the custom server's own join / leave lines
 // {name} / {server} -> your name / the server name (the rest, {RRGGBB} colours too, as typed)
 static std::string WelcomeFill(const char* t)
 {
@@ -521,6 +522,21 @@ static void JoinLeaveMsg(const char* name, bool join, const char* why)
         if(join) SysMsg(COL_SYSTEM, "*** %s joined the server.", name);
         else if(why) SysMsg(COL_SYSTEM, "*** %s left the server. (%s)", name, why);
         else SysMsg(COL_SYSTEM, "*** %s left the server.", name);
+        return;
+    }
+    const char* own = join ? s_szSrvJoinFmt : s_szSrvLeaveFmt;
+    if(own[0] && !MP::IsOnDefault())
+    {   // 5.02.41: the owner's own line (Add server > BrowserFormat Join/Leave > Join / Leave format)
+        std::string o; bool hadReason = false;
+        for(const char* p = own; *p; )
+        {
+            if(!strncasecmp(p, "{name}", 6)) { o += name; p += 6; continue; }
+            if(!strncasecmp(p, "{server}", 8)) { o += s_szCurServer[0] ? MP_DisplayServerName(s_szCurServer) : "the server"; p += 8; continue; }
+            if(!strncasecmp(p, "{reason}", 8)) { o += why ? why : "Quit"; p += 8; hadReason = true; continue; }
+            o += *p++;
+        }
+        if(why && !hadReason) { o += " {808080}("; o += why; o += ")"; }
+        SysMsg(COL_WHITE, "%s", o.c_str());
         return;
     }
     SysMsg(COL_WHITE, "{9ACD32}#{808080}{{FFFF00}%s{808080}} {FF0000}<{FFA500}!{FF0000}> {808080}%s the server{FFFFFF}!%s%s%s",
@@ -1999,6 +2015,20 @@ static bool HitEvPop(HitEv& e)
     e = s_HitQ[s_nHitHead]; s_nHitHead = (s_nHitHead + 1) % 32; --s_nHitCount;
     return true;
 }
+// 5.02.41: grenade kills. The hit is reported with the weapon in the hand, but a grenade explodes after it left the
+// hand - the last one thrown switches you to fists, so the kill feed showed a fist. A big hit within 6 s of holding
+// grenades counts as the grenade (weapon 16), and the kill feed draws the new grenade icon for it.
+static uint64_t s_nGrenadeHeldMs = 0;
+static void NoteHeldWeapon(int w) { if(w == 16) s_nGrenadeHeldMs = MP_NowMs(); }
+static uint8_t HitWeapon(int localPed, float amount)
+{
+    const int w = Game::GetCharWeapon(localPed);
+    NoteHeldWeapon(w);
+    if(w == 16) return 16;
+    const bool recent = s_nGrenadeHeldMs && MP_NowMs() - s_nGrenadeHeldMs < 6000;
+    if(recent && amount >= 30.0f && (w == 0 || w == 1 || w == 16 || w == 51)) return 16;   // fists after the last throw / the explosion itself
+    return (uint8_t)w;
+}
 static void HitEvPlayer(int ped, int target, float amount, int weapon)
 {
     int flags = 0; float real = amount;
@@ -2164,7 +2194,7 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
         if(localPed && myId != MP_INVALID_ID && !p.paused && Game::HasCharBeenDamagedByChar(p.ped, localPed))
         {
             PktDamage d; d.type = PKT_DAMAGE; d.from = myId; d.target = (uint8_t)id;
-            d.weapon = (uint8_t)Game::GetCharWeapon(localPed); d.amount = 1000.0f;
+            d.amount = 1000.0f; d.weapon = HitWeapon(localPed, d.amount);   // 5.02.41: grenade kills
             if(!SafeBlocksHit(id) && RamDamage(localPed, p, d)) { client.Send(&d, sizeof(d)); HitEvPlayer(p.ped, id, d.amount, d.weapon); PredictKill(id, d.amount, d.weapon); PlayHitSound(); DmgIndAdd(id, d.amount, d.weapon); }   // 3.21: safe zones
         }
         DestroyAvatar(p);
@@ -2222,7 +2252,7 @@ static void UpdateRemote(int id, int localPed, uint64_t now)
             if(dmg > 0.5f)
             {
                 PktDamage d; d.type = PKT_DAMAGE; d.from = myId; d.target = (uint8_t)id;
-                d.weapon = (uint8_t)Game::GetCharWeapon(localPed); d.amount = dmg;
+                d.amount = dmg; d.weapon = HitWeapon(localPed, dmg);   // 5.02.41: grenade kills
                 if(!SafeBlocksHit(id) && RamDamage(localPed, p, d)) { client.Send(&d, sizeof(d)); HitEvPlayer(p.ped, id, d.amount, d.weapon); PredictKill(id, d.amount, d.weapon); PlayHitSound(); DmgIndAdd(id, d.amount, d.weapon); }   // 3.21: safe zones
             }
             else PlayHitSound();   // 3.00: a punch that landed but took (almost) no HP still sounds like a hit
@@ -2791,6 +2821,7 @@ public:
         myId = w.yourId; myColor = w.color;
         MP_CopyStr(s_szCurServer, w.serverName, sizeof(s_szCurServer));
         s_szCustomWelcome[0] = 0;   // 5.00.08: the welcome message (if any) comes right after this
+        s_szSrvJoinFmt[0] = s_szSrvLeaveFmt[0] = 0;   // 5.02.41: so do the server's own join / leave lines
         s_nInitialListUntil = MP_NowMs() + 1500;   // 5.01.01: the players already on the server come right after this
         LuaOnConnected(w.yourId, s_szCurServer);   // 4.13.29
         s_bWorldSynced = false;
@@ -3148,6 +3179,8 @@ public:
     {
         if(!settings.globalChat && RpOnServer() && !strncmp(m.text, "(( [OOC]", 8)) return;   // 3.35: player Settings > Global Chat off
         if(m.color == MP_WELCOME_COLOR) { MP_CopyStr(s_szCustomWelcome, m.text, sizeof(s_szCustomWelcome)); return; }   // 5.00.08: shown by FinishJoin
+        if(m.color == MP_JOINFMT_COLOR) { MP_CopyStr(s_szSrvJoinFmt, m.text, sizeof(s_szSrvJoinFmt)); return; }    // 5.02.41: used by JoinLeaveMsg
+        if(m.color == MP_LEAVEFMT_COLOR) { MP_CopyStr(s_szSrvLeaveFmt, m.text, sizeof(s_szSrvLeaveFmt)); return; }
         uint32_t col = m.color; std::string t = m.text;
         const std::string orig = t;
         if(!LuaOnClientMessage(col, t)) return;   // 4.13.29: samp.events onServerMessage
@@ -3217,6 +3250,7 @@ static void SendLocalSync(int ped, uint64_t now)
     int ar = Game::GetCharArmour(ped); if(ar < 0) ar = 0; if(ar > 255) ar = 255;
     d.health = (uint8_t)hp; d.armour = (uint8_t)ar;
     d.weapon = (uint8_t)Game::GetCharWeapon(ped);
+    NoteHeldWeapon(d.weapon);   // 5.02.41
     d.speed = Game::GetCharSpeed(ped);
     d.skin = (uint16_t)(settings.realSkin ? Game::LocalSkinForNet(settings.skin) : settings.skin);   // 2.19.6: your real model
     if(s_bLocalDead) d.flags |= SYNC_DEAD;
@@ -5399,6 +5433,7 @@ static bool StartLocalServer(const char* name, int port)
     s_Server.SetCineCam(settings.hostCineCam && !bcw && !MP::IsDefaultServer(name, port));   // 4.12
     s_Server.SetDevStage(settings.hostDevStage && !bcw && !MP::IsDefaultServer(name, port));   // 4.13.2
     s_Server.SetBrowserFmt(MP::IsDefaultServer(name, port) || (settings.hostBrowserFmt && !bcw));   // 5.02.31
+    s_Server.SetJoinLeaveFmt(MP::IsDefaultServer(name, port) || bcw ? "" : settings.hostJoinFmt, MP::IsDefaultServer(name, port) || bcw ? "" : settings.hostLeaveFmt);   // 5.02.41
     s_Server.SetWelcome(settings.hostWelcomeOn && !bcw && !MP::IsDefaultServer(name, port) ? settings.hostWelcome : "");   // 5.00.08
     MP_CopyStr(settings.hostedPassword, MP::IsDefaultServer(name, port) || bcw ? "" : s_szJoinPw, sizeof(settings.hostedPassword));
     ApplyServerPerms();   // 2.16
@@ -6096,7 +6131,7 @@ void MP::SaveConfig()
     F("NametagSize", settings.nametagSize); F("NametagDistance", settings.nametagDistance);
     B("ShowOwnNametag", settings.showOwnTag); B("ShowHealthBars", settings.showHealthBars); B("ShowRadarIcons", settings.showRadarIcons);
     B("ShowChat", settings.showChat); B("ShowKillFeed", settings.showKillFeed); B("ShowStatus", settings.showStatus);
-    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); I("HostGamemodes2", settings.hostModes2); B("HostBrowserFmt", settings.hostBrowserFmt); B("BountyWelcomeOn", settings.bountyWelcomeOn); B("BountySound", settings.bountySound); B("SoloOnJoin", settings.soloOnJoin); S("BountyWelcome", settings.bountyWelcome); B("HostWelcomeOn", settings.hostWelcomeOn); S("HostWelcome", settings.hostWelcome); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); B("HostPcGate", settings.hostPcGate); { char m[12]; snprintf(m, sizeof(m), "%d", settings.hostPcPort); S("HostPcPort", m); } S("PcServer", settings.pcServer); S("PcName", settings.pcName); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
+    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); I("HostGamemodes2", settings.hostModes2); B("HostBrowserFmt", settings.hostBrowserFmt); S("HostJoinFmt", settings.hostJoinFmt); S("HostLeaveFmt", settings.hostLeaveFmt); B("BountyWelcomeOn", settings.bountyWelcomeOn); B("BountySound", settings.bountySound); B("SoloOnJoin", settings.soloOnJoin); S("BountyWelcome", settings.bountyWelcome); B("HostWelcomeOn", settings.hostWelcomeOn); S("HostWelcome", settings.hostWelcome); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); B("HostPcGate", settings.hostPcGate); { char m[12]; snprintf(m, sizeof(m), "%d", settings.hostPcPort); S("HostPcPort", m); } S("PcServer", settings.pcServer); S("PcName", settings.pcName); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
     F("ChatX", settings.chatX); F("ChatY", settings.chatY); I("Skin", settings.skin);
     I("ChatLines", settings.chatLines); F("ChatSize", settings.chatSize); F("ChatScale", settings.chatScale); F("ChatWidth", settings.chatWidth);   // 2.19.6
     I("ChatFade", settings.chatFade); B("ChatFadeOn", settings.chatFadeOn); B("ChatBackground", settings.chatBg);
@@ -6158,6 +6193,8 @@ static void LoadConfig()
     settings.hostDevStage    = ::cfg->GetBool("HostDevStage", false, "MP");   // 4.13.2
     settings.hostModes2      = ::cfg->GetInt("HostGamemodes2", 0, "MP") & GM2_ALL;   // 5.02.31
     settings.hostBrowserFmt  = ::cfg->GetBool("HostBrowserFmt", false, "MP");
+    ::cfg->GetString(settings.hostJoinFmt, sizeof(settings.hostJoinFmt), "HostJoinFmt", "", "MP");     // 5.02.41
+    ::cfg->GetString(settings.hostLeaveFmt, sizeof(settings.hostLeaveFmt), "HostLeaveFmt", "", "MP");
     settings.bountyWelcomeOn = ::cfg->GetBool("BountyWelcomeOn", true, "MP");
     settings.bountySound     = ::cfg->GetBool("BountySound", true, "MP");
     settings.soloOnJoin      = ::cfg->GetBool("SoloOnJoin", true, "MP");
@@ -7182,6 +7219,14 @@ static void OnHostWelcome(const char* t, void*)   // 5.00.08
     MP_CopyStr(settings.hostWelcome, t ? t : "", sizeof(settings.hostWelcome)); SaveConfig();
     if(s_Server.IsRunning() && !MP::IsHostingDefault() && !s_Server.IsBcwServer() && settings.hostWelcomeOn) s_Server.SetWelcome(settings.hostWelcome);
 }
+// 5.02.41: BrowserFormat Join/Leave - the owner's own lines
+static void HostFmtApply()
+{
+    SaveConfig();
+    if(s_Server.IsRunning() && !MP::IsHostingDefault() && !s_Server.IsBcwServer()) s_Server.SetJoinLeaveFmt(settings.hostJoinFmt, settings.hostLeaveFmt);
+}
+static void OnHostJoinFmt(const char* t, void*) { MP_CopyStr(settings.hostJoinFmt, t ? t : "", sizeof(settings.hostJoinFmt)); HostFmtApply(); }
+static void OnHostLeaveFmt(const char* t, void*) { MP_CopyStr(settings.hostLeaveFmt, t ? t : "", sizeof(settings.hostLeaveFmt)); HostFmtApply(); }
 static void OnSrvDesc(const char* t, void*) { MP_CopyStr(settings.serverDesc, t ? t : "", sizeof(settings.serverDesc)); MP_CleanField(settings.serverDesc); SaveConfig(); }
 static std::vector<std::string> TagList(const char* t)
 {
@@ -7605,10 +7650,50 @@ static void SectionAddServer(void*)
             SaveConfig();
             if(own) { s_Server.SetBrowserFmt(settings.hostBrowserFmt); SysMsg(COL_GREEN, "BrowserFormat Join/Leave %s on \"%s\" (players who join from now on).", settings.hostBrowserFmt ? "on" : "off", s_Server.GetName()); }
         }
+        // 5.02.41: on = the owner can write the join / leave lines (empty = the built in browser format below)
+        if(settings.hostBrowserFmt)
+        {
+            FloatMenu::TextField("Join format", settings.hostJoinFmt, "Join line, e.g. {33CC33}+ {FFFFFF}{name} joined {server}", MP_CHAT_LEN - 1, OnHostJoinFmt);
+            FloatMenu::TextField("Leave format", settings.hostLeaveFmt, "Leave line, e.g. {FF3030}- {FFFFFF}{name} left ({reason})", MP_CHAT_LEN - 1, OnHostLeaveFmt);
+            if((settings.hostJoinFmt[0] || settings.hostLeaveFmt[0]) && ImGui::Button("Reset to the browser format", ImVec2(-1, UI::S(54))))
+            { settings.hostJoinFmt[0] = settings.hostLeaveFmt[0] = 0; HostFmtApply(); }
+            ImGui::PushTextWrapPos(0.0f);
+            ImGui::TextDisabled("{name} = the player, {server} = your server, {reason} = why they left (Timeout, Kicked...), {RRGGBB} = a colour. Empty = the browser format.");
+            ImGui::PopTextWrapPos();
+        }
         // preview of both lines (the chat colours)
+        auto ColLine = [](const std::string& t)
+        {   // {RRGGBB} colour codes -> coloured pieces on one line
+            ImVec4 c(1, 1, 1, 1); std::string run; bool first = true;
+            auto flush = [&]() { if(run.empty()) return; if(!first) ImGui::SameLine(0, 0); ImGui::TextColored(c, "%s", run.c_str()); run.clear(); first = false; };
+            for(size_t i = 0; i < t.size(); )
+            {
+                if(t[i] == '{' && i + 7 < t.size() && t[i + 7] == '}' && strspn(t.c_str() + i + 1, "0123456789abcdefABCDEF") >= 6)
+                {
+                    flush(); unsigned v = (unsigned)strtoul(t.substr(i + 1, 6).c_str(), nullptr, 16);
+                    c = ImVec4(((v >> 16) & 255) / 255.0f, ((v >> 8) & 255) / 255.0f, (v & 255) / 255.0f, 1); i += 8; continue;
+                }
+                run += t[i++];
+            }
+            flush(); if(first) ImGui::TextUnformatted("");
+        };
+        auto Fill = [](const char* f, bool join) -> std::string
+        {
+            std::string o;
+            for(const char* q = f; *q; )
+            {
+                if(!strncasecmp(q, "{name}", 6)) { o += settings.name; q += 6; continue; }
+                if(!strncasecmp(q, "{server}", 8)) { o += settings.serverName[0] ? settings.serverName : "your server"; q += 8; continue; }
+                if(!strncasecmp(q, "{reason}", 8)) { o += join ? "" : "Quit"; q += 8; continue; }
+                o += *q++;
+            }
+            return o;
+        };
         const ImVec4 yg(0.604f, 0.804f, 0.196f, 1), gr(0.5f, 0.5f, 0.5f, 1), ye(1, 1, 0, 1), rd(1, 0, 0, 1), og(1, 0.647f, 0, 1), wh(1, 1, 1, 1);
         for(int k = 0; k < 2; ++k)
         {
+            const char* own = k ? settings.hostLeaveFmt : settings.hostJoinFmt;
+            if(settings.hostBrowserFmt && own[0]) { ColLine(Fill(own, k == 0)); continue; }
             ImGui::TextColored(yg, "#"); ImGui::SameLine(0, 0); ImGui::TextColored(gr, "{"); ImGui::SameLine(0, 0);
             ImGui::TextColored(ye, "%s", settings.name); ImGui::SameLine(0, 0); ImGui::TextColored(gr, "} "); ImGui::SameLine(0, 0);
             ImGui::TextColored(rd, "<"); ImGui::SameLine(0, 0); ImGui::TextColored(og, "!"); ImGui::SameLine(0, 0); ImGui::TextColored(rd, "> "); ImGui::SameLine(0, 0);
@@ -7858,7 +7943,15 @@ static void SoundsVolumeSection()
         {
             const float pos = Sound::StreamPosition(), dur = Sound::StreamDuration() > 1 ? Sound::StreamDuration() : 3700.0f;
             char t[64]; snprintf(t, sizeof(t), "%d:%02d:%02d / %d:%02d:%02d", (int)pos / 3600, ((int)pos / 60) % 60, (int)pos % 60, (int)dur / 3600, ((int)dur / 60) % 60, (int)dur % 60);
-            ImGui::ProgressBar(dur > 0 ? pos / dur : 0.0f, ImVec2(-1, UI::S(30)), t);
+            // 5.02.41: a white bar (was the yellow ImGui default); the time sits centred with a black edge so it reads on both halves
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1, 1, 1, 1));
+            ImGui::ProgressBar(dur > 0 ? pos / dur : 0.0f, ImVec2(-1, UI::S(30)), "");
+            ImGui::PopStyleColor();
+            {
+                const ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax(); const float fs = ImGui::GetFontSize();
+                const ImVec2 ts = ImGui::GetFont()->CalcTextSizeA(fs, FLT_MAX, 0, t);
+                UI::OutlinedText(ImGui::GetWindowDrawList(), fs, ImVec2((a.x + b.x - ts.x) * 0.5f, (a.y + b.y - ts.y) * 0.5f), IM_COL32_WHITE, t);
+            }
             ImGui::TextDisabled("%s", Sound::StreamInfo());
         }
         changed |= SoundVolRow(MP_SOLO_FILE, "(Solo volume)");

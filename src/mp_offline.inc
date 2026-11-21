@@ -175,13 +175,15 @@ static bool OfflineCommand(const char* cmd, const char* arg)
 }
 
 // Lan tab card (mp_launcher.inc): returns its height
+// 5.02.41: no orange outline, and the height follows the font: title, info line, gap, then the buttons
+// (a fixed 150 px card put the info line on top of the buttons at bigger UI scales)
 static float OfflineCard(float w)
 {
-    const float h = UI::S(150), pad = UI::S(12), bh = UI::S(54);
+    const float pad = UI::S(12), bh = UI::S(54), lh = ImGui::GetTextLineHeightWithSpacing();
+    const float h = pad + lh * 2 + UI::S(10) + bh + pad + UI::S(6);
     ImVec2 p = ImGui::GetCursorScreenPos();
     ImDrawList* dl = ImGui::GetWindowDrawList();
     dl->AddRectFilled(p, ImVec2(p.x + w, p.y + h - UI::S(6)), IM_COL32(16, 20, 26, 200), UI::S(6));
-    dl->AddRect(p, ImVec2(p.x + w, p.y + h - UI::S(6)), IM_COL32(255, 160, 0, 150), UI::S(6), 0, UI::S(2));
     const bool inet = Online::IsConnected();
     char l1[160], l2[200];
     snprintf(l1, sizeof(l1), "OFFLINE PLAY  -  hotspot / same Wi-Fi, no internet needed      Internet: %s", inet ? "yes" : "no");
@@ -190,10 +192,10 @@ static float OfflineCard(float w)
     else if(s_Off.hotspot) snprintf(l2, sizeof(l2), "Hotspot ON (%s) - your IP %s. Tap Host offline server, friends then tap Find host and join.", s_Off.ifname, s_Off.myIp);
     else snprintf(l2, sizeof(l2), "Wi-Fi (%s) - your IP %s, host phone %s. Tap Find host and join.", s_Off.ifname, s_Off.myIp, s_Off.hostIp);
     dl->AddText(ImVec2(p.x + pad, p.y + pad), IM_COL32(255, 165, 0, 255), l1);
-    dl->PushClipRect(p, ImVec2(p.x + w - pad, p.y + h), true);
-    dl->AddText(ImVec2(p.x + pad, p.y + pad + ImGui::GetTextLineHeightWithSpacing()), IM_COL32(230, 230, 230, 255), l2);
+    dl->PushClipRect(p, ImVec2(p.x + w - pad, p.y + pad + lh * 2), true);
+    dl->AddText(ImVec2(p.x + pad, p.y + pad + lh), IM_COL32(230, 230, 230, 255), l2);
     dl->PopClipRect();
-    ImGui::SetCursorScreenPos(ImVec2(p.x + pad, p.y + h - bh - UI::S(16)));
+    ImGui::SetCursorScreenPos(ImVec2(p.x + pad, p.y + pad + lh * 2 + UI::S(10)));
     const float bw = (w - pad * 4) / 3;
     ImGui::PushID("offcard");
     if(ImGui::Button(s_Server.IsRunning() ? "Stop my server" : "Host offline server", ImVec2(bw, bh))) { if(s_Server.IsRunning()) MP::SetHostLan(false); else OffHost(); }

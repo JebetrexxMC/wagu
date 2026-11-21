@@ -390,7 +390,7 @@ static void LSetFav(const char* name, int port, bool on)
 static ImU32 LModeColor(const LRow& r)
 {
     if(r.modeCol > 0 && r.modeCol < kModeColCount) return kModeCols[r.modeCol].col;
-    switch(r.kind) { case 3: return kModeCols[2].col; case 4: return kModeCols[3].col; case 5: return kModeCols[4].col; case 6: return kModeCols[5].col; case 7: return kModeCols[9].col; }
+    switch(r.kind) { case 0: return IM_COL32(176, 34, 28, 235); case 3: return kModeCols[2].col; case 4: return kModeCols[3].col; case 5: return kModeCols[4].col; case 6: return kModeCols[5].col; case 7: return kModeCols[9].col; }
     // auto: a stable colour from the gamemode name
     const char* m = r.mode[0] ? r.mode : "Freeroam"; unsigned h = 5381; for(const char* c = m; *c; ++c) h = h * 33 + (unsigned char)tolower((unsigned char)*c);
     return !strcasecmp(m, "Freeroam") ? kModeCols[0].col : kModeCols[1 + h % (kModeColCount - 1)].col;
@@ -401,8 +401,8 @@ static ImU32 LModeColor(const LRow& r)
 static int LModesOf(const LRow& r, std::string out[3])
 {
     int n = 0;
+    if(r.kind == 0) { out[n++] = "Bounty Hunter"; out[n++] = "Freeroam"; out[n++] = "Deathmatch"; return n; }   // 5.02.41: Bounty Hunter is the one shown
     out[n++] = r.mode[0] ? r.mode : "Freeroam";
-    if(r.kind == 0) { out[n++] = "Deathmatch"; out[n++] = "Bounty Hunter"; return n; }
     std::string cur; const char* t = r.tags;
     for(const char* c = t; ; ++c)
     {
@@ -446,7 +446,7 @@ static void LFeaturedDetails(LRow& r)
     const char *md = "", *tg = "", *ds = "", *bg = nullptr;
     switch(r.kind)
     {
-    case 0: md = "Freeroam"; tg = "freeroam,deathmatch,bounty,duels,missions,jobs,24/7"; bg = "bg_default.jpg";
+    case 0: md = "Bounty Hunter"; tg = "freeroam,deathmatch,bounty,duels,missions,jobs,24/7"; bg = "bg_default.jpg";
             ds = "Broker MQQ - the main MP server, always online. Free roam, Deathmatch and Bounty Hunter (kill streaks, bounties, duels) with everyone: missions, races, jobs and events."; break;
     case 3: md = "Brief Case War"; tg = "bcw,team,pvp,objective,24/7"; bg = "bg_bcw.jpg";
             ds = "Two teams fight over the briefcase. Grab it, carry it home and hold the line."; break;
@@ -461,7 +461,7 @@ static void LFeaturedDetails(LRow& r)
     default: return;
     }
     MP_CopyStr(r.cc, MP_CC_GLOBAL, sizeof(r.cc));   // 4.05.3: the featured 24/7 servers are worldwide - Global flag
-    if(!r.mode[0]) MP_CopyStr(r.mode, md, sizeof(r.mode));
+    if(!r.mode[0] || r.kind == 0) MP_CopyStr(r.mode, md, sizeof(r.mode));   // 5.02.41: the default server always shows Bounty Hunter
     if(!r.tags[0]) MP_CopyStr(r.tags, tg, sizeof(r.tags));
     if(!r.desc[0]) MP_CopyStr(r.desc, ds, sizeof(r.desc));
     r.bg = bg;
@@ -1431,28 +1431,23 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
             char nm[80]; snprintf(nm, sizeof(nm), "%s%s", r.kind == 0 ? MP_DEFAULT_DISPLAY_NAME : r.name, r.kind == 0 ? "  (default)" : (r.mine ? "  (yours)" : ""));   // 5.02.31: Broker MQQ
             dl->AddText(ImVec2(nx, ty), nameCol, nm);
             dl->PopClipRect();
-            // gamemode chip (5.02.31: 2 or 3 gamemodes = small chips, the 1st + 2nd on line 1, the 3rd on line 2)
+            // gamemode chip (5.02.41: only the 1st gamemode; a small "+" chip next to it = the server has more,
+            // all of them are listed in the details panel below)
             std::string mds[3]; const int nmd = LModesOf(r, mds);
-            if(nmd <= 1) LChip(dl, ImVec2(a.x + cMode, a.y + rowH * 0.5f - UI::S(15)), UI::S(30), mds[0].c_str(), mc, cTags - cMode - UI::S(8));
-            else
             {
-                const float ch = rowH * 0.40f, cfs = ImGui::GetFontSize() * 0.70f, maxW = cTags - cMode - UI::S(8);
-                const float y1 = a.y + rowH * 0.5f - ch - UI::S(1), y2 = a.y + rowH * 0.5f + UI::S(1);
-                auto Small = [&](float x, float y, const std::string& t, ImU32 col, float lim) -> float
+                const ImU32 c0 = (nmd <= 1 || r.modeCol > 0 || r.kind >= 3) ? mc : LModeColorOf(mds[0].c_str());
+                const float chH = UI::S(30), chY = a.y + rowH * 0.5f - chH * 0.5f, plusW = nmd > 1 ? chH : 0, maxW = cTags - cMode - UI::S(8);
+                const float tw = ImMin(ImGui::CalcTextSize(mds[0].c_str()).x, maxW - plusW - UI::S(6) - UI::S(16));
+                LChip(dl, ImVec2(a.x + cMode, chY), chH, mds[0].c_str(), c0, maxW - plusW - UI::S(6));
+                if(nmd > 1)
                 {
-                    float tw = ImMin(ImGui::GetFont()->CalcTextSizeA(cfs, FLT_MAX, 0, t.c_str()).x, lim - UI::S(12));
-                    if(tw < 0) tw = 0;
-                    ImVec2 p(x, y), b(x + tw + UI::S(12), y + ch);
-                    dl->AddRectFilled(p, b, col); dl->AddRect(p, b, IM_COL32(255, 255, 255, 40));
-                    dl->PushClipRect(p, b, true);
-                    dl->AddText(ImGui::GetFont(), cfs, ImVec2(p.x + UI::S(6), p.y + (ch - cfs) * 0.5f), IM_COL32_WHITE, t.c_str());
-                    dl->PopClipRect();
-                    return b.x - x;
-                };
-                const ImU32 c0 = (r.modeCol > 0 || r.kind >= 3) ? mc : LModeColorOf(mds[0].c_str());
-                float w0 = Small(a.x + cMode, y1, mds[0], c0, maxW * 0.5f);
-                Small(a.x + cMode + w0 + UI::S(4), y1, mds[1], LModeColorOf(mds[1].c_str()), maxW - w0 - UI::S(4));
-                if(nmd > 2) Small(a.x + cMode, y2, mds[2], LModeColorOf(mds[2].c_str()), maxW);
+                    const float px = a.x + cMode + tw + UI::S(16) + UI::S(6);
+                    ImVec2 pa(px, chY), pb(px + plusW, chY + chH);
+                    dl->AddRectFilled(pa, pb, IM_COL32(255, 255, 255, 30)); dl->AddRect(pa, pb, IM_COL32(255, 255, 255, 60));
+                    const ImVec2 pc((pa.x + pb.x) * 0.5f, (pa.y + pb.y) * 0.5f); const float q = chH * 0.26f, t = fmaxf(1.5f, UI::S(2.5f));
+                    dl->AddLine(ImVec2(pc.x - q, pc.y), ImVec2(pc.x + q, pc.y), IM_COL32_WHITE, t);
+                    dl->AddLine(ImVec2(pc.x, pc.y - q), ImVec2(pc.x, pc.y + q), IM_COL32_WHITE, t);
+                }
             }
             // tags (comma list, dim)
             dl->PushClipRect(ImVec2(a.x + cTags, a.y), ImVec2(a.x + cLang - UI::S(10), a.y + rowH), true);
