@@ -14,7 +14,7 @@ Only Python's standard library (MQTT 3.1.1, QoS 0), like HiveMQ/tools/mp-status.
 Login: mqtt_user / mqtt_pass in the yml, or mqtt_pass_env: KEY to read KEY from /etc/mp-hivemq/mp.env
 (the MP HiveMQ kit: user "bridge", BRIDGE_PASS). No mqtt_host = nothing to do (exits 0).
 """
-import json, os, socket, struct, sys, time
+import json, os, socket, ssl, struct, sys, time
 
 def cfg(path):
     d = {}
@@ -44,8 +44,9 @@ def rl(n):
         o += bytes([x | (0x80 if n else 0)])
         if not n: return o
 
-def connect(host, port, user, pw, will_topic, will):
+def connect(host, port, user, pw, will_topic, will, tls=False):
     k = socket.create_connection((host, port), 8)
+    if tls: k = ssl.create_default_context().wrap_socket(k, server_hostname=host)   # 5.02.20: HiveMQ Cloud (8883)
     flags = 0x20 | 0x04 | 0x02   # will retain, will, clean session
     if user: flags |= 0x80
     if pw: flags |= 0x40
@@ -102,7 +103,7 @@ def main():
     while True:
         try:
             if k is None:
-                k = connect(mh, mp, user, pw, topic, will)
+                k = connect(mh, mp, user, pw, topic, will, c.get("mqtt_tls", "0") in ("1", "true", "yes"))
                 print("omp_status: connected to %s:%d, topic %s" % (mh, mp, topic), flush=True)
             q = query(host, port); st = state(sfile)
             msg = {"name": name, "online": q is not None, "host": pub_host, "port": port,
@@ -117,7 +118,7 @@ def main():
             k.setblocking(False)
             try:
                 while k.recv(4096): pass   # drop PINGRESPs so the socket buffer never fills
-            except BlockingIOError: pass
+            except (BlockingIOError, ssl.SSLWantReadError): pass
             k.setblocking(True); k.settimeout(8)
         except Exception as e:
             print("omp_status: %s - again in 10 s" % e, flush=True)

@@ -41,7 +41,6 @@ PY
 }
 
 backup() {
-  [ "$BEVERY" -gt 0 ] 2>/dev/null || return 0
   mkdir -p "$BDIR"; local f="$BDIR/backup_$(date +%Y%m%d_%H%M%S).tar.gz"
   tar -czf "$f" -C "$DIR" $(cd "$DIR" && ls -d scriptfiles log.txt logs server_log.txt config.json server.cfg 2>/dev/null) 2>/dev/null && { log "backup $f"; LASTB=$(basename "$f"); st running; }
   ls -1t "$BDIR"/backup_*.tar.gz 2>/dev/null | tail -n +$((BKEEP + 1)) | xargs -r rm -f
@@ -62,10 +61,11 @@ fi
 SPID=""
 stop() { log "stopping"; mq stopping; [ -n "$SPID" ] && kill "$SPID" 2>/dev/null; [ -n "$MQPID" ] && kill "$MQPID" 2>/dev/null; [ -n "$STPID" ] && kill "$STPID" 2>/dev/null; wait 2>/dev/null; exit 0; }
 trap stop INT TERM
+NOWB=0; trap 'NOWB=1' USR1   # 5.02.20: kill -USR1 <runner pid> (omp_autobot "backup <name>") = a backup now
 
 starts=(); lastb=$(date +%s)
 while :; do
-  now=$(date +%s); keep=(); for t in "${starts[@]:-}"; do [ -n "$t" ] && [ $((now - t)) -lt 3600 ] && keep+=("$t"); done; starts=("${keep[@]:-}")
+  now=$(date +%s); keep=(); for t in "${starts[@]:-}"; do [ -n "$t" ] && [ $((now - t)) -lt 3600 ] && keep+=("$t"); done; starts=(); [ "${#keep[@]}" -gt 0 ] && starts=("${keep[@]}")   # 5.02.20: no empty first entry (restarts_hour was 1 too high)
   if [ "${#starts[@]}" -ge "$RMAX" ] && [ -n "${starts[0]:-}" ]; then log "$RMAX restarts in an hour - check the gamemode, waiting 10 min"; mq restart_limit; sleep 600; starts=(); fi
   starts+=("$now")
   # omp-server only reads console lines from a terminal: script(1) gives it one, fed from the FIFO
@@ -76,8 +76,8 @@ while :; do
   while kill -0 "$SPID" 2>/dev/null; do
     if alive; then fails=0; else fails=$((fails + 1)); log "query failed ($fails/$HFAILS)"; fi
     if [ "$fails" -ge "$HFAILS" ]; then log "not answering - restart"; mq hung_restarting; kill "$SPID"; sleep 3; kill -9 "$SPID" 2>/dev/null; break; fi
-    t=$(date +%s); if [ "$BEVERY" -gt 0 ] 2>/dev/null && [ $((t - lastb)) -ge "$BEVERY" ]; then backup; lastb=$t; fi
-    sleep "$HEVERY"
+    t=$(date +%s); if [ "$NOWB" = 1 ] || { [ "$BEVERY" -gt 0 ] 2>/dev/null && [ $((t - lastb)) -ge "$BEVERY" ]; }; then NOWB=0; backup; lastb=$t; fi
+    sleep "$HEVERY" & wait $!   # 5.02.20: wait (not sleep) so USR1 is handled at once
   done
   wait "$SPID" 2>/dev/null; code=$?
   log "server stopped (exit $code) - restart in ${RDELAY}s"; mq "stopped_exit_$code"

@@ -82,6 +82,43 @@ railway_menu() {
         esac
     done
 }
+# 5.02.20: open.mp 24/7 servers (tools/omp_247 of the wagu repo) + the MQTT autobot, from the browser console
+OMP=/opt/omp-247
+omp_get() { [ -s "$OMP/install_247.sh" ] || { mkdir -p "$OMP"; curl -fsSL https://raw.githubusercontent.com/JebetrexxMC/wagu/main/tools/omp_247/install_247.sh -o "$OMP/install_247.sh"; }; }
+omp_menu() {
+    while true; do
+        clear; c '1;36' "  open.mp 24/7 servers + autobot"; echo; line
+        systemctl list-units 'omp-247-*' --all --no-legend --plain 2>/dev/null | awk '{printf "  %-34s %s\n", $1, $3}'
+        printf '  %-34s %s\n' "omp-autobot.service" "$(svc omp-autobot)"
+        line
+        echo "  1) install an open.mp server 24/7 (folder, name, port)"
+        echo "  2) live log of a server     3) restart a server"
+        echo "  4) backup a server now      5) stop a server"
+        echo "  6) install / update the autobot only"
+        echo "  7) update the 24/7 files (newest from GitHub) + restart"
+        echo "  8) live status (MQTT)       0) back"
+        line
+        read -r -p "  choose: " k || return
+        case "$k" in
+            1) read -r -p "  server folder (has omp-server): " d; read -r -p "  name [myserver]: " n; read -r -p "  port [7777]: " p
+               omp_get && bash "$OMP/install_247.sh" "$d" "${n:-myserver}" "${p:-7777}"; read -r -p "  enter to continue" _ ;;
+            2|3|4|5) read -r -p "  name: " n; case "$n" in ""|*[!A-Za-z0-9_-]*) continue ;; esac
+               case "$k" in
+                   2) echo "(Ctrl+C to go back)"; journalctl -u "omp-247-$n" -f -n 40 ;;
+                   3) systemctl restart "omp-247-$n" && echo restarted; sleep 2 ;;
+                   4) systemctl kill --kill-whom=main -s USR1 "omp-247-$n" && echo "backup asked (see the log)"; sleep 2 ;;
+                   5) systemctl stop "omp-247-$n" && echo stopped; sleep 2 ;;
+               esac ;;
+            6) omp_get && bash "$OMP/install_247.sh" --bot; read -r -p "  enter to continue" _ ;;
+            7) python3 "$OMP/omp_autobot.py" fetch 2>/dev/null || { rm -f "$OMP/install_247.sh"; omp_get && bash "$OMP/install_247.sh" --bot; }
+               systemctl daemon-reload; for u in $(systemctl list-units 'omp-247-*' --no-legend --plain | awk '{print $1}') omp-autobot; do systemctl restart "$u" 2>/dev/null; done
+               echo updated; read -r -p "  enter to continue" _ ;;
+            8) echo "(Ctrl+C to go back)"; BP=$(sed -n 's/^BRIDGE_PASS=//p' /etc/mp-hivemq/mp.env | tr -d '"')
+               mosquitto_sub -h 127.0.0.1 -u bridge -P "$BP" -t 'thirtyfox/mp4/omp/#' -v ;;
+            0|q|b) return ;;
+        esac
+    done
+}
 while true; do
     header
     echo "  1) live broker log        5) restart the 4 servers"
@@ -92,6 +129,7 @@ while true; do
     echo "  s) the 4 servers: log / start / stop / restart each one"
     echo "  o) old MP versions refused (name, version, phone id, IP)"
     echo "  r) MP Railway: Discord bot 24/7 (/gen /stats /help /streaming)"
+    echo "  p) open.mp 24/7 servers + autobot (install / log / restart / backup)"
     line
     read -r -p "  choose: " k || exit 0
     case "$k" in
@@ -106,6 +144,7 @@ while true; do
         o|O) { echo "time  name  version  phone  IP  port"; tail -n 200 /opt/mp/server/outdated_clients.log 2>/dev/null || echo "(none yet)"; } | less -R ;;
         9) echo "type exit to come back"; bash -l ;;
         r|R) railway_menu ;;
+        p|P) omp_menu ;;
         s|S) servers_menu ;;
         0|q|exit) exit 0 ;;
     esac

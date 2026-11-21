@@ -19,6 +19,7 @@ state_file: ./omp_247.state   # 5.02.18: what omp_status.py publishes (state, pi
 # On a server with the MP HiveMQ kit (HiveMQ/install.sh): mqtt_host 127.0.0.1, mqtt_user bridge, mqtt_pass_env BRIDGE_PASS
 mqtt_host:
 mqtt_port: 1883
+mqtt_tls: 0                   # 5.02.20: 1 = TLS (HiveMQ Cloud, port 8883)
 mqtt_user:
 mqtt_pass:
 mqtt_pass_env:                # read the password from /etc/mp-hivemq/mp.env (e.g. BRIDGE_PASS)
