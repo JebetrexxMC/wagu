@@ -49,10 +49,13 @@ namespace
             if(i.delay < 40) i.delay = 40;
             cats.insert(i.cat); order.push_back(i.id); m[i.id] = i;
         }
+        // 5.02.34: merged in, never swapped: Gifs::Get hands out pointers into s_Info, and the daily refresh
+        // (a second ParseIndex) used to free the old map under them. Entries are only added.
+        std::vector<std::string> nc; nc.push_back("All"); for(auto& c : cats) nc.push_back(c);
         std::lock_guard<std::mutex> lk(s_Mx);
-        s_Info.swap(m); s_Order.swap(order);
-        s_Cats.clear(); s_Cats.push_back("All");
-        for(auto& c : cats) s_Cats.push_back(c);
+        for(auto& kv : m) s_Info.emplace(kv.first, kv.second);   // a known id is kept as it is (it may be on screen)
+        s_Order.swap(order);   // s_Order is only read under s_Mx (List)
+        s_Cats.swap(nc);
         s_bReady = !s_Info.empty();
     }
 
@@ -109,7 +112,7 @@ const Gifs::Info* Gifs::Get(int id)
     std::lock_guard<std::mutex> lk(s_Mx);
     auto it = s_Info.find(id); return it == s_Info.end() ? nullptr : &it->second;   // entries are never removed after load
 }
-const std::vector<std::string>& Gifs::Categories() { return s_Cats; }
+std::vector<std::string> Gifs::Categories() { std::lock_guard<std::mutex> lk(s_Mx); return s_Cats; }   // 5.02.34: a copy (the list can change on the loader thread)
 void Gifs::List(const char* cat, const char* search, std::vector<int>& out)
 {
     out.clear();

@@ -198,8 +198,17 @@ bool ImGui_ImplRenderWare_CreateDeviceObjects()
         pixels += font_img->stride;
     }
 
-    RwInt32 w, h, d, flags;
+    RwInt32 w = 0, h = 0, d = 0, flags = 0;
     RwImageFindRasterFormat(font_img, 4, &w, &h, &d, &flags);
+    logger->Info("Font atlas raster: %dx%d, %d bit, flags 0x%x", (int)w, (int)h, (int)d, (unsigned)flags);
+    // 5.02.34: the game copies every row of the image into the raster. A raster smaller than the image (the
+    // phone's size limit) would be written past its end = heap damage and a crash a moment later.
+    if(w != width || h != height)
+    {
+        logger->Error("Font atlas: the game gives a %dx%d texture for a %dx%d atlas - MP's on-screen text is off this time instead of crashing", (int)w, (int)h, width, height);
+        RwImageDestroy(font_img);
+        return false;
+    }
     g_FontRaster = RwRasterCreate(w, h, d, flags);
     if(g_FontRaster) g_FontRaster = RwRasterSetFromImage(g_FontRaster, font_img);
     RwImageDestroy(font_img);
@@ -227,8 +236,10 @@ void ImGui_ImplRenderWare_ShutDown()
 
 void ImGui_ImplRenderWare_NewFrame()
 {
-    if(!g_FontRaster)
-        ImGui_ImplRenderWare_CreateDeviceObjects();
+    // 5.02.34: a failed font texture is not tried again every frame (each try is a 16 MB copy); a new atlas tries again
+    static ImFontAtlas* s_pFailedAtlas = nullptr;
+    if(!g_FontRaster && ImGui::GetIO().Fonts != s_pFailedAtlas)
+        if(!ImGui_ImplRenderWare_CreateDeviceObjects()) s_pFailedAtlas = ImGui::GetIO().Fonts;
 
     //ImGuiIO &io = ImGui::GetIO();
 }

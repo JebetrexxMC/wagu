@@ -749,6 +749,11 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.34
+- Fixed the crash and the black screen right after a save loads on the 32-bit game (SIGABRT, "Scudo ERROR: CHECK failed ... list.h:330"). MP's log stopped at "Font atlas width: 1024, height: 4096". Since 5.02.31 the symbol characters were drawn 3 times at 2x sharpness into MP's font texture. It grew to 1024x4096 (16 MB, plus 2 copies while it goes to the game), and with many mods the game's memory broke at that moment. MP's screens could not draw, so not even the rescue card showed. Now the symbols come only from the phone's symbol fonts. The texture is 2048 wide at most and about half the size (2048x1024 on a 720p screen). Symbols such as ✓ ★ ❤ still show in chat.
+- Before the font texture goes to the game, MP checks that the game gives a texture of the same size. If not, MP's text is off for that run instead of the heap being damaged. The log says "Font atlas raster: ..." and "5.02.34: font atlas WxH".
+- GIF list: the daily refresh no longer frees the list while the chat or keyboard is drawing from it.
+
 ### 5.02.33
 - Fixed being stuck on a black screen (with only the area name, like "Mulholland") after the loading screen fades out. If nothing of MP is drawn on that screen for 5 seconds, a card now shows "Still connecting to ..." or "The game is loaded. Pick a server, or play single player." with buttons Servers (or Cancel + servers while joining) and Single player.
 - The game's menu now closes after the load even when another mod draws the loading screen (Fullscreen Splashes, PCIntro, PCMenu and similar). Before, MP waited forever for its own loading screen.

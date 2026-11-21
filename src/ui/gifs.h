@@ -10,7 +10,7 @@ namespace Gifs
     void Init();                                   // loads / downloads index.txt (once, in the background)
     bool Ready();                                  // the index is loaded
     const Info* Get(int id);
-    const std::vector<std::string>& Categories();  // "All" first
+    std::vector<std::string> Categories();  // "All" first
     void List(const char* cat, const char* search, std::vector<int>& out);
     bool SheetPath(int id, std::string& path);     // true = files/TYFMC/MP/gifs/<id>.jpg is here, false = queued
     int  ParseToken(const char* text);             // "[gif:123]" (whole message, spaces ok) -> 123, else 0

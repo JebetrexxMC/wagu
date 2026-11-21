@@ -357,7 +357,12 @@ static void BuildFontsInto(FontBuild& fb)
     fb.ranges.clear(); fb.script.clear();
     {
         static const ImWchar base[] = { 0x0020, 0x00FF, 0x0400, 0x045F, 0x2010, 0x2040, 0 };
-        ImFontGlyphRangesBuilder b; b.AddRanges(base); b.AddRanges(kSymbolRanges);   // 5.02.31: symbols
+        // 5.02.34: the symbol ranges are NOT in the base set any more. 5.02.31 put them here, so Fredoka, Arial and
+        // the Arial list font drew ~1,700 symbols each at 2x sharpness: the atlas grew to 1024x4096 (16 MB, plus
+        // 2 copies while it goes to the game) and the 32-bit game with many mods crashed right after
+        // "Font atlas width: 1024, height: 4096" (Scudo CHECK failed list.h:330). The symbols still show: the
+        // phone's symbol fonts are merged in at 1x (MergeSymbolFonts).
+        ImFontGlyphRangesBuilder b; b.AddRanges(base);
         ImFontGlyphRangesBuilder sc;
         const std::string& g = fb.glyphs;
         const char* p = g.c_str(); const char* e = p + g.size();
@@ -371,6 +376,7 @@ static void BuildFontsInto(FontBuild& fb)
         b.BuildRanges(&fb.ranges);
         if(fb.kind[0]) { sc.AddText("0123456789"); sc.BuildRanges(&fb.script); }
     }
+    at->TexDesiredWidth = 2048;   // 5.02.34: wide, not tall (2048 high at most on 720p / 1080p) - a 4096-high texture is too big for some phones
     ImFontConfig fc; fc.FontDataOwnedByAtlas = false; fc.OversampleH = 2; fc.OversampleV = 2;
     // 3.55: the system font is Fredoka (rounded, condensed - like the GTA SA / SA-MP HUD labels); Arial is merged
     // under it for every character Fredoka doesn't have (Cyrillic, Greek, Vietnamese ...). x1.08: same cap height as Arial.
@@ -402,10 +408,12 @@ static void BuildFontsInto(FontBuild& fb)
             if(fb.fonts[2 + i] && 2 + i == fb.fontIdx && fb.script.Size > 1) MergePhoneFont(at, fb.kind.c_str(), UI::S(34.0f), fb.script.Data);   // 3.52
         }
         // 3.55: the old Arial system font stays in the list
-        fb.fonts[9] = at->AddFontFromMemoryTTF((void*)arialData, sizeof(arialData), UI::S(34.0f), &fc, fb.ranges.Data);
+        { ImFontConfig ac = fc; ac.OversampleH = 1; ac.OversampleV = 1;   // 5.02.34: a list font, 1x like the other list fonts
+          fb.fonts[9] = at->AddFontFromMemoryTTF((void*)arialData, sizeof(arialData), UI::S(34.0f), &ac, fb.ranges.Data); }
         if(fb.fonts[9] && fb.fontIdx == 9 && fb.script.Size > 1) MergePhoneFont(at, fb.kind.c_str(), UI::S(34.0f), fb.script.Data);
     }
     at->Build();
+    logger->Info("5.02.34: font atlas %dx%d (%d KB)", at->TexWidth, at->TexHeight, at->TexWidth * at->TexHeight * 4 / 1024);
     UI::EmojiBake(at, fb.font);
 }
 static FontBuild* NewFontBuild()

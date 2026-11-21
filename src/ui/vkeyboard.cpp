@@ -283,7 +283,7 @@ void VKeyboard::Render()
         const ImVec2 c0 = o, c1(o.x + avail, o.y + catH);              // category strip / search box
         const ImVec2 g0(o.x, o.y + catH + gap), g1(o.x + avail, o.y + topH);   // grid
         ImGui::InvisibleButton("##vkgifarea", ImVec2(avail, topH));
-        const std::vector<std::string>& cats = Gifs::Categories();
+        const std::vector<std::string> cats = Gifs::Categories();
         if(s_nGifCat >= (int)cats.size()) s_nGifCat = 0;
         // touch: drag scrolls (strip sideways, grid up / down), a tap picks
         ImVec2 m = io.MousePos;
