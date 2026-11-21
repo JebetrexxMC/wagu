@@ -176,11 +176,7 @@ function M.apply(opts, s)
         blendData('fluffyBottom', 'fluffyBottom', s, weathers)
         scaleGroup('cloudAlpha', { 1 }, function(v) return v * (1 + 0.15 * s) end)
     end
-    if opts.rain and not opts.sky then
-        blendData('skyTop', 'skyTop', s, rainW)
-        blendData('skyBot', 'skyBot', s, rainW)
-        blendData('lowClouds', 'lowClouds', s, rainW)
-    end
+    -- sky = false / clouds = false leave the game's own sky / clouds alone on every weather (rain only widens them)
     if opts.water and T.water then
         local wc = DATA and DATA.waterColor or 0x1A00191C
         local tr = math.min(255, math.floor(wc / 65536) % 256 * 4 + 20)

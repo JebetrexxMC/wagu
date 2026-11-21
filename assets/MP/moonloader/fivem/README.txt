@@ -11,14 +11,17 @@ Server scripts, NUI (HTML pages) and streamed GTA V files (.ytd .ydr .ymt) can't
 Chat     /fivem                       resource list (Start / Stop / Restart)
          /fivem list | start <name> | stop <name> | restart <name>
 Off      a file named "disabled" in the resource folder (Stop in /fivem makes it).
+Wait     start_on_command 'name' in fxmanifest.lua (MP key): the resource stays stopped until /name is typed,
+         then it starts and runs its own /name. After a stop it waits again.
 
 Inside
   fs-graphics/   FS-Graphics by IDK_FORCE (https://github.com/JebetrexxMC/fs-graphics) for SA: /fsgraphics.
                  Blends the colours of its GTA V timecycles into SA's timecycle (lib/fs_graphics.lua,
                  lib/fs_graphics_data.lua): Better Water / Rain / Colors / Reflections / Clouds / Nights / Sky /
-                 StreetLights / FPS Increase. An approximation of the look - SA can't load GTA V files, ReShade or
+                 StreetLights / FPS Increase. /fsgraphics preset nosky (game sky and clouds,
+                 the rest on), /fsgraphics preset full. An approximation of the look - SA can't load GTA V files, ReShade or
                  explosion.ymt (Better Fire).
-  example-hud/   a small FiveM-style HUD script: /hudexample.
+  example-hud/   a small FiveM-style HUD script: /hudexample (starts it - start_on_command).
 
 API names follow the FiveM Lua SDK (https://github.com/JebetrexxMC/fivem-lua-sdk), copied to lib/fivem-sdk/
 as a reference for editors (it is documentation stubs, not loaded).

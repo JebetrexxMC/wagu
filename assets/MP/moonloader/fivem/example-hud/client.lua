@@ -1,4 +1,5 @@
 -- Example FiveM client script, unchanged FiveM style. /hudexample turns it on / off.
+-- The loader starts this resource only when /hudexample is typed (start_on_command in fxmanifest.lua).
 local show = false
 
 RegisterCommand('hudexample', function()

@@ -19,7 +19,7 @@ local LIST = {
     { 'fpp', 'FPP Realistic: first person on / off' },
     { 'fppcfg', 'FPP Realistic settings' },
     { 'fivem', 'FiveM resource loader' },
-    { 'fsgraphics', 'FS-Graphics (FiveM resource)' },
+    { 'fsgraphics', 'FS-Graphics (FiveM resource), preset nosky' },
     { 'hudexample', 'FiveM example HUD resource' },
     { 'hasslehud', 'HassleHUD panel' },
     { 'snapturn', 'Snap turn' },

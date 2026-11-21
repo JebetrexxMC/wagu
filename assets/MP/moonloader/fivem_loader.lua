@@ -13,6 +13,8 @@
 --   /fivem start|stop|restart <name>     /fivem list
 --   resources that register commands keep them (fs-graphics: /fsgraphics)
 -- Off switch: moonloader/fivem/<name>/disabled (an empty file) or the checkbox in /fivem.
+-- Start on command: a manifest line  start_on_command 'name'  (MP key, more names with spaces or commas) keeps the
+-- resource stopped at game start; typing /name starts it and then runs its own /name (example-hud: /hudexample).
 
 script_name('FiveM Loader')
 script_author('MP')
@@ -344,11 +346,14 @@ local function makeEnv(res)
     env.RegisterCommand = function(name, fn)
         name = tostring(name):lower()
         if sampIsChatCommandDefined and sampIsChatCommandDefined(name) then pcall(sampUnregisterChatCommand, name) end
-        sampRegisterChatCommand(name, function(param)
+        local function run(param)
+            param = tostring(param or '')
             local args = {}
-            for a in tostring(param or ''):gmatch('%S+') do args[#args + 1] = a end
+            for a in param:gmatch('%S+') do args[#args + 1] = a end
             thread(function() fn(0, args, '/' .. name .. (param ~= '' and (' ' .. param) or '')) end)
-        end)
+        end
+        sampRegisterChatCommand(name, run)
+        res.cmdFns[name] = run
         res.commands[#res.commands + 1] = name
     end
     env.RegisterKeyMapping = function() end
@@ -534,6 +539,15 @@ local function makeEnv(res)
     return env
 end
 
+local armLazy   -- set below: start_on_command placeholders
+
+local function lazyCommands(r)
+    local out = {}
+    local v = r.meta and r.meta.start_on_command
+    if v then for c in tostring(v):gmatch('[^%s,]+') do out[#out + 1] = c:gsub('^/', ''):lower() end end
+    return out
+end
+
 local function stopResource(name)
     local r = resources[name]
     if not r or r.state ~= 'started' then return end
@@ -545,15 +559,20 @@ local function stopResource(name)
         local list = events[hh.name]
         if list then for i = #list, 1, -1 do if list[i] == hh.h then table.remove(list, i) end end end
     end
-    r.threads, r.commands, r.handlers, r.env = {}, {}, {}, nil
+    r.threads, r.commands, r.handlers, r.env, r.cmdFns = {}, {}, {}, nil, {}
     r.state = 'stopped'
+    r.loaded = false
     log('stopped ' .. name)
+    if armLazy then armLazy(r) end
 end
 
 local function startResource(name)
     local r = resources[name]
     if not r or r.state == 'started' then return end
-    r.threads, r.commands, r.handlers, r.err = {}, {}, {}, nil
+    r.threads, r.commands, r.handlers, r.err, r.cmdFns = {}, {}, {}, nil, {}
+    r.loaded = false
+    for _, c in ipairs(r.lazy or {}) do pcall(sampUnregisterChatCommand, c) end
+    r.lazy = nil
     local m, err = readManifest(r.dir)
     if not m then r.err = err; r.state = 'error'; log(name .. ': ' .. tostring(err)); return end
     r.meta = m.meta
@@ -585,6 +604,7 @@ local function startResource(name)
                 end
             end
         end
+        r.loaded = true
         trigger('onClientResourceStart', name)
         trigger('onResourceStart', name)
     end)
@@ -596,11 +616,39 @@ local function scanResources()
     for _, n in ipairs(listDirs(ROOT)) do
         local dir = ROOT .. '/' .. n
         if not resources[n] and (exists(dir .. '/fxmanifest.lua') or exists(dir .. '/__resource.lua')) then
-            resources[n] = { name = n, dir = dir, state = 'stopped', threads = {}, commands = {}, handlers = {} }
+            resources[n] = { name = n, dir = dir, state = 'stopped', threads = {}, commands = {}, handlers = {}, cmdFns = {} }
             order[#order + 1] = n
+            local m = readManifest(dir)
+            if m then resources[n].meta = m.meta end
         end
     end
     table.sort(order)
+end
+
+-- start_on_command: a placeholder chat command that starts the resource, waits for its scripts, then runs the
+-- resource's own command with the same text. Armed at game start and again after a stop (not when disabled).
+armLazy = function(r)
+    local list = lazyCommands(r)
+    if #list == 0 or r.state == 'started' or exists(r.dir .. '/disabled') then return end
+    r.lazy = list
+    for _, c in ipairs(list) do
+        if not (sampIsChatCommandDefined and sampIsChatCommandDefined(c)) then
+            sampRegisterChatCommand(c, function(param)
+                startResource(r.name)
+                lua_thread.create(function()
+                    local t = os.clock()
+                    while r.state == 'started' and not r.loaded and os.clock() - t < 5 do wait(0) end
+                    local fn = r.cmdFns[c]
+                    if not fn then
+                        if r.state ~= 'started' then sampAddChatMessage('{9AD0FF}[FiveM]{FFFFFF} ' .. r.name .. ' did not start: ' .. tostring(r.err), -1) end
+                        return
+                    end
+                    fn(param)
+                end)
+            end)
+        end
+    end
+    log(r.name .. ' waits for /' .. table.concat(list, ' /'))
 end
 
 -- ============================ /fivem window (plain imgui) ============================
@@ -619,10 +667,10 @@ imgui.OnFrame(function() return win[0] end, function(self)
             imgui.PushIDStr(n)
             imgui.Text(n)
             imgui.SameLine(220)
-            imgui.TextDisabled(r.state)
+            imgui.TextDisabled((r.state ~= 'started' and r.lazy) and ('waits for /' .. r.lazy[1]) or r.state)
             imgui.SameLine(320)
             if r.state == 'started' then
-                if imgui.Button('Stop') then stopResource(n); local f = io.open(r.dir .. '/disabled', 'wb'); if f then f:close() end end
+                if imgui.Button('Stop') then local f = io.open(r.dir .. '/disabled', 'wb'); if f then f:close() end; stopResource(n) end
                 imgui.SameLine()
                 if imgui.Button('Restart') then stopResource(n); startResource(n) end
             else
@@ -644,7 +692,10 @@ function main()
     while not isPlayerPlaying(PLAYER_HANDLE) do wait(250) end
     scanResources()
     for _, n in ipairs(order) do
-        if not exists(resources[n].dir .. '/disabled') then startResource(n) end
+        local r = resources[n]
+        if not exists(r.dir .. '/disabled') then
+            if #lazyCommands(r) > 0 then armLazy(r) else startResource(n) end
+        end
     end
     sampRegisterChatCommand('fivem', function(arg)
         local cmd, name = tostring(arg or ''):match('^(%S*)%s*(.-)%s*$')
@@ -657,7 +708,10 @@ function main()
             sampAddChatMessage('{9AD0FF}[FiveM]{FFFFFF} ' .. name .. ': ' .. resources[name].state, -1)
         elseif cmd == 'list' then
             local t = {}
-            for _, n in ipairs(order) do t[#t + 1] = n .. ' (' .. resources[n].state .. ')' end
+            for _, n in ipairs(order) do
+                local r = resources[n]
+                t[#t + 1] = n .. ' (' .. ((r.state ~= 'started' and r.lazy) and ('waits for /' .. r.lazy[1]) or r.state) .. ')'
+            end
             sampAddChatMessage('{9AD0FF}[FiveM]{FFFFFF} ' .. (#t > 0 and table.concat(t, ', ') or 'no resources'), -1)
         else
             win[0] = not win[0]

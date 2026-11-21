@@ -2,7 +2,7 @@
 -- FS-Graphics by IDK_FORCE: https://github.com/JebetrexxMC/fs-graphics
 -- The pack is GTA V data (timecycle XML, water, clouds, ReShade). On GTA SA this resource blends the colours of its
 -- timecycles into SA's own timecycle (lib/fs_graphics.lua + lib/fs_graphics_data.lua). Approximations, listed in
--- the window. /fsgraphics opens it (plain imgui), /fsgraphics on|off.
+-- the window. /fsgraphics opens it (plain imgui), /fsgraphics on|off, /fsgraphics preset [full|nosky].
 
 local imgui = require 'mimgui'
 local inicfg = require 'inicfg'
@@ -21,7 +21,7 @@ local V = {}
 
 local FEATURES = {
     { 'water', 'Better Water', 'SA water colour towards the FS-Graphics water tune' },
-    { 'rain', 'Better Rain', 'GTA V rain / thunder sky and clouds on SA rain weathers' },
+    { 'rain', 'Better Rain', 'Better Sky / Clouds also on SA rain and thunder weathers' },
     { 'colors', 'Better Colors', 'less grey colour filter (SA post FX alpha)' },
     { 'reflections', 'Better Reflections', 'brighter sun / light sprites (SA has no screen space reflections)' },
     { 'clouds', 'Better Clouds', 'cloud colours from the FS-Graphics timecycle' },
@@ -31,7 +31,38 @@ local FEATURES = {
     { 'fps', 'FPS Increase', 'shorter draw distance in SA timecycle (off by default)' },
 }
 
-local function apply()
+-- presets: every feature listed; the rest of the config (enabled, strength) stays
+local PRESETS = {
+    { 'full', 'Full', 'every feature on (FPS Increase off)',
+        { sky = true, clouds = true, water = true, nights = true, colors = true, reflections = true, rain = true, streetlights = true, fps = false } },
+    { 'nosky', 'No sky / clouds', 'game sky and clouds, everything else on',
+        { sky = false, clouds = false, water = true, nights = true, colors = true, reflections = true, rain = true, streetlights = true, fps = false } },
+}
+
+local function findPreset(id)
+    id = tostring(id or ''):lower()
+    for _, p in ipairs(PRESETS) do if p[1] == id then return p end end
+    return nil
+end
+
+local function currentPreset()
+    for _, p in ipairs(PRESETS) do
+        local same = true
+        for k, v in pairs(p[4]) do if (cfg.main[k] and true or false) ~= v then same = false end end
+        if same then return p end
+    end
+    return nil
+end
+
+local apply
+local function setPreset(p)
+    for k, v in pairs(p[4]) do cfg.main[k] = v end
+    cfg.main.enabled = true
+    inicfg.save(cfg, CFG)
+    apply()
+end
+
+function apply()
     if cfg.main.enabled then
         local ok, e = pcall(fsg.apply, cfg.main, cfg.main.strength)
         if not ok then print('apply failed: ' .. tostring(e)) end
@@ -53,6 +84,15 @@ imgui.OnFrame(function() return running and win[0] end, function(self)
         V.s = V.s or imgui.new.float(0.7)
         V.s[0] = tonumber(cfg.main.strength) or 0.7
         if imgui.SliderFloat('Strength', V.s, 0.0, 1.0, '%.2f') then cfg.main.strength = V.s[0]; ch = true end
+        imgui.Separator()
+        local cur = currentPreset()
+        imgui.Text('Preset:')
+        for _, p in ipairs(PRESETS) do
+            imgui.SameLine()
+            if imgui.Button(p[2] .. (cur == p and ' *' or '')) then setPreset(p) end
+        end
+        imgui.SameLine()
+        imgui.TextDisabled(cur and cur[3] or 'custom')
         imgui.Separator()
         for _, f in ipairs(FEATURES) do
             V[f[1]] = V[f[1]] or imgui.new.bool(false)
@@ -81,6 +121,16 @@ RegisterCommand('fsgraphics', function(_, args)
     if a == 'on' or a == 'off' then
         cfg.main.enabled = (a == 'on'); inicfg.save(cfg, CFG); apply()
         printStringNow('FS-Graphics ' .. a, 1500)
+    elseif a == 'preset' then
+        local p = findPreset(args[2])
+        if p then
+            setPreset(p)
+            TriggerEvent('chat:addMessage', { args = { 'FS-Graphics', 'preset ' .. p[2] .. ' - ' .. p[3] } })
+        else
+            local t = {}
+            for _, q in ipairs(PRESETS) do t[#t + 1] = q[1] .. ' (' .. q[3] .. ')' end
+            TriggerEvent('chat:addMessage', { args = { 'FS-Graphics', '/fsgraphics preset ' .. table.concat(t, ' | ') } })
+        end
     else
         win[0] = not win[0]
     end

@@ -749,6 +749,11 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.38
+- FiveM loader: a resource can now wait for its command. A manifest line `start_on_command 'name'` keeps it stopped at game start; typing /name starts it and runs its own command. example-hud uses it, so it only starts when you type /hudexample (it used to start with the game and wait hidden). /fivem shows it as "waits for /hudexample". After a stop it waits again, and Stop in /fivem turns it off for good.
+- FS-Graphics: presets. `/fsgraphics preset nosky` keeps the game's own sky and clouds and turns everything else on (water, nights, colours, reflections, rain, street lights). `/fsgraphics preset full` turns every feature back on. `/fsgraphics preset` lists them. The window has the same two buttons and shows which preset is in use.
+- FS-Graphics: with Better Sky off, rain weathers no longer get the FS-Graphics sky either. Better Rain now only means Better Sky / Clouds also apply to rain and thunder.
+
 ### 5.02.37
 - Every script mod now has a chat command. /mods lists them all with a button for each.
 - New moonloader/fivem_loader.lua runs FiveM client Lua resources on GTA SA. Put a resource in moonloader/fivem/<name>/ with its fxmanifest.lua. Its client and shared scripts get a FiveM-style API: Citizen.CreateThread / Wait, RegisterCommand (as a chat command), events, vector3, PlayerPedId, GetEntityCoords, the DrawText / DrawRect / DrawLine / DrawMarker family, time and weather, GetHashKey and json. A native that has no SA version returns nil and is logged once. /fivem opens a plain ImGui list with Start / Stop / Restart. The FiveM Lua SDK (https://github.com/JebetrexxMC/fivem-lua-sdk) is in lib/fivem-sdk/ as a reference. Server scripts, NUI and GTA V streamed files can't run on SA.
