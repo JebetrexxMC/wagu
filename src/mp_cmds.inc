@@ -274,7 +274,7 @@ static bool HandleCommand(const char* text)
     // 2.19.6: chat layout
     else if(!strcmp(cmd, "pagesize"))  { if(*arg) settings.chatLines = atoi(arg); ClampChatSettings(); SaveConfig(); SysMsg(COL_SYSTEM, "Chat lines: %d", settings.chatLines); }
     else if(!strcmp(cmd, "chatscale"))  { if(*arg) settings.chatScale = (float)atof(arg) / 100.0f; ClampChatSettings(); SaveConfig(); SysMsg(COL_SYSTEM, "Chat scale: %d%%", (int)(settings.chatScale * 100 + 0.5f)); }
-    else if(!strcmp(cmd, "fontsize"))  { if(*arg) settings.chatSize = (float)atof(arg) / 100.0f; ClampChatSettings(); SaveConfig(); SysMsg(COL_SYSTEM, "Chat text size: %d%%", (int)(settings.chatSize * 100 + 0.5f)); }
+    else if(!strcmp(cmd, "fontsize"))  { if(*arg) { const float v = (float)atof(arg); settings.chatSize = (v >= -3 && v <= 5) ? 1.0f + v * 0.1f : v / 100.0f; }   // 5.02.24: samp.exe's -3..5 too ClampChatSettings(); SaveConfig(); SysMsg(COL_SYSTEM, "Chat text size: %d%%", (int)(settings.chatSize * 100 + 0.5f)); }
     else if(!strcmp(cmd, "chatwidth")) { if(*arg) settings.chatWidth = (float)atof(arg) / 100.0f; ClampChatSettings(); SaveConfig(); SysMsg(COL_SYSTEM, "Chat width: %d%%", (int)(settings.chatWidth * 100 + 0.5f)); }
     else if(!strcmp(cmd, "chatfade"))
     {   // 3.55: /chatfade on | off | [seconds]
@@ -294,6 +294,15 @@ static bool HandleCommand(const char* text)
         s_Cheat.gravity = g;
         SysMsg(COL_SYSTEM, "Gravity: %.2f%s", g, g == 1.0f ? " (normal)" : "");
     }
+    // 5.02.24: the rest of samp.exe's client commands
+    else if(!strcmp(cmd, "timestamp")) { settings.chatTimestamps = !settings.chatTimestamps; SaveConfig(); SysMsg(COL_SYSTEM, "Chat timestamps: %s", OnOff(settings.chatTimestamps)); }
+    else if(!strcmp(cmd, "mem"))
+    {
+        long kb = 0; if(FILE* f = fopen("/proc/self/status", "r")) { char l[128]; while(fgets(l, sizeof(l), f)) if(!strncmp(l, "VmRSS:", 6)) { kb = atol(l + 6); break; } fclose(f); }
+        SysMsg(COL_SYSTEM, "Memory: %ld MB", kb / 1024);
+    }
+    else if(!strcmp(cmd, "fpslimit") || !strcmp(cmd, "headmove") || !strcmp(cmd, "dl") || !strcmp(cmd, "nametagstatus") || !strcmp(cmd, "audiomsg") || !strcmp(cmd, "hudscalefix") || !strcmp(cmd, "ctd"))
+        SysMsg(COL_SYSTEM, "/%s is a PC (samp.exe) setting - the phone game sets this in its own menu (Settings).", cmd);
     else if(!strcmp(cmd, "help") || !strcmp(cmd, "cmds") || !strcmp(cmd, "commands"))
     {
         for(int i = 0; i < MP_CMD_COUNT; ++i) SysMsg(COL_SYSTEM, "%s %s  -  %s", kCmds[i].cmd, kCmds[i].args, kCmds[i].help);

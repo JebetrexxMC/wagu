@@ -305,7 +305,9 @@ static void SampSrvProcess(int ped, uint64_t now)
 static bool SampSrvCommand(const char* text)
 {
     if(!SampSrvOn() || !text || text[0] != '/') return false;
-    static const char* const kLocal[] = { "q", "quit", "fps", "bubbles", "icons", "mapicons", "hudmenu", "launcher", "mpsettings" };
+    static const char* const kLocal[] = { "q", "quit", "fps", "bubbles", "icons", "mapicons", "hudmenu", "launcher", "mpsettings",
+        // 5.02.24: samp.exe answers these itself (open.mp "Client Commands") - the server never sees them
+        "pagesize", "fontsize", "timestamp", "mem", "fpslimit", "headmove", "dl", "nametagstatus", "audiomsg", "hudscalefix", "ctd" };
     char cmd[32] = ""; int n = 0; const char* a = text + 1;
     while(*a && *a != ' ' && n < 30) cmd[n++] = (char)tolower((unsigned char)*a++);
     cmd[n] = 0;

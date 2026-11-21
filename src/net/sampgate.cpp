@@ -223,6 +223,8 @@ struct SampGate::Impl
     int lastHealth = 100;
     // 5.02.15: what a PC client reports back - anti-cheats (Nex-AC...) and FPS / AFK scripts read these
     int lastArmour = 0;                   // SetPlayerArmour (RPC 66), 0 at spawn
+    // 5.02.24: samp.exe's own client commands (/save /rs /interior /vw /rcon) - the gate answers them like the PC client
+    uint8_t interior = 0; int32_t vworld = 0; SyncData lastMe{}; bool haveMe = false;
     int32_t money = 0;                    // GivePlayerMoney / ResetPlayerMoney - sent back in the stats packet (205)
     int32_t drunk = 0;                    // SetPlayerDrunkLevel (RPC 35) - the PC client lowers it 1 per frame
     uint64_t statsAt = 0, drunkAt = 0;
@@ -709,7 +711,7 @@ int SampGate::AnswerQuery(const char* in, int inLen, char* out, int outCap)
     switch(in[10])
     {
         case 'i': o += (char)0; u16((uint32_t)m_p->qCount); u16((uint32_t)m_p->qMax); s32(m_p->hostname); s32("MP crossplay"); s32("English"); break;
-        case 'r': u16(4); s8("lagcomp"); s8("On"); s8("mapname"); s8("San Andreas"); s8("version"); s8("omp 1.6.7 (MP)"); s8("weburl"); s8("github.com/JebetrexxMC/wagu"); break;
+        case 'r': u16(6); s8("lagcomp"); s8("On"); s8("mapname"); s8("San Andreas"); s8("weather"); s8("10"); s8("worldtime"); s8("12:00"); s8("version"); s8("omp 1.6.7 (MP)"); s8("weburl"); s8("github.com/JebetrexxMC/wagu"); break;
         case 'c': { int n = std::min<int>((int)m_p->qPlayers.size(), 100); u16((uint32_t)n); for(int i = 0; i < n; ++i) { s8(m_p->qPlayers[i].first); u32((uint32_t)m_p->qPlayers[i].second); } break; }
         case 'd': { int n = std::min<int>((int)m_p->qPlayers.size(), 100); u16((uint32_t)n); for(int i = 0; i < n; ++i) { o += (char)i; s8(m_p->qPlayers[i].first); u32((uint32_t)m_p->qPlayers[i].second); u32(60); } break; }
         case 'p': if(inLen >= 15) o.append(in + 11, 4); break;
@@ -1205,7 +1207,8 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 15: bs.Read(u8a); srv->GateOp(s, SPO_CONTROL, u8a ? 1 : 0, 0, 0); break;
         case 29: bs.Read(u8a); bs.Read(u8b); srv->GateOp(s, SPO_TIME, u8a, u8b, -1); break;
         case 152: bs.Read(u8a); srv->GateAct(s, CGA_WEATHER, 0, 0, u8a); break;
-        case 156: bs.Read(u8a); srv->GateOp(s, SPO_WORLD, u8a, 0, 0); break;
+        case 156: bs.Read(u8a); I.interior = u8a; srv->GateOp(s, SPO_WORLD, u8a, 0, 0); break;
+        case 48: if(bs.Read(i32)) I.vworld = i32; break;   // 5.02.24: SetPlayerVirtualWorld (for /vw)
         case 73:   // game text
         {
             bs.Read(u32a); bs.Read(u32b); std::string t = RdStr32(bs);
@@ -1386,6 +1389,45 @@ static void RemFootIn(Impl& I, MPServer* srv, Packet* pk, bool vehicle)
     }
     p->last = d; p->hasPos = true;
     srv->BridgeSync(p->slot, d);
+}
+
+// 5.02.24: the client commands samp.exe answers itself (open.mp docs "Client Commands"). The server never sees them,
+// so sending them as RPC 50 got "Unknown command" (or a script's own /save). /rcon goes as packet 201 like samp.exe.
+static void RemSavePos(Impl& I, MPServer* srv, bool raw, const std::string& note)
+{
+    if(!I.haveMe) { srv->GateMsg(I.phoneSlot, 0xFFFFFFFF, "Spawn first - there is no position to save yet."); return; }
+    const SyncData& d = I.lastMe; const bool car = (d.flags & SYNC_IN_CAR) != 0 && d.carModel;
+    const float* p = car ? d.carPos : d.pos; const float a = car ? d.carHeading : d.heading;
+    char line[256];
+    if(raw) snprintf(line, sizeof(line), "%.4f,%.4f,%.4f,%.4f%s%s", p[0], p[1], p[2], a, note.empty() ? "" : " // ", note.c_str());
+    else if(car) snprintf(line, sizeof(line), "AddStaticVehicle(%u,%.4f,%.4f,%.4f,%.4f,-1,-1); // %s", (unsigned)d.carModel, p[0], p[1], p[2], a, note.c_str());
+    else snprintf(line, sizeof(line), "AddPlayerClass(%u,%.4f,%.4f,%.4f,%.4f,0,0,0,0,0,0); // %s", (unsigned)d.skin, p[0], p[1], p[2], a, note.c_str());
+    const char* file = raw ? "rawpositions.txt" : "savedpositions.txt";
+    if(FILE* f = fopen(file, "a")) { fprintf(f, "%s\n", line); fclose(f); }
+    printf("[crossplay] %s: %s\n", file, line);
+    srv->GateMsg(I.phoneSlot, 0x88AA88FF, (std::string(raw ? "-> Raw position saved: " : "-> Saved: ") + line).c_str());
+}
+
+static bool RemClientCmd(Impl& I, MPServer* srv, const std::string& t)
+{
+    size_t sp = t.find(' '); std::string cmd = t.substr(1, sp == std::string::npos ? std::string::npos : sp - 1), arg;
+    if(sp != std::string::npos) { arg = t.substr(sp + 1); while(!arg.empty() && arg[0] == ' ') arg.erase(0, 1); }
+    for(auto& c : cmd) c = (char)tolower((unsigned char)c);
+    char b[128];
+    if(cmd == "save") { RemSavePos(I, srv, false, arg); return true; }
+    if(cmd == "rs") { RemSavePos(I, srv, true, arg); return true; }
+    if(cmd == "interior") { snprintf(b, sizeof(b), "Current Interior: %u", (unsigned)I.interior); srv->GateMsg(I.phoneSlot, 0x88AA88FF, b); return true; }
+    if(cmd == "vw") { snprintf(b, sizeof(b), "Current Virtual World: %d", (int)I.vworld); srv->GateMsg(I.phoneSlot, 0x88AA88FF, b); return true; }
+    if(cmd == "rcon")
+    {   // open.mp reads it as readDynStr32 (64 characters at most): "/rcon login <password>", "/rcon cmdlist" ...
+        if(arg.empty()) { srv->GateMsg(I.phoneSlot, 0xFFFFFFFF, "Usage: /rcon login [password]  then  /rcon [command]"); return true; }
+        if(arg.size() > 64) arg.resize(64);
+        BitStream o; o.Write((uint8_t)201); o.Write((uint32_t)arg.size()); o.Write(arg.data(), (unsigned)arg.size());
+        if(I.C) I.C->Send(&o, HIGH_PRIORITY, RELIABLE_ORDERED, 0);
+        printf("[crossplay] rcon packet sent (%u characters)\n", (unsigned)arg.size());
+        return true;
+    }
+    return false;
 }
 
 static void RemSendFoot(Impl& I, const SyncData& d)
@@ -1657,6 +1699,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         if(e.kind == HK_CHAT || (e.kind == HK_SAMP && e.op == SPO_CMD))
         {
             std::string t = SampCp::FromUtf8(e.text, I.cp); if(t.empty()) continue;
+            if(t[0] == '/' && RemClientCmd(I, srv, t)) continue;   // 5.02.24: samp.exe's own commands
             if(t[0] == '/')
             {   // 5.02.10: /login etc. 5.02.23: 128 bytes at most (SA-MP / open.mp drop a longer command without a word)
                 if(t.size() > 128) { printf("[crossplay] command cut to 128 characters (was %u)\n", (unsigned)t.size()); t.resize(128); }
@@ -1777,6 +1820,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             }
             I.wasDead = dead;
             if(!dead) RemSendFoot(I, me->d);
+            I.lastMe = me->d; I.haveMe = true;   // 5.02.24: /save /rs
             if(now - I.statsAt >= 1000)
             {   // 5.02.15: the stats packet (205) of the PC client: money + drunk level, about once a second. It was never
                 // sent, so the drunk level stood still - FPS scripts (drunk level drop per second) read 0 FPS = paused /

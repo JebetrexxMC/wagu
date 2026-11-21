@@ -749,6 +749,12 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+- **5.02.24** (app: libMP32.so / libMP64.so, MP_BUILD 50224): **samp.exe's client commands on PC servers** ([open.mp Client Commands](https://open.mp/docs/client/ClientCommands)).
+  - **/save [note]** writes `AddPlayerClass(skin,x,y,z,angle,0,0,0,0,0,0); // note` (in a car: `AddStaticVehicle(model,x,y,z,angle,-1,-1);`) to `savedpositions.txt`, **/rs [note]** writes `x,y,z,angle` to `rawpositions.txt` (next to the gate) and shows the line in chat - for scripting spawn points and cars.
+  - **/interior** and **/vw** show the interior (SetPlayerInterior) and virtual world (SetPlayerVirtualWorld, now tracked) the server put you in.
+  - **/rcon login [password]** and **/rcon [command]** go to the server as the RCON packet (201) like samp.exe, not as a chat command.
+  - **/timestamp**, **/pagesize**, **/fontsize** (samp.exe's -3..5 works too) and **/mem** stay on the phone; before they were sent to the server and came back as "Unknown command". /fpslimit, /headmove, /dl, /nametagstatus, /audiomsg, /hudscalefix and /ctd say where the phone setting is.
+  - Server browser query ([Query Mechanism](https://open.mp/docs/tutorials/QueryMechanism)): the rules answer also has `weather` and `worldtime`.
 - **5.02.23** (app: libMP32.so / libMP64.so, MP_BUILD 50223): **Chat and Spawn on PC servers work like samp.exe.**
   - **Your chat always reaches the server:** SA-MP and open.mp read at most 128 bytes per chat line and drop a longer one without a word (MP sent up to 144). A long line is now split at a space into parts of 128, sent 1 second apart so script anti-spam (3 lines in 2 s) doesn't kick you. Commands are cut to 128. Blank lines are not sent.
   - **How the server shows chat (OnPlayerText):** return 1 = the server sends your line to everyone; return 0 = the script sends its own line (SendClientMessage / SendPlayerMessageToAll / ProxDetector local chat) or nothing. MP now checks that your line came back. If it doesn't come back twice, chat says once that the server uses local chat (only players near you), wants a login first or has you muted, and `mp_log.txt` gets `[crossplay] your chat line did not come back from the server`. The check knows open.mp's `chat_input_filter` (`%` and `~k` become `#`, `{RRGGBB}` a space) and RP scripts that capitalise the first letter.
