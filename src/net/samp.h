@@ -48,5 +48,14 @@ enum eSampOp : uint8_t
     SPO_CLICKPLAYER,  // C->S  val = PC player id tapped in the player list (OnPlayerClickPlayer)
     SPO_CLICKMAP,     // C->S  f = x y z of the map waypoint (OnPlayerClickMap)
     SPO_INTERIOR,     // C->S  a = the interior the phone ped is in now (OnPlayerInteriorChange)
+    // 5.02.26: the rest of the open.mp player functions that reach the client (old phones / servers ignore them)
+    SPO_HUD,          // S->C  a = 0 widescreen (b), 1 clock (b), 2 world bounds (b = 1 set: f = max x, min x, max y, min y / 0 off),
+                      //       3 weapon skill (b = skill type, val = level), 4 stunt bonus (b)
+    SPO_DEATHMSG,     // S->C  kill feed line: val = weapon / reason, text = "{RRGGBB}killer\t{RRGGBB}victim" (killer may be empty)
+    SPO_ACTION,       // S->C  a = 0 ClearPlayerAnimations / tasks, 1 SetPlayerSpecialAction (val), 2 SetPlayerFightingStyle (val)
+    SPO_VEHMOD,       // S->C  val = server vehicle id: a = 1 paintjob (b), 2 add component (f[0]), 3 remove component (f[0]),
+                      //       4 interior (b), 5 damage (text = "panels doors lights tyres"), 6 colours (b = c1, f[0] = c2)
+    SPO_EDIT,         // S->C  a = 1 EditObject / 2 EditAttachedObject / 3 SelectObject panel (text = title), 0 hide
+                      // C->S  a = button: 1..6 x- x+ y- y+ z- z+, 7..10 rx+ ry+ rz- rz+, 11 step, 20 save, 21 cancel, 30 pick nearest
 };
 struct PktSamp { uint8_t type, op, a, b; int32_t val; float f[4]; char text[200]; };

@@ -19,6 +19,7 @@
 #include "net/client.h"
 #include "net/server.h"
 #include <set>
+#include <map>
 #include "net/samp.h"
 #include "net/sampgate.h"
 #include "net/cgrp.h"
@@ -26,6 +27,7 @@
 
 struct Ev : INetEvents {
     bool ok = false; int msgs = 0, dialogs = 0, tds = 0, samp = 0, hello = 0, joins = 0, syncs = 0, cg = 0;
+    std::map<int, int> newOps; std::vector<PktSamp> out;   // 5.02.26
     std::set<int> pcList; int vehOps = 0;   // 5.02.25: SPO_PCLIST (the PC server's player list)
     int classShow = 0, classSpawned = 0;   // 5.02.13: SPO_CLASSSEL (the phone's < Spawn > on PC servers)
     std::vector<std::string> lines;
@@ -46,10 +48,23 @@ struct Ev : INetEvents {
     void OnWorld(const PktWorld&) override {}
     int lastDlg = -1; uint8_t lastStyle = 0;
     void OnDialog(const PktDialog& d) override { ++dialogs; lastDlg = d.dialogId; lastStyle = d.style; printf("  dialog %u style %u [%s|%s]: %.60s\n     %.200s\n", d.dialogId, d.style, d.button1, d.button2, d.caption, d.info); }
-    void OnTextDraw(const PktTextDraw& t) override { ++tds; if(tds <= 3) printf("  textdraw %u show %u: %.40s\n", t.tdId, t.show, t.text); }
+    std::map<int, PktTextDraw> tdAll; bool tdClicked = false;   // 5.02.26
+    void OnTextDraw(const PktTextDraw& t) override { ++tds; if(t.show) tdAll[t.tdId] = t; else tdAll.erase(t.tdId);
+        if(getenv("MP_TEST_TDDUMP") && t.show) printf("  TD %u sel %u font %u pos %.1f %.1f letter %.3f %.3f box %u boxX %.1f col %08X boxcol %08X bg %08X align %u \"%.60s\"\n", t.tdId, t.pad[0], t.font, t.x, t.y, t.letterX, t.letterY, t.useBox, t.boxX, t.color, t.boxColor, t.bgColor, t.align, t.text);
+        if(tds <= 3) printf("  textdraw %u show %u: %.40s\n", t.tdId, t.show, t.text); }
     void OnSamp(const uint8_t* d, int) override { ++samp;
         if(d[1] == SPO_CLASSSEL) { PktSamp p; memcpy(&p, d, sizeof(p)); if(p.a) ++classShow; else if(p.b) ++classSpawned; printf("  SPO_CLASSSEL show %u spawned %u class %d\n", p.a, p.b, p.val); }
         if(d[1] == SPO_VEHICLE) ++vehOps;
+        if(d[1] == SPO_TDSELECT && getenv("MP_TEST_TDCLICK") && !tdClicked)
+        {   PktSamp p; memcpy(&p, d, sizeof(p)); if(p.a) { tdClicked = true; PktSamp k; memset(&k, 0, sizeof(k)); k.type = PKT_SAMP; k.op = SPO_TDCLICK; k.val = atoi(getenv("MP_TEST_TDCLICK")); out.push_back(k); printf("  clicking textdraw %d\n", k.val); } }
+        if(d[1] >= SPO_HUD && d[1] <= SPO_EDIT) { PktSamp p; memcpy(&p, d, sizeof(p)); ++newOps[d[1]]; printf("  5.02.26 op %u a %u b %u val %d %.60s\n", d[1], p.a, p.b, p.val, p.text);
+            if(d[1] == SPO_EDIT && p.a)
+            {   // the phone's edit panel: X+ then Save (edit), Pick (select)
+                PktSamp k; memset(&k, 0, sizeof(k)); k.type = PKT_SAMP; k.op = SPO_EDIT;
+                if(p.a == 3) { k.a = 30; out.push_back(k); }
+                else { k.a = 2; out.push_back(k); k.a = 10; out.push_back(k); k.a = 20; out.push_back(k); }
+            } }
+        if(d[1] == SPO_VEHMOD || d[1] == SPO_ACTION) {}
         if(d[1] == SPO_PCLIST) { PktSamp p; memcpy(&p, d, sizeof(p)); if(p.a == 1) pcList.insert(p.val); else if(p.a == 2) pcList.erase(p.val); else pcList.clear(); }
         if(d[1] == SPO_HELLO) { ++hello; printf("  SPO_HELLO: %s\n", (const char*)d + offsetof(PktSamp, text)); } }
     float px = 1958.f, py = 1343.f, pz = 15.4f;   // 5.02.10: follows the server's SetPlayerPos like the phone does
@@ -85,6 +100,8 @@ int main(int argc, char** argv)
         while(MP_NowMs() < e)
         {
             cl.Poll(&ev);
+            for(auto& k : ev.out) cl.Send(&k, sizeof(k));
+            ev.out.clear();
             if(move && cl.GetState() == NET_CONNECTED && seq % 4 == 0)
             {
                 PktSync p; memset(&p, 0, sizeof(p)); p.type = PKT_SYNC; p.seq = seq; p.d.pos[0] = ev.px + (float)(seq % 40) * 0.02f; p.d.pos[1] = ev.py; p.d.pos[2] = ev.pz;
@@ -171,6 +188,7 @@ int main(int argc, char** argv)
         pump(1000, true);
     }
     if(getenv("MP_TEST_HOLD")) pump(atoi(getenv("MP_TEST_HOLD")), true);   // 5.02.13: two testers - stay to hear the other one's chat
+    for(auto& kv : ev.newOps) printf("  new op %d x%d\n", kv.first, kv.second);
     printf("  messages %d, dialogs %d, textdraws %d, samp ops %d, cg acts %d, joins %d\n", ev.msgs, ev.dialogs, ev.tds, ev.samp, ev.cg, ev.joins);
     CHECK(!gate.Ended(), "still connected after chat + /command + movement");
     cl.Disconnect(); pump(300, false);

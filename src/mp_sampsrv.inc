@@ -8,7 +8,9 @@
 struct SsLabel { Vec3 p; float dist; uint32_t color; std::string text; };
 struct SsAttach { int obj = 0; int model = -1; Vec3 off{ 0, 0, 0 }, rot{ 0, 0, 0 }; uint64_t tryAt = 0; };
 struct SsZone { float r[4] = { 0, 0, 0, 0 }; uint32_t col = 0, flash = 0; };   // 4.13.53: gang zones
-struct SsVeh { int model = 0, c1 = -1, c2 = -1; Vec3 p{ 0, 0, 0 }; float h = 0; int car = 0; uint64_t tryAt = 0; bool taken = false, locked = false, deadSent = false; };   // 5.02.25
+struct SsVeh { int model = 0, c1 = -1, c2 = -1; Vec3 p{ 0, 0, 0 }; float h = 0; int car = 0; uint64_t tryAt = 0; bool taken = false, locked = false, deadSent = false;   // 5.02.25
+               // 5.02.26: interior, paintjob, parts, damage (fitted once the car is made; parts stream in first)
+               int area = 0, pj = -1; std::vector<int> mods; bool modDirty = false; int modTries = 0; uint64_t modAt = 0; std::string dmg; };
 struct SsActor { int model = 0; Vec3 p{ 0, 0, 0 }; float h = 0; bool invul = true; int ped = 0; std::string anim; bool animDone = false; uint64_t tryAt = 0; };
 static struct SampSrvState
 {
@@ -33,6 +35,10 @@ static struct SampSrvState
     std::map<int, SsVeh> vehs;
     int myVeh = -1, mySeat = 0, area = -1, warpVeh = -1, warpSeat = 0; uint64_t warpAt = 0;
     Vec3 wp{ 0, 0, 0 }; bool haveWp = false;
+    // 5.02.26: ToggleWidescreen, TogglePlayerClock, SetPlayerWorldBounds, the kill feed, special actions, the edit panel
+    bool wide = false, clock = false, bounds = false; float bnd[4] = { 0, 0, 0, 0 };
+    int special = 0; std::string actAnim, actFile; uint64_t actTry = 0; bool actPlayed = false;
+    int edit = 0; std::string editTitle;
 } s_SS;
 static bool SampSrvPcSpawned() { return s_SS.pcSpawned; }
 
@@ -56,6 +62,7 @@ static void SampSrvReset()
     for(auto& kv : s_SS.actors) if(kv.second.ped > 0) Game::DeleteChar(kv.second.ped);
     for(auto& kv : s_SS.vehs) if(kv.second.car > 0) Game::DeleteCar(kv.second.car);
     if(s_SS.audio) Sound::StreamStop();
+    if(s_SS.wide) Game::SetWidescreen(false);   // 5.02.26
     s_SS = SampSrvState();
     s_PcList.clear();
 }
@@ -232,6 +239,66 @@ static void SampSrvOnPacket(const uint8_t* d, int len)
                 e.score = (int)p.f[0]; e.ping = p.f[1] > 0 ? (int)p.f[1] : (e.ping >= 0 ? e.ping : -1); e.me = p.b != 0;
             }
             break;
+        // ---- 5.02.26 ----
+        case SPO_HUD:
+            if(p.a == 0) { s_SS.wide = p.b != 0; Game::SetWidescreen(s_SS.wide); }
+            else if(p.a == 1) s_SS.clock = p.b != 0;
+            else if(p.a == 2) { s_SS.bounds = p.b != 0; memcpy(s_SS.bnd, p.f, sizeof(s_SS.bnd)); }
+            else if(p.a == 3) Game::SetWeaponSkill(p.b, p.val);
+            break;
+        case SPO_DEATHMSG:
+        {   // SendDeathMessage: the PC server's kill feed in the MP one ("{RRGGBB}killer\t{RRGGBB}victim")
+            auto split = [](const std::string& t, std::string& name, uint32_t& col) {
+                col = 0xFFFFFFFF; name = t;
+                if(t.size() >= 8 && t[0] == '{' && t[7] == '}') { col = ((uint32_t)strtoul(t.substr(1, 6).c_str(), nullptr, 16) << 8) | 0xFF; name = t.substr(8); }
+            };
+            const char* tab = strchr(p.text, '\t');
+            KillEntry k; k.killerColor = k.victimColor = 0xFFFFFFFF;
+            if(tab) { split(std::string(p.text, tab - p.text), k.killer, k.killerColor); split(tab + 1, k.victim, k.victimColor); }
+            else split(p.text, k.victim, k.victimColor);
+            if(k.victim.empty()) break;
+            k.weapon = (uint8_t)p.val; k.time = MP_NowMs();
+            PushKillEntry(k);
+            break;
+        }
+        case SPO_ACTION:
+            if(!ped) break;
+            if(p.a == 0) { s_SS.actAnim.clear(); Game::ClearTasksNow(ped); }
+            else if(p.a == 2) Game::SetFightingStyle(ped, p.val);
+            else if(p.a == 1)
+            {   // SetPlayerSpecialAction: SPECIAL_ACTION_* of samp.exe
+                static const struct { int id; const char* anim; const char* file; } kAct[] = {
+                    { 5, "dnce_M_a", "DANCING" }, { 6, "dnce_M_b", "DANCING" }, { 7, "dnce_M_c", "DANCING" }, { 8, "dnce_M_d", "DANCING" },
+                    { 10, "handsup", "PED" }, { 25, "crry_prtial", "CARRY" }, { 68, "PISS_LOOP", "PAULNMAC" } };
+                const int was = s_SS.special; s_SS.special = p.val;
+                if(p.val == 2) { if(!Game::IsCharInAnyCar(ped)) Game::GiveLocalJetpack(); break; }
+                if(p.val == 11) { Game::TaskUsePhone(ped, true); break; }
+                if(p.val == 13) { Game::TaskUsePhone(ped, false); break; }
+                if(p.val == 1) { Game::TaskDuck(ped, true); break; }
+                bool anim = false;
+                for(auto& k : kAct) if(k.id == p.val) { s_SS.actAnim = k.anim; s_SS.actFile = k.file; s_SS.actTry = 0; s_SS.actPlayed = false; anim = true; }
+                if(!anim && p.val == 0)
+                {   // SPECIAL_ACTION_NONE: off the jetpack / out of the special animation
+                    const bool hadAnim = !s_SS.actAnim.empty(); s_SS.actAnim.clear();
+                    if(Game::IsLocalOnJetpack() || hadAnim || was == 11) Game::ClearTasksNow(ped);
+                }
+            }
+            break;
+        case SPO_VEHMOD:
+        {
+            auto it = s_SS.vehs.find(p.val);
+            if(it == s_SS.vehs.end()) break;
+            SsVeh& v = it->second; const int comp = (int)p.f[0];
+            if(p.a == 1) { v.pj = p.b <= 2 ? p.b : -1; v.modDirty = true; v.modTries = 0; }
+            else if(p.a == 2) { if(std::find(v.mods.begin(), v.mods.end(), comp) == v.mods.end()) v.mods.push_back(comp); v.modDirty = true; v.modTries = 0; }
+            else if(p.a == 3) { v.mods.erase(std::remove(v.mods.begin(), v.mods.end(), comp), v.mods.end()); v.modDirty = true; v.modTries = 0; }
+            else if(p.a == 4) { v.area = p.b; if(v.car > 0) Game::SetCarArea(v.car, v.area); }
+            else if(p.a == 5) { v.dmg = p.text; v.modDirty = true; v.modTries = 0; }
+            else if(p.a == 6) { v.c1 = p.b; v.c2 = comp; if(v.car > 0) Game::SetCarColours(v.car, v.c1, v.c2); }
+            v.modAt = 0;
+            break;
+        }
+        case SPO_EDIT: s_SS.edit = p.a; s_SS.editTitle = p.text; break;
         default: break;   // SPO_SOUND / SPO_REMOVEBLD: not on MP yet
     }
 }
@@ -305,6 +372,35 @@ static void SampSrvActorsAudio(const Vec3& me, uint64_t now)
     }
 }
 
+// 5.02.26: paintjob, parts (AddVehicleComponent / RemoveVehicleComponent) and damage (UpdateVehicleDamageStatus) of a
+// server car. Parts stream in first - retried until they are on (or 20 tries: a part this model can't take)
+static void SampSrvFitCar(SsVeh& v, uint64_t now)
+{
+    Game::VehState cur; memset(&cur, 0, sizeof(cur));
+    if(!Game::ReadVehState(v.car, cur)) { v.modAt = now + 500; return; }
+    Game::VehState w = cur;
+    if(v.pj >= 0) w.paintjob = (int8_t)v.pj;
+    memset(w.mods, 0, sizeof(w.mods));
+    for(size_t i = 0; i < v.mods.size() && i < MP_VEH_MOD_SLOTS_G; ++i) w.mods[i] = (uint16_t)v.mods[i];
+    if(!v.dmg.empty())
+    {   // SA-MP: panels = GTA panel nibbles, doors = 1 byte per door (bonnet, boot, driver, passenger), lights = GTA lamp bits,
+        // tyres = 1 bit each (0 rear right, 1 front right, 2 rear left, 3 front left)
+        unsigned pn = 0, dr = 0, li = 0, ty = 0;
+        if(sscanf(v.dmg.c_str(), "%u %u %u %u", &pn, &dr, &li, &ty) == 4 && cur.isAuto)
+        {
+            w.panels = pn; w.lights = li;
+            for(int d = 0; d < 4; ++d) w.doors[d] = (uint8_t)((dr >> (8 * d)) & 7);
+            w.wheels[0] = (ty >> 3) & 1; w.wheels[1] = (ty >> 2) & 1; w.wheels[2] = (ty >> 1) & 1; w.wheels[3] = ty & 1;
+        }
+        v.dmg.clear();
+    }
+    Game::VehState st = cur; Game::ApplyVehState(v.car, w, st);
+    Game::VehState after; memset(&after, 0, sizeof(after));
+    bool all = Game::ReadVehState(v.car, after);
+    for(int m : v.mods) { bool on = false; for(int i = 0; i < MP_VEH_MOD_SLOTS_G; ++i) if(after.mods[i] == m) on = true; if(!on) all = false; }
+    if(all || ++v.modTries >= 20) v.modDirty = false; else v.modAt = now + 400;
+}
+
 // 5.02.25: the PC server's cars near me, the car I sit in (OnPlayerEnterVehicle / ExitVehicle), OnVehicleDeath,
 // OnPlayerInteriorChange and OnPlayerClickMap (the map waypoint)
 static void SampSrvVehicles(int ped, const Vec3& me, uint64_t now)
@@ -317,6 +413,7 @@ static void SampSrvVehicles(int ped, const Vec3& me, uint64_t now)
         SsVeh& v = kv.second;
         if(v.car > 0 && v.car == inCar) { my = kv.first; seat = Game::GetDriverOfCar(inCar) == ped ? 0 : 1; }
         if(v.car > 0 && !v.deadSent && Game::IsCarDead(v.car)) { v.deadSent = true; SampSrvSend(SPO_VEHDEATH, 0, 0, kv.first); }
+        if(v.car > 0 && v.modDirty && now >= v.modAt) SampSrvFitCar(v, now);   // 5.02.26
         const float dx = v.p.x - me.x, dy = v.p.y - me.y, d2 = dx * dx + dy * dy;
         if(v.car > 0 && v.car != inCar)
         {
@@ -333,6 +430,8 @@ static void SampSrvVehicles(int ped, const Vec3& me, uint64_t now)
         Game::SetCarHeading(c, v.h); Game::KeepMissionCar(c);
         if(v.c1 >= 0 || v.c2 >= 0) Game::SetCarColours(c, v.c1 >= 0 ? v.c1 : 1, v.c2 >= 0 ? v.c2 : 1);
         if(v.locked) Game::LockCar(c, true);
+        if(v.area) Game::SetCarArea(c, v.area);   // 5.02.26: LinkVehicleToInterior
+        if(v.pj >= 0 || !v.mods.empty() || !v.dmg.empty()) { v.modDirty = true; v.modTries = 0; v.modAt = now + 300; }
     }
     if(my != s_SS.myVeh || (my >= 0 && seat != s_SS.mySeat)) { s_SS.myVeh = my; s_SS.mySeat = seat; SampSrvSend(SPO_MYCAR, (uint8_t)seat, 0, my); }
     if(s_SS.warpVeh >= 0 && now >= s_SS.warpAt)
@@ -378,6 +477,22 @@ static void SampSrvProcess(int ped, uint64_t now)
         if(!Game::IsKnownModel(a.model)) { a.model = -1; continue; }   // SA-MP-only models (the model pack)
         int o = Game::CreateWorldObject(a.model, me);
         if(o > 0) { a.obj = o; Game::SetObjectCollision(o, false); Game::AttachObjectToCharRot(o, ped, a.off, a.rot); }
+    }
+    if(s_SS.bounds)
+    {   // 5.02.26: SetPlayerWorldBounds (max x, min x, max y, min y) - pushed back in like samp.exe
+        const float* b = s_SS.bnd;
+        if(b[0] > b[1] && b[2] > b[3] && (me.x > b[0] || me.x < b[1] || me.y > b[2] || me.y < b[3]))
+        {
+            Vec3 q = me; q.x = std::min(b[0] - 0.5f, std::max(b[1] + 0.5f, q.x)); q.y = std::min(b[2] - 0.5f, std::max(b[3] + 0.5f, q.y));
+            const int car = Game::IsCharInAnyCar(ped) ? Game::GetCarCharIsIn(ped) : 0;
+            if(car > 0) { Game::SetCarPos(car, q, 0.0f); Game::SetMoveSpeed(car, true, Vec3{ 0, 0, 0 }); }
+            else { Game::SetCharPos(ped, q, 0.0f); Game::SetMoveSpeed(ped, false, Vec3{ 0, 0, 0 }); }
+        }
+    }
+    if(!s_SS.actAnim.empty() && !s_SS.actPlayed && now >= s_SS.actTry)
+    {   // 5.02.26: SetPlayerSpecialAction animations (the file streams in first)
+        s_SS.actTry = now + 300;
+        if(!Game::IsCharInAnyCar(ped)) s_SS.actPlayed = Game::PlayAnimLoop(ped, s_SS.actAnim.c_str(), s_SS.actFile.c_str());
     }
     SampSrvActorsAudio(me, now);   // 4.13.53
     SampSrvVehicles(ped, me, now);   // 5.02.25
@@ -497,19 +612,62 @@ static void SampSrvRender(ImDrawList* dl)
         const ImVec2 ds = ImGui::GetIO().DisplaySize;
         ImGui::SetNextWindowPos(ImVec2(0, 0)); ImGui::SetNextWindowSize(ds);
         ImGui::Begin("##SampTdSelect", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus);
-        const ImVec2 m = ImGui::GetIO().MousePos;
+        // 5.02.26: a touch sets the position and the click in the same frame - use the click position, a little
+        // slack around small buttons, and only the top-most (last drawn) textdraw under the finger
+        const bool clicked = ImGui::IsMouseClicked(0);
+        const ImVec2 m = clicked ? ImGui::GetIO().MouseClickedPos[0] : ImGui::GetIO().MousePos;
+        const float slack = ds.y * 0.006f;
         ImDrawList* wl = ImGui::GetWindowDrawList();
+        int hit = -1;
         for(int i = 0; i < SAMP_TD_LOCAL; ++i)
         {
             const SampTd& t = s_Td[i];
             if(!t.used || !t.d.pad[0]) continue;
             const ImVec4 r = t.rect;
-            if(m.x < r.x || m.y < r.y || m.x > r.z || m.y > r.w) continue;
+            if(r.z - r.x < 1.0f || r.w - r.y < 1.0f) continue;
+            if(m.x < r.x - slack || m.y < r.y - slack || m.x > r.z + slack || m.y > r.w + slack) continue;
+            hit = i;
+        }
+        if(hit >= 0)
+        {
+            const ImVec4 r = s_Td[hit].rect;
             wl->AddRectFilled(ImVec2(r.x, r.y), ImVec2(r.z, r.w), (TdCol(s_SS.hover) & 0x00FFFFFF) | 0x50000000);
-            if(ImGui::IsMouseClicked(0)) SampSrvSend(SPO_TDCLICK, 0, 0, i);
+            if(clicked) SampSrvSend(SPO_TDCLICK, 0, 0, hit);
         }
         ImGui::SetCursorPos(ImVec2(ds.x - 130.0f, 10.0f));
         if(ImGui::Button("Close", ImVec2(120.0f, 44.0f))) { s_SS.select = false; SampSrvSend(SPO_TDCLICK, 0, 0, -1); }
+        ImGui::End();
+    }
+    // 5.02.26: TogglePlayerClock - the game time at the top like samp.exe's clock
+    if(s_SS.clock)
+    {
+        int h = 0, m = 0; Game::GetTimeOfDay(h, m);
+        char t[8]; snprintf(t, sizeof(t), "%02d:%02d", h % 24, m % 60);
+        const ImVec2 ds = ImGui::GetIO().DisplaySize; const float fs = std::max(22.0f, ds.y * 0.05f);
+        const ImVec2 sz = font->CalcTextSizeA(fs, FLT_MAX, 0.0f, t); const ImVec2 at((ds.x - sz.x) * 0.5f, ds.y * 0.012f);
+        for(int dx = -2; dx <= 2; dx += 2) for(int dy = -2; dy <= 2; dy += 2) if(dx || dy) dl->AddText(font, fs, ImVec2(at.x + dx, at.y + dy), IM_COL32(0, 0, 0, 255), t);
+        dl->AddText(font, fs, at, IM_COL32(255, 255, 255, 255), t);
+    }
+    // 5.02.26: EditObject / EditAttachedObject / SelectObject - samp.exe drags a gizmo with the mouse, the phone has buttons
+    if(s_SS.edit)
+    {
+        const ImVec2 ds = ImGui::GetIO().DisplaySize;
+        const float bh = std::max(40.0f, ds.y * 0.065f), bw = bh * 1.35f, gap = 8.0f;
+        const int cols = s_SS.edit == 3 ? 2 : 6, rows = s_SS.edit == 3 ? 1 : 3;
+        const float w = cols * (bw + gap) + 16.0f, h = rows * (bh + gap) + ImGui::GetFontSize() + 26.0f;
+        ImGui::SetNextWindowPos(ImVec2((ds.x - w) * 0.5f, ds.y - h - ds.y * 0.04f)); ImGui::SetNextWindowSize(ImVec2(w, h));
+        ImGui::SetNextWindowBgAlpha(0.55f);
+        ImGui::Begin("##SampEdit", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove);
+        ImGui::TextUnformatted(s_SS.editTitle.c_str());
+        auto btn = [&](const char* l, int id, bool same) { if(same) ImGui::SameLine(0, gap); char b[24]; snprintf(b, sizeof(b), "%s##ed%d", l, id); if(ImGui::Button(b, ImVec2(bw, bh))) SampSrvSend(SPO_EDIT, (uint8_t)id, 0, 0); };
+        if(s_SS.edit == 3) { btn("Pick", 30, false); btn("Cancel", 21, true); }
+        else
+        {
+            static const char* const kL[] = { "X-", "X+", "Y-", "Y+", "Z-", "Z+" };
+            for(int i = 0; i < 6; ++i) btn(kL[i], i + 1, i > 0);
+            btn("RX", 7, false); btn("RY", 8, true); btn("RZ-", 9, true); btn("RZ+", 10, true); btn("Step", 11, true);
+            btn("Save", 20, false); btn("Cancel", 21, true);
+        }
         ImGui::End();
     }
     // 5.02.13: the PC server's class selection - <  Spawn  > (samp.exe's buttons). The MP spawn picker is off on PC servers.

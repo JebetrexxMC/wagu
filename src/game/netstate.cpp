@@ -852,6 +852,23 @@ int  Game::GetCarCharIsUsing(int ped) { if(ped <= 0) return 0; uint32_t c = 0; C
 bool Game::IsCharInCar(int ped, int car) { return ped > 0 && car > 0 && CALLSCM(IS_CHAR_IN_CAR, ped, car) != 0; }
 void Game::ReleaseCar(int car) { if(car > 0) CALLSCM(MARK_CAR_AS_NO_LONGER_NEEDED, car); }
 void Game::ClearTasksNow(int ped) { if(ped > 0) CALLSCM(CLEAR_CHAR_TASKS_IMMEDIATELY, ped); }
+// 5.02.26: open.mp player functions
+DEFOPCODE(02A3, SWITCH_WIDESCREEN_526, i);
+DEFOPCODE(062A, SET_FLOAT_STAT_526, if);
+DEFOPCODE(07FE, GIVE_MELEE_ATTACK_TO_CHAR_526, iii);
+void Game::SetWidescreen(bool on) { CALLSCM(SWITCH_WIDESCREEN_526, on ? 1 : 0); }
+void Game::SetWeaponSkill(int type, int level)
+{   // the weapon skill stats are 69 (pistol) .. 79 (sniper), same order as SA-MP's WEAPONSKILL_*
+    if(type < 0 || type > 10) return;
+    if(level < 0) level = 0; if(level > 1000) level = 1000;
+    CALLSCM(SET_FLOAT_STAT_526, 69 + type, (float)level);
+}
+void Game::SetFightingStyle(int ped, int style)
+{
+    if(ped <= 0 || !PedPtr(ped)) return;
+    if(style != 4 && style != 5 && style != 6 && style != 7 && style != 15 && style != 16) return;
+    CALLSCM(GIVE_MELEE_ATTACK_TO_CHAR_526, ped, style, 6);
+}
 
 // ---- environment -----------------------------------------------------------------------------
 void Game::SetEnvCallbacks(ExplosionCb onExp, FireCb onFire, ForeignCb onForeign)

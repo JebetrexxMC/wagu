@@ -225,7 +225,8 @@ struct SampGate::Impl
     int lastArmour = 0;                   // SetPlayerArmour (RPC 66), 0 at spawn
     // 5.02.25: the callbacks samp.exe fires. The PC server's cars are made on the phone (SPO_VEHICLE); sitting in one
     // sends OnPlayerEnterVehicle + driver / passenger sync instead of "on foot at the car"
-    struct Veh { uint16_t model = 0; uint8_t c1 = 0, c2 = 0; float p[3] = { 0, 0, 0 }; float a = 0; bool taken = false; bool locked = false; };
+    struct Veh { uint16_t model = 0; uint8_t c1 = 0, c2 = 0; float p[3] = { 0, 0, 0 }; float a = 0; bool taken = false; bool locked = false;
+                 uint8_t interior = 0; int paintjob = -1; std::vector<uint16_t> mods; };   // 5.02.26: interior / paintjob / parts too
     std::map<int, Veh> vehs;                                // server vehicle id -> what the phone was told
     int myVeh = -1, mySeat = 0; uint64_t myVehAt = 0;       // the server car the phone sits in
     bool vsHave = false; PktVehState vsLast{};              // the phone's last car state of it (mods / paintjob / colours / damage)
@@ -237,6 +238,11 @@ struct SampGate::Impl
     std::map<int, Menu> menus; int menuOpen = -1;           // GTA menus (CreateMenu / ShowMenuForPlayer) as a list window
     struct Act { uint32_t skin = 0; float p[3] = { 0, 0, 0 }; float a = 0; bool invul = true; };
     std::map<int, Act> actors;                              // CreateActor (shown with the phone's actor peds)
+    // 5.02.26: SetPlayerAttachedObject kept (EditAttachedObject answers with it), EditObject / SelectObject state
+    struct Att { bool on = false; uint32_t model = 0, bone = 0, c1 = 0, c2 = 0; float off[3] = { 0, 0, 0 }, rot[3] = { 0, 0, 0 }, sc[3] = { 1, 1, 1 }; };
+    Att att[10];
+    bool specOn = false;                  // PlayerSpectatePlayer / Vehicle camera is on
+    struct Edit { int mode = 0; bool pobj = false; uint16_t id = 0; uint32_t idx = 0; float p[3] = { 0, 0, 0 }, r[3] = { 0, 0, 0 }, p0[3] = { 0, 0, 0 }, r0[3] = { 0, 0, 0 }; float step = 0.25f; } edit;
     // 5.02.24: samp.exe's own client commands (/save /rs /interior /vw /rcon) - the gate answers them like the PC client
     uint8_t interior = 0; int32_t vworld = 0; SyncData lastMe{}; bool haveMe = false;
     int32_t money = 0;                    // GivePlayerMoney / ResetPlayerMoney - sent back in the stats packet (205)
@@ -787,11 +793,68 @@ static void RemVehShow(Impl& I, MPServer* srv, int id)
     float f[4] = { v.p[0], v.p[1], v.p[2], v.a }; char t[32]; snprintf(t, sizeof(t), "%u %u", (unsigned)v.model, (unsigned)v.c2);
     srv->GateOp(I.phoneSlot, SPO_VEHICLE, 1, v.c1, id, f, t);
     if(v.locked) srv->GateOp(I.phoneSlot, SPO_VEHICLE, 4, 1, id);
+    // 5.02.26: its interior, paintjob and parts (the phone fits them once the car is made)
+    if(v.interior) srv->GateOp(I.phoneSlot, SPO_VEHMOD, 4, v.interior, id);
+    if(v.paintjob >= 0) srv->GateOp(I.phoneSlot, SPO_VEHMOD, 1, (uint8_t)v.paintjob, id);
+    for(uint16_t m : v.mods) { float c[4] = { (float)m, 0, 0, 0 }; srv->GateOp(I.phoneSlot, SPO_VEHMOD, 2, 0, id, c); }
 }
 static void RemVehFree(Impl& I, MPServer* srv, int id)
 {
     auto it = I.vehs.find(id); if(it == I.vehs.end() || !it->second.taken) return;
     it->second.taken = false; RemVehShow(I, srv, id);
+}
+// 5.02.26: EditObject / EditAttachedObject / SelectObject from the phone's panel (samp.exe drags the gizmo with the mouse)
+static int32_t RemModel(Impl& I, int32_t model);
+static void RemEdit(Impl& I, MPServer* srv, int btn)
+{
+    Impl::Edit& E = I.edit; const int s = I.phoneSlot; if(!E.mode || s < 0) return;
+    if(E.mode == 3)
+    {   // SelectObject: the nearest object to me (OnPlayerSelectObject, type 1 = global object)
+        if(btn == 21) { E = Impl::Edit(); srv->GateOp(s, SPO_EDIT, 0, 0, 0); return; }
+        if(btn != 30 || !I.haveMe) return;
+        int best = -1; float bd = 1e9f; const float* me = I.lastMe.pos;
+        for(auto& kv : I.objs) { const float* p = kv.second.p; const float d = (p[0] - me[0]) * (p[0] - me[0]) + (p[1] - me[1]) * (p[1] - me[1]) + (p[2] - me[2]) * (p[2] - me[2]); if(d < bd) { bd = d; best = kv.first; } }
+        if(best < 0 || bd > 50.0f * 50.0f) { srv->GateMsg(s, 0xA9C4E4FF, "[open.mp] No object within 50 m to select."); return; }
+        const Impl::Obj& o = I.objs[best];
+        BitStream b; b.Write((uint32_t)1); b.Write((uint16_t)best); b.Write((uint32_t)o.model); WrVec(b, o.p); CliRpc(I, 27, b);
+        printf("[crossplay] selected object %d (model %u, %.0f m)\n", best, (unsigned)o.model, sqrtf(bd));
+        return;
+    }
+    const float st = E.step, rs = E.mode == 2 ? 5.0f : 15.0f;
+    switch(btn)
+    {
+        case 1: E.p[0] -= st; break; case 2: E.p[0] += st; break;
+        case 3: E.p[1] -= st; break; case 4: E.p[1] += st; break;
+        case 5: E.p[2] -= st; break; case 6: E.p[2] += st; break;
+        case 7: E.r[0] = fmodf(E.r[0] + rs, 360.0f); break; case 8: E.r[1] = fmodf(E.r[1] + rs, 360.0f); break;
+        case 9: E.r[2] = fmodf(E.r[2] - rs + 360.0f, 360.0f); break; case 10: E.r[2] = fmodf(E.r[2] + rs, 360.0f); break;
+        case 11: E.step = E.mode == 2 ? (st >= 0.1f ? 0.01f : st * 2.5f) : (st >= 2.0f ? 0.05f : st * 4.0f); return;
+        case 20: case 21: break;
+        default: return;
+    }
+    const bool fin = btn == 20 || btn == 21;
+    if(btn == 21) { memcpy(E.p, E.p0, sizeof(E.p)); memcpy(E.r, E.r0, sizeof(E.r)); }
+    if(E.mode == 1)
+    {
+        auto it = I.objs.find(E.id);
+        if(it != I.objs.end()) { memcpy(it->second.p, E.p, sizeof(E.p)); memcpy(it->second.r, E.r, sizeof(E.r)); srv->GateObject(it->second.row, it->second.model, E.p, E.r, true); }
+        const uint32_t resp = btn == 21 ? 0 : (btn == 20 ? 1 : 2);   // EDIT_RESPONSE_CANCEL / FINAL / UPDATE
+        BitStream b; b.Write(E.pobj); b.Write(E.id); b.Write(resp); WrVec(b, E.p); WrVec(b, E.r); CliRpc(I, 117, b);
+    }
+    else if(E.mode == 2)
+    {
+        Impl::Att& a = I.att[E.idx];
+        memcpy(a.off, E.p, sizeof(a.off)); memcpy(a.rot, E.r, sizeof(a.rot));
+        char t[96]; snprintf(t, sizeof(t), "%.3f %.3f %.3f %.3f %.3f %.3f", a.rot[0], a.rot[1], a.rot[2], a.sc[0], a.sc[1], a.sc[2]);
+        float f4[4] = { a.off[0], a.off[1], a.off[2], 0 };
+        srv->GateOp(s, SPO_ATTACH, (uint8_t)E.idx, (uint8_t)a.bone, RemModel(I, (int32_t)a.model), f4, t);
+        if(fin)
+        {   // OnPlayerEditAttachedObject (only the end answer, like samp.exe)
+            BitStream b; b.Write((uint32_t)(btn == 20 ? 1 : 0)); b.Write(E.idx); b.Write(a.model); b.Write(a.bone);
+            WrVec(b, a.off); WrVec(b, a.rot); WrVec(b, a.sc); b.Write(a.c1); b.Write(a.c2); CliRpc(I, 116, b);
+        }
+    }
+    if(fin) { printf("[crossplay] edit %s\n", btn == 20 ? "saved" : "cancelled"); E = Impl::Edit(); srv->GateOp(s, SPO_EDIT, 0, 0, 0); }
 }
 static void RemActorShow(Impl& I, MPServer* srv, int id)
 {
@@ -808,6 +871,9 @@ static void RemReset(Impl& I, MPServer* srv)
     if(I.phoneSlot >= 0) srv->GateOp(I.phoneSlot, SPO_PCLIST, 0, 0, 0);
     for(auto& kv : I.objs) { float z[3] = { 0, 0, 0 }; srv->GateObject(kv.second.row, kv.second.model, z, z, false); }
     I.objs.clear();
+    if(I.edit.mode && I.phoneSlot >= 0) srv->GateOp(I.phoneSlot, SPO_EDIT, 0, 0, 0);   // 5.02.26
+    I.edit = Impl::Edit(); for(auto& a : I.att) a = Impl::Att();
+    if(I.phoneSlot >= 0) { srv->GateOp(I.phoneSlot, SPO_HUD, 0, 0, 0); srv->GateOp(I.phoneSlot, SPO_HUD, 1, 0, 0); srv->GateOp(I.phoneSlot, SPO_HUD, 2, 0, 0); }
     for(auto& kv : I.picks) { float z[3] = { 0, 0, 0 }; srv->GateObject(kv.second.o.row, kv.second.o.model, z, z, false); }
     I.picks.clear();
     for(int i = 0; i < kTdSlots; ++i) if(I.tdOwner[i] >= 0) { PktTextDraw t; memset(&t, 0, sizeof(t)); t.type = PKT_TEXTDRAW; t.tdId = (uint16_t)i; t.show = 0; srv->GateTextDraw(I.phoneSlot, t); I.tdOwner[i] = -1; }
@@ -1098,6 +1164,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 124:  // TogglePlayerSpectating
             bs.Read(u32a);
             printf("[crossplay] TogglePlayerSpectating %u\n", u32a);   // 5.02.17
+            if(!u32a && I.specOn) { I.specOn = false; srv->GateAct(s, CGA_SPEC, 0, 0); srv->GateOp(s, SPO_CAMERA, 0, 0, 0); }   // 5.02.26: spectate ends
             I.spect = u32a != 0;   // 5.02.10: spectating (account loading / login camera) = no Spawn button for a PC player either
             if(I.phase == 3) I.retrySpawnAt = I.spect ? 0 : NowMs() + 1500;
             if(!u32a && I.wantClass && I.phase >= 4) { I.wantClass = false; I.phase = 3; I.noAuto = true;
@@ -1156,7 +1223,19 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
                 // car was there while he drove it, so the phone could never get in a server car
                 Impl::Veh& vh = I.vehs[u16a]; vh.model = (uint16_t)I.vehModel[u16a]; memcpy(vh.p, v, sizeof(vh.p));
                 bs.Read(fa); vh.a = fa; bs.Read(u8a); bs.Read(u8b); vh.c1 = u8a; vh.c2 = u8b;
+                // 5.02.26: interior (LinkVehicleToInterior), parts (AddVehicleComponent), paintjob (+ 1, 0 = none), damage
+                float hp = 1000; uint8_t inter = 0, lights = 0, tyres = 0, siren = 0, mods[14] = {}, pj = 0; uint32_t doors = 0, panels = 0;
+                bs.Read(hp); bs.Read(inter); bs.Read(doors); bs.Read(panels); bs.Read(lights); bs.Read(tyres); bs.Read(siren);
+                for(auto& m : mods) bs.Read(m);
+                const bool full = bs.Read(pj);
+                vh.interior = inter; vh.mods.clear(); vh.paintjob = -1;
+                if(full) { for(uint8_t m : mods) if(m) vh.mods.push_back((uint16_t)(m + 999)); if(pj >= 1 && pj <= 3) vh.paintjob = pj - 1; }
                 if(!vh.taken) RemVehShow(I, srv, u16a);
+                if(!vh.taken && I.phoneSlot >= 0 && (doors || panels || lights || tyres))
+                {
+                    char t[64]; snprintf(t, sizeof(t), "%u %u %u %u", panels, doors, (unsigned)lights, (unsigned)tyres);
+                    srv->GateOp(I.phoneSlot, SPO_VEHMOD, 5, 0, u16a, nullptr, t);
+                }
             }
             break;
         case 165: bs.Read(u16a); I.vehModel.erase(u16a); I.vehPos.erase(u16a); I.vehs.erase(u16a); srv->GateOp(s, SPO_VEHICLE, 0, 0, u16a); break;
@@ -1257,8 +1336,12 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         {
             bs.Read(u16a); uint32_t idx = 0; bool create = false; bs.Read(idx); bs.Read(create);
             if((int)u16a != I.myId || idx >= 10) break;
-            if(!create) { srv->GateOp(s, SPO_ATTACH, (uint8_t)idx, 0, -1); break; }
+            if(!create) { I.att[idx].on = false; srv->GateOp(s, SPO_ATTACH, (uint8_t)idx, 0, -1); break; }
             uint32_t model = 0, bone = 0; float off[3], rot[3], sc[3]; bs.Read(model); bs.Read(bone); RdVec(bs, off); RdVec(bs, rot); RdVec(bs, sc);
+            {   // 5.02.26: kept for EditAttachedObject (its answer sends the whole attachment back)
+                Impl::Att& at = I.att[idx]; at.on = true; at.model = model; at.bone = bone; memcpy(at.off, off, sizeof(off)); memcpy(at.rot, rot, sizeof(rot)); memcpy(at.sc, sc, sizeof(sc));
+                at.c1 = at.c2 = 0; bs.Read(at.c1); bs.Read(at.c2);
+            }
             char t[96]; snprintf(t, sizeof(t), "%.3f %.3f %.3f %.3f %.3f %.3f", rot[0], rot[1], rot[2], sc[0], sc[1], sc[2]);
             float f4[4] = { off[0], off[1], off[2], 0 };
             srv->GateOp(s, SPO_ATTACH, (uint8_t)idx, (uint8_t)bone, (int32_t)RemModel(I, (int32_t)model), f4, t); break;
@@ -1349,6 +1432,10 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             // SA-MP: a centred textdraw's box width is TextSize Y (the PC client swaps them); the phone draws align 2 as
             // |boxX - x| wide, so boxX = x + width
             if(t.align == 2) t.boxX = px + fabsf(ty);
+            // 5.02.26: a sprite / model preview (font 4 / 5) is TextSize X by Y big; the phone's TdDrawOne reads
+            // the size from letterX / letterY. They used to get the 0.48 x 1.12 letter size - invisible 1-pixel
+            // boxes, so menus like Life of Player's language picker showed only text and could not be tapped
+            if(style == 4 || style == 5) { t.letterX = tx; t.letterY = ty; t.boxX = 0; t.useBox = 0; t.align = 1; }
             t.pad[0] = selectable ? 1 : 0;
             if(style == 4 || style == 5) MP_CopyStr(t.text, text.c_str(), sizeof(t.text));   // sprite names stay as they are
             else MP_CopyStr(t.text, SampCp::ToUtf8(text, I.cp).c_str(), sizeof(t.text));   // 5.02.15: the server's codepage
@@ -1440,6 +1527,107 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 42: srv->GateOp(s, SPO_AUDIO, 0, 0, 0); break;
         case 90: RdVec(bs, v); srv->GateOp(s, SPO_VELOCITY, 0, 0, 0, v); break;
         case 91: bs.Read(u8a); RdVec(bs, v); srv->GateOp(s, SPO_VELOCITY, 0, 1, 0, v); break;
+        // ---- 5.02.26: the rest of the open.mp functions that reach the client (https://open.mp/docs/server/omp-functions) ----
+        case 111: bs.Read(u8a); srv->GateOp(s, SPO_HUD, 0, u8a ? 1 : 0, 0); break;   // ToggleWidescreen
+        case 30: bs.Read(u8a); srv->GateOp(s, SPO_HUD, 1, u8a ? 1 : 0, 0); break;    // TogglePlayerClock
+        case 104: bs.Read(u8a); srv->GateOp(s, SPO_HUD, 4, u8a ? 1 : 0, 0); break;   // EnableStuntBonusForPlayer / All
+        case 17:   // SetPlayerWorldBounds (max x, min x, max y, min y) - 20000 / -20000 = off
+        {
+            float f[4] = { 0, 0, 0, 0 }; bs.Read(f[0]); bs.Read(f[1]); bs.Read(f[2]); bs.Read(f[3]);
+            const bool off = f[0] >= 19999.0f && f[1] <= -19999.0f && f[2] >= 19999.0f && f[3] <= -19999.0f;
+            srv->GateOp(s, SPO_HUD, 2, off ? 0 : 1, 0, f); break;
+        }
+        case 34: { uint32_t skill = 0; uint16_t lvl = 0; bs.Read(u16a); bs.Read(skill); bs.Read(lvl); if((int)u16a == I.myId && skill <= 10) srv->GateOp(s, SPO_HUD, 3, (uint8_t)skill, lvl); break; }   // SetPlayerSkillLevel
+        case 94: bs.Read(u8a); srv->GateOp(s, SPO_TIME, u8a % 24, 0, -1); break;       // SetPlayerTime (hour only: SetWorldTime)
+        case 79:   // CreateExplosion / CreateExplosionForPlayer
+        {
+            RdVec(bs, v); bs.Read(u32a); bs.Read(fa);
+            srv->GateAct(s, CGA_EXPLODE, (int)std::min<uint32_t>(u32a, 12), 0, 0, v); break;
+        }
+        case 55:   // SendDeathMessage / SendDeathMessageToPlayer: the kill feed
+        {
+            uint16_t killer = kInvalid, victim = kInvalid; bs.Read(killer); bs.Read(victim); bs.Read(u8a);
+            auto nm = [&](uint16_t id) -> std::string {
+                if(id == kInvalid) return "";
+                uint32_t col = 0xFFFFFFFF; std::string n;
+                if((int)id == I.myId) { n = I.rName; auto it = I.rp.find(id); if(it != I.rp.end()) col = it->second.color; }
+                else { Impl::Rp* p = RemPlayer(I, id); if(p) { n = p->name; col = p->color; } }
+                if(n.empty()) { char b[16]; snprintf(b, sizeof(b), "#%u", (unsigned)id); n = b; }
+                char c[16]; snprintf(c, sizeof(c), "{%06X}", (unsigned)((col >> 8) & 0xFFFFFF)); return c + n;
+            };
+            const std::string t = nm(killer) + "\t" + nm(victim);
+            srv->GateOp(s, SPO_DEATHMSG, 0, 0, u8a, nullptr, t.c_str()); break;
+        }
+        case 87: bs.Read(u16a); if((int)u16a == I.myId) srv->GateOp(s, SPO_ACTION, 0, 0, 0); break;   // ClearAnimations
+        case 88: bs.Read(u8a); srv->GateOp(s, SPO_ACTION, 1, 0, u8a); break;                          // SetPlayerSpecialAction
+        case 89: bs.Read(u16a); bs.Read(u8a); if((int)u16a == I.myId) srv->GateOp(s, SPO_ACTION, 2, 0, u8a); break;   // SetPlayerFightingStyle
+        case 126:  // PlayerSpectatePlayer: the camera on that PC player's ghost
+        {
+            bs.Read(u16a); bs.Read(u8a); Impl::Rp* p = RemPlayer(I, u16a);
+            if(p && p->slot >= 0) srv->GateAct(s, CGA_SPEC, p->slot, 1);
+            else if(p && p->hasPos) { float c[4] = { p->last.pos[0], p->last.pos[1], p->last.pos[2] + 6.0f, 0 }; srv->GateOp(s, SPO_CAMERA, 1, 0, 0, c); float l[4] = { p->last.pos[0], p->last.pos[1], p->last.pos[2], 0 }; srv->GateOp(s, SPO_CAMERA, 2, 0, 0, l); }
+            I.specOn = true; break;
+        }
+        case 127:  // PlayerSpectateVehicle: its driver's ghost, else a camera over the car
+        {
+            bs.Read(u16a); bs.Read(u8a); int slot = -1;
+            for(auto& kv : I.rp) if(kv.second.vehicle == (int)u16a && kv.second.slot >= 0) { slot = kv.second.slot; break; }
+            if(slot >= 0) srv->GateAct(s, CGA_SPEC, slot, 1);
+            else { auto it = I.vehPos.find(u16a); if(it != I.vehPos.end()) { float c[4] = { it->second[0], it->second[1] - 8.0f, it->second[2] + 5.0f, 0 }; srv->GateOp(s, SPO_CAMERA, 1, 0, 0, c); float l[4] = { it->second[0], it->second[1], it->second[2], 0 }; srv->GateOp(s, SPO_CAMERA, 2, 0, 0, l); } }
+            I.specOn = true; break;
+        }
+        case 46:   // SetObjectRotation
+        {
+            bs.Read(u16a); RdVec(bs, v); auto it = I.objs.find(u16a); if(it == I.objs.end()) break;
+            memcpy(it->second.r, v, sizeof(v)); srv->GateObject(it->second.row, it->second.model, it->second.p, it->second.r, true); break;
+        }
+        case 122: break;   // StopObject: the phone puts moved objects at their end spot at once (MoveObject), nothing to stop
+        case 96:   // SCMEvent from the server: ChangeVehicleColours / ChangeVehiclePaintjob / AddVehicleComponent on a server car
+        {
+            uint32_t ev = 0, vid = 0, a1 = 0, a2 = 0; bs.Read(u16a); bs.Read(ev); bs.Read(vid); bs.Read(a1); bs.Read(a2);
+            auto it = I.vehs.find((int)vid); if(it == I.vehs.end()) break;
+            Impl::Veh& vh = it->second;
+            if(ev == 1) { vh.paintjob = a1 <= 2 ? (int)a1 : -1; if(!vh.taken) srv->GateOp(s, SPO_VEHMOD, 1, (uint8_t)(vh.paintjob < 0 ? 255 : vh.paintjob), (int32_t)vid); }
+            else if(ev == 2 && a1 >= 1000 && a1 <= 1193)
+            {
+                if(std::find(vh.mods.begin(), vh.mods.end(), (uint16_t)a1) == vh.mods.end()) vh.mods.push_back((uint16_t)a1);
+                float c[4] = { (float)a1, 0, 0, 0 }; if(!vh.taken) srv->GateOp(s, SPO_VEHMOD, 2, 0, (int32_t)vid, c);
+            }
+            else if(ev == 3) { vh.c1 = (uint8_t)a1; vh.c2 = (uint8_t)a2; float c[4] = { (float)a2, 0, 0, 0 }; if(!vh.taken) srv->GateOp(s, SPO_VEHMOD, 6, vh.c1, (int32_t)vid, c); }
+            break;
+        }
+        case 57:   // RemoveVehicleComponent
+        {
+            uint16_t comp = 0; bs.Read(u16a); bs.Read(comp); auto it = I.vehs.find(u16a); if(it == I.vehs.end()) break;
+            auto& m = it->second.mods; m.erase(std::remove(m.begin(), m.end(), comp), m.end());
+            float c[4] = { (float)comp, 0, 0, 0 }; srv->GateOp(s, SPO_VEHMOD, 3, 0, u16a, c); break;
+        }
+        case 65: bs.Read(u16a); bs.Read(u8a); { auto it = I.vehs.find(u16a); if(it != I.vehs.end()) it->second.interior = u8a; } srv->GateOp(s, SPO_VEHMOD, 4, u8a, u16a); break;   // LinkVehicleToInterior
+        case 106:  // UpdateVehicleDamageStatus
+        {
+            uint32_t panels = 0, doors = 0; uint8_t lights = 0, tyres = 0; bs.Read(u16a); bs.Read(panels); bs.Read(doors); bs.Read(lights); bs.Read(tyres);
+            if(!I.vehs.count(u16a)) break;
+            char t[64]; snprintf(t, sizeof(t), "%u %u %u %u", panels, doors, (unsigned)lights, (unsigned)tyres);
+            srv->GateOp(s, SPO_VEHMOD, 5, 0, u16a, nullptr, t); break;
+        }
+        case 117:  // EditObject / EditPlayerObject: the phone's move panel (each step = EDIT_RESPONSE_UPDATE, like dragging on PC)
+        {
+            bool pobj = false; bs.Read(pobj); bs.Read(u16a); auto it = I.objs.find(u16a); if(it == I.objs.end()) break;
+            I.edit = Impl::Edit(); I.edit.mode = 1; I.edit.pobj = pobj; I.edit.id = u16a;
+            memcpy(I.edit.p, it->second.p, sizeof(I.edit.p)); memcpy(I.edit.r, it->second.r, sizeof(I.edit.r));
+            memcpy(I.edit.p0, I.edit.p, sizeof(I.edit.p)); memcpy(I.edit.r0, I.edit.r, sizeof(I.edit.r));
+            srv->GateOp(s, SPO_EDIT, 1, 0, u16a, nullptr, "Edit object"); break;
+        }
+        case 116:  // EditAttachedObject
+        {
+            bs.Read(u32a); if(u32a >= 10 || !I.att[u32a].on) break;
+            I.edit = Impl::Edit(); I.edit.mode = 2; I.edit.idx = u32a;
+            memcpy(I.edit.p, I.att[u32a].off, sizeof(I.edit.p)); memcpy(I.edit.r, I.att[u32a].rot, sizeof(I.edit.r));
+            memcpy(I.edit.p0, I.edit.p, sizeof(I.edit.p)); memcpy(I.edit.r0, I.edit.r, sizeof(I.edit.r)); I.edit.step = 0.02f;
+            srv->GateOp(s, SPO_EDIT, 2, 0, (int32_t)u32a, nullptr, "Edit attached object"); break;
+        }
+        case 27: I.edit = Impl::Edit(); I.edit.mode = 3; srv->GateOp(s, SPO_EDIT, 3, 0, 0, nullptr, "Select object"); break;   // SelectObject
+        case 28: if(I.edit.mode) { I.edit = Impl::Edit(); srv->GateOp(s, SPO_EDIT, 0, 0, 0); } break;                      // CancelEdit
         case 59:   // chat bubble
         {
             bs.Read(u16a); bs.Read(u32a); bs.Read(fa); bs.Read(u32b); std::string t = RdStr8(bs);
@@ -2039,6 +2227,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         {   // OnPlayerInteriorChange
             I.interior = e.a; BitStream o; o.Write((uint8_t)e.a); CliRpc(I, 118, o);
         }
+        else if(e.kind == HK_SAMP && e.op == SPO_EDIT) RemEdit(I, srv, e.a);   // 5.02.26
         else if(e.kind == HK_RAW && I.phase == 4) RemPhonePkt(I, srv, e, now);
         else if(e.kind == HK_DIALOG)
         {

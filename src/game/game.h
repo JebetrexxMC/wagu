@@ -207,6 +207,10 @@ namespace Game
     bool  IsCharInCar(int ped, int car);
     void  ReleaseCar(int car);                         // mission car -> normal car (stays in the world)
     void  ClearTasksNow(int ped);
+    // 5.02.26: open.mp ToggleWidescreen / SetPlayerSkillLevel / SetPlayerFightingStyle
+    void  SetWidescreen(bool on);
+    void  SetWeaponSkill(int skillType, int level);   // SA-MP WEAPONSKILL_* 0..10, level 0..999
+    void  SetFightingStyle(int ped, int style);       // FIGHT_STYLE_* 4 normal, 5 boxing, 6 kung fu, 7 knee head, 15 grab kick, 16 elbow
 
     typedef void (*ExplosionCb)(int type, const Vec3& pos);   // made by the local player
     typedef void (*FireCb)(const Vec3& pos, float size);      // started by the local player

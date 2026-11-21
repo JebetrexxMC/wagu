@@ -749,6 +749,15 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+- **5.02.26** (app + gate: libMP32.so / libMP64.so, MP_BUILD 50226): **the rest of the [open.mp functions](https://open.mp/docs/server/omp-functions) on the phone, and clickable sprite menus**.
+  - **Textdraw menus fixed** (Life of Player language / login picker and every LD_SPAC / sprite GUI): sprite and model textdraws (font 4 / 5) now get their TextSize as width / height. Before, they came out 1 pixel big, so only the text showed and nothing could be tapped. Taps use the touch position, a little slack around small buttons, and only the top-most selectable textdraw. Tested: tapping ENGLISH on Life of Player moves on to its account dialog.
+  - **HUD**: TogglePlayerWidescreen, TogglePlayerClock (clock at the top), SetPlayerWorldBounds, SetPlayerSkillLevel, EnableStuntBonusForPlayer (stored).
+  - **Kill feed**: SendDeathMessage / SendDeathMessageToPlayer go into the phone's kill feed with player colours.
+  - **Actions**: ClearAnimations, SetPlayerSpecialAction, SetPlayerFightingStyle.
+  - **Vehicles**: ChangeVehiclePaintjob, AddVehicleComponent / RemoveVehicleComponent, LinkVehicleToInterior, UpdateVehicleDamageStatus, ChangeVehicleColor, plus the stream-in mods / paintjob / damage. Mod shop changes from the phone go back as SCM events.
+  - **Editing**: EditObject / EditPlayerObject / EditAttachedObject / SelectObject show a button panel on the phone (move, rotate, step, Save, Cancel, Pick). OnPlayerEditObject / OnPlayerEditAttachedObject / OnPlayerSelectObject fire on the server.
+  - Spectate ends cleanly (TogglePlayerSpectating 0 gives back the camera). Tested against open.mp 1.6.7, SA-MP 0.3.7 and SA-MP 0.3.DL servers.
+
 - **5.02.25** (app + gate: libMP32.so / libMP64.so, MP_BUILD 50225): **the callbacks samp.exe fires, now from the phone too** ([open.mp callbacks](https://open.mp/docs/scripting/callbacks), [functions](https://open.mp/docs/server/omp-functions)).
   - **Server cars on the phone**: CreateVehicle / AddStaticVehicle cars (models 400-611) appear near you with their colours and angle, SetVehiclePos / SetVehicleZAngle / SetVehicleParamsEx (doors) / DestroyVehicle follow, a PC player driving one hides the parked copy.
   - **OnPlayerEnterVehicle / OnPlayerExitVehicle / OnPlayerStateChange**: getting in a server car sends the enter RPC, then driver (200) or passenger (211) sync instead of on-foot sync. PutPlayerInVehicle warps you in, RemovePlayerFromVehicle and SetVehicleHealth work on your car.
