@@ -41,7 +41,6 @@ struct BountyState
     int  duelA = -1, duelB = -1;               // a duel I can see (anyone's)
     bool statsLoaded = false; char statsFor[64] = "";
     bool welcomePending = false; uint64_t welcomeAt = 0;
-    int  moneyAllow = 0;                       // money Bounty Hunter itself gave (not a cheat)
 };
 static BountyState s_Bh;
 
@@ -154,7 +153,7 @@ static void BountyReset()
     for(int i = 0; i < MP_MAX_PLAYERS; ++i) { s_Bh.streak[i] = s_Bh.kills[i] = s_Bh.deaths[i] = 0; s_Bh.hitAt[i] = 0; }
     s_Bh.chain = 0; s_Bh.chainAt = 0; s_Bh.banner.clear(); s_Bh.fog.clear(); s_Bh.lines.clear();
     s_Bh.duelWith = s_Bh.duelInvFrom = s_Bh.duelA = s_Bh.duelB = -1; s_Bh.welcomePending = false;
-    s_Bh.statsLoaded = false; s_Bh.moneyAllow = 0;
+    s_Bh.statsLoaded = false;
 }
 
 // ---- hits / kills ------------------------------------------------------------------------------------------------
@@ -196,7 +195,7 @@ static void BountyOnDeath(const PktDeath& d)
             s_Bh.chainAt = now;
             s_Bh.banner = BountyChainName(s_Bh.chain); s_Bh.bannerAt = now;
             const int reward = bounty + (s_Bh.chain > 1 ? 50 * (s_Bh.chain - 1) : 0);
-            s_Bh.moneyAllow += reward; Game::AddMoney(reward);
+            Game::AddMoney(reward);
             snprintf(buf, sizeof(buf), "%s - %s +%d.00", BountyName(v), BountyWeapon(d.weapon).c_str(), reward);
             BountyPushLine(buf, IM_COL32(60, 220, 90, 255));
             if(settings.bountySound) { char p[512]; snprintf(p, sizeof(p), "%s/sound_010.mp3", s_szDataDir); Sound::PlayHit(p, 1.0f); }
@@ -216,7 +215,7 @@ static void BountyOnDeath(const PktDeath& d)
     {
         ++s_Bh.myDeaths; s_Bh.chain = 0; s_Bh.chainAt = 0;
         int loss = MP_BOUNTY_LOSS; const int have = Game::GetMoney(); if(loss > have) loss = have > 0 ? have : 0;
-        if(loss) { s_Bh.moneyAllow -= loss; Game::AddMoney(-loss); }
+        if(loss) Game::AddMoney(-loss);
         snprintf(buf, sizeof(buf), "%s - %s -%d.00", k >= 0 ? BountyName(k) : "World", BountyWeapon(d.weapon).c_str(), MP_BOUNTY_LOSS);
         BountyPushLine(buf, IM_COL32(70, 140, 255, 255));
     }
@@ -264,14 +263,31 @@ static bool DefaultBlocksCheat(const char* cmd)
     for(const char* c : k) if(!strcasecmp(cmd, c)) return true;
     return false;
 }
+// Broker MQQ rule: no unlimited money. MP's own money changes go through Game::AddMoney (counted: rewards, pay days,
+// saved progress, shops ...); anything else that adds $100,000+ at once (a trainer, a money cheat, HESOYAM) or
+// goes over $99,999,999 is taken back right away - from the moment you join, every time.
+#define MP_MONEY_CAP        99999999
+#define MP_MONEY_JUMP_LIMIT 100000
+static int MoneyRuleTakeBack(int prev, int cur, long long granted)
+{
+    if(prev < 0) return 0;   // no baseline yet
+    long long legit = (long long)prev + granted;
+    if(legit > MP_MONEY_CAP) legit = MP_MONEY_CAP;
+    if(legit < 0) legit = 0;
+    const long long unexplained = (long long)cur - legit;
+    if(cur > MP_MONEY_CAP) return (int)(cur - (legit < cur ? legit : (long long)MP_MONEY_CAP));
+    if(unexplained >= MP_MONEY_JUMP_LIMIT) return (int)unexplained;
+    return 0;
+}
+static int  s_nMoneyRuleTaken = 0;   // tests / log: how much the rule took back this session
 static void DefaultRestrictTick(int ped, uint64_t now)
 {
-    static uint64_t s_nNext = 0, s_nJoinedAt = 0; static int s_nMoney = -1; static bool s_bWas = false;
+    static uint64_t s_nNext = 0, s_nWarnAt = 0; static int s_nMoney = -1; static bool s_bWas = false;
     const bool on = MP::IsOnDefault() && client.GetState() == NET_CONNECTED && !MP::IsLocalAdmin();
     if(!on) { s_bWas = false; s_nMoney = -1; return; }
-    if(!s_bWas) { s_bWas = true; s_nJoinedAt = now; s_nMoney = -1; }
+    if(!s_bWas) { s_bWas = true; s_nMoney = -1; Game::TakeMoneyGranted(); }
     if(now < s_nNext) return;
-    s_nNext = now + 500;
+    s_nNext = now + 250;
     if(s_Cheat.invincible || s_Cheat.invisible || s_Cheat.wallhack || s_Cheat.flash || s_Cheat.nofall || s_Cheat.gravity != 1.0f)
     {
         s_Cheat.invincible = s_Cheat.invisible = s_Cheat.wallhack = s_Cheat.flash = s_Cheat.nofall = false; s_Cheat.gravity = 1.0f;
@@ -281,17 +297,15 @@ static void DefaultRestrictTick(int ped, uint64_t now)
     if(Game::GetCharHealth(ped) > 200) { Game::SetCharHealth(ped, 100); SysMsg(COL_RED, "{DC2626}Broker MQQ: {FFFFFF}unlimited health is not allowed."); }
     if(Game::GetCharArmour(ped) > 150) Game::SetCharArmour(ped, 100);
     const int m = Game::GetMoney();
-    if(s_nMoney >= 0 && now - s_nJoinedAt > 20000)
+    const long long granted = Game::TakeMoneyGranted();
+    const int back = MoneyRuleTakeBack(s_nMoney, m, granted);
+    if(back > 0)
     {
-        const int jump = m - s_nMoney - (s_Bh.moneyAllow > 0 ? s_Bh.moneyAllow : 0);
-        if(jump >= 500000 || m > 99999999)
-        {
-            const int back = m > 99999999 ? m - s_nMoney : jump;
-            Game::AddMoney(-back);
-            SysMsg(COL_RED, "{DC2626}Broker MQQ: {FFFFFF}unlimited money is not allowed.");
-        }
+        Game::AddMoney(-back); Game::TakeMoneyGranted();   // our own take-back is not a grant
+        s_nMoneyRuleTaken += back;
+        logger->Info("Broker MQQ money rule: took back $%d (had $%d, before $%d, MP gave %lld)", back, m, s_nMoney, granted);
+        if(now - s_nWarnAt > 3000) { s_nWarnAt = now; SysMsg(COL_RED, "{DC2626}Broker MQQ rule: {FFFFFF}unlimited money is blocked here. {FF4444}-$%d", back); }
     }
-    s_Bh.moneyAllow = 0;
     s_nMoney = Game::GetMoney();
 }
 
@@ -358,6 +372,7 @@ static bool BountyCommand(const char* cmd, const char* arg)
     return false;
 }
 
+#ifndef MP_BOUNTY_TEST   // tools/tests/bounty_test.cpp runs everything above on a PC (no ImGui)
 // ---- drawing ---------------------------------------------------------------------------------------------------
 static void BountyText(ImDrawList* dl, ImFont* f, float fs, ImVec2 p, ImU32 col, const char* t)
 {
@@ -467,3 +482,4 @@ static void BountySettingsSection()
     if(FloatMenu::ToggleSwitch("Kill sound (sound_010.mp3)", &settings.bountySound)) SaveConfig();
     ImGui::Unindent(UI::S(20));
 }
+#endif   // MP_BOUNTY_TEST

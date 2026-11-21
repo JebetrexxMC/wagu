@@ -749,6 +749,13 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.32
+- New Broker MQQ rule: no unlimited money. It is rule 11 in the server rules ("No unlimited money: money cheats / trainers are blocked and the money is taken back"). It works only on the default server (Broker MQQ). Custom servers are not changed.
+  - On the phone: from the moment you join, your money is checked 4 times a second. Money you really earn (kills, bounties, jobs, saved progress, admin) is fine. If your money jumps by $100,000 or more with no reason, or goes above $99,999,999, the extra money is taken back. You see: "Broker MQQ rule: unlimited money is blocked here. -$...".
+  - On the server: a saved money amount above $99,999,999 or below $0 is refused. So is a jump of more than $1,000,000 in under 2 minutes. You see: "Broker MQQ rule: unlimited money is blocked. Your money was not saved." This works even with the money anticheat turned off.
+- Bounty Hunter was tested on a real local server with 3 test phones. Duel invite, accept and greeting packets reached the right players, deaths and kill credit reached everyone, and a multi-kill run gave Killing Spree, Double Kill and Triple Kill. The money rule refused $999,999,999 and +$2,000,000. All 19 checks passed on Broker MQQ and all 16 on a custom `--gamemodes bounty` server. A separate logic test runs the real `mp_bounty.inc` and passes all 68 checks: multi-kill names up to Legendary, the 46 s window edge, bounty money, duels, the greeting and the money rule. Tests: `tools/tests/bounty_test.cpp` and `tools/tests/bounty_net_test.cpp` (how to build them is at the top of each file).
+- Fixed: `mp_server 1922 --no-online` (a flag right after the port) used the flag as the server name. The server was then not Broker MQQ. Now a flag in that spot keeps the default name and max players.
+
 ### 5.02.31
 - The MP LAN Server is now called Broker MQQ everywhere in the game (server list, Add server, chat, menus). Old phones still find it, because the server keeps the same network name.
 - New gamemode: Bounty Hunter (Blood Deathmatch). It is always on for Broker MQQ. On a custom server, turn it on in Add server > Gamemode > Bounty Hunter, or start a dedicated server with `--gamemodes bounty`.

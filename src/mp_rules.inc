@@ -3,7 +3,7 @@
 // Default server: 10 built-in rules, title "RULES". Custom servers: the host's title + 1 ) - 10 )
 // from Add server > Rules (or nothing when the host turned the rules off). Once per join; /rules again.
 
-static const char* const kDefaultRules[10] = {
+static const char* const kDefaultRules[] = {   // 5.02.31: 11 (+ no unlimited money)
     "{FF4444}No cheating{FFFFFF}: no hacks, aimbots, mod menus or speed / fly mods.",
     "{FF4444}No NSFW{FFFFFF}: no adult names, chat, skins or pictures.",
     "{FFFF00}Respect everyone{FFFFFF}: no insults, racism, threats or harassment.",
@@ -13,8 +13,10 @@ static const char* const kDefaultRules[10] = {
     "{FFFF00}Don't pretend to be staff{FFFFFF} (admin, moderator or the bot {00BFFF}Broker{FFFFFF}).",
     "{FFFF00}Keep the chat friendly{FFFFFF} and in a language the others understand.",
     "{FFFF00}Listen to the {33CC55}admins{FFFF00} and {33CC55}moderators{FFFFFF}: a kick waits {FF9900}4:29{FFFFFF}, a ban is {FF4444}permanent{FFFFFF}.",
+    "{FF4444}No unlimited money{FFFFFF}: money cheats / trainers are blocked and the money is taken back.",
     "{33CC55}Have fun{FFFFFF} and play fair.",
 };
+#define MP_DEFAULT_RULES ((int)(sizeof(kDefaultRules) / sizeof(kDefaultRules[0])))
 static struct { bool have = false, on = false; char title[48] = ""; char line[10][100] = {}; int count = 0; bool shown = false, open = false; uint64_t readyAt = 0, joinAt = 0; } s_Rules;
 
 static void RulesReset() { s_Rules.have = false; s_Rules.on = false; s_Rules.count = 0; s_Rules.shown = false; s_Rules.open = false; s_Rules.readyAt = 0; s_Rules.joinAt = 0; }
@@ -30,7 +32,7 @@ static bool RulesShow(bool quiet)
 {
     std::string body; const char* title = "RULES";
     if(MP::IsOnDefault())
-        for(int i = 0; i < 10; ++i) { char l[200]; snprintf(l, sizeof(l), "{FFFF00}%d ) {FFFFFF}%s\n", i + 1, kDefaultRules[i]); body += l; }
+        for(int i = 0; i < MP_DEFAULT_RULES; ++i) { char l[200]; snprintf(l, sizeof(l), "{FFFF00}%d ) {FFFFFF}%s\n", i + 1, kDefaultRules[i]); body += l; }
     else if(s_Rules.have && s_Rules.on)
     {
         title = s_Rules.title[0] ? s_Rules.title : "SERVER RULES";

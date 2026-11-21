@@ -56,8 +56,8 @@ int main(int argc, char** argv)
     // 4.11: --samp-test <folder> ["cmd;cmd;dlg:1:0:text"] = run a SA-MP gamemode with one pretend player
     for(int i = 1; i + 1 < argc; ++i) if(!strcasecmp(argv[i], "--samp-test")) { MPServer t; return t.SampTestRun(SampResolve(argv[i + 1]).c_str(), i + 2 < argc ? argv[i + 2] : ""); }
     int port = argc > 1 ? atoi(argv[1]) : MP_DEFAULT_PORT;
-    const char* name = argc > 2 ? argv[2] : (port == MP_DEFAULT_PORT ? MP_DEFAULT_SERVER_NAME : (port == MP_BCW_PORT ? MP_BCW_SERVER_NAME : (port == MP_MW3_PORT ? MP_MW3_SERVER_NAME : (port == MP_RP_PORT ? MP_RP_SERVER_NAME : (port == MP_LG_PORT ? MP_LG_SERVER_NAME : "MP Server")))));   // 2.29: port 1922 = the default server, 3.04: 1930 = Brief Case War
-    int maxPlayers = argc > 3 ? atoi(argv[3]) : MP_STD_MAX_PLAYERS;
+    const char* name = argc > 2 && argv[2][0] != '-' ? argv[2] : (port == MP_DEFAULT_PORT ? MP_DEFAULT_SERVER_NAME : (port == MP_BCW_PORT ? MP_BCW_SERVER_NAME : (port == MP_MW3_PORT ? MP_MW3_SERVER_NAME : (port == MP_RP_PORT ? MP_RP_SERVER_NAME : (port == MP_LG_PORT ? MP_LG_SERVER_NAME : "MP Server")))));   // 2.29: port 1922 = the default server, 3.04: 1930 = Brief Case War
+    int maxPlayers = argc > 3 && argv[3][0] != '-' && argv[2][0] != '-' ? atoi(argv[3]) : MP_STD_MAX_PLAYERS;   // 5.02.32: a flag right after the port is not the name / max players
     int region = REGION_ASIA;
     bool persistent = false;
     bool gameVC = false;   // 4.13.35: --game vc

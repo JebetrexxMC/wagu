@@ -1,3 +1,4 @@
+#include <atomic>
 #include <math.h>
 // 2.21: open world for multiplayer: all cities unlocked, shops / restaurants / gyms / barbers /
 // tattoo / clothes / Ammu-Nation doors open, Pay 'n' Spray + mod garages active, race checkpoints,
@@ -122,7 +123,11 @@ int Game::CreateRaceCheckpoint(int type, const Vec3& p, const Vec3& next, float 
     return (int)h;
 }
 void Game::DeleteRaceCheckpoint(int h) { if(h > 0) CALLSCM(DELETE_CHECKPOINT, h); }
-void Game::AddMoney(int amount) { CALLSCM(ADD_SCORE, 0, amount); }
+// 5.02.31: every change MP itself makes is counted, so the Broker MQQ money rule (mp_bounty.inc) can tell a
+// reward / pay day / saved progress from unlimited money (trainers, money cheats, HESOYAM)
+static std::atomic<long long> s_llMoneyGranted{0};
+void Game::AddMoney(int amount) { s_llMoneyGranted += amount; CALLSCM(ADD_SCORE, 0, amount); }
+long long Game::TakeMoneyGranted() { return s_llMoneyGranted.exchange(0); }
 DEFOPCODE(010B, STORE_SCORE_W, iv);
 int Game::GetMoney() { if(!IsReady()) return 0; uint32_t v = 0; CALLSCM(STORE_SCORE_W, 0, &v); return (int)v; }   // 3.23
 

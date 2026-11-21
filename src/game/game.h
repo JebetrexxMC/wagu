@@ -360,6 +360,7 @@ namespace Game
     void  DeleteRaceCheckpoint(int h);
     void  AddMoney(int amount);
     int   GetMoney();                         // 3.23
+    long long TakeMoneyGranted();             // 5.02.31: sum of AddMoney() since the last call (then 0)
     void  AddArmour(int ped, int amount);
     void  RemoveAllWeapons(int ped);
     bool  ModelReady(int model);              // requests it if not loaded yet (never blocks)

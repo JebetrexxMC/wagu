@@ -673,6 +673,24 @@ void MPServer::AcPause(int slot, bool paused)
 // PKT_PROGRESS (money): more than $1,000,000 between two saves a minute apart
 bool MPServer::AcMoney(int slot, int32_t money)
 {
+    // 5.02.31: Broker MQQ rule - no unlimited money. Always on on the default server (even with the money check
+    // off): a save over $99,999,999, or $1,000,000+ more than the last save within 2 minutes, is refused (the old
+    // money stays saved) and the player is told why.
+    if(IsDefaultServer() && slot >= 0 && slot < MP_MAX_PLAYERS)
+    {
+        AcSlot& a = m_Ac[slot];
+        const uint64_t now = MP_NowMs();
+        const bool over = money > 99999999 || money < 0;
+        const bool jump = a.hasMoney && money - a.money > 1000000 && now - a.moneyAt < 120000 && now > a.moneyGrace;
+        if(over || jump)
+        {
+            Log("[rule] %s(%d): unlimited money refused ($%d, last save $%d)", m_Slots[slot].name, slot, (int)money, a.hasMoney ? (int)a.money : 0);
+            Mw3Msg(slot, 0xDC2626FF, "{DC2626}Broker MQQ rule: {FFFFFF}unlimited money is blocked. Your money was not saved.");
+            return false;
+        }
+        a.money = money; a.moneyAt = now; a.hasMoney = true;
+        return true;
+    }
     if(!AcCheck(AC_MONEY) || IsRpServer()) { m_Ac[slot].money = money; m_Ac[slot].hasMoney = true; return true; }
     AcSlot& a = m_Ac[slot];
     const uint64_t now = MP_NowMs();
