@@ -27,6 +27,7 @@ static const char* const kNames[HudLayout::PART_COUNT] = {
 
 HudLayout::Cfg s_Cfg[HudLayout::PART_COUNT];
 bool  s_bOn = false, s_bHooked = false, s_bWant = false;
+bool  s_bScriptHide = false;   // 5.02.39: a Lua HUD (MessaHUD) draws the player info itself - MP_HudHideInfo(1)
 int   s_nHooks = 0;
 void* s_hGame = nullptr;
 float s_fW = 1280, s_fH = 720;
@@ -155,7 +156,7 @@ FnV    oRadarUpd = nullptr;
 // 5.00.06: a top level part (not inside another one) starts and ends with an empty stack - a part left on the
 // stack moved everything drawn after it: the pause menu map (half the screen, the blips gone), camera / mission text
 #define PART_TOP(part, call) do { if(!s_bOn) { s_nDepth = 0; call; return; } s_nDepth = 0; if(Hidden(part)) return; Push(part); call; s_nDepth = 0; } while(0)
-void hInfoDraw(void* w) { if(!s_bOn) { s_nDepth = 0; oInfoDraw(w); return; } s_nDepth = 0; if(Hidden(HudLayout::PLAYERINFO)) return; Push(HudLayout::PLAYERINFO); s_bInInfo = true; oInfoDraw(w); s_bInInfo = false; s_nDepth = 0; }
+void hInfoDraw(void* w) { if(s_bScriptHide) { s_nDepth = 0; return; } if(!s_bOn) { s_nDepth = 0; oInfoDraw(w); return; } s_nDepth = 0; if(Hidden(HudLayout::PLAYERINFO)) return; Push(HudLayout::PLAYERINFO); s_bInInfo = true; oInfoDraw(w); s_bInInfo = false; s_nDepth = 0; }
 void hHealth(void* w, int a, float b) { PART_WRAP(HudLayout::BAR_HEALTH, oHealth(w, a, b)); }
 void hArmor(void* w, int a, float b)  { PART_WRAP(HudLayout::BAR_ARMOR, oArmor(w, a, b)); }
 void hBreath(void* w, int a, float b) { PART_WRAP(HudLayout::BAR_BREATH, oBreath(w, a, b)); }
@@ -860,4 +861,16 @@ void HudLayout::AdvsAutoApply()
     {
         ConfigEntry* e = ::cfg->Bind("AdvsCompactDone", true, "GTAHUD"); e->SetBool(true); delete e;
     }
+}
+
+// 5.02.39: lua_scripts/MessaHUD hides the game's player info block (health / armour / breath bars, weapon, ammo,
+// money, clock, wanted stars) while it draws its own. The tap on the weapon icon still switches the weapon (only the
+// drawing is skipped). Returns 1 when the hook is in, 0 when it can't be (Advanced Settings owns the HUD / no game).
+extern "C" __attribute__((visibility("default"))) int MP_HudHideInfo(int on)
+{
+    s_bScriptHide = on != 0;
+    if(!s_bScriptHide) return 1;
+    if(!s_hGame) { s_bWant = true; return 1; }
+    InstallHooks();
+    return s_bHooked ? 1 : 0;
 }

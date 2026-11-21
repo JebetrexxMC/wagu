@@ -38,6 +38,9 @@ Inside:
                         (moonloader/hitmarker.lua + moonloader/resources/hitmarker/), started straight from the zip.
   Hasslehud/            HassleHUD Android 1.0 by SurtzyX and GustaX (from Hasslehud/HassleHUD Android 1.0 -
                         Monetloader.zip): self-contained mod folder, /hasslehud opens its panel. See Hasslehud/README.txt.
+  MessaHUD/             MessaHUD 1.2c by hq~ (Monet loader/messahud.zip), rewritten for Android: /messahud settings
+                        (MessaHUD style window), /messahud on|off|move|game. See MessaHUD/README.txt. Use one HUD at a
+                        time: /messahud off, or switch HassleHUD off.
   WeaponX/              Weapon Wheel 1.4.6 by mistus_ (https://libertycity.net/files/file234128.html), 1.4.6-mp:
                         tap WX (a button you can drag) or type /weaponx, tap a weapon. /weaponx cfg or /wheelcfg
                         settings, /wheel on / off. Clip ammo comes from lib/mp_weaponslots.lua on Android.

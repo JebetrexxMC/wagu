@@ -1,4 +1,4 @@
--- fs_graphics 1.0 (MP 5.02.37): FS-Graphics for GTA SA on Android.
+-- fs_graphics 1.1 (MP 5.02.39): FS-Graphics for GTA SA on Android.
 --
 -- FS-Graphics (https://github.com/JebetrexxMC/fs-graphics, by IDK_FORCE) is a FiveM / GTA V graphics pack: timecycle
 -- XML files, water, clouds and a ReShade preset. GTA SA can't load GTA V files, so this module takes the colours from
@@ -7,7 +7,7 @@
 -- pack itself. Every table is backed up first and written back by restore().
 --
 --   local fsg = require 'fs_graphics'
---   fsg.apply({ sky = true, clouds = true, ... }, strength)   fsg.restore()   fsg.status()
+--   fsg.apply({ sky = true, clouds = true, ... }, strength)   fsg.restore()   fsg.status()   fsg.hideClouds(true)
 
 local ffi = require 'ffi'
 local okD, DATA = pcall(require, 'fs_graphics_data')
@@ -222,11 +222,37 @@ function M.apply(opts, s)
     applied = true
 end
 
+-- Hide the game's clouds: hooks on CClouds::Render (cloud layer, fluffy clouds - the moon and stars are drawn there
+-- too), CClouds::RenderBottomFromHeight and CClouds::VolumetricCloudsRender that skip the original while on.
+-- The sky (CClouds::RenderSkyPolys) is not touched. Installed once on first use; off calls the originals again.
+local CLOUD_SYMS = { '_ZN7CClouds6RenderEv', '_ZN7CClouds22RenderBottomFromHeightEv', '_ZN7CClouds22VolumetricCloudsRenderEv' }
+local cloudHooks, cloudsHidden = nil, false
+function M.hideClouds(on)
+    cloudsHidden = on and true or false
+    if not cloudsHidden or cloudHooks then return cloudHooks and #cloudHooks or 0 end
+    cloudHooks = {}
+    local okH, hook = pcall(require, 'monethook')
+    if not okH or not getModuleProcAddress then print('[fs_graphics] no monethook: game clouds stay'); return 0 end
+    for _, name in ipairs(CLOUD_SYMS) do
+        local okA, addr = pcall(getModuleProcAddress, 'libGTASA.so', name)
+        if okA and addr and addr ~= 0 then
+            local orig
+            local ok, h = pcall(hook.new, 'void(*)()', function()
+                if cloudsHidden then return end
+                return orig()
+            end, addr)
+            if ok and h then orig = h; cloudHooks[#cloudHooks + 1] = h else print('[fs_graphics] hook ' .. name .. ' failed: ' .. tostring(h)) end
+        end
+    end
+    return #cloudHooks
+end
+
 function M.restore()
     if not T then return end
     restoreAll()
     setLightsMult(LightsMultDefault)
     applied = false
+    cloudsHidden = false
 end
 
 function M.status()
@@ -234,7 +260,8 @@ function M.status()
     local found = 0
     for _ in pairs(T) do found = found + 1 end
     return { applied = applied, groups = found, total = 0 + (function() local n = 0 for _ in pairs(GROUPS) do n = n + 1 end return n end)(),
-        farClip = farClip ~= nil, data = DATA ~= nil, info = info }
+        farClip = farClip ~= nil, data = DATA ~= nil, info = info,
+        cloudHooks = cloudHooks and #cloudHooks or nil, cloudsHidden = cloudsHidden }
 end
 
 return M

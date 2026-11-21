@@ -2,7 +2,8 @@
 -- FS-Graphics by IDK_FORCE: https://github.com/JebetrexxMC/fs-graphics
 -- The pack is GTA V data (timecycle XML, water, clouds, ReShade). On GTA SA this resource blends the colours of its
 -- timecycles into SA's own timecycle (lib/fs_graphics.lua + lib/fs_graphics_data.lua). Approximations, listed in
--- the window. /fsgraphics opens it (plain imgui), /fsgraphics on|off, /fsgraphics preset [full|nosky].
+-- the window. /fsgraphics opens it (plain imgui), /fsgraphics on|off, /fsgraphics preset [full|nosky|noclouds].
+-- The loader starts this resource only when /fsgraphics is typed (start_on_command in fxmanifest.lua).
 
 local imgui = require 'mimgui'
 local inicfg = require 'inicfg'
@@ -11,7 +12,7 @@ local fsg = require 'fs_graphics'
 local CFG = 'fs_graphics.ini'
 local cfg = inicfg.load({
     main = { enabled = true, strength = 0.7, sky = true, clouds = true, water = true, nights = true, colors = true,
-        reflections = true, rain = true, streetlights = true, fps = false },
+        reflections = true, rain = true, streetlights = true, fps = false, hideclouds = false },
 }, CFG)
 inicfg.save(cfg, CFG)
 
@@ -29,14 +30,17 @@ local FEATURES = {
     { 'sky', 'Better Sky', 'sky top / horizon / sun colours from the FS-Graphics timecycle' },
     { 'streetlights', 'Better StreetLights', 'brighter light coronas (CCoronas::LightsMult)' },
     { 'fps', 'FPS Increase', 'shorter draw distance in SA timecycle (off by default)' },
+    { 'hideclouds', 'Hide game clouds', 'no clouds at all (the moon and stars go too); the sky stays' },
 }
 
 -- presets: every feature listed; the rest of the config (enabled, strength) stays
 local PRESETS = {
     { 'full', 'Full', 'every feature on (FPS Increase off)',
-        { sky = true, clouds = true, water = true, nights = true, colors = true, reflections = true, rain = true, streetlights = true, fps = false } },
+        { sky = true, clouds = true, water = true, nights = true, colors = true, reflections = true, rain = true, streetlights = true, fps = false, hideclouds = false } },
     { 'nosky', 'No sky / clouds', 'game sky and clouds, everything else on',
-        { sky = false, clouds = false, water = true, nights = true, colors = true, reflections = true, rain = true, streetlights = true, fps = false } },
+        { sky = false, clouds = false, water = true, nights = true, colors = true, reflections = true, rain = true, streetlights = true, fps = false, hideclouds = false } },
+    { 'noclouds', 'No clouds', 'game clouds hidden, Better Sky and the rest on',
+        { sky = true, clouds = false, water = true, nights = true, colors = true, reflections = true, rain = true, streetlights = true, fps = false, hideclouds = true } },
 }
 
 local function findPreset(id)
@@ -66,6 +70,8 @@ function apply()
     if cfg.main.enabled then
         local ok, e = pcall(fsg.apply, cfg.main, cfg.main.strength)
         if not ok then print('apply failed: ' .. tostring(e)) end
+        local okC, n = pcall(fsg.hideClouds, cfg.main.hideclouds)
+        if cfg.main.hideclouds and (not okC or n == 0) then print('hide clouds: no hook (' .. tostring(n) .. ')') end
     else
         pcall(fsg.restore)
     end
@@ -108,6 +114,9 @@ imgui.OnFrame(function() return running and win[0] end, function(self)
         local st = fsg.status()
         imgui.TextDisabled(string.format('SA timecycle tables found: %d / %d   draw distance table: %s   %s',
             st.groups, st.total, st.farClip and 'yes' or 'no', st.applied and 'applied' or 'not applied'))
+        if cfg.main.hideclouds then
+            imgui.TextDisabled(string.format('cloud hooks: %s / 3   %s', tostring(st.cloudHooks or 0), st.cloudsHidden and 'clouds hidden' or 'clouds shown'))
+        end
         if imgui.Button('Restore game colours') then cfg.main.enabled = false; ch = true end
         imgui.SameLine()
         imgui.TextDisabled('FS-Graphics by IDK_FORCE')
