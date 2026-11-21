@@ -277,10 +277,10 @@
   }
   function st(t, cls) { var s = $('#status'); if (s) { s.textContent = t; s.className = 'status ' + (cls || ''); } }
   function busy(on) { $$('#auth button[type=submit]').forEach(function (b) { b.disabled = !!on; }); }
-  function authShell(title, sub, inner, foot, qr) {   // 4.13.1: the Discord login (brand top left, starry purple sky, dark card, QR on the side)
+  function authShell(title, sub, inner, foot, qr) {   // 4.13.1: the Discord login (brand top left, starry purple sky, dark card, side panel); 5.02.41: no QR picture (ESET flagged the zip as QRCode/Phishing)
     return '<div class="dauth"><div class="sky"><i class="s1"></i><i class="s2"></i><i class="s3"></i><i class="orb o1"></i><i class="orb o2"></i></div><div class="dbrand"><img src="img/logo.png" alt="">Moquil</div>' +
       '<div class="dcard' + (qr ? ' hasqr' : '') + '"><div class="dform"><h1>' + title + '</h1><div class="sub">' + sub + '</div>' + inner + '<div id="status" class="status"></div><div class="dfoot">' + foot + '</div></div>' +
-      (qr ? '<div class="dqr"><div class="qrbox"><img src="img/qr.png" alt="QR code"></div><h2>Open Moquil with a QR Code</h2><p>Scan this with your phone camera to open <b>Moquil</b> on the phone too.</p><a href="#" data-open="discord">Or get help in the MP Discord</a></div>' : '') + '</div></div>';
+      (qr ? '<div class="dqr"><h2>Moquil on your phone</h2><p>Install <b>Moquil.apk</b> from the MP package (apks/ folder), or open <b>mpsamp-open.github.io/moquils-web</b> in the phone\'s browser.</p><a href="#" data-open="discord">Or get help in the MP Discord</a></div>' : '') + '</div></div>';
   }
   function discordBtns() { return '<div class="row" style="margin-top:8px"><button type="button" class="btn sm" id="again">New code</button><span class="grow"></span><button type="button" class="btn sm blue" data-open="discord">Open Discord</button></div>'; }
   function codeFlow(c, onVerified) {
