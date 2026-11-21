@@ -274,7 +274,8 @@ static bool HandleCommand(const char* text)
     // 2.19.6: chat layout
     else if(!strcmp(cmd, "pagesize"))  { if(*arg) settings.chatLines = atoi(arg); ClampChatSettings(); SaveConfig(); SysMsg(COL_SYSTEM, "Chat lines: %d", settings.chatLines); }
     else if(!strcmp(cmd, "chatscale"))  { if(*arg) settings.chatScale = (float)atof(arg) / 100.0f; ClampChatSettings(); SaveConfig(); SysMsg(COL_SYSTEM, "Chat scale: %d%%", (int)(settings.chatScale * 100 + 0.5f)); }
-    else if(!strcmp(cmd, "fontsize"))  { if(*arg) { const float v = (float)atof(arg); settings.chatSize = (v >= -3 && v <= 5) ? 1.0f + v * 0.1f : v / 100.0f; }   // 5.02.24: samp.exe's -3..5 too ClampChatSettings(); SaveConfig(); SysMsg(COL_SYSTEM, "Chat text size: %d%%", (int)(settings.chatSize * 100 + 0.5f)); }
+    // 5.02.24: /fontsize takes samp.exe's -3..5 too
+    else if(!strcmp(cmd, "fontsize"))  { if(*arg) { const float v = (float)atof(arg); settings.chatSize = (v >= -3 && v <= 5) ? 1.0f + v * 0.1f : v / 100.0f; } ClampChatSettings(); SaveConfig(); SysMsg(COL_SYSTEM, "Chat text size: %d%%", (int)(settings.chatSize * 100 + 0.5f)); }
     else if(!strcmp(cmd, "chatwidth")) { if(*arg) settings.chatWidth = (float)atof(arg) / 100.0f; ClampChatSettings(); SaveConfig(); SysMsg(COL_SYSTEM, "Chat width: %d%%", (int)(settings.chatWidth * 100 + 0.5f)); }
     else if(!strcmp(cmd, "chatfade"))
     {   // 3.55: /chatfade on | off | [seconds]
