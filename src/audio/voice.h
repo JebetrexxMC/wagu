@@ -53,6 +53,7 @@ namespace Voice
     void  OnPacket(int id, uint16_t seq, uint8_t flags, const uint8_t* opus, int len);
     void  SetGain(int id, float gain);      // distance volume, 0 = inaudible
     bool  IsSpeaking(int id);               // got voice from this player in the last 300 ms
+    bool  GainOverride(int id, float* gain); // 5.02.29: the volume the packets carry (SampVoice on a PC server: the stream's range)
     void  ResetSpeaker(int id);
     void  ResetAll();
     const char* LastError();

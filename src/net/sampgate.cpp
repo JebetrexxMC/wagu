@@ -41,6 +41,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <poll.h>
+#include <fcntl.h>
 #endif
 
 using namespace RakNet;
@@ -189,6 +190,7 @@ void LogThunk(const char* t) { printf("[open.mp net] %s\n", t); }
 
 } // namespace
 
+struct SvState;   // 5.02.29: SampVoice (sampgate_voice.inc)
 struct SampGate::Impl
 {
     // shared
@@ -225,7 +227,7 @@ struct SampGate::Impl
     // the join gets the other one once.
     uint32_t cliVer = 4057; std::string cliVerStr = "0.3.7-R5"; bool verSwapped = false;
     int rejectN = 0; uint64_t rejoinAt = 0;   // 5.02.12: ConnectionRejected (RPC 130) retries
-    int lostN = 0; uint64_t gameAt = 0;   // gameAt: InitGame time (a kick in the first minute is the script, not a restart)
+    int lostN = 0; uint64_t gameAt = 0; uint64_t lastRecvAt = 0;   // 5.02.29 lastRecvAt: the PC server's last packet (lost-connection log)   // gameAt: InitGame time (a kick in the first minute is the script, not a restart)
     std::string forceName;                    // 5.02.12: the name for PC servers (empty = the MP name without rank tags)
     std::unordered_map<int32_t, int32_t> modelBase;   // 5.02.08: 0.3.DL custom model id -> its base model (RPC 179)
     int phoneSlot = -1;
@@ -314,6 +316,7 @@ struct SampGate::Impl
     int classIdx = 0;                     // class selection: the class the phone looks at (< >)
     bool classShown = false;              // the phone shows the PC class selection (< Spawn >)
 
+    SvState* sv = nullptr;                // 5.02.29: SampVoice voice chat on this PC server (null = none seen)
     std::atomic<bool>* joinedFlag = nullptr;
     Impl() { for(int& t : tdOwner) t = -1; }
 };
@@ -920,6 +923,19 @@ static void RemActorShow(Impl& I, MPServer* srv, int id)
     srv->GateOp(I.phoneSlot, SPO_ACTOR, 1, a.invul ? 1 : 0, id, f, t);
 }
 
+static void RemReset(Impl& I, MPServer* srv);
+static void SvFree(Impl& I, MPServer* srv);   // 5.02.29 (sampgate_voice.inc)
+static void RemNewSession(Impl& I, MPServer* srv)
+{   // 5.02.13 / 5.02.29: a new game (first join / reconnect): the old session's login dialog / textdraw login / spectate are
+    // gone. They stayed set after a reconnect = no < Spawn > and no auto-spawn (the phone sat in class selection)
+    const int s = I.phoneSlot;
+    if(I.resetPending) RemReset(I, srv);   // reconnected - the old ghosts / list go (the server sends them again)
+    if(s >= 0 && I.dlgOpen) srv->GateDialog(s, -1, 0, "", "", "", "");
+    if(s >= 0 && I.tdSel) srv->GateOp(s, SPO_TDSELECT, 0, 0, 0);
+    I.dlgOpen = false; I.tdSel = false; I.spect = false; I.noAuto = false; I.wantClass = false;
+    I.loginUi = false; I.loginWaitSaid = false; I.tdShown = 0;
+    SvFree(I, srv);   // 5.02.29: SampVoice starts again with the new connection's serverInfo
+}
 static void RemReset(Impl& I, MPServer* srv)
 {   // ghosts, objects and textdraws of the PC server go away
     for(auto& kv : I.rp) if(kv.second.slot >= 0) srv->BridgeRemove(kv.second.slot);
@@ -954,6 +970,7 @@ static void RemEnd(Impl& I, MPServer* srv, const char* why)
     char b[200]; snprintf(b, sizeof(b), "[open.mp] %s", why);
     if(I.phoneSlot >= 0) srv->GateMsg(I.phoneSlot, 0xFF6060FF, b);
     RemReset(I, srv);
+    SvFree(I, srv);
     if(I.C) I.C->Disconnect(100);
     I.phase = 9; I.phaseAt = NowMs();
     SetStatus(I, "%s", why);
@@ -1053,6 +1070,8 @@ static void RemGhostIn(Impl& I, MPServer* srv, int id, const float* pos, float a
     if(pos) { SyncData d; memset(&d, 0, sizeof(d)); memcpy(d.pos, pos, sizeof(d.pos)); d.heading = ang; d.health = 100; d.skin = p->skin; memcpy(d.aim, pos, sizeof(d.aim)); p->last = d; p->hasPos = true; srv->BridgeSync(p->slot, d); }
 }
 
+#include "sampgate_voice.inc"   // 5.02.29: SampVoice voice chat
+
 static int RemTdSlot(Impl& I, int wire, bool alloc)
 {
     auto it = I.tdSlot.find(wire); if(it != I.tdSlot.end()) return it->second;
@@ -1138,13 +1157,12 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         }
         case 139:  // InitGame
         {
-            if(I.resetPending) RemReset(I, srv);   // 5.02.13: reconnected - now the old ghosts / list go (the server sends them again)
-            // 5.02.13: a new game (first join / reconnect): the old session's login dialog / textdraw login / spectate are gone.
-            // They stayed set after a reconnect = no < Spawn > and no auto-spawn (the phone sat in class selection)
-            if(I.dlgOpen) srv->GateDialog(s, -1, 0, "", "", "", "");
-            if(I.tdSel) srv->GateOp(s, SPO_TDSELECT, 0, 0, 0);
-            I.dlgOpen = false; I.tdSel = false; I.spect = false; I.noAuto = false; I.wantClass = false; I.autoSpawnN = 0; I.retrySpawnAt = 0;
-            I.loginUi = false; I.loginWaitSaid = false; I.spawnAskAt = 0; I.finDl = false; I.tdShown = 0; I.classAt = NowMs();
+            // 5.02.29: the old session's state is cleared when the server accepts the join (RemNewSession), not here:
+            // open.mp runs OnPlayerConnect before InitGame reaches us, so its TogglePlayerSpectating / textdraws /
+            // SelectTextDraw came first and were wiped here. MP then thought it was not spectating and sent on-foot
+            // sync from the login screen - Life of Player's anti-cheat blocked the connection ("Lost connection")
+            I.autoSpawnN = 0; I.retrySpawnAt = 0;
+            I.spawnAskAt = 0; I.finDl = false; I.classAt = NowMs();
             I.spawnAnsAt = 0; I.spawnSilent = 0; I.directSpawn = false;
             I.classOk = true; I.spawnAfterClass = false; I.chatOut.clear(); I.echoWant.clear(); I.echoAt = 0;   // 5.02.23
             bool b; float f;
@@ -2107,6 +2125,11 @@ static bool RemConnect(Impl& I)
         }
     }
     I.C->SetPassword(I.rPass.c_str());
+    // 5.02.29: 576-byte datagrams like samp.exe (rakClient->SetMTUSize(576)). RakNet's default is 1500: on phone data
+    // (IPv6 carriers with 464XLAT / CLAT, tunnels, some Wi-Fi) the big ones are dropped silently, their resends too -
+    // during a burst (Life of Player's 111-textdraw language menu) nothing got acked and the link was "lost" ~25 s later
+    { static const int kMtu = getenv("MP_GATE_MTU") ? atoi(getenv("MP_GATE_MTU")) : 576; I.C->SetMTUSize(kMtu); }
+    I.lastRecvAt = NowMs();
     return SAMPRakNet::ClientOmpReset(), I.C->Connect(I.rHost.c_str(), I.rPort, 0, 0, 5);
 }
 
@@ -2192,9 +2215,11 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
     }
     if(I.phase == 1 && now - I.phaseAt > 15000) { RemEnd(I, srv, "The PC server did not answer (closed, wrong port or not SA-MP 0.3.7 / open.mp)."); return; }
     if(I.phase >= 3) RemLabelTick(I, srv, now);   // 5.02.15
+    if(I.phase >= 2) SvTick(I, srv, now);          // 5.02.29: SampVoice keepAlive / voice in and out
 
     for(Packet* pk = I.C->Receive(); pk; I.C->DeallocatePacket(pk), pk = I.C->Receive())
     {
+        I.lastRecvAt = now;
         if(!pk->length) continue;
         switch(pk->data[0])
         {
@@ -2211,6 +2236,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                 BitStream in(pk->data, pk->length, false); in.IgnoreBits(8 + 32 + 16 + 16); uint32_t chal = 0; in.Read(chal);
                 BitStream o; o.Write(I.cliVer); o.Write((uint8_t)1); WrStr8(o, I.rName); o.Write((uint32_t)(chal ^ I.cliVer));
                 WrStr8(o, Gpci()); WrStr8(o, I.cliVerStr.c_str());
+                RemNewSession(I, srv);   // 5.02.29: before the server's first RPCs (they come before InitGame on open.mp)
                 printf("[crossplay] joining as SA-MP %s (%u)%s\n", I.cliVerStr.c_str(), I.cliVer, SAMPRakNet::ClientOmp() ? " + open.mp launcher" : "");
                 // 5.02.07: what the open.mp launcher's client adds: its omp version (IsPlayerUsingOfficialClient = true
                 // on open.mp; SA-MP 0.3.7 servers ignore the extra bytes). Off: MP_GATE_OMP=0
@@ -2248,6 +2274,8 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                     if(why == 2) snprintf(m, sizeof(m), "[open.mp] The server says the name %s is in use (your last connection may still be on it). Joining again in %d s...", I.rName.c_str(), sec);
                     else snprintf(m, sizeof(m), "[open.mp] The server had no free player slot. Joining again in %d s...", sec);
                     srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, m); printf("%s\n", m);
+                    printf("[crossplay] link lost: last packet from the PC server %.1f s ago, phase %d, ping %d ms\n",
+                           (double)(now - I.lastRecvAt) / 1000.0, I.phase, I.C->GetAveragePing());   // 5.02.29: why (mp_log.txt)
                     { std::lock_guard<std::mutex> lk(I.qm); I.rpcs.clear(); }
                     I.C->Disconnect(100); I.phase = 8; I.rejoinAt = now + (uint64_t)sec * 1000; break;
                 }
@@ -2295,6 +2323,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                     I.C->Disconnect(100); I.phase = 8; I.rejoinAt = now + std::min<uint64_t>(3000ull * (uint64_t)I.lostN, 30000ull); I.rejectN = 0; I.tries = 0; break;
                 }
                 RemEnd(I, srv, "Lost the connection to the PC server."); break;
+            case 222: SvControl(I, srv, pk->data, (int)pk->length); break;   // 5.02.29: SampVoice control packet
             case kPlayerSync: RemFootIn(I, srv, pk, false); break;
             case kVehicleSync: RemFootIn(I, srv, pk, true); break;
             case 203:
@@ -2466,6 +2495,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             I.interior = e.a; BitStream o; o.Write((uint8_t)e.a); CliRpc(I, 118, o);
         }
         else if(e.kind == HK_SAMP && e.op == SPO_EDIT) RemEdit(I, srv, e.a);   // 5.02.26
+        else if(e.kind == HK_RAW && e.op == PKT_VOICE) { if(I.phase >= 3) SvPhoneVoice(I, srv, (const uint8_t*)e.text.data(), (int)e.text.size(), now); }   // 5.02.29: SampVoice
         else if(e.kind == HK_RAW && I.phase == 4) RemPhonePkt(I, srv, e, now);
         else if(e.kind == HK_DIALOG)
         {
@@ -2681,6 +2711,7 @@ void SampGate::Stop()
     if(I.C)
     {
         if(m_pSrv && I.phase != 9) RemReset(I, m_pSrv);
+        if(m_pSrv) SvFree(I, m_pSrv);
         I.C->Disconnect(100); RakNetworkFactory::DestroyRakClientInterface(I.C); I.C = nullptr;
     }
     { std::lock_guard<std::mutex> lk(I.qm); I.rpcs.clear(); I.hooks.clear(); }

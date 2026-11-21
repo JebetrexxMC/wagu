@@ -13,7 +13,7 @@
 // phones refuse servers older than that too (they would let old phones in).
 // 3.10: build 31000. MP_MIN_BUILD stays 30406 and the lobby stays thirtyfox/mp5/: 3.04.6 (no cheats)
 // and 3.10 phones play together on the same servers; only 3.04.5 and older (mp4) stay shut out.
-#define MP_BUILD 50228   // 5.02.28
+#define MP_BUILD 50229   // 5.02.29
 #define MP_MIN_BUILD       30406
 #define MP_AUTH_MIN_BUILD  32106   // 3.21.6: servers with the login system refuse older phones (they could not log in)
 #define MP_VERSION_STR     "5.02.22"
@@ -827,7 +827,8 @@ struct PktRpCard
 #define MP_AD_TEXT         "Join our discord server for more updates & info! https://discord.gg/ZqgXKYhNmv"
 #define MP_VOICE_MAX_BYTES 400
 #define MP_VOICE_HELPER_PORT 19228   // 3.11.1: MP Voice app on 127.0.0.1
-enum eVoiceFlags : uint8_t { VOICE_END = 1 };   // last frame of a talk spurt (mic off)
+enum eVoiceFlags : uint8_t { VOICE_END = 1,      // last frame of a talk spurt (mic off)
+                             VOICE_GAIN = 2 };   // 5.02.29: bits 2-7 = the volume (32 = 100 %) - SampVoice streams on a PC server (the gate knows the stream's spot / range)
 struct PktVoiceHdr { uint8_t type; uint8_t id; uint16_t seq; uint8_t flags; uint8_t pad; uint16_t len; };   // + len bytes of Opus (packed: sizeof 8)
 
 inline uint32_t MP_ClothesHash(const PktClothes& c)   // FNV-1a over the outfit, 0 = none

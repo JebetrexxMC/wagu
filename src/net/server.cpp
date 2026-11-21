@@ -1355,6 +1355,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             uint64_t now = MP_NowMs();
             if(now - s.voiceWin >= 1000) { s.voiceWin = now; s.voiceCount = 0; }
             if(++s.voiceCount > 60) return;                      // 50 frames/s + resend slack
+            if(m_pGate && !s.ghost) m_pGate->OnPhonePkt(slot, (const uint8_t*)data, len);   // 5.02.29: SampVoice on a PC server
             uint8_t out[sizeof(PktVoiceHdr) + MP_VOICE_MAX_BYTES];
             memcpy(out, data, len);
             PktVoiceHdr* h = (PktVoiceHdr*)out;

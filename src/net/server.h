@@ -127,6 +127,7 @@ public:
     void GateObject(uint32_t row, uint16_t model, const float* p, const float* r, bool add);
     bool GatePos(int slot, float* pos, float* heading, int* health);
     int  GateWorldHour();
+    void GateVoice(int fromSlot, int toSlot, uint16_t seq, uint8_t flags, const uint8_t* opus, int len);   // 5.02.29: SampVoice -> the phone
     // 3.23.5: the 3 featured servers (default 100, Brief Case War 20, MW3 64) always have the bot
     // "Broker" in them (id MP_BOT_ID): 1/100, 1/20, 1/64 with nobody else, on the VPS or a phone copy
     // 5.00.04: + the 24/7 VICE City LAN server (Vice City, port 7777): 1/100 with nobody else, 2/100 with one VICE Loader player

@@ -127,6 +127,17 @@ bool MPServer::GatePos(int slot, float* pos, float* heading, int* health)
     return true;
 }
 
+void MPServer::GateVoice(int fromSlot, int toSlot, uint16_t seq, uint8_t flags, const uint8_t* opus, int len)
+{   // 5.02.29: a PC player's SampVoice voice (one 20 ms frame) as if his ghost slot talked
+    if(!opus || len <= 0 || len > MP_VOICE_MAX_BYTES || fromSlot < 0 || fromSlot >= MP_MAX_PLAYERS) return;
+    uint8_t out[sizeof(PktVoiceHdr) + MP_VOICE_MAX_BYTES];
+    PktVoiceHdr h; h.type = PKT_VOICE; h.id = (uint8_t)fromSlot; h.seq = seq; h.flags = flags; h.pad = 0; h.len = (uint16_t)len;
+    memcpy(out, &h, sizeof(h)); memcpy(out + sizeof(h), opus, (size_t)len);
+    std::lock_guard<std::mutex> lk(m_Mutex);
+    if(!m_Slots[fromSlot].used) return;
+    GATE_EACH(toSlot, if(m_Slots[to].build >= MP_VOICE_BUILD) SendTo(to, out, (int)sizeof(h) + len));
+}
+
 int MPServer::GateWorldHour() { return (int)((WorldMinute() / 60) % 24); }
 
 #undef GATE_EACH

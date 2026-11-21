@@ -24,6 +24,10 @@
 #include "net/sampgate.h"
 #include "net/cgrp.h"
 #include "net/samp_keybar.h"
+#ifdef MP_GATE_SV
+#include "opus.h"   // 5.02.29: MP_TEST_VOICE
+#include <math.h>
+#endif
 
 struct Ev : INetEvents {
     bool ok = false; int msgs = 0, dialogs = 0, tds = 0, samp = 0, hello = 0, joins = 0, syncs = 0, cg = 0;
@@ -31,6 +35,8 @@ struct Ev : INetEvents {
     std::set<int> pcList; int vehOps = 0;   // 5.02.25: SPO_PCLIST (the PC server's player list)
     int classShow = 0, classSpawned = 0;   // 5.02.13: SPO_CLASSSEL (the phone's < Spawn > on PC servers)
     std::vector<std::string> lines;
+    int voiceIn = 0, voiceEnd = 0, voiceGain = -1; std::set<int> voiceIds;   // 5.02.29: SampVoice from the PC server
+    void OnVoice(int id, uint16_t, uint8_t flags, const uint8_t*, int) override { ++voiceIn; voiceIds.insert(id); if(flags & VOICE_END) ++voiceEnd; if(flags & VOICE_GAIN) voiceGain = flags >> 2; }
     void OnConnected(const PktWelcome&) override { ok = true; }
     void OnRejected(uint8_t) override {}
     void OnConnectFailed() override {}
@@ -95,6 +101,10 @@ int main(int argc, char** argv)
     SampGate gate; gate.StartRemote(&proxy, host, port, pw);
     MPClient cl; Ev ev; cl.Connect("127.0.0.1", basePort, getenv("MP_TEST_NAME") ? getenv("MP_TEST_NAME") : "Phone Tester", 106);   // 5.02.11: two testers = each one is the other's PC player
     uint32_t seq = 1;
+#ifdef MP_GATE_SV
+    const bool talk = getenv("MP_TEST_VOICE") != nullptr; int verr = 0; OpusEncoder* venc = talk ? opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, &verr) : nullptr;
+    uint64_t vAt = 0; uint16_t vSeq = 0; bool vWas = false; long vPh = 0; int vSent = 0;
+#endif
     auto pump = [&](int ms, bool move) {
         uint64_t e = MP_NowMs() + ms;
         while(MP_NowMs() < e)
@@ -102,6 +112,24 @@ int main(int argc, char** argv)
             cl.Poll(&ev);
             for(auto& k : ev.out) cl.Send(&k, sizeof(k));
             ev.out.clear();
+#ifdef MP_GATE_SV
+            if(talk && cl.GetState() == NET_CONNECTED)
+            {   // 5.02.29 MP_TEST_VOICE: a 440 Hz tone, 2 s on / 2 s off, as the phone's 20 ms voice frames
+                const uint64_t t = MP_NowMs();
+                if(!vAt) vAt = t;
+                while(vAt + 20 <= t)
+                {
+                    vAt += 20; const bool on = ((vAt / 2000) & 1) == 0;
+                    if(!on && !vWas) continue;
+                    int16_t pcm[960]; for(int i = 0; i < 960; ++i) pcm[i] = on ? (int16_t)(8000.0 * sin(2 * 3.14159265 * 440.0 * (double)(vPh++) / 48000.0)) : 0;
+                    uint8_t pkt[sizeof(PktVoiceHdr) + MP_VOICE_MAX_BYTES]; PktVoiceHdr* h = (PktVoiceHdr*)pkt;
+                    const int nb = opus_encode(venc, pcm, 960, pkt + sizeof(PktVoiceHdr), MP_VOICE_MAX_BYTES);
+                    h->type = PKT_VOICE; h->id = 0; h->seq = vSeq++; h->flags = on ? 0 : VOICE_END; h->pad = 0; h->len = (uint16_t)nb;
+                    if(nb > 0) { cl.Send(pkt, (int)sizeof(PktVoiceHdr) + nb); ++vSent; }
+                    vWas = on;
+                }
+            }
+#endif
             if(move && cl.GetState() == NET_CONNECTED && seq % 4 == 0)
             {
                 PktSync p; memset(&p, 0, sizeof(p)); p.type = PKT_SYNC; p.seq = seq; p.d.pos[0] = ev.px + (float)(seq % 40) * 0.02f; p.d.pos[1] = ev.py; p.d.pos[2] = ev.pz;
@@ -188,6 +216,10 @@ int main(int argc, char** argv)
         pump(1000, true);
     }
     if(getenv("MP_TEST_HOLD")) pump(atoi(getenv("MP_TEST_HOLD")), true);   // 5.02.13: two testers - stay to hear the other one's chat
+#ifdef MP_GATE_SV
+    if(talk) printf("  voice: sent %d frames, got %d frames (%d end, gain level %d) from %d speakers\n", vSent, ev.voiceIn, ev.voiceEnd, ev.voiceGain, (int)ev.voiceIds.size());
+    if(talk && getenv("MP_TEST_VOICE_EXPECT")) CHECK(ev.voiceIn > 50, "phone heard the PC player's SampVoice voice");
+#endif
     for(auto& kv : ev.newOps) printf("  new op %d x%d\n", kv.first, kv.second);
     printf("  messages %d, dialogs %d, textdraws %d, samp ops %d, cg acts %d, joins %d\n", ev.msgs, ev.dialogs, ev.tds, ev.samp, ev.cg, ev.joins);
     CHECK(!gate.Ended(), "still connected after chat + /command + movement");

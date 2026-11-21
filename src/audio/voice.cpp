@@ -66,6 +66,8 @@ namespace
     Stream* s_Streams[MP_MAX_PLAYERS] = {};
     std::atomic<float> s_fGain[MP_MAX_PLAYERS];
     std::atomic<uint64_t> s_nLastVoice[MP_MAX_PLAYERS];
+    std::atomic<uint64_t> s_nOvAt[MP_MAX_PLAYERS];   // 5.02.29: VOICE_GAIN packets (last one / its volume)
+    std::atomic<float> s_fOvGain[MP_MAX_PLAYERS];
     std::mutex s_StreamM;
 
     // ---- capture ----
@@ -224,11 +226,17 @@ void Voice::SetOutput(bool on)
 void Voice::SetVolume(float v) { s_fVolume = v < 0 ? 0 : (v > 5 ? 5 : v); }   // 3.34: up to 500 %
 void Voice::SetMicGain(float g) { s_fMicGain = g < 0.25f ? 0.25f : (g > 8 ? 8 : g); }   // 3.34: whisper .. shout (800 %)
 void Voice::SetGain(int id, float g) { if(id >= 0 && id < MP_MAX_PLAYERS) s_fGain[id] = g < 0 ? 0 : g; }
+bool Voice::GainOverride(int id, float* g)
+{
+    if(id < 0 || id >= MP_MAX_PLAYERS || MP_NowMs() - s_nOvAt[id].load() > 1500) return false;
+    *g = s_fOvGain[id].load(); return true;
+}
 bool Voice::IsSpeaking(int id) { return id >= 0 && id < MP_MAX_PLAYERS && MP_NowMs() - s_nLastVoice[id].load() < V_SPEAK_MS; }
 
 void Voice::OnPacket(int id, uint16_t seq, uint8_t flags, const uint8_t* data, int len)
 {
     if(!s_bOk || id < 0 || id >= MP_MAX_PLAYERS || len <= 0 || len > MP_VOICE_MAX_BYTES) return;
+    if(flags & VOICE_GAIN) { s_fOvGain[id] = (float)(flags >> 2) / 32.0f; s_nOvAt[id] = MP_NowMs(); }   // 5.02.29
     std::lock_guard<std::mutex> lk(s_StreamM);
     Stream*& st = s_Streams[id];
     if(!st)

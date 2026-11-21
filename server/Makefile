@@ -34,7 +34,7 @@ obj/libraknet.a: $(RAK_SRC)
 	for f in $(RAK_SRC); do $(CXX) -O2 -std=c++17 -w $(RAK_FLAGS) -c $$f -o obj/raknet/$$(basename $$f .cpp).o || exit 1; done
 	$(AR) rcs $@ obj/raknet/*.o
 
-mp_server: $(SRC) ../src/net/server.h ../src/net/protocol.h ../src/net/lan.h ../src/net/online.h ../src/net/authcrypto.h obj/libmbedtls.a obj/libsamp.a obj/libunrar.a obj/libraknet.a ../src/net/sampgate.h ../src/net/server_gate.inc ../src/net/server_samp.inc ../src/net/server_bridge.inc ../src/net/server_samp_sql.inc ../src/net/server_samp_sscanf.inc ../src/net/server_samp_more.inc ../src/net/samp.h
+mp_server: $(SRC) ../src/net/server.h ../src/net/protocol.h ../src/net/lan.h ../src/net/online.h ../src/net/authcrypto.h obj/libmbedtls.a obj/libsamp.a obj/libunrar.a obj/libraknet.a ../src/net/sampgate.h ../src/net/sampgate_voice.inc ../src/net/server_gate.inc ../src/net/server_samp.inc ../src/net/server_bridge.inc ../src/net/server_samp_sql.inc ../src/net/server_samp_sscanf.inc ../src/net/server_samp_more.inc ../src/net/samp.h
 	$(CXX) -O2 -std=c++17 -pthread -I../src -I$(MBED)/include $(AMX_FLAGS) $(RAK_FLAGS) $(SRC) obj/libmbedtls.a obj/libsamp.a obj/libunrar.a obj/libraknet.a $(EXTRA) -ldl -lm -o mp_server
 
 obj/mbedtls/%.o: $(MBED)/library/%.c

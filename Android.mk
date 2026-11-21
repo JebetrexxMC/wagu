@@ -57,8 +57,9 @@ LOCAL_MODULE := mp_raknet
 LOCAL_CPP_EXTENSION := .cpp
 RAK_SRC := $(wildcard $(LOCAL_PATH)/third_party/omp-raknet/Source/*.cpp) $(LOCAL_PATH)/third_party/omp-raknet/SAMPRakNet.cpp $(LOCAL_PATH)/src/net/sampgate.cpp
 LOCAL_SRC_FILES := $(RAK_SRC:$(LOCAL_PATH)/%=%)
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/third_party/omp-raknet/Include/raknet $(LOCAL_PATH)/third_party/omp-raknet $(LOCAL_PATH)/src $(LOCAL_PATH)/third_party/mbedtls/include
-LOCAL_CFLAGS := -O2 -DNDEBUG -D__stdcall= -DRAKNET_LEGACY -DPACKETS_PER_TICK=3 -fvisibility=hidden -ffunction-sections -fdata-sections -Wno-everything
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/third_party/omp-raknet/Include/raknet $(LOCAL_PATH)/third_party/omp-raknet $(LOCAL_PATH)/src $(LOCAL_PATH)/third_party/mbedtls/include $(LOCAL_PATH)/third_party/opus/include
+# 5.02.29: MP_GATE_SV = SampVoice voice chat on PC servers (Opus from mp_opus)
+LOCAL_CFLAGS := -O2 -DNDEBUG -D__stdcall= -DRAKNET_LEGACY -DPACKETS_PER_TICK=3 -DMP_GATE_SV -fvisibility=hidden -ffunction-sections -fdata-sections -Wno-everything
 LOCAL_CPPFLAGS := -std=c++17
 LOCAL_CPP_FEATURES := exceptions rtti
 ifeq ($(TARGET_ARCH_ABI), armeabi-v7a)

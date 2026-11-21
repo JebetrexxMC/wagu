@@ -749,6 +749,12 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.29
+- Fixed the "Lost connection to the server. Reconnecting" drop on the Life of Player language screen. open.mp sends a server's first textdraws and its spectate mode before the game starts. MP reset that state when the game started, so it no longer knew you were on a login camera and acted as if you could spawn. The state is now reset when the connection opens, before the server's first message.
+- PC servers: the phone uses 576-byte packets like samp.exe (RakNet used up to 1500). Big ones can be dropped on mobile data, and a 120-textdraw menu sends a lot of them. The log now also notes how long the server had been silent before a lost connection.
+- SampVoice voice chat (3.1, the version Life of Player and most RP servers use): the phone connects to the server's voice channel like the PC plugin. You hear PC players through MP voice, at the volume of their stream (local voice fades with distance, radio and global voice play everywhere). With your MP mic on, PC players hear you. MP presses the server's talk key for you while you speak and lets go when you stop. Server mute and forced recording are honoured too.
+- Tested with the SampVoice 3.1 server plugin on SA-MP 0.3.7, with two phones talking through it, and on the Life of Player test server.
+
 ### 5.02.28
 - Login servers such as Life of Player: once the server turns off its login camera after the account step, the phone spawns by itself, like the PC client does. Before, MP pressed Spawn instead, the server refused it, and you were stuck. 30 s later you were also put at the spawn point with "This server has no Spawn answer".
 - On servers that show a login window or clickable textdraws, MP no longer spawns you by itself. It waits for the server's script and tells you to finish its steps.

@@ -1569,6 +1569,7 @@ static void ProcessVoice()
         float g = 1.0f;
         if(VoiceMutedId(i)) g = 0.0f;
         else if(s_bVoiceMuteAll) g = 0.0f;
+        else if(Voice::GainOverride(i, &g)) {}   // 5.02.29: SampVoice on a PC server - the gate worked out the stream's volume
         else if(haveMe && p.hasSync)
         {
             // like real life: full voice right next to you, quieter the further away (inverse distance,
