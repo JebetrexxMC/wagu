@@ -757,6 +757,8 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
   - **OnPlayerClickPlayer** (tap a name in the PC server player list), **OnPlayerClickMap** (set a map waypoint), **OnPlayerInteriorChange**.
   - **Menus** (CreateMenu / ShowMenuForPlayer / HideMenuForPlayer) as a list dialog: OnPlayerSelectedMenuRow / OnPlayerExitedMenu. **Actors** (CreateActor, ApplyActorAnimation, ClearActorAnimations, SetActorPos / FacingAngle / Invulnerable, DestroyActor).
   - Not yet: object editing (EditObject / SelectObject), OnPlayerGiveDamageActor, 0.3.DL custom car models.
+  - **Fix: original SA-MP 0.3.7 / 0.3.DL servers** (Horizon RP and most RP servers are not open.mp): the class request (RPC 128) is now 4 bytes like samp.exe - SA-MP read 4 and answered "class locked", so on some servers you never spawned and nobody was streamed in. Tested on samp03svr 0.3.7-R2, 0.3.DL-R1 and omp-server 1.6.7: two phones spawn and see each other on all three.
+  - **Fix: "I'm the only one in the player list"**: when you play a PC server your phone hosts the crossplay server, and the launcher's Players tab listed only that server's slots (you). It now shows everyone on the PC server (id, name, score, ping) - Horizon RP: 97 of 97 in the test.
 
 - **5.02.24** (app: libMP32.so / libMP64.so, MP_BUILD 50224): **samp.exe's client commands on PC servers** ([open.mp Client Commands](https://open.mp/docs/client/ClientCommands)).
   - **/save [note]** writes `AddPlayerClass(skin,x,y,z,angle,0,0,0,0,0,0); // note` (in a car: `AddStaticVehicle(model,x,y,z,angle,-1,-1);`) to `savedpositions.txt`, **/rs [note]** writes `x,y,z,angle` to `rawpositions.txt` (next to the gate) and shows the line in chat - for scripting spawn points and cars.

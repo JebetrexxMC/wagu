@@ -2030,8 +2030,43 @@ static void LPagePlayersAdmin()
     ImGui::TextDisabled("Chat: /acmds lists every staff command (/sethealth /givecash /fine /makevip /makeadmin /unban ...).");
 }
 
+// 5.02.25: on an open.mp / SA-MP server the phone hosts the crossplay server itself, so its slots are only you (+ the PC
+// players streamed in near you). This is everyone on the PC server, like the samp.exe Tab list - tap = OnPlayerClickPlayer.
+static void LPagePcPlayers()
+{
+    ImGui::Text("Everyone on the PC server: %d players", (int)s_PcList.size());
+    ImGui::TextDisabled("Tap a name = OnPlayerClickPlayer (like the PC Tab list). The players near you also show up in the game.");
+    ImGui::Separator();
+    ImGui::BeginChild("##pcl", ImVec2(0, 0), false);
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const float W = ImGui::GetContentRegionAvail().x, rh = UI::S(52);
+    std::vector<const std::pair<const int, PcListEntry>*> rows; rows.reserve(s_PcList.size());
+    for(auto& kv : s_PcList) rows.push_back(&kv);
+    ImGuiListClipper clip; clip.Begin((int)rows.size(), rh + ImGui::GetStyle().ItemSpacing.y);
+    while(clip.Step())
+        for(int k = clip.DisplayStart; k < clip.DisplayEnd; ++k)
+        {
+            const auto& e = *rows[k];
+            ImVec2 a = ImGui::GetCursorScreenPos();
+            ImGui::PushID(200000 + e.first);
+            if(ImGui::InvisibleButton("pcrow", ImVec2(W, rh))) SampSrvClickPlayer(e.first);
+            ImGui::PopID();
+            if(k % 2 == 0) dl->AddRectFilled(a, ImVec2(a.x + W, a.y + rh), IM_COL32(255, 255, 255, 12), UI::S(6));
+            const float ty = a.y + (rh - ImGui::GetTextLineHeight()) * 0.5f; char buf[48];
+            snprintf(buf, sizeof(buf), "%d", e.first); dl->AddText(ImVec2(a.x + UI::S(14), ty), IM_COL32(200, 200, 200, 255), buf);
+            std::string nm = e.second.name; if(e.second.me) nm += " (you)";
+            dl->AddText(ImVec2(a.x + W * 0.12f, ty), e.second.me ? IM_COL32(255, 230, 120, 255) : IM_COL32_WHITE, nm.c_str());
+            snprintf(buf, sizeof(buf), "%d", e.second.score); dl->AddText(ImVec2(a.x + W * 0.66f, ty), IM_COL32_WHITE, buf);
+            if(e.second.ping >= 0) snprintf(buf, sizeof(buf), "%d", e.second.ping); else snprintf(buf, sizeof(buf), "-");
+            dl->AddText(ImVec2(a.x + W * 0.83f, ty), IM_COL32_WHITE, buf);
+        }
+    clip.End();
+    ImGui::EndChild();
+}
+
 static void LPagePlayers()
 {
+    if(client.GetState() == NET_CONNECTED && !s_PcList.empty()) { LPagePcPlayers(); return; }   // 5.02.25
     // 3.39: admin + moderators manage the 4 featured servers only; a custom server is managed by its host owner
     const bool onFeatured = client.GetState() == NET_CONNECTED && (MP::IsOnDefault() || BcwOnServer() || Mw3OnServer() || RpOnServer() || DzOnServer() || LgOnServer());
     if(client.GetState() == NET_CONNECTED && FloatMenu::BigButton("Server Management (gamemodes / permissions / rules)")) s_nLTab = LT_SRVMGMT;   // 3.53

@@ -1042,7 +1042,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             srv->GateMsg(s, 0x88AA62FF, m);
             SetStatus(I, "On %s (%s:%u)", name.c_str(), I.rHost.c_str(), I.rPort);
             I.classIdx = 0; I.stableSince = NowMs();
-            BitStream o; o.Write((uint16_t)0); CliRpc(I, 128, o);
+            BitStream o; o.Write((int32_t)0); CliRpc(I, 128, o);
             RemClassSel(I, srv, true);   // 5.02.13: < Spawn > on the phone
             break;
         }
@@ -1101,7 +1101,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             I.spect = u32a != 0;   // 5.02.10: spectating (account loading / login camera) = no Spawn button for a PC player either
             if(I.phase == 3) I.retrySpawnAt = I.spect ? 0 : NowMs() + 1500;
             if(!u32a && I.wantClass && I.phase >= 4) { I.wantClass = false; I.phase = 3; I.noAuto = true;
-                srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] The server sent you back to class selection - log in (dialog or its /command) and you spawn after that."); BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); RemClassSel(I, srv, true); }
+                srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] The server sent you back to class selection - log in (dialog or its /command) and you spawn after that."); BitStream o; o.Write((int32_t)I.classIdx); CliRpc(I, 128, o); RemClassSel(I, srv, true); }
             break;
         case 137:  // player joined
         {
@@ -2011,11 +2011,11 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                 if(I.spawnAskAt && now - I.spawnAskAt < 1500) continue;   // also after an answer: a tap every 1.5 s at most
                 if(I.dlgOpen) { if(now - I.refuseMsgAt > 5000) { I.refuseMsgAt = now; srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] Answer the server's window first (login / register) - then Spawn."); } continue; }
                 I.spawnAskAt = now; I.noAuto = false; I.autoSpawnN = 0; I.retrySpawnAt = 0;
-                if(!I.classOk) { I.spawnAfterClass = true; BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); }   // 5.02.23: locked class - ask again first
+                if(!I.classOk) { I.spawnAfterClass = true; BitStream o; o.Write((int32_t)I.classIdx); CliRpc(I, 128, o); }   // 5.02.23: locked class - ask again first
                 else { BitStream o; CliRpc(I, 129, o); }
                 printf("[crossplay] spawn button (dialog %d, select %d, spectating %d)\n", (int)I.dlgOpen, (int)I.tdSel, (int)I.spect);
             }
-            else { I.classIdx = std::max(0, I.classIdx + (e.a == 1 ? -1 : 1)); BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); }
+            else { I.classIdx = std::max(0, I.classIdx + (e.a == 1 ? -1 : 1)); BitStream o; o.Write((int32_t)I.classIdx); CliRpc(I, 128, o); }
         }
         else if(e.kind == HK_DIALOG && e.dialog == kMenuDialog && I.menuOpen >= 0)
         {   // 5.02.25: a GTA menu shown as a list: Select = OnPlayerSelectedMenuRow, Close = OnPlayerExitedMenu
@@ -2067,7 +2067,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         if(now - I.autoSpawnWin > 30000) { I.autoSpawnWin = now; I.autoSpawnN = 0; }
         if(++I.autoSpawnN <= 3)
         {   // 5.02.23: a locked class (OnPlayerRequestClass return 0): ask the class again, Spawn follows if it opened up
-            if(!I.classOk) { I.spawnAfterClass = true; BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); }
+            if(!I.classOk) { I.spawnAfterClass = true; BitStream o; o.Write((int32_t)I.classIdx); CliRpc(I, 128, o); }
             else { BitStream o; CliRpc(I, 129, o); I.spawnAskAt = now; }
         }
         else if(I.autoSpawnN == 4) srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] The server keeps you in class selection - log in / finish its dialog first.");
@@ -2084,7 +2084,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         if(++I.spawnSilent == 1)
         {
             printf("[crossplay] no answer to Spawn - asking the class again\n");
-            { BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); }
+            { BitStream o; o.Write((int32_t)I.classIdx); CliRpc(I, 128, o); }
             { BitStream o; CliRpc(I, 129, o); } I.spawnAskAt = now;
         }
         else
@@ -2119,7 +2119,7 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             if(dead && !I.wasDead) { BitStream o; o.Write((uint8_t)255); o.Write(kInvalid); CliRpc(I, 53, o); }
             if(!dead && I.wasDead)
             {
-                if(I.wantClass) { I.wantClass = false; I.phase = 3; I.wasDead = false; I.noAuto = true; BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); RemClassSel(I, srv, true); }
+                if(I.wantClass) { I.wantClass = false; I.phase = 3; I.wasDead = false; I.noAuto = true; BitStream o; o.Write((int32_t)I.classIdx); CliRpc(I, 128, o); RemClassSel(I, srv, true); }
                 else RemSpawned(I, srv);
             }
             I.wasDead = dead;

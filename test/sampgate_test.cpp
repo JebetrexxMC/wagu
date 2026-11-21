@@ -18,6 +18,7 @@
 #include <chrono>
 #include "net/client.h"
 #include "net/server.h"
+#include <set>
 #include "net/samp.h"
 #include "net/sampgate.h"
 #include "net/cgrp.h"
@@ -25,6 +26,7 @@
 
 struct Ev : INetEvents {
     bool ok = false; int msgs = 0, dialogs = 0, tds = 0, samp = 0, hello = 0, joins = 0, syncs = 0, cg = 0;
+    std::set<int> pcList; int vehOps = 0;   // 5.02.25: SPO_PCLIST (the PC server's player list)
     int classShow = 0, classSpawned = 0;   // 5.02.13: SPO_CLASSSEL (the phone's < Spawn > on PC servers)
     std::vector<std::string> lines;
     void OnConnected(const PktWelcome&) override { ok = true; }
@@ -47,6 +49,8 @@ struct Ev : INetEvents {
     void OnTextDraw(const PktTextDraw& t) override { ++tds; if(tds <= 3) printf("  textdraw %u show %u: %.40s\n", t.tdId, t.show, t.text); }
     void OnSamp(const uint8_t* d, int) override { ++samp;
         if(d[1] == SPO_CLASSSEL) { PktSamp p; memcpy(&p, d, sizeof(p)); if(p.a) ++classShow; else if(p.b) ++classSpawned; printf("  SPO_CLASSSEL show %u spawned %u class %d\n", p.a, p.b, p.val); }
+        if(d[1] == SPO_VEHICLE) ++vehOps;
+        if(d[1] == SPO_PCLIST) { PktSamp p; memcpy(&p, d, sizeof(p)); if(p.a == 1) pcList.insert(p.val); else if(p.a == 2) pcList.erase(p.val); else pcList.clear(); }
         if(d[1] == SPO_HELLO) { ++hello; printf("  SPO_HELLO: %s\n", (const char*)d + offsetof(PktSamp, text)); } }
     float px = 1958.f, py = 1343.f, pz = 15.4f;   // 5.02.10: follows the server's SetPlayerPos like the phone does
     void OnCg(const uint8_t* d, int n) override { ++cg; if(n >= (int)sizeof(PktCgAct)) { const PktCgAct* a = (const PktCgAct*)d; if(a->act == CGA_TELE) { px = a->pos[0]; py = a->pos[1]; pz = a->pos[2]; printf("  tele %.1f %.1f %.1f\n", px, py, pz); } } }
@@ -96,6 +100,7 @@ int main(int argc, char** argv)
     CHECK(gate.RemoteJoined(), "gate joined the PC server (InitGame)");
     printf("  status: %s\n", gate.Status().c_str());
     CHECK(ev.hello > 0, "phone got SPO_HELLO with the PC server name");
+    printf("  PC player list: %d, ghost players (joins): %d, syncs %d, server car ops %d\n", (int)ev.pcList.size(), ev.joins, ev.syncs, ev.vehOps);
     CHECK(ev.msgs > 0, "phone got the PC server's messages");
     PktChat c; memset(&c, 0, sizeof(c)); c.type = PKT_CHAT; MP_CopyStr(c.text, "hello from the phone", sizeof(c.text)); cl.Send(&c, sizeof(c));
     pump(1500, true);
