@@ -624,10 +624,34 @@ static const char* OmpEmptyText()
     return "Reading the open.mp server list...";
 }
 
+// 5.02.17: the ReSA tab - the same open.mp / SA-MP list, but Join opens ReSA Multiplayer (com.alyn.resamp, its own
+// engine for SA-MP 0.3.7 / 0.3.DL / open.mp) on that server: resa://connect?host=IP&port=PORT (resa-mp.com/join links).
+// Not installed: resa-mp.com/join?host=..&port=.. opens instead (its Download button). The APK is a release asset.
+static void ResaRows(std::vector<LRow>& rows)
+{
+    OmpRows(rows);
+    for(LRow& q : rows)
+    {
+        q.kind = 9; q.on = false;
+        snprintf(q.tags, sizeof(q.tags), "ReSA");
+        char d[160]; snprintf(d, sizeof(d), "Opens %s:%d in ReSA Multiplayer (mobile SA-MP / open.mp client). Same server as PC and MP crossplay players.", q.ip, q.port);
+        OmpCut(q.desc, sizeof(q.desc), d);
+    }
+}
+static void ResaOpen(const char* ip, int port)
+{
+    char u[200]; snprintf(u, sizeof(u), "resa://connect?host=%s&port=%d", ip, port);
+    char w[200]; snprintf(w, sizeof(w), "https://resa-mp.com/join?host=%s&port=%d", ip, port);
+    if(logger) logger->Info("ReSA tab: open %s:%d in ReSA Multiplayer", ip, port);
+    Voice::OpenUrlOr(u, w);
+}
+static inline bool OmpSub() { return s_nInetSub == 2 || s_nInetSub == 3; }   // 5.02.17: open.mp + ReSA tabs share the list
+
 static void LBuildRows(int tab, const std::vector<LanServer>& nearby, std::vector<LRow>& rows)
 {
     rows.clear();
     if(tab == LT_INTERNET && s_nInetSub == 2) { OmpRows(rows); return; }   // 5.02.01: the open.mp tab
+    if(tab == LT_INTERNET && s_nInetSub == 3) { ResaRows(rows); return; }  // 5.02.17: the ReSA tab
     if(tab == LT_INTERNET || tab == LT_LAN)
     {
         LRow r; memset(&r, 0, sizeof(r));
@@ -899,6 +923,7 @@ static void LJoinNow(const LRow& r)
     if(r.kind == 5) { if(!MP::IsOnRp()) LeaveServer(nullptr); MP::JoinRp(); return; }     // 3.25
     if(r.kind == 6) { if(!MP::IsOnDz()) LeaveServer(nullptr); MP::JoinDz(); return; }     // 3.58
     if(r.kind == 7) { if(!MP::IsOnLg()) LeaveServer(nullptr); MP::JoinLg(); return; }     // 4.13.4
+    if(r.kind == 9) { ResaOpen(r.ip, r.port); return; }   // 5.02.17: ReSA tab
     if(r.kind == 8)
     {   // 5.02.01: an open.mp / SA-MP PC server (open.mp tab): crossplay join
         char addr[80]; snprintf(addr, sizeof(addr), "%s:%d", r.ip, r.port);
@@ -1179,7 +1204,7 @@ static void LDetailPlayers(const LRow& r, std::vector<std::string>& out)
         return;
     }
     if(r.mine) { std::vector<MPServer::PlayerView> pv; s_Server.GetPlayers(pv); for(auto& v : pv) out.push_back(v.name); return; }
-    if(r.kind == 8)
+    if(r.kind == 8 || r.kind == 9)
     {   // 5.02.12: open.mp tab - ask the server itself (SA-MP query 'c'), cached 20 s, in the background
         struct OmpNames { uint64_t at = 0; bool busy = false, hidden = false; std::vector<std::string> names; };
         static std::mutex mx; static std::map<std::string, std::shared_ptr<OmpNames>> cache;
@@ -1262,7 +1287,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
         dl->AddLine(ImVec2(p.x, p.y + hdrH), ImVec2(p.x + W, p.y + hdrH), IM_COL32(255, 255, 255, 34), UI::S(1));
         ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + hdrH + UI::S(2)));
     }
-    if(s_nLTab == LT_INTERNET && s_nInetSub == 2)
+    if(s_nLTab == LT_INTERNET && OmpSub())
     {   // 5.02.01: open.mp tab: list status + Refresh (reads api.open.mp again now)
         const float barH = UI::S(60);
         ImVec2 p = ImGui::GetCursorScreenPos();
@@ -1273,6 +1298,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
         else if(st8 == 3) snprintf(st, sizeof(st), "Could not read the open.mp list%s - tap Refresh", n ? " (showing the last one)" : "");
         else if(st8 == 2) snprintf(st, sizeof(st), "%d servers on open.mp (%d shown%s)  -  updated %us ago", n, (int)rows.size(), (OmpSearchPw() ? OmpSearchPw() : s_nOmpPwFilter) == 1 ? ", with a password" : (OmpSearchPw() ? OmpSearchPw() : s_nOmpPwFilter) == 2 ? ", no password" : "", ago);
         else snprintf(st, sizeof(st), "open.mp server list");
+        if(s_nInetSub == 3 && st8 == 2) snprintf(st, sizeof(st), "%d servers - Join opens ReSA Multiplayer (no ReSA yet: its download page opens)", n);   // 5.02.17
         const float bh = barH - UI::S(12);
         const char* bl = "Refresh";
         const float bw = bh * 0.55f + bh * 0.42f + ImGui::CalcTextSize(bl).x + bh * 0.35f;
@@ -1432,6 +1458,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
                 if(r.kind == 2 && r.saved >= 0) { ServerEntry* se = ServerList::Get(r.saved); snprintf(ip, sizeof(ip), "IP: %s:%d", se ? se->host : "?", r.port); }
                 else if(r.kind == 1 && !r.internet && r.ip[0]) snprintf(ip, sizeof(ip), "IP: %s:%d (Wi-Fi)", r.ip, r.port);
                 else if(r.kind == 8) snprintf(ip, sizeof(ip), "IP: %s:%d (open.mp, PC crossplay)", r.ip, r.port);   // 5.02.01
+                else if(r.kind == 9) snprintf(ip, sizeof(ip), "IP: %s:%d (opens in ReSA Multiplayer)", r.ip, r.port);   // 5.02.17
                 else if(r.kind == 0 || r.kind >= 3) snprintf(ip, sizeof(ip), "IP: 24/7 internet lobby, port %d", r.port);
                 else if(r.internet) snprintf(ip, sizeof(ip), "IP: internet lobby, port %d", r.port);
                 else snprintf(ip, sizeof(ip), "IP: hidden, port %d", r.port);
@@ -1522,7 +1549,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
     }
     if(rows.empty())
         ImGui::TextDisabled(s_szSearch[0] ? "No server matches \"%s\"." : (s_nLTab == LT_FAVORITES ? "No favourite servers yet. Tap a server and press Favorite, or tap + to add one." :
-                            s_nLTab == LT_LAN ? "No Wi-Fi servers on this network." : (s_nLTab == LT_INTERNET && s_nInetSub == 2) ? OmpEmptyText() : "Searching..."), s_szSearch);
+                            s_nLTab == LT_LAN ? "No Wi-Fi servers on this network." : (s_nLTab == LT_INTERNET && OmpSub()) ? OmpEmptyText() : "Searching..."), s_szSearch);
     LDragScroll();
     ImGui::EndChild();
     ImGui::EndChild();
@@ -2572,7 +2599,7 @@ static void RenderLauncher(void* openPtr)
         float y = wp.y + titleH + (tbH - btnH) * 0.5f;
         float sideW = ImMax(UI::S(300), ws.x * 0.17f);
         float x = wp.x + UI::S(10) + sideW + UI::S(18);
-        struct { const char* t; int tab, sub; } tabs[5] = { { "Internet", LT_INTERNET, 0 }, { "Featured", LT_INTERNET, 1 }, { "open.mp", LT_INTERNET, 2 }, { "Favorites", LT_FAVORITES, -1 }, { "Lan", LT_LAN, -1 } };   // 5.02.01: + open.mp
+        struct { const char* t; int tab, sub; } tabs[6] = { { "Internet", LT_INTERNET, 0 }, { "Featured", LT_INTERNET, 1 }, { "open.mp", LT_INTERNET, 2 }, { "ReSA", LT_INTERNET, 3 }, { "Favorites", LT_FAVORITES, -1 }, { "Lan", LT_LAN, -1 } };   // 5.02.01: + open.mp
         if(!listTab)
         {   // 4.03: pages stay in the left sidebar - the top row only shows the page name
             const char* pt = s_nLTab == LT_ADD || s_nLTab == LT_HOSTED ? "Add server" : s_nLTab == LT_CLOUD ? "Cloud Storage" : s_nLTab == LT_PLAYERS ? "Players" :
@@ -2581,7 +2608,7 @@ static void RenderLauncher(void* openPtr)
                              (s_nLTab >= LT_SECTIONS && s_nLTab - LT_SECTIONS < FloatMenu::SectionCount()) ? FloatMenu::SectionTitle(s_nLTab - LT_SECTIONS) : "";
             dl->AddText(ImVec2(x, y + (btnH - ImGui::GetTextLineHeight()) * 0.5f), IM_COL32_WHITE, pt);
         }
-        for(int i = 0; i < 5 && listTab; ++i)
+        for(int i = 0; i < 6 && listTab; ++i)
         {
             ImVec2 ts = ImGui::CalcTextSize(tabs[i].t);
             float tw = ts.x + UI::S(44);
@@ -2602,7 +2629,7 @@ static void RenderLauncher(void* openPtr)
         ImGui::SetCursorScreenPos(ImVec2(rx, y));
         if(LInputBox("search", s_szSearch, "Search", searchW, btnH, IC_SEARCH)) VKeyboard::Open("Search server", s_szSearch, 31, OnSearch);
         ImGui::SameLine(0, UI::S(6));
-        if(LToolButton("refresh", IC_REFRESH, nullptr, btnH)) { if(s_nLTab == LT_INTERNET && s_nInetSub == 2) OmpListKick(true); ServerList::Refresh(); if(s_bHasNetwork) { s_nNearbyTime = MP_NowMs(); StartJob(JOB_SCAN, false, "", MP_DEFAULT_PORT); } }
+        if(LToolButton("refresh", IC_REFRESH, nullptr, btnH)) { if(s_nLTab == LT_INTERNET && OmpSub()) OmpListKick(true); ServerList::Refresh(); if(s_bHasNetwork) { s_nNearbyTime = MP_NowMs(); StartJob(JOB_SCAN, false, "", MP_DEFAULT_PORT); } }
         ImGui::SameLine(0, UI::S(6));
         s_vRegionBtn = ImGui::GetCursorScreenPos(); s_fRegionBtn = btnH;   // 3.25.1: region switch
         // 4.05.3: the only toolbar button that TOGGLES - one tap that arrived twice (press seen twice) opened

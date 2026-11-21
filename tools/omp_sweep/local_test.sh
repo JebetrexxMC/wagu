@@ -47,5 +47,21 @@ grep -E "KT keys new [0-9]+ " /tmp/omp_kt.log | grep -vqE "new (0|1|8|16|512|102
 check /tmp/omp_kt.log "KT dialog 77 response 0 item -1" "ESC closes a msgbox dialog (response 0)"
 check /tmp/omp_kt.log "KT dialog 78 response 0 item 1" "ESC closes a list dialog (response 0, the selected row)"
 check /tmp/omp_kt.log "KT click 65535" "ESC cancels SelectTextDraw (INVALID_TEXT_DRAW)"
+# 4. 5.02.17: a login server (tools/omp_sweep/logintest.pwn): Spawn is refused until you log in (told, not spammed), the
+#    login opens in OnPlayerFinishedDownloading, the script's SpawnPlayer + OnPlayerSpawn SetPlayerPos / gun / textdraw reach the phone
+(cd /tmp/Server && LD_LIBRARY_PATH=qawno ./qawno/pawncc -iqawno/include -d0 -O1 "$OLDPWD/tools/omp_sweep/logintest.pwn" -ogamemodes/logintest.amx > /tmp/lg_build.log 2>&1) || { echo "FAIL logintest.pwn did not compile"; cat /tmp/lg_build.log; fails=$((fails+1)); }
+python3 -c "import json;p='/tmp/Server/config.json';c=json.load(open(p));c['pawn']['main_scripts']=['logintest 1'];json.dump(c,open(p,'w'),indent=1)"
+(cd /tmp/Server && timeout 60 ./omp-server > /tmp/omp_lg.log 2>&1 &); sleep 4
+MP_GATE_WAIT=5000 MP_TEST_REMOTE_ONLY=1 MP_TEST_SPAM=1 MP_TEST_DIALOG=secret MP_TEST_PORT=22800 MP_TEST_NAME=Phone_L timeout 50 "$T" 127.0.0.1 7799 > /tmp/lg_client.log 2>&1
+sleep 1; pkill -f omp-server
+check /tmp/omp_lg.log "LT connect official 1 omp 1" "IsPlayerUsingOfficialClient + IsPlayerUsingOmp = 1 for the phone"
+check /tmp/omp_lg.log "LT finished downloading" "OnPlayerFinishedDownloading fires (login window scripts)"
+[ "$(grep -c 'LT spawn refused' /tmp/omp_lg.log)" -le 1 ] && echo "ok   8 Spawn taps during the login window = no RequestSpawn flood" || { echo "FAIL Spawn taps flooded ($(grep -c 'LT spawn refused' /tmp/omp_lg.log))"; fails=$((fails+1)); }
+check /tmp/lg_client.log "Answer the server's window first" "the phone is told why Spawn did nothing"
+check /tmp/omp_lg.log "LT login response 1 text secret" "the password dialog answer reaches the script (list item -1)"
+check /tmp/omp_lg.log "LT spawn 0 logged 1" "the script's SpawnPlayer spawns the phone"
+check /tmp/lg_client.log "SPO_CLASSSEL show 0 spawned 1" "the phone's join screen lets go after the script spawn"
+check /tmp/lg_client.log "tele 1481.0 -1750.0 15.4" "OnPlayerSpawn SetPlayerPos moves the phone"
+check /tmp/lg_client.log "LT welcome" "OnPlayerSpawn textdraw reaches the phone"
 echo; [ $fails -eq 0 ] && echo "all ok" || echo "$fails FAILED"
 exit $fails

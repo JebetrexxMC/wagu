@@ -1,0 +1,18 @@
+# 5.02.17: openmp_247.sh settings (flat "key: value" lines - no nesting).
+# Run:  bash tools/omp_247/openmp_247.sh tools/omp_247/raknet_247.yml
+server_dir: ./Server          # folder with omp-server (or samp03svr) and config.json / server.cfg
+server_bin: omp-server        # the binary inside server_dir
+host: 127.0.0.1               # address the health check asks (SA-MP query 'i' over UDP)
+port: 7777
+health_every: 15              # seconds between health checks
+health_fails: 4               # this many failed checks in a row = restart (a hung server)
+restart_delay: 3              # seconds to wait before a restart (crash or hang)
+max_restarts_hour: 30         # stop restarting after this many in one hour (a broken gamemode)
+backup_every: 1800            # seconds between backups of scriptfiles/ + logs (0 = off)
+backup_keep: 48               # newest backups kept, older ones deleted
+backup_dir: ./backups
+console_fifo: ./omp_console   # echo "say hello" > omp_console  -> typed into the server console
+# Optional MQTT (HiveMQ or any broker; needs mosquitto-clients). Empty mqtt_host = off.
+mqtt_host:
+mqtt_port: 1883
+mqtt_topic: wagu/openmp       # status -> <topic>/status, console lines from <topic>/cmd

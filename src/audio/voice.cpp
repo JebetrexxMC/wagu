@@ -438,32 +438,46 @@ static void OpenHelperOnUi(void*)
 }
 // 3.21.6: open a web link (the login screen's Discord invite) in the browser / Discord app
 static char s_szOpenUrl[256];
+static char s_szOpenUrlAlt[256];   // 5.02.17: opened when no app takes s_szOpenUrl (ActivityNotFoundException)
+static bool OpenUrlTry(const char* url);
 static void OpenUrlOnUi(void*)
+{
+    if(!OpenUrlTry(s_szOpenUrl) && s_szOpenUrlAlt[0]) OpenUrlTry(s_szOpenUrlAlt);
+    s_szOpenUrlAlt[0] = 0;
+}
+static bool OpenUrlTry(const char* url)
 {
     JNIEnv* e = Env();
     jobject act = aml->GetCurrentActivity();
     if(!act) act = aml->GetAppContextObject();
-    if(!e || !act) return;
+    if(!e || !act) return false;
     jclass uc = e->FindClass("android/net/Uri");
     jclass ic = e->FindClass("android/content/Intent");
-    if(ClearEx(e) || !uc || !ic) return;
+    if(ClearEx(e) || !uc || !ic) return false;
     jmethodID parse = e->GetStaticMethodID(uc, "parse", "(Ljava/lang/String;)Landroid/net/Uri;");
     jmethodID init = e->GetMethodID(ic, "<init>", "(Ljava/lang/String;Landroid/net/Uri;)V");
     jmethodID afl = e->GetMethodID(ic, "addFlags", "(I)Landroid/content/Intent;");
-    if(ClearEx(e) || !parse || !init || !afl) return;
-    jobject uri = e->CallStaticObjectMethod(uc, parse, e->NewStringUTF(s_szOpenUrl));
-    if(ClearEx(e) || !uri) return;
+    if(ClearEx(e) || !parse || !init || !afl) return false;
+    jobject uri = e->CallStaticObjectMethod(uc, parse, e->NewStringUTF(url));
+    if(ClearEx(e) || !uri) return false;
     jobject in = e->NewObject(ic, init, e->NewStringUTF("android.intent.action.VIEW"), uri);
-    if(ClearEx(e) || !in) return;
+    if(ClearEx(e) || !in) return false;
     e->CallObjectMethod(in, afl, (jint)0x10000000);   // FLAG_ACTIVITY_NEW_TASK
     jclass cc = e->GetObjectClass(act);
     jmethodID sa = e->GetMethodID(cc, "startActivity", "(Landroid/content/Intent;)V");
-    if(ClearEx(e) || !sa) return;
+    if(ClearEx(e) || !sa) return false;
     e->CallVoidMethod(act, sa, in);
-    ClearEx(e);
+    return !ClearEx(e);
+}
+void Voice::OpenUrlOr(const char* url, const char* fallback)
+{
+    snprintf(s_szOpenUrl, sizeof(s_szOpenUrl), "%s", url ? url : "");
+    snprintf(s_szOpenUrlAlt, sizeof(s_szOpenUrlAlt), "%s", fallback ? fallback : "");
+    if(!aml->PushToJavaUIThread(OpenUrlOnUi, nullptr)) OpenUrlOnUi(nullptr);
 }
 void Voice::OpenUrl(const char* url)
 {
+    s_szOpenUrlAlt[0] = 0;
     snprintf(s_szOpenUrl, sizeof(s_szOpenUrl), "%s", url ? url : "");
     if(!aml->PushToJavaUIThread(OpenUrlOnUi, nullptr)) OpenUrlOnUi(nullptr);
 }

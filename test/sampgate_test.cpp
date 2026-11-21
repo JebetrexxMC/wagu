@@ -49,7 +49,7 @@ struct Ev : INetEvents {
         if(d[1] == SPO_CLASSSEL) { PktSamp p; memcpy(&p, d, sizeof(p)); if(p.a) ++classShow; else if(p.b) ++classSpawned; printf("  SPO_CLASSSEL show %u spawned %u class %d\n", p.a, p.b, p.val); }
         if(d[1] == SPO_HELLO) { ++hello; printf("  SPO_HELLO: %s\n", (const char*)d + offsetof(PktSamp, text)); } }
     float px = 1958.f, py = 1343.f, pz = 15.4f;   // 5.02.10: follows the server's SetPlayerPos like the phone does
-    void OnCg(const uint8_t* d, int n) override { ++cg; if(n >= (int)sizeof(PktCgAct)) { const PktCgAct* a = (const PktCgAct*)d; if(a->act == CGA_TELE) { px = a->pos[0]; py = a->pos[1]; pz = a->pos[2]; } } }
+    void OnCg(const uint8_t* d, int n) override { ++cg; if(n >= (int)sizeof(PktCgAct)) { const PktCgAct* a = (const PktCgAct*)d; if(a->act == CGA_TELE) { px = a->pos[0]; py = a->pos[1]; pz = a->pos[2]; printf("  tele %.1f %.1f %.1f\n", px, py, pz); } } }
 };
 
 static int fails = 0;
@@ -101,7 +101,12 @@ int main(int argc, char** argv)
     pump(1500, true);
     PktSamp cmd; memset(&cmd, 0, sizeof(cmd)); cmd.type = PKT_SAMP; cmd.op = SPO_CMD; MP_CopyStr(cmd.text, "/help", sizeof(cmd.text)); cl.Send(&cmd, sizeof(cmd));
     pump(2500, true);
-    if(getenv("MP_TEST_SPAWN"))
+    if(getenv("MP_TEST_SPAM"))
+    {   // 5.02.17: a player tapping Spawn 8 times in a row (Horizonte RP log) - the gate sends one RequestSpawn per answer
+        PktSamp sp; memset(&sp, 0, sizeof(sp)); sp.type = PKT_SAMP; sp.op = SPO_SPAWNREQ; sp.a = 0;
+        for(int i = 0; i < 8; ++i) { cl.Send(&sp, sizeof(sp)); pump(120, false); }
+        pump(2500, true);
+    }
     {   // 5.02.13: press the phone's Spawn (class selection) - the server must spawn us (SPO_CLASSSEL b = 1)
         CHECK(ev.classShow > 0, "phone got the PC server's class selection (< Spawn >)");
         PktSamp sp; memset(&sp, 0, sizeof(sp)); sp.type = PKT_SAMP; sp.op = SPO_SPAWNREQ; sp.a = 2; cl.Send(&sp, sizeof(sp));   // > next class
