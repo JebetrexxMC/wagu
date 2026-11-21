@@ -38,6 +38,9 @@ static std::atomic<bool>     s_bMenuMpCloseMenu{false};   // close the game's me
 static const uint64_t kMenuMpQuickHoldMs = 400, kMenuMpFadeMs = 500;
 static bool              s_bMenuMpQuick = false;      // this black screen follows a save load
 static std::atomic<int>  s_nMenuMpFade{0};            // 0..255 black over the loading screen
+// 5.02.32: the rescue card on a black screen with nothing on it (MenuMpRescueCard)
+static std::atomic<uint64_t> s_nMenuMpUiMs{0};    // last HUD frame something of MP was drawn over the black
+static std::atomic<int>      s_nMenuMpRescue{0};  // 1 = Servers, 2 = Single player (HUD -> game thread)
 
 static bool s_bMenuMpViaApi = false;   // 4.13.11: started by another mod (PCMenu), works even with MainMenuMultiplayer = 0
 // 4.13.22: ServerBrowserMode = neon / mp / default (mp_neon.inc)
@@ -373,6 +376,19 @@ static void MenuMpProcess(int ped, uint64_t now)
         return;
     }
     if(ped <= 0 || !Game::IsReady() || Game::IsFrontendMenu()) return;   // still loading / in the menu
+    if(const int rq = s_nMenuMpRescue.exchange(0))
+    {   // 5.02.32: the rescue card on a black screen with nothing on it
+        logger->Info("Main menu: rescue card -> %s", rq == 2 ? "single player" : "servers");
+        if(client.GetState() != NET_DISCONNECTED) LeaveServer(nullptr);
+        s_bNeonPendingJoin = false;
+        if(rq == 2)
+        {
+            if(FloatMenu::IsPageOpen(FloatMenu::PAGE_SERVER)) FloatMenu::ClosePage(FloatMenu::PAGE_SERVER);
+            MenuMpRelease(ped); s_bMenuMp = false; s_nMenuMpUiMs = 0;
+            return;
+        }
+        FloatMenu::OpenPage(FloatMenu::PAGE_SERVER);
+    }
     const int st = client.GetState();
     const bool black = st != NET_CONNECTED && !JoinScreenUp();
     if(!black)
@@ -384,7 +400,7 @@ static void MenuMpProcess(int ped, uint64_t now)
     if(!s_bMenuMpBlack.load())
     {   // the black hologram: Grove Street, invisible, frozen, no HUD, no sound
         s_bMenuMpBlack = true; s_bMenuMpLoaded = true;
-        s_nMenuMpBlackAt = now;
+        s_nMenuMpBlackAt = now; s_nMenuMpUiMs = 0;   // 5.02.32: the rescue card's 5 s start now
         s_bMenuMpQuick = s_bMenuMpViaLoad.load(); s_nMenuMpFade = 0;
         if(!s_bMenuMpViaLoad.load()) s_fMenuMpShown = 0.0f;   // back from a server: the countdown alone, 0..100
         s_bMenuMpLaunched = false; s_bMenuMpCard = false;
@@ -431,12 +447,23 @@ static bool MenuMpHolding() { return s_bMenuMpHeld; }   // 5.01.12
 void MP::MenuMpMenuTick()
 {
     if(!s_bMenuMp.load() || !s_bMenuMpCloseMenu.load()) return;
-    const uint64_t sp = s_nMenuMpSplashMs.load();
-    if(!sp || Game::IsLoadPending() || !Game::IsFrontendMenu()) return;   // the load has not run yet
-    if(MP_NowMs() - sp < 400) return;                                      // still on the loading screen
+    const uint64_t sp = s_nMenuMpSplashMs.load(), nw = MP_NowMs();
+    // 5.02.32: another mod can own the loading screen (Fullscreen Splashes, PCIntro, PCMenu ...): MP's splash hook then
+    // never runs, sp stays 0 and the game's menu was never closed after the load. A loaded game (your ped is there)
+    // on the menu for 1.5 s counts as done too.
+    static uint64_t s_nLoadedSeen = 0;
+    const bool loadedHere = !Game::IsLoadPending() && Game::IsFrontendMenu() && Game::HasPlayerPed() && Game::LocalPed() > 0;
+    if(!loadedHere) s_nLoadedSeen = 0; else if(!s_nLoadedSeen) s_nLoadedSeen = nw;
+    const bool viaPed = !sp && s_nLoadedSeen && nw - s_nLoadedSeen > 1500 && nw - s_nMenuMpTapAt > 3000;
+    if(!viaPed)
+    {
+        if(!sp || Game::IsLoadPending() || !Game::IsFrontendMenu()) return;   // the load has not run yet
+        if(nw - sp < 400) return;                                              // still on the loading screen
+    }
+    s_nLoadedSeen = 0;
     s_bMenuMpCloseMenu = false;
     const bool ok = Game::ExitFrontendMenu();
-    logger->Info("Main menu: Multiplayer load done -> game menu closed (%s)", ok ? "ok" : "no MobileMenu::Exit");
+    logger->Info("Main menu: Multiplayer load done -> game menu closed (%s%s)", ok ? "ok" : "no MobileMenu::Exit", viaPed ? ", another mod drew the loading screen" : "");
 }
 bool MP::MenuMpBlack() { return s_bMenuMp.load() && s_bMenuMpBlack.load(); }
 bool MP::MenuMpLoading() { return (s_bMenuMpOn || s_bMenuMpViaApi) && s_bMenuMp.load() && !s_bMenuMpLoaded.load(); }
@@ -534,6 +561,43 @@ void MP::DrawMenuLoading(ImDrawList* dl, float pct, bool loadingScreen)
     MlBoldText(dl, f, pfs, ImVec2(ds.x - m - pz.x, ds.y - m - pz.y), IM_COL32(215, 215, 215, 240), ps);
 }
 
+// 5.02.32: the black screen after a Multiplayer load could stay black forever (Screenshot_20261121-203658: only the
+// game's area name "Mulholland" on black, then the game was closed). The server select / the [Servers] card were only
+// drawn while fully disconnected and with no MP window counted as open, so a join still connecting (or hanging), the
+// join screen not drawing, or an open-but-invisible window left nothing to tap. Now, when nothing of MP has been drawn
+// over the black for 5 s, a card always comes up: Servers / Single player (and Cancel while a join is connecting).
+// The buttons only set a flag; the game thread does the work (MenuMpProcess).
+static void MenuMpRescueCard(const ImVec2& ds)
+{
+    const uint64_t now = MP_NowMs();
+    if(!s_nMenuMpUiMs.load()) { s_nMenuMpUiMs = now; return; }
+    if(now - s_nMenuMpUiMs.load() < 5000) return;
+    static uint64_t s_nSaid = 0;
+    if(now - s_nSaid > 30000) { s_nSaid = now; logger->Info("Main menu: black screen with nothing on it for %llu s (net state %d) - rescue card shown", (unsigned long long)((now - s_nMenuMpUiMs.load()) / 1000), (int)client.GetState()); }
+    const bool joining = client.GetState() != NET_DISCONNECTED;
+    const ImVec2 sz(UI::S(520), UI::S(230));
+    ImGui::SetNextWindowPos(ImVec2((ds.x - sz.x) * 0.5f, (ds.y - sz.y) * 0.5f));
+    ImGui::SetNextWindowSize(sz);
+    ImGui::SetNextWindowFocus();
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.10f, 0.11f, 0.13f, 0.97f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    if(ImGui::Begin("##MPMenuRescue", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings))
+    {
+        ImGui::TextUnformatted("Multiplayer");
+        if(joining) ImGui::TextColored(ImVec4(0.6f, 0.62f, 0.66f, 1), "Still connecting to %s...", client.GetServerName()[0] ? client.GetServerName() : "the server");
+        else        ImGui::TextColored(ImVec4(0.6f, 0.62f, 0.66f, 1), "The game is loaded. Pick a server, or play single player.");
+        ImGui::Dummy(ImVec2(0, UI::S(12)));
+        const float bw = (sz.x - ImGui::GetStyle().WindowPadding.x * 2 - UI::S(12)) * 0.5f;
+        VPushWidgetStyle();
+        if(ImGui::Button(joining ? "Cancel + servers" : "Servers", ImVec2(bw, UI::S(64)))) { s_nMenuMpRescue = 1; s_nMenuMpUiMs = now; }
+        ImGui::SameLine(0, UI::S(12));
+        if(ImGui::Button("Single player", ImVec2(bw, UI::S(64)))) { s_nMenuMpRescue = 2; s_nMenuMpUiMs = now; }
+        VPopWidgetStyle();
+    }
+    ImGui::End();
+    ImGui::PopStyleVar(); ImGui::PopStyleColor();
+}
+
 // HUD, after NewFrame (under everything): the black
 void MP::DrawMenuMpBack(ImDrawList* bg)
 {
@@ -551,15 +615,18 @@ void MP::DrawMenuMpFront()
         int pct = s_nMenuMpPct.load();
         if(pct >= 0)
         {
+            s_nMenuMpUiMs = MP_NowMs();
             ImDrawList* fg = ImGui::GetForegroundDrawList();
             DrawMenuLoading(fg, (float)pct, false);
             const int a = s_nMenuMpFade.load();   // 4.13.10: the fade to black after a save load
             if(a > 0) fg->AddRectFilled(ImVec2(0, 0), ds, IM_COL32(0, 0, 0, a > 255 ? 255 : a));
             return;
         }
-        if(NeonDraw()) return;   // 4.13.22: the neon menu on the black screen
+        if(NeonDraw()) { s_nMenuMpUiMs = MP_NowMs(); return; }   // 4.13.22: the neon menu on the black screen
+        if(FloatMenu::IsModal()) s_nMenuMpUiMs = MP_NowMs();         // the launcher / a window is up
         if(s_bMenuMpCard.load() && !FloatMenu::IsModal())
         {
+            s_nMenuMpUiMs = MP_NowMs();
             const ImVec2 sz(UI::S(460), UI::S(200));
             ImGui::SetNextWindowPos(ImVec2((ds.x - sz.x) * 0.5f, (ds.y - sz.y) * 0.5f));
             ImGui::SetNextWindowSize(sz);
@@ -580,6 +647,7 @@ void MP::DrawMenuMpFront()
             ImGui::End();
             ImGui::PopStyleVar(); ImGui::PopStyleColor();
         }
+        MenuMpRescueCard(ds);   // 5.02.32: nothing on the black screen for 5 s = a way out
         return;
     }
     if(NeonDraw()) return;   // 4.13.22: the neon title menu (ServerBrowserMode = neon)

@@ -749,6 +749,12 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.33
+- Fixed being stuck on a black screen (with only the area name, like "Mulholland") after the loading screen fades out. If nothing of MP is drawn on that screen for 5 seconds, a card now shows "Still connecting to ..." or "The game is loaded. Pick a server, or play single player." with buttons Servers (or Cancel + servers while joining) and Single player.
+- The game's menu now closes after the load even when another mod draws the loading screen (Fullscreen Splashes, PCIntro, PCMenu and similar). Before, MP waited forever for its own loading screen.
+- The AML crash log now shows the real MP version. It said 5.01.00.
+- Note on slow loads: most of the load time is the game itself with many mods on the 32-bit game. Fewer heavy mods (Project2DFX, DynamicSeason, SkyGFX, limit adjusters) or the 64-bit game load faster.
+
 ### 5.02.32
 - New Broker MQQ rule: no unlimited money. It is rule 11 in the server rules ("No unlimited money: money cheats / trainers are blocked and the money is taken back"). It works only on the default server (Broker MQQ). Custom servers are not changed.
   - On the phone: from the moment you join, your money is checked 4 times a second. Money you really earn (kills, bounties, jobs, saved progress, admin) is fine. If your money jumps by $100,000 or more with no reason, or goes above $99,999,999, the extra money is taken back. You see: "Broker MQQ rule: unlimited money is blocked here. -$...".
