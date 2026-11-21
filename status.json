@@ -1,0 +1,91 @@
+{
+ "updated": "2026-11-21T18:24:22+00:00",
+ "broker": "test.mosquitto.org:8, broker.hivemq.com:4, broker.emqx.io:0",
+ "players": 10,
+ "servers": [
+  {
+   "name": "MP LAN Server",
+   "port": 1922,
+   "players": 1,
+   "max": 100,
+   "region": 0
+  },
+  {
+   "name": "Player's server",
+   "port": 1923,
+   "players": 2,
+   "max": 2,
+   "region": 0
+  },
+  {
+   "name": "aulus",
+   "port": 1923,
+   "players": 1,
+   "max": 8,
+   "region": 0
+  },
+  {
+   "name": "Brief Case War",
+   "port": 1930,
+   "players": 1,
+   "max": 20,
+   "region": 0
+  },
+  {
+   "name": "Call Of Duty: Modern Warfare 3",
+   "port": 1931,
+   "players": 1,
+   "max": 64,
+   "region": 0
+  },
+  {
+   "name": "Mega Vil Futuristic",
+   "port": 1932,
+   "players": 1,
+   "max": 250,
+   "region": 0
+  },
+  {
+   "name": "Project Day Z Legacy",
+   "port": 1933,
+   "players": 1,
+   "max": 250,
+   "region": 0
+  },
+  {
+   "name": "Rocket League",
+   "port": 1934,
+   "players": 1,
+   "max": 16,
+   "region": 0
+  },
+  {
+   "name": "VICE City LAN server",
+   "port": 7777,
+   "players": 1,
+   "max": 100,
+   "region": 0
+  },
+  {
+   "name": "manuk",
+   "port": 1923,
+   "players": 0,
+   "max": 47,
+   "region": 0
+  },
+  {
+   "name": "ppppp",
+   "port": 1923,
+   "players": 0,
+   "max": 100,
+   "region": 0
+  },
+  {
+   "name": "Samuel's server",
+   "port": 5252,
+   "players": 0,
+   "max": 2,
+   "region": 0
+  }
+ ]
+}
