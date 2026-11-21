@@ -201,11 +201,12 @@ struct SampGate::Impl
     struct Pick { Obj o; bool inside = false; };   // 5.02.11: pickups (CreatePickup) - shown as objects, walking in sends OnPlayerPickUpPickup
     std::map<int, Pick> picks;
     std::map<int, std::array<float, 4>> zones;
-    uint64_t lastFoot = 0, keysUntil = 0, retrySpawnAt = 0;
+    uint64_t lastFoot = 0, keysUntil = 0, retrySpawnAt = 0, keysHintAt = 0;
     uint32_t heldKeys = 0;
     bool wasDead = false;
     bool wantClass = false;
     bool dlgOpen = false, tdSel = false, spect = false, noAuto = false;   // noAuto: the server sent us back to class selection - wait for the player    // 5.02.10: no auto-spawn while a login dialog / clickable-textdraw login is up (a PC player can't press Spawn then)                 // 5.02.09: ForceClassSelection waits for the next respawn (like the PC client)
+    uint64_t spawnAnsAt = 0; int spawnSilent = 0; bool directSpawn = false;   // 5.02.20: Spawn never answered -> spawn here
     uint64_t spawnAskAt = 0, refuseMsgAt = 0, classAt = 0;   // 5.02.17: one RequestSpawn in flight (taps flooded: kicked), refusal note, class selection since
     bool finDl = false;   // 5.02.17: FinishDownload (184) sent - scripts that open their login in OnPlayerFinishedDownloading
     int tdShown = 0;      // 5.02.17: textdraws the server showed (log)
@@ -880,6 +881,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             if(I.tdSel) srv->GateOp(s, SPO_TDSELECT, 0, 0, 0);
             I.dlgOpen = false; I.tdSel = false; I.spect = false; I.noAuto = false; I.wantClass = false; I.autoSpawnN = 0; I.retrySpawnAt = 0;
             I.spawnAskAt = 0; I.finDl = false; I.tdShown = 0; I.classAt = NowMs();
+            I.spawnAnsAt = 0; I.spawnSilent = 0; I.directSpawn = false;
             bool b; float f;
             for(int i = 0; i < 4; ++i) bs.Read(b); bs.Read(f); bs.Read(b); bs.Read(f); bs.Read(b); bs.Read(b); bs.Read(b);
             bs.Read(u32a); uint16_t id = 0; bs.Read(id); I.myId = id; I.gameAt = NowMs(); { float f4[4] = { 0, 0, 0, 0 }; srv->GateOp(s, SPO_PCLIST, 1, 1, (int32_t)id, f4, I.rName.c_str()); }   // 5.02.12: me in the player list
@@ -908,6 +910,10 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 128:  // class answer
         {
             uint8_t sel = 0; bs.Read(sel); Impl::Spawn sp; if(RdSpawn(bs, sp)) I.spawn = sp;
+            {   // 5.02.20: in mp_log.txt once per join - a server with no classes leaves Spawn unanswered
+                static uint64_t said = 0; if(said != I.classAt) { said = I.classAt;
+                    printf("[crossplay] class answer: selectable %u, skin %u, spawn %.0f %.0f %.0f\n", (unsigned)sel, (unsigned)I.spawn.skin, I.spawn.pos[0], I.spawn.pos[1], I.spawn.pos[2]); }
+            }
             if(I.phase < 4)
             {
                 const uint64_t now = NowMs();
@@ -920,6 +926,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             // 5.02.10: SA-MP 0.3.7 servers send 1 byte, open.mp 4 - reading 4 from a 1-byte answer kept an old
             // value, so a "not logged in yet" refusal was taken as a yes (spawn -> the server's guard -> loop)
             if(bs.GetNumberOfUnreadBits() >= 32) bs.Read(u32a); else { uint8_t b8 = 0; bs.Read(b8); u32a = b8; }
+            I.spawnAnsAt = NowMs(); I.spawnSilent = 0;   // 5.02.20: the server answers Spawn
             printf("[crossplay] spawn answer %u (%s)\n", u32a, u32a == 2 ? "SpawnPlayer by the script" : u32a ? "allowed" : "refused by OnPlayerRequestSpawn");   // 5.02.17: always in mp_log.txt
             if(u32a) RemSpawned(I, srv);
             else
@@ -983,7 +990,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 153:  // skin
             bs.Read(u32a); bs.Read(u32b);
             u32b = (uint32_t)RemModel(I, (int32_t)u32b);
-            if((int)u32a == I.myId) srv->GateAct(s, CGA_SKIN, 0, 0, (int32_t)u32b);
+            if((int)u32a == I.myId) { srv->GateAct(s, CGA_SKIN, 0, 0, (int32_t)u32b); I.spawn.skin = u32b; }   // 5.02.20: kept for a direct spawn
             else if(Impl::Rp* p = RemPlayer(I, (int)u32a)) p->skin = (uint16_t)u32b;
             break;
         case 72: bs.Read(u16a); bs.Read(u32a); if(Impl::Rp* p = RemPlayer(I, u16a)) p->color = u32a; break;
@@ -1532,7 +1539,16 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             BitStream o; o.Write(wire); CliRpc(I, 83, o);
             if(I.phase == 3) { I.noAuto = false; I.autoSpawnN = 0; I.retrySpawnAt = now + 1500; }   // 5.02.10: a textdraw login / spawn button
         }
-        else if(e.kind == HK_SAMP && e.op == SPO_KEYS) { I.heldKeys = (uint32_t)e.val; I.keysUntil = now + 400; }
+        else if(e.kind == HK_SAMP && e.op == SPO_KEYS)
+        {   // 5.02.20: a new key (ALT, F, H, Y, N...) goes out at once in the next on-foot packet, not up to 33 ms later
+            if((uint32_t)e.val != I.heldKeys) I.lastFoot = 0;
+            I.heldKeys = (uint32_t)e.val; I.keysUntil = now + 400;
+            if(e.val && I.phase < 4 && now >= I.keysHintAt)
+            {   // the PC server only reads keys from a spawned player's sync - tell the phone why nothing happens yet
+                I.keysHintAt = now + 15000;
+                srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] Keys reach the PC server after you spawn (TAB works now: it is the phone's own player list).");
+            }
+        }
         else if(e.kind == HK_SAMP && e.op == SPO_SPAWNREQ && I.phase == 3)
         {   // 5.02.13: the phone's < Spawn > (a = 0) / < > class (a = 1 previous, 2 next) - RequestSpawn / RequestClass
             if(e.a == 0)
@@ -1569,8 +1585,41 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
     {   // 5.02.10: capped (3 per 30 s, a dialog answer resets it) so a login / tutorial screen can't loop or get "spawn before login" kicks
         I.retrySpawnAt = 0;
         if(now - I.autoSpawnWin > 30000) { I.autoSpawnWin = now; I.autoSpawnN = 0; }
-        if(++I.autoSpawnN <= 3) { BitStream o; CliRpc(I, 129, o); }
+        if(++I.autoSpawnN <= 3) { BitStream o; CliRpc(I, 129, o); I.spawnAskAt = now; }
         else if(I.autoSpawnN == 4) srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, "[open.mp] The server keeps you in class selection - log in / finish its dialog first.");
+    }
+
+    if(I.phase == 3 && I.spawnAskAt && I.spawnAnsAt < I.spawnAskAt && now - I.spawnAskAt >= 3500 && now - I.classAt >= 8000
+       && !I.dlgOpen && !I.tdSel && !I.spect)
+    {   // 5.02.20: Spawn was sent and the server never answered (no 129 at all - not even "refused"). SA-MP 0.3.7 drops
+        // RequestSpawn when the player has no spawn info (a gamemode with no AddPlayerClass that spawns its own way),
+        // open.mp when it thinks we are already on foot. The PC client would stand in class selection forever, and the
+        // PC server streams nobody to a player who is not spawned (everyone looked frozen). First ask the class again +
+        // Spawn once more; still nothing -> spawn here: the server's spawn info if it sent one, else Grove Street.
+        // Our movement then makes the server count us as on foot, so PC players see us and we see them move.
+        if(++I.spawnSilent == 1)
+        {
+            printf("[crossplay] no answer to Spawn - asking the class again\n");
+            { BitStream o; o.Write((uint16_t)I.classIdx); CliRpc(I, 128, o); }
+            { BitStream o; CliRpc(I, 129, o); } I.spawnAskAt = now;
+        }
+        else
+        {
+            I.spawnAskAt = 0; I.directSpawn = true;
+            const bool own = I.spawn.have && (I.spawn.pos[0] != 0 || I.spawn.pos[1] != 0);
+            if(!own)
+            {
+                static const float kGrove[3] = { 2495.08f, -1687.43f, 13.52f };
+                I.spawn.have = false; RemHold(I, kGrove, 3000);
+                srv->GateAct(I.phoneSlot, CGA_TELE, 255, 0, 0, kGrove, 0.0f);
+                // the skin the PC server has for us (class answer / SetPlayerSkin, else 0) - what PC and ReSA players see
+                srv->GateAct(I.phoneSlot, CGA_SKIN, 0, 0, (int32_t)RemModel(I, (int32_t)I.spawn.skin));
+            }
+            printf("[crossplay] the server never answered Spawn - spawned here (%s)\n", own ? "its spawn point" : "Grove Street");
+            srv->GateMsg(I.phoneSlot, 0xA9C4E4FF, own ? "[open.mp] This server has no Spawn answer - you spawned at its spawn point."
+                                                      : "[open.mp] This server has no Spawn button - you spawned at Grove Street.");
+            RemSpawned(I, srv);
+        }
     }
 
     // movement 30 Hz while spawned

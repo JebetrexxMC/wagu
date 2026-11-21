@@ -18,4 +18,5 @@ mp_core_\name\()_end:
     MP_CORE mods, "mods_loader.lua"
     MP_CORE zip, "lib/mp_zip.lua"
     MP_CORE pcp, "lib/mp_pcpaths.lua"
+    MP_CORE mimgui, "lib/mimgui/init.lua"
     .section .note.GNU-stack,"",%progbits

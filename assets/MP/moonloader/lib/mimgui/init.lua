@@ -1,3 +1,4 @@
+-- mp_mimgui 1.0: MP's mimgui 2.0.1 - one script's frame error no longer stops its whole frame (5.02.20)
 -- This file is part of mimgui project
 -- Licensed under the MIT License
 -- Copyright (c) 2018, FYP <https://github.com/THE-FYP>
@@ -25,6 +26,64 @@ setmetatable(mimgui, {__index = imgui, __newindex = function(t, k, v)
     end
     rawset(t, k, v)
 end})
+
+-- MP 5.02.20: one script's frame that throws (a bad texture, a nil font...) used to abort the whole ImGui frame of
+-- that script: renderer:EndFrame() never ran, the windows it had opened stayed open, and the rest of its HUD / menus
+-- vanished (HassleHUD: the menu showed, the HUD itself drew nothing). Each frame callback now runs in pcall; what it
+-- had open (windows, children, fonts, style colors / vars) is closed again and the error is printed once.
+local guardStack = {}
+do
+    local function wrapPush(name, tag, always)
+        local f = imgui[name]; if type(f) ~= 'function' then return end
+        rawset(imgui, name, function(...)
+            local r = f(...)
+            guardStack[#guardStack + 1] = tag
+            return r
+        end)
+    end
+    local function wrapPop(name, tag, counted)
+        local f = imgui[name]; if type(f) ~= 'function' then return end
+        rawset(imgui, name, function(...)
+            local n = counted and (select(1, ...) or 1) or 1
+            for _ = 1, n do
+                for i = #guardStack, 1, -1 do
+                    if guardStack[i] == tag then table.remove(guardStack, i) break end
+                end
+            end
+            return f(...)
+        end)
+    end
+    wrapPush('Begin', 'win'); wrapPop('End', 'win')
+    wrapPush('BeginChild', 'child'); wrapPush('BeginChildID', 'child'); wrapPop('EndChild', 'child')
+    wrapPush('PushFont', 'font'); wrapPop('PopFont', 'font')
+    wrapPush('PushStyleColor', 'col'); wrapPop('PopStyleColor', 'col', true)
+    wrapPush('PushStyleVar', 'var'); wrapPop('PopStyleVar', 'var', true)
+end
+local guardSeen = {}
+local function guardUnwind(base)
+    for i = #guardStack, base + 1, -1 do
+        local t = guardStack[i]; guardStack[i] = nil
+        if t == 'win' then imgui.lib.igEnd()
+        elseif t == 'child' then imgui.lib.igEndChild()
+        elseif t == 'font' then imgui.lib.igPopFont()
+        elseif t == 'col' then imgui.lib.igPopStyleColor(1)
+        elseif t == 'var' then imgui.lib.igPopStyleVar(1) end
+    end
+end
+local function guardCall(what, fn, ...)
+    local base = #guardStack
+    local ok, err = pcall(fn, ...)
+    if not ok then
+        pcall(guardUnwind, base)
+        local msg = tostring(err)
+        if not guardSeen[msg] then
+            guardSeen[msg] = true
+            print('[mimgui] ' .. what .. ' error (the rest keeps drawing): ' .. msg)
+        end
+    end
+    for i = #guardStack, base + 1, -1 do guardStack[i] = nil end
+    return ok
+end
 
 local function ShowCursor(show)
     -- if show then
@@ -76,7 +135,7 @@ local function InitializeRenderer()
 
     -- invoke initializers
     for _, cb in ipairs(subscriptionsInitialize) do
-        cb()
+        guardCall('OnInitialize', cb)   -- MP 5.02.20: one failing initializer no longer stops the others
     end
 end
 
@@ -90,14 +149,14 @@ local function RegisterEvents()
                 renderer:SwitchContext()
                 for _, sub in ipairs(subscriptionsNewFrame) do
                     if sub._render and sub._before then
-                        sub:_before()
+                        guardCall('OnFrame (before)', sub._before, sub)
                     end
                 end
                 renderer:NewFrame()
                 local hideCursor = true
                 for _, sub in ipairs(subscriptionsNewFrame) do
                     if sub._render then
-                        sub:_draw()
+                        guardCall('OnFrame', sub._draw, sub)
                         hideCursor = hideCursor and sub.HideCursor
                     end
                 end

@@ -170,6 +170,38 @@ if pk then
   check('stubbed .so function returns 0', env.PKG_SO == 0, env.PKG_SO)
 end
 
+-- ---- 5.02.20: the HassleHUD runner: mimgui textures for the GIF frames, its .gif folder, the HUD pulled onto the screen
+local hh = loaded('Hasslehud_HassleHUD_Android')
+if hh then
+  local hdir = TMP .. '/lua_scripts/Hasslehud'
+  local probe = TMP .. '/hh_probe.lua'
+  write(probe, "HH_TEX = renderLoadTextureFromFile(getWorkingDirectory() .. '/resource/HassleHUD/0.png')\nHH_MISS = renderLoadTextureFromFile(getWorkingDirectory() .. '/resource/HassleHUD/.gif/99.bmp')\n")
+  local body = io.open(hh):read('*a')
+  body = body:gsub('local __mp_src = "[^\n]*"', function() return ('local __mp_src = %q'):format(probe) end, 1)
+  local env = setmetatable({}, { __index = _G })
+  env._G = env
+  env.getWorkingDirectory = function() return TMP end
+  env.getScreenResolution = function() return 1280, 720 end
+  env.doesFileExist = function(p2) return lfs.attributes(p2) ~= nil end
+  env.package = { path = '', cpath = '', loaded = {} }
+  env.require = function(m)
+    if m == 'mimgui' then return { CreateTextureFromFile = function(p2) return 'tex:' .. p2 end } end
+    if m == 'lfs' then return lfs end
+    if m == 'ffi' then return { load = function(n) error('no ' .. n) end } end
+    error('no module ' .. m)
+  end
+  env.loadfile = function(p2) local f, e = loadfile(p2) if f then setfenv(f, env) end return f, e end
+  env.print = function() end
+  local f = assert(loadstring(body)); setfenv(f, env)
+  local okh, eh = pcall(f)
+  check('HassleHUD runner runs', okh, eh)
+  check('HassleHUD GIF frames are mimgui textures', env.HH_TEX == 'tex:' .. hdir .. '/resource/HassleHUD/0.png', env.HH_TEX)
+  check('HassleHUD missing frame = nil (plain fist)', env.HH_MISS == nil, env.HH_MISS)
+  check('HassleHUD .gif folder made', lfs.attributes(hdir .. '/resource/HassleHUD/.gif', 'mode') == 'directory')
+  local cfg = io.open(hdir .. '/config/HassleHUD.json'):read('*a')
+  check('HassleHUD position pulled onto a 1280x720 screen', cfg:find('"st1_x":1140', 1, true) and cfg:find('"st1_y":150', 1, true) and cfg:find('"st2_x":1140', 1, true), cfg:match('"st1_x":[^,]*'))
+end
+
 -- ---- Script Manager off list (config/mp_scripts_off.txt) + lua_scripts/.run/index.txt
 local idx = io.open(TMP .. '/lua_scripts/.run/index.txt') and io.open(TMP .. '/lua_scripts/.run/index.txt'):read('*a') or ''
 check('index.txt lists the scripts for the Script Manager', idx:find('hello.lua\t', 1, true) and idx:find('Hasslehud/HassleHUD Android.luac\t', 1, true), idx:sub(1, 200))

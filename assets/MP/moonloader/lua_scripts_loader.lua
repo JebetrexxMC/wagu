@@ -1,6 +1,6 @@
 script_name('MP Lua Scripts Loader')
 script_author('JebetrexxMC')
-script_version('1.2-mp')
+script_version('1.3-mp')
 script_description('Starts every .lua / .luac script in moonloader/lua_scripts/, loose or inside .zip files')
 
 -- Entry point of moonloader/lua_scripts/. MonetLoader only starts the scripts right in moonloader/; this one starts:
@@ -327,6 +327,45 @@ do
   package.path = package.path .. ';' .. L .. '?.lua;' .. L .. '?/init.lua;' .. L .. '?.luac;' .. L .. '?/init.luac;' ..
     __mp_pkg .. '/?.lua;' .. __mp_pkg .. '/?/init.lua'
   package.cpath = package.cpath .. ';' .. L .. '?.so'
+  -- 5.02.20: HassleHUD (a mod folder with config/HassleHUD.json). The menu showed but the HUD itself never did:
+  --  * the fist GIF frames came from renderLoadTextureFromFile (a render texture) and went to mimgui's DrawList
+  --    AddImage, which needs a mimgui texture - the HUD frame threw at the fist, before the bars, every frame. Here that
+  --    call gives a mimgui texture (nil when the frame is missing: the HUD then draws the plain fist);
+  --  * libGIF.so writes the frames to resource/HassleHUD/.gif/, which nobody created;
+  --  * the HUD position is saved in screen pixels (2222 x 150 in the shipped config, a 2400 px wide screen): on a
+  --    smaller game resolution the HUD was drawn off the screen. It is pulled back inside the screen before the start.
+  local __mp_hh = io.open(__mp_pkg .. '/config/HassleHUD.json', 'rb')
+  if __mp_hh then
+    __mp_hh:close()
+    pcall(function() local okl, lfs = pcall(require, 'lfs') if okl then lfs.mkdir(__mp_pkg .. '/resource/HassleHUD/.gif') end end)
+    local okm, mim = pcall(require, 'mimgui')
+    if okm and type(mim) == 'table' then
+      renderLoadTextureFromFile = function(p)
+        if type(p) ~= 'string' or not doesFileExist(p) then return nil end
+        local ok, t = pcall(mim.CreateTextureFromFile, p)
+        return ok and t or nil
+      end
+    end
+    pcall(function()
+      local w, h = getScreenResolution()
+      if not w or w < 200 or not h or h < 200 then return end
+      local f = io.open(__mp_pkg .. '/config/HassleHUD.json', 'rb'); local d = f:read('*a'); f:close()
+      local mx, my = 140, 110
+      local moved = false
+      local out = d:gsub('"(st[12]_[xy])"%s*:%s*(%-?[%d%.]+)', function(k, v)
+        local n = tonumber(v) or 0
+        local lim = k:sub(-1) == 'x' and w or h
+        local m = k:sub(-1) == 'x' and mx or my
+        local c = math.floor(math.max(m, math.min(lim - m, n)))
+        if c ~= n then moved = true end
+        return ('"%s":%d'):format(k, c)
+      end)
+      if moved then
+        local o = io.open(__mp_pkg .. '/config/HassleHUD.json', 'wb'); o:write(out); o:close()
+        print(('[LuaScripts] HassleHUD: the saved HUD position was off this %dx%d screen - moved back inside'):format(w, h))
+      end
+    end)
+  end
   -- a .so of the mod that can't load here (HassleHUD's libGIF.so is 32-bit only: on a 64-bit game) no longer kills
   -- the whole mod: its functions return 0 and the rest of the mod runs
   local okf, ffi = pcall(require, 'ffi')

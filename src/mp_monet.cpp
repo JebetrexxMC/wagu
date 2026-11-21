@@ -21,7 +21,7 @@ extern "C" const unsigned char mp_monetloader_blob[];
 extern "C" const unsigned char mp_monetloader_blob_end[];
 // 5.01.06: MP's own moonloader entry scripts (src/embed/moonloader_core_blob.S)
 extern "C" const unsigned char mp_core_lsl[], mp_core_lsl_end[], mp_core_mods[], mp_core_mods_end[];
-extern "C" const unsigned char mp_core_zip[], mp_core_zip_end[], mp_core_pcp[], mp_core_pcp_end[];
+extern "C" const unsigned char mp_core_zip[], mp_core_zip_end[], mp_core_pcp[], mp_core_pcp_end[], mp_core_mimgui[], mp_core_mimgui_end[];
 namespace MP { const char* DataDir(); }
 
 namespace MonetEmbed
@@ -172,12 +172,14 @@ static void InstallCore()
     const std::string root = std::string(dd) + "/moonloader";
     mkdir(root.c_str(), 0777); mkdir((root + "/lib").c_str(), 0777); mkdir((root + "/lua_scripts").c_str(), 0777);
     mkdir((root + "/mods").c_str(), 0777); mkdir((root + "/config").c_str(), 0777);
-    struct Core { const char* rel; const unsigned char* a; const unsigned char* b; const char* sig; };
+    struct Core { const char* rel; const unsigned char* a; const unsigned char* b; const char* sig; const char* stock = nullptr; };   // stock: an unmarked older MP copy
     const Core cores[] = {
         { "lua_scripts_loader.lua", mp_core_lsl, mp_core_lsl_end, "script_name('MP Lua Scripts Loader')" },
         { "mods_loader.lua",        mp_core_mods, mp_core_mods_end, "script_name('MP Mods Loader')" },
         { "lib/mp_zip.lua",         mp_core_zip, mp_core_zip_end, "-- mp_zip " },
-        { "lib/mp_pcpaths.lua",     mp_core_pcp, mp_core_pcp_end, "-- mp_pcpaths " } };
+        { "lib/mp_pcpaths.lua",     mp_core_pcp, mp_core_pcp_end, "-- mp_pcpaths " },
+        // 5.02.20: mimgui's frame guard (HassleHUD). Only replaces an existing mimgui/init.lua - the rest of mimgui comes from assets/MP
+        { "lib/mimgui/init.lua",    mp_core_mimgui, mp_core_mimgui_end, "-- mp_mimgui ", "mimgui._VERSION = '2.0.1'" } };
     for(const Core& c : cores)
     {
         const std::string mine((const char*)c.a, (size_t)(c.b - c.a));
@@ -190,9 +192,11 @@ static void InstallCore()
             fclose(f);
         }
         if(exists && have == mine) continue;
+        if(!exists && c.stock) continue;
         if(exists)
         {
-            const std::string hv = CoreVersion(have, c.sig), mv = CoreVersion(mine, c.sig);
+            std::string hv = CoreVersion(have, c.sig); const std::string mv = CoreVersion(mine, c.sig);
+            if(hv.empty() && c.stock && have.find(c.stock) != std::string::npos) hv = "0";
             if(hv.empty()) { logger->Info("MonetLoader: moonloader/%s is not MP's - left as it is", c.rel); continue; }
             if(CoreVerCmp(hv, mv) >= 0) continue;   // the phone has the same or a newer MP copy (assets/MP update)
         }

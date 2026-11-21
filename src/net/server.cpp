@@ -323,6 +323,11 @@ void MPServer::RelaySync(int slot, const void* pkt, int len, bool important)
         }
         const float scale = r.dlScale < 1.0f ? 1.0f : r.dlScale;
         bool send = important || !r.hasPos || !s.hasPos;
+        // 5.02.20: on a PC server (crossplay join) the PC players' movement comes from that server, which already sends
+        // only the players streamed in near us. The distance tiers below measured from the phone's spot - in class
+        // selection / the login camera that is far away, so PC players moved once every 1-2 s (frozen, then jumping).
+        // Everything stays on this phone (localhost), so every PC sync goes straight through.
+        if(!send && s.ghost && m_pGate && m_pGate->IsRemote()) send = true;
         if(!send)
         {
             float dx = s.pos[0] - r.pos[0], dy = s.pos[1] - r.pos[1];
