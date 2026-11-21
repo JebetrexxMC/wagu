@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <ctype.h>
 #include <string>
 #include <vector>
 #include <thread>
@@ -27,6 +28,31 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <SLES/OpenSLES_Android.h>
+
+// 5.02.31: Settings > Sound > Host Media volumes - one volume per sound file (by its name, any folder or URL).
+// Every Play* call multiplies its own volume by it, so a sound can be made quieter / louder everywhere at once.
+#include <map>
+namespace
+{
+    std::mutex s_VolMx;
+    std::map<std::string, float> s_FileVol;   // lower case file name -> 0..1.5
+    std::string VolKey(const char* path)
+    {
+        if(!path) return std::string();
+        const char* b = path; for(const char* c = path; *c; ++c) if(*c == '/' || *c == '\\') b = c + 1;
+        std::string k; for(const char* c = b; *c && *c != '?' && *c != '#'; ++c) k += (char)tolower((unsigned char)*c);
+        return k;
+    }
+    float VolOf(const char* path)
+    {
+        std::lock_guard<std::mutex> lk(s_VolMx);
+        auto it = s_FileVol.find(VolKey(path));
+        return it == s_FileVol.end() ? 1.0f : it->second;
+    }
+    float s_fStreamMul = 1.0f, s_fMusicMul = 1.0f;
+}
+void  Sound::SetFileVolume(const char* name, float v) { if(v < 0) v = 0; if(v > 1.5f) v = 1.5f; std::lock_guard<std::mutex> lk(s_VolMx); s_FileVol[VolKey(name)] = v; }
+float Sound::FileVolume(const char* name) { return VolOf(name); }
 
 static SLObjectItf g_Engine = nullptr, g_Mix = nullptr;
 static SLEngineItf g_EngineItf = nullptr;
@@ -125,6 +151,7 @@ namespace
 bool Sound::PlayFile(const char* path, float volume)
 {
     if(!path || !*path) return false;
+    volume *= VolOf(path);   // 5.02.31
     if(!EnsureEngine()) { logger->Error("OpenSL ES init failed"); return false; }
     const Pcm* p = Decode(path);
     return p && PlayOn(s_Fx, *p, volume);
@@ -142,6 +169,7 @@ bool Sound::PreloadHit(const char* path)
 bool Sound::PlayHit(const char* path, float volume)
 {
     if(!PreloadHit(path)) return false;
+    volume *= VolOf(path);   // 5.02.31
     const Pcm* p = Decode(path);
     for(int tries = 0; tries < 3; ++tries)
     {
@@ -182,6 +210,7 @@ bool Sound::PlayMem(int slot, float volume)
 {
     if(slot < 0 || slot >= 4 || !EnsureEngine()) return false;
     const Pcm* p; { std::lock_guard<std::mutex> lk(s_MemMx); p = s_Mem[slot]; }
+    if(slot == 0) volume *= VolOf("notify.mp3");   // 5.02.31: slot 0 = notify.mp3
     return p && PlayOn(s_MemV, *p, volume);
 }
 
@@ -212,6 +241,7 @@ namespace
 bool Sound::PlayMusic(const char* path, float volume, bool loop)
 {
     if(!path || !*path || !EnsureEngine()) return false;
+    s_fMusicMul = VolOf(path); volume *= s_fMusicMul;   // 5.02.31
     s_Music.vol = volume; s_Music.loop = loop; s_Music.want = true;
     if(s_Music.path == path && s_Music.state != -1)
     {
@@ -259,6 +289,7 @@ void Sound::MusicUpdate()
 
 void Sound::SetMusicVolume(float volume)
 {
+    volume *= s_fMusicMul;   // 5.02.31
     s_Music.vol = volume;
     if(s_Music.state == 3) SetVoiceVolume(s_Music.v, volume);
 }
@@ -488,6 +519,7 @@ bool Sound::StreamPlay(const char* path, float volume, float startSec)
     if(!path || !*path || !EnsureEngine()) { snprintf(s_StInfo, sizeof(s_StInfo), "no audio engine"); return false; }
     char what[96]; int kind = Sniff(path, what, sizeof(what));
     StreamStop();
+    s_fStreamMul = VolOf(path); volume *= s_fStreamMul;   // 5.02.31
     s_StPath = path; s_FdTried = false;
     if(kind == 0) { snprintf(s_StInfo, sizeof(s_StInfo), "file: %s", what); return false; }
     if(kind == 2)
@@ -514,6 +546,7 @@ bool Sound::StreamPlayUrl(const char* url, float volume)
     s_StInfo[0] = 0;
     if(!url || strncmp(url, "http", 4) || !EnsureEngine()) { snprintf(s_StInfo, sizeof(s_StInfo), "no audio engine / bad URL"); return false; }
     StreamStop();
+    s_fStreamMul = VolOf(url); volume *= s_fStreamMul;   // 5.02.31
     s_StPath.clear(); s_FdTried = true;
     { std::lock_guard<std::mutex> ls(s_St.mx); s_St.eof = false; s_St.failed = false; s_St.active = false; }
     {
@@ -576,6 +609,7 @@ const char* Sound::StreamInfo() { return s_StInfo; }
 
 void Sound::StreamSetVolume(float volume)
 {
+    volume *= s_fStreamMul;   // 5.02.31
     { std::lock_guard<std::mutex> lu(s_UrlMx); s_UrlVol = volume; }
     if(s_FdMode) { FdVolume(volume); return; }
     std::lock_guard<std::mutex> lk(s_St.mx);
@@ -653,6 +687,7 @@ namespace
 bool Sound::PlayUi(const char* path, float volume)
 {
     if(!path || !*path || !EnsureEngine()) return false;
+    volume *= VolOf(path);   // 5.02.31
     const Pcm* p = Decode(path);
     if(!p) return UiFdPlay(path, volume);   // 4.00.2
     Voice& v = s_Ui[s_nNextUi]; s_nNextUi = (s_nNextUi + 1) % 2;

@@ -506,6 +506,16 @@ void MPServer::MakePerms(PktPerms& p, uint8_t perms) const
     memset(&p, 0, sizeof(p));
     p.type = PKT_PERMS; p.perms = perms | PERM_V219;
     p.modesMagic = MP_MODES_MAGIC; p.modes = GetModes();
+    p.pad = GetModes2();   // 5.02.31: + Bounty Hunter (GM2_*)
+}
+uint8_t MPServer::GetModes2() const { if(IsRpServer() || IsBcwServer() || IsMw3Server() || IsDayzServer() || IsLgServer()) return 0; return IsDefaultServer() ? (uint8_t)GM2_ALL : (uint8_t)(m_nModes2 & GM2_ALL); }
+void MPServer::SetModes2(uint8_t modes)
+{
+    std::lock_guard<std::mutex> lk(m_Mutex);
+    if(m_nModes2 == (modes & GM2_ALL)) return;
+    m_nModes2 = modes & GM2_ALL;
+    PktPerms p; MakePerms(p, m_nPerms);
+    if(m_bRunning) Broadcast(&p, sizeof(p));
 }
 uint16_t MPServer::GetModes() const { if(IsRpServer()) return GM_HOME; if(IsBcwServer() || IsMw3Server() || IsDayzServer() || IsLgServer()) return 0; return IsDefaultServer() ? (m_bStaffModes ? (uint16_t)((m_nModes & GM_ALL) | GM_NOTIFY) : (uint16_t)GM_ALL) : (uint16_t)(m_nModes & GM_ALL); }   // 5.00.07: notifications always on on the default server   // 3.53: + staff choice   // 3.04: Brief Case War runs only its own gamemode
 void MPServer::SetModes(uint16_t modes)
@@ -1119,7 +1129,8 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             MP_CopyStr(w.serverName, m_szName, sizeof(w.serverName));
             w2.build = MP_BUILD;
             const std::string welcome = IsDefaultServer() || IsBcwServer() ? std::string() : GetWelcome();   // 5.00.08: custom servers only
-            w3.flags = (m_bCineCam ? MP_SRVF_CINECAM : 0) | (m_bDevStage ? MP_SRVF_DEVSTAGE : 0) | (welcome.empty() ? 0 : MP_SRVF_WELCOME);   // 4.13.2: + dev stage
+            w3.flags = (m_bCineCam ? MP_SRVF_CINECAM : 0) | (m_bDevStage ? MP_SRVF_DEVSTAGE : 0) | (welcome.empty() ? 0 : MP_SRVF_WELCOME)
+                     | ((m_bBrowserFmt || IsDefaultServer()) ? MP_SRVF_BROWSERFMT : 0);   // 5.02.31: BrowserFormat Join/Leave   // 4.13.2: + dev stage
             SendTo(slot, &w3, sizeof(w3));
             if(!welcome.empty())
             {   // 5.00.08: the owner's own welcome message (the phone shows it instead of "Welcome to <server>")

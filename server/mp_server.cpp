@@ -141,6 +141,7 @@ int main(int argc, char** argv)
     // The default server and Brief Case War always have it.
     for(int i = 1; i < argc; ++i) if(!strcasecmp(argv[i], "--auth")) server.SetAuth(true);
     for(int i = 1; i < argc; ++i) if(!strcasecmp(argv[i], "--dev")) server.SetDevStage(true);   // 4.13.2: "server in development" notice for players
+    for(int i = 1; i < argc; ++i) if(!strcasecmp(argv[i], "--browserfmt")) server.SetBrowserFmt(true);   // 5.02.31: BrowserFormat Join/Leave messages
     // 5.00.08: --welcome "text" = custom welcome message ({name} / {server} filled in by the phone), default server excluded
     for(int i = 1; i + 1 < argc; ++i) if(!strcasecmp(argv[i], "--welcome")) server.SetWelcome(argv[i + 1]);
     // 3.50: --anticheat [checks] = Nex-AC anti-cheat on a custom server (all checks, or a hex mask of
@@ -258,23 +259,25 @@ int main(int argc, char** argv)
                 { "notify", GM_NOTIFY }, { "notifications", GM_NOTIFY },   // 5.00.07: notification system (/notify)
                 { "icons", 0 }, { "bubbles", 0 },   // 3.03: player settings now, accepted and ignored
             };
-            uint16_t m = 0;
+            uint16_t m = 0; uint8_t m2 = 0;   // 5.02.31: m2 = GM2_* (bounty)
             char list[256]; MP_CopyStr(list, argv[i + 1], sizeof(list));
             for(char* t = strtok(list, ", "); t; t = strtok(nullptr, ", "))
             {
-                if(!strcasecmp(t, "all")) { m = GM_ALL; continue; }
-                if(!strcasecmp(t, "none")) { m = 0; continue; }
+                if(!strcasecmp(t, "all")) { m = GM_ALL; m2 = GM2_ALL; continue; }
+                if(!strcasecmp(t, "none")) { m = 0; m2 = 0; continue; }
+                if(!strcasecmp(t, "bounty") || !strcasecmp(t, "bountyhunter")) { m2 |= GM2_BOUNTY; continue; }   // 5.02.31
                 bool found = false;
                 for(auto& k : kModes) if(!strcasecmp(t, k.n)) { m |= k.m; found = true; }
-                if(!found) printf("[MP Server] --gamemodes: unknown \"%s\" (class turf race derby dm jobs labels actors home survival cnr ad stunt drift timber notify)\n", t);
+                if(!found) printf("[MP Server] --gamemodes: unknown \"%s\" (class turf race derby dm jobs labels actors home survival cnr ad stunt drift timber notify bounty)\n", t);
             }
-            server.SetModes(m);
+            server.SetModes(m); server.SetModes2(m2);
         }
     if(server.IsDefaultServer()) printf("[MP Server] Gamemodes: all (default server).\n");
     else
     {
         static const char* kNames[] = { "class", "turf", "race", "derby", "dm", "jobs", "labels", "notify", "actors", "timber", "home", "survival", "cnr", "ad", "stunt", "drift" };
         std::string on; for(int b = 0; b < 16; ++b) if(server.GetModes() & (1 << b)) { if(!on.empty()) on += ","; on += kNames[b]; }
+        if(server.GetModes2() & GM2_BOUNTY) { if(!on.empty()) on += ","; on += "bounty"; }   // 5.02.31
         printf("[MP Server] Gamemodes: %s%s\n", on.empty() ? "none" : on.c_str(), on.empty() ? " (add --gamemodes all, or a list)" : "");
     }
     // 2.25: language, administrator name (shown to kicked / banned players), ban list

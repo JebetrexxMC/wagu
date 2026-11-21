@@ -749,6 +749,25 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.31
+- The MP LAN Server is now called Broker MQQ everywhere in the game (server list, Add server, chat, menus). Old phones still find it, because the server keeps the same network name.
+- New gamemode: Bounty Hunter (Blood Deathmatch). It is always on for Broker MQQ. On a custom server, turn it on in Add server > Gamemode > Bounty Hunter, or start a dedicated server with `--gamemodes bounty`.
+  - Every player has a bounty: $100, plus $100 for each kill in a row. When you kill someone you get their bounty, shown as a green line next to the radar (`victim - Deagle +200.00`). When you die you lose $100 (blue line).
+  - Above each player's head: their bounty in green and their kills x deaths. "Death by the Fog!" shows in red for a moment after you hit them. The damage indicator numbers still show as before.
+  - Multi kills appear as a pricedown banner with a red bar: Killing Spree!, Double Kill!, Triple Kill!, Quadruple Kill!, Mania!, Savage!, Rampage!, Unstoppable!, Godlike!, Legendary!. A kill counts toward the chain only within 45 seconds plus 20 ticks of the previous one, so a kill 3 minutes later starts a new chain.
+  - Under the radar, in red: K / D / Ratio / Duel / Level. At the bottom center: "name is now part of the fog" or "name rests in pieces".
+  - Duels: `/duel id`, `/accept`, `/decline` show ">> The duel between A and B has begun!" in the Broker MQQ reds and browns. The winner is announced and counted under Duel. Other commands: `/bounty`, `/bstats`, `/bwelcome text|on|off`.
+  - The first time you join, everyone sees ">> name joined the Blood Deathmatch for the first time. Welcome!".
+  - Bloody welcome: a blood logo in chat, your own welcome message (editable in Add server > Gamemode > Bounty Hunter, with {name} / {server} / {RRGGBB}) and a kill sound.
+- Broker MQQ restrictions: no god mode, invincible, invisible, wall hack, flash, gravity or no-fall cheats, and no unlimited health, armour or money. These commands are blocked there, and huge money or health jumps are undone.
+- BrowserFormat join/leave messages: `#{name} <!> Connected to the server!` and `#{name} <!> Disconnected from the server!` in yellow green, grey, yellow, red and orange. They are always on for Broker MQQ. Custom servers can toggle them in Add server > BrowserFormat Join/Leave.
+- New Broker MQQ welcome message: "❤ Welcome to Broker MQQ ❤", "We hope you enjoy your stay", /help and /bounty.
+- Register System for Broker MQQ. It is part of the MP mod, separate from the Discord bot login. The first time you join, a SA-MP style "Registering..." dialog asks for a password, your age and your gender, then saves files/TYFMC/MP/register.txt (the password is stored as a salted SHA-256, never in plain text). On later joins a "Logging in..." dialog appears. Its Options menu has Forgot password (enter your username, then a new password twice), Create new account (replaces register.txt) and Quit. A hidden backup of the hash is kept on the MP HiveMQ link.
+- Server list: up to 3 gamemodes per server (the first two on line 1, the third on line 2). Each gamemode has a generated round logo, shown under the description. You can name your own in Add server > "Second gamemode" / "Third gamemode". Bounty Hunter is added automatically when it is on.
+- Sound: Settings > Sound has a volume slider (0 - 150 %) for every Host/Media sound (Global_click, sound_010, sound_effect_connected, notify, neon_mainmenu, dz_ambient, war_ambient, solo) and every mp3 / m4a in the MP folder. The volumes are saved in sound_volumes.txt.
+- Host media player: Solo (Host/Media/solo.m4a, 1:01:40) streams from the media host and plays to the end. It plays when you join Broker MQQ (Settings > Sound > "Play Solo when I join Broker MQQ") and stops when you leave. It also has Play / Stop and a progress bar.
+- Fonts: symbols now show in chat, names and welcome messages: ✓ ✔ ✗ ★ ♥ ❤ ☠ ▄ █ ≈ √ π ∞ ≤ ≥ ± ÷ × € £ ¢ ¥ • → ♪ and Greek letters. The phone's own symbol fonts fill in any that the game fonts lack.
+
 ### 5.02.30
 - New setting: Settings > Voice > "SampVoice on PC servers". Turn it off and on PC servers with SampVoice (Life of Player, RP servers) you don't hear the PC players and they don't hear you. The server sees you as a PC without a microphone, so you can still join servers that need the voice plugin. You can switch it while connected.
 - When SampVoice is off, the phone tells you once that the server has voice chat and where to turn it back on.

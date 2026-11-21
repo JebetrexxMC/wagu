@@ -29,6 +29,9 @@ namespace Sound
     bool  DecodeMem(int slot, const void* data, size_t size);
     bool  MemReady(int slot);
     bool  PlayMem(int slot, float volume = 1.0f);
+    // 5.02.31: Settings > Sound: a volume per sound file name ("notify.mp3", "solo.m4a" ...), 0..1.5, default 1
+    void  SetFileVolume(const char* name, float volume);
+    float FileVolume(const char* name);
     void* EngineItf();   // 3.11: the shared OpenSL engine (SLEngineItf) for voice chat
     void* OutputMix();   // 3.11: SLObjectItf output mix
 }

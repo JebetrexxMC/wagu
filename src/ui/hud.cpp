@@ -183,6 +183,30 @@ static ImFont* LoadSystemFont(ImFontAtlas* atlas, const char* const* names, floa
     return nullptr;
 }
 
+// 5.02.31: symbols in chat / welcome messages / names (✓ ✔ ✗ ★ ♥ ❤ ☠ ▄ █ ≈ √ π ∞ ≤ ≥ ± ÷ × € £ ¢ ¥ • → ♪ ...):
+// Greek, currency, letterlike, arrows, math, box drawing / blocks, shapes, misc symbols, dingbats. Fredoka / Arial
+// draw the ones they have; the phone's symbol fonts are merged under them for the rest (first font wins).
+static const ImWchar kSymbolRanges[] = { 0x0370, 0x03FF, 0x2010, 0x205E, 0x20A0, 0x20BF, 0x2100, 0x215F, 0x2190, 0x21FF, 0x2200, 0x22FF,
+                                         0x2300, 0x23FF, 0x2460, 0x24FF, 0x2500, 0x259F, 0x25A0, 0x25FF, 0x2600, 0x26FF, 0x2700, 0x27BF, 0 };
+static void MergeSymbolFonts(ImFontAtlas* atlas, float size)
+{
+    static const char* const k[] = { "NotoSansSymbols-Regular-Subsetted.ttf", "NotoSansSymbols-Regular-Subsetted2.ttf", "NotoSansSymbols-Regular.ttf",
+                                     "DejaVuSans.ttf", "DroidSansFallback.ttf", "DroidSansFallbackFull.ttf", nullptr };
+    int merged = 0;
+    for(int i = 0; k[i] && merged < 3; ++i)
+    {
+        char path[256]; snprintf(path, sizeof(path), "/system/fonts/%s", k[i]);
+        FILE* f = fopen(path, "rb"); if(!f) continue;
+        fseek(f, 0, SEEK_END); long len = ftell(f); fseek(f, 0, SEEK_SET);
+        if(len < 1024 || len > 16 * 1024 * 1024) { fclose(f); continue; }
+        unsigned char* buf = (unsigned char*)IM_ALLOC((size_t)len);
+        bool ok = fread(buf, 1, (size_t)len, f) == (size_t)len; fclose(f);
+        if(!ok || !((buf[0] == 0 && buf[1] == 1 && buf[2] == 0 && buf[3] == 0) || !memcmp(buf, "true", 4) || !memcmp(buf, "OTTO", 4))) { IM_FREE(buf); continue; }
+        ImFontConfig fc; fc.FontDataOwnedByAtlas = true; fc.OversampleH = 1; fc.OversampleV = 1; fc.MergeMode = true;
+        if(atlas->AddFontFromMemoryTTF(buf, (int)len, size, &fc, kSymbolRanges)) { ++merged; logger->Info("5.02.31: symbol font %s", path); }
+    }
+}
+
 // 2.37: UI::IsAdminName / UI::NameText (RGB admin rank + flowing name) are in nametext.cpp
 
 bool HUD::IsInitialised() { return s_bInit; }
@@ -333,7 +357,7 @@ static void BuildFontsInto(FontBuild& fb)
     fb.ranges.clear(); fb.script.clear();
     {
         static const ImWchar base[] = { 0x0020, 0x00FF, 0x0400, 0x045F, 0x2010, 0x2040, 0 };
-        ImFontGlyphRangesBuilder b; b.AddRanges(base);
+        ImFontGlyphRangesBuilder b; b.AddRanges(base); b.AddRanges(kSymbolRanges);   // 5.02.31: symbols
         ImFontGlyphRangesBuilder sc;
         const std::string& g = fb.glyphs;
         const char* p = g.c_str(); const char* e = p + g.size();
@@ -353,6 +377,7 @@ static void BuildFontsInto(FontBuild& fb)
     fb.font = at->AddFontFromMemoryTTF((void*)fredokaData, sizeof(fredokaData), UI::S(34.0f * 1.08f), &fc, fb.ranges.Data);
     { ImFontConfig mc = fc; mc.MergeMode = true; at->AddFontFromMemoryTTF((void*)arialData, sizeof(arialData), UI::S(34.0f), &mc, fb.ranges.Data); }
     if(fb.script.Size > 1) MergePhoneFont(at, fb.kind.c_str(), UI::S(34.0f), fb.script.Data);
+    MergeSymbolFonts(at, UI::S(34.0f));   // 5.02.31: ✓ ☠ ❤ √ π ... for the ones Fredoka / Arial don't have
     // 2.19: coloured emoji glyphs (chat / keyboard)
     UI::EmojiAddGlyphs(at, fb.font, UI::S(34.0f));
     fb.pricedown = LoadPricedown(at, UI::S(40.0f));   // 3.00: score bar
@@ -992,6 +1017,7 @@ static void DrawNameTags(ImDrawList* dl)
         char sb[64]; bool hasSub = MP::Mw3SubTag(i, sb, sizeof(sb)) || MP::RpSubTag(i, sb, sizeof(sb));   // 3.23 / 3.25
         DrawNameTag(dl, p.drawPos, bn, bc, p.sync.health, p.sync.armour, ref, p.paused ? 1 : (MP::IsAfk(i) ? 2 : 0), MP::VoiceSpeaking(i), hasSub ? sb : nullptr);
         MP::DrawDamageIndicator(dl, i, p.drawPos);   // 3.34
+        MP::DrawBountyTag(dl, i, p.drawPos);         // 5.02.31: Bounty Hunter
     }
     if(MP::settings.showOwnTag && MP::myDrawValid && !MP::BcwOwnTagHidden() && !MP::Mw3OwnTagHidden() && !MP::RpOwnTagHidden())   // 3.10: never on the Brief Case War connection / respawn screen
     {

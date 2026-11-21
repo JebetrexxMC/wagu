@@ -494,6 +494,8 @@ static uint64_t s_nFeedNext = 0;
 #define FEED_RES_MS    58   // 2.21: 125 resources in about the same time as 90 before
 
 static char s_szCurServer[32] = "";   // name of the server we are connected to
+static void SoloPlay(); static bool SoloIsOn(); static void SoloStop(); static void SoloTick(); static void SoundVolLoad();   // 5.02.31 (Settings > Sound)
+static void BountyOnJoined(); static void RegOnJoined();                                           // 5.02.31 (mp_bounty.inc / mp_register.inc)
 static char s_szCustomWelcome[MP_CHAT_LEN] = "";   // 5.00.08: the server's own welcome message (MP_SRVF_WELCOME)
 // {name} / {server} -> your name / the server name (the rest, {RRGGBB} colours too, as typed)
 static std::string WelcomeFill(const char* t)
@@ -502,17 +504,44 @@ static std::string WelcomeFill(const char* t)
     for(const char* p = t; *p; )
     {
         if(!strncasecmp(p, "{name}", 6)) { o += settings.name; p += 6; continue; }
-        if(!strncasecmp(p, "{server}", 8)) { o += s_szCurServer[0] ? s_szCurServer : "the server"; p += 8; continue; }
+        if(!strncasecmp(p, "{server}", 8)) { o += s_szCurServer[0] ? MP_DisplayServerName(s_szCurServer) : "the server"; p += 8; continue; }
         o += *p++;
     }
     return o;
+}
+// 5.02.31: join / leave lines. BrowserFormat (MP_SRVF_BROWSERFMT: always on the default server, Add server >
+// BrowserFormat Join/Leave on a custom server):  #{name} <!> Connected to the server!  in yellow green / grey /
+// yellow / red / orange / white. Off = the old "*** name joined the server." line.
+static void JoinLeaveMsg(const char* name, bool join, const char* why)
+{
+    const bool fmt = client.GetState() == NET_CONNECTED && (MP::IsOnDefault() || (client.GetServerFlags() & MP_SRVF_BROWSERFMT));
+    if(!fmt)
+    {
+        if(join) SysMsg(COL_SYSTEM, "*** %s joined the server.", name);
+        else if(why) SysMsg(COL_SYSTEM, "*** %s left the server. (%s)", name, why);
+        else SysMsg(COL_SYSTEM, "*** %s left the server.", name);
+        return;
+    }
+    SysMsg(COL_WHITE, "{9ACD32}#{808080}{{FFFF00}%s{808080}} {FF0000}<{FFA500}!{FF0000}> {808080}%s the server{FFFFFF}!%s%s%s",
+           name, join ? "Connected to" : "Disconnected from", why ? " {808080}(" : "", why ? why : "", why ? ")" : "");
 }
 // After "Connecting...." and all resources (3.40: 189, in the loading window): message, then teleport + title logo + sound.
 static void FinishJoin()
 {
     SysMsg(COL_GREEN, "Connected successfully!");
     if(s_szCustomWelcome[0]) { const std::string wt = WelcomeFill(s_szCustomWelcome); SysMsg(COL_WHITE, "{FFFFFF}%s", wt.c_str()); s_szCustomWelcome[0] = 0; }   // 5.00.08: the owner's own message
+    else if(MP::IsOnDefault())
+    {   // 5.02.31: the default server (Broker MQQ) welcome, Classic Roleplay / CoolZ style
+        SysMsg(COL_WHITE, "{FF3030}\xE2\x9D\xA4 {FFFFFF}Welcome to {DC2626}Broker {C08454}MQQ {FF3030}\xE2\x9D\xA4");
+        SysMsg(COL_WHITE, "{C8C8C8}We hope you enjoy your stay, {FFFFFF}%s{C8C8C8}...", settings.name);
+        SysMsg(COL_WHITE, "{FFFF00}Free roam, Deathmatch and Bounty Hunter - all in one server.");
+        SysMsg(COL_WHITE, "{33CC33}Please type /help if you need help, /bounty for the Bounty Hunter commands.");
+        SysMsg(COL_WHITE, "{FFFFFF}Connected to {DC2626}%s{FFFFFF}.", MP_DEFAULT_DISPLAY_NAME);
+    }
     else SysMsg(COL_WHITE, "{FFFFFF}Welcome to {38BDF8}%s", s_szCurServer[0] ? s_szCurServer : "the server");   // 3.40: every server
+    if(MP::IsOnDefault() && settings.soloOnJoin && !(SoloIsOn() && Sound::StreamActive())) SoloPlay();   // 5.02.31: Solo (solo.m4a, 1:01:40) on Broker MQQ, played to the end
+    BountyOnJoined();   // 5.02.31: Bounty Hunter welcome (blood logo + the bloody DM message) once the gamemode is known
+    RegOnJoined();      // 5.02.31: MP Register / Login (the default server)
     if(JoinFlowActive()) JoinMarkConnected();   // 2.19: reveal the connection camera, then the spawn picker
     else s_bWantTeleport = true;            // Grove Street, on this game tick
     MP::logoStartMs = MP_NowMs();           // title_logo_connected.png
@@ -826,6 +855,10 @@ static bool HandleCommand(const char* text);
 static bool FeatOn(uint8_t perm);   // 3.34 (mp_features.inc)
 static bool RpFacDecorate(int id, const char* name, uint32_t& color, char* out, size_t n);   // 3.34 (mp_rp_fac.inc)
 static void DmgIndAdd(int id, float amount, int weapon);
+static void BountyOnMyHit(int id, float amount, int weapon); static void BountyOnDeath(const PktDeath& d); static void BountyOnEvent(const PktEvent& e);   // 5.02.31 mp_bounty.inc
+static void BountyLeave(int id); static void BountyReset(); static void BountyTick(int ped, uint64_t now); static bool BountyCommand(const char* cmd, const char* arg);
+static void RenderBounty(); static void BountySettingsSection(); static bool DefaultBlocksCheat(const char* cmd); extern const char* const kBountyModeDesc;
+static void RegTick(uint64_t now); static void RegRender(); static void RegReset(); static bool RegScreenUp();   // 5.02.31 mp_register.inc
 static void AfkTick(int ped, uint64_t now);
 static void UpdatePassengerCandidate(int ped, uint64_t now);
 // 3.39
@@ -980,6 +1013,8 @@ const char* MP::MissionTitle(const char* s)
 // 2.16: server permissions + mission partner
 static bool     s_bPermsSeen = false;   // 3.00: this server already sent its permissions
 static bool     s_bModesSeen = false;           // 3.02
+static uint8_t  s_nServerModes2 = 0;            // 5.02.31: GM2_* (Bounty Hunter) of the server we're on
+static uint8_t  s_nRunModes2 = 0;               // 5.02.31: GM2_* of the server running on this phone
 static uint16_t s_nServerModes = 0;             // 3.02: GM_* of the server we're on (custom servers: 0 until it says)
 static Vec3     s_LastShotEnd = { 0, 0, 0 }; static uint64_t s_nLastShotMs = 0;   // 3.34: damage indicator (where my last bullet hit)
 static uint8_t  s_nServerPerms = 0;              // PERM_* of the server we're on (0 until it tells us)
@@ -1392,6 +1427,7 @@ static void ClearMissionMarkers(RemotePlayer& p)   // 2.17 mission sync
 static void RemovePlayer(int id)
 {
     if(id < 0 || id >= MP_MAX_PLAYERS) return;
+    BountyLeave(id);   // 5.02.31
     ClearMissionMarkers(players[id]);
     DestroyAvatar(players[id]);
     players[id] = RemotePlayer();
@@ -1433,7 +1469,8 @@ static void ClearAllPlayers()
             if(players[i].active && i != myId && players[i].name[0] && s_PendingLeaves.size() < 128)
             { PendingLeave pl; MP_CopyStr(pl.name, players[i].name, sizeof(pl.name)); pl.at = now; pl.silent = true; s_PendingLeaves.push_back(pl); }
     }
-    ResetPairs(); s_nServerPerms = 0; s_nServerModes = 0; s_bModesSeen = false; s_bPermsSeen = false;
+    BountyReset(); RegReset(); SoloStop();   // 5.02.31
+    ResetPairs(); s_nServerPerms = 0; s_nServerModes = 0; s_nServerModes2 = 0; s_bModesSeen = false; s_bPermsSeen = false;
     for(int i = 0; i < MP_MAX_PLAYERS; ++i) RemovePlayer(i);
     ClearEnv(false);   // 2.13: shared pickups / fires belong to the server we left
     if(s_bLocalDropsOff) { int ped = Game::LocalPed(); if(ped > 0) Game::SetDropsWeapons(ped, true); s_bLocalDropsOff = false; }
@@ -2819,14 +2856,14 @@ public:
         ApplyPlayerColor(j.id, j.color);
         if(j.id == myId) return;
         if(!wasActive) LuaOnJoin(j.id, p.name, p.color);   // 4.13.29
-        if(!wasActive && !TakePendingLeave(p.name) && MP_NowMs() >= s_nInitialListUntil) SysMsg(COL_SYSTEM, "*** %s joined the server.", p.name);
+        if(!wasActive && !TakePendingLeave(p.name) && MP_NowMs() >= s_nInitialListUntil) JoinLeaveMsg(p.name, true, nullptr);   // 5.02.31: BrowserFormat on the default server / when the host turned it on
     }
     void OnPlayerLeave(const PktPlayerLeave& l) override
     {
         if(l.id >= MP_MAX_PLAYERS || !players[l.id].active) return;
         LuaOnQuit(l.id, l.reason == LEAVE_KICK ? 2 : 1);   // 4.13.29
         SampOnPlayerLeave(l.id);   // 3.01
-        if(l.reason == LEAVE_KICK) SysMsg(COL_SYSTEM, "*** %s left the server. (Kicked)", players[l.id].name);   // 4.13.22: never "(Timeout)"
+        if(l.reason == LEAVE_KICK) JoinLeaveMsg(players[l.id].name, false, "Kicked");   // 4.13.22: never "(Timeout)"
         else if(s_PendingLeaves.size() < 64) { PendingLeave pl; MP_CopyStr(pl.name, players[l.id].name, sizeof(pl.name)); pl.at = MP_NowMs(); pl.silent = false; s_PendingLeaves.push_back(pl); }   // 5.01.01
         if(s_bGroup[l.id]) { s_bGroup[l.id] = false; GroupFixFirst(); }   // 2.31
         if(l.id == s_nPairAskedTo) s_nPairAskedTo = MP_INVALID_ID;
@@ -2843,6 +2880,7 @@ public:
         // (the host left / nobody runs it yet) it keeps the permission its creator chose
         if(!MP::IsOnDefault() && !MP_IsBcwServerName(client.GetServerName()) && !MP_IsMw3ServerName(client.GetServerName()) && !MP_IsRpServerName(client.GetServerName()) && !MP_IsDzServerName(client.GetServerName()) && !MP_IsLgServerName(client.GetServerName()) && client.GetServerName()[0])
             SrvCmPut(client.GetServerName(), client.GetPort(), (m.perms & PERM_CHEAT_MENU) != 0);
+        s_nServerModes2 = m.modesMagic == MP_MODES_MAGIC ? (uint8_t)(m.pad & GM2_ALL) : 0;   // 5.02.31: Bounty Hunter
         GamemodesChanged(m.modesMagic == MP_MODES_MAGIC ? m.modes : 0);   // 3.02   // 3.00: allowed -> you just play; not allowed -> Process() refuses at once
         if(nc1 && !nc0) SysMsg(COL_YELLOW, "*** Cheats were disabled on this server (MP cheats).");
         else if(!nc1 && nc0 && IsConnected()) SysMsg(COL_SYSTEM, "*** The host allowed cheats again.");
@@ -2988,6 +3026,7 @@ public:
         }
         if(d.killer == myId && d.victim != myId) ++s_nMyScoreFwd;   // 2.19 scoreboard
         GamesOnDeath(d);   // 2.21
+        BountyOnDeath(d);  // 5.02.31: Bounty Hunter
         CnrOnDeath(d);     // 3.39
     }
     void OnPlayerInfo(const PktPlayerInfo& pi) override   // 2.19
@@ -4784,6 +4823,8 @@ void MP::Process()
         ProcessHotelPc(ped, now);    // 3.36: hotel rooms with a computer (eyefind.info vehicle shops)
         ProcessSafeZones(ped, now);  // 3.21: hospital safe zones + spawn protection
         ProcessGames(ped, now);      // 2.21: races, deathmatch, jobs, open world
+        BountyTick(ped, now);        // 5.02.31: Bounty Hunter + Broker MQQ restrictions + Solo
+        RegTick(now);                // 5.02.31: Broker MQQ register / login
     }
     SampSrvProcess(ped, now);    // 4.11: SA-MP gamemode servers (and the PC server's world)
     ProcessClothes(now);         // 3.10: clothing sync
@@ -4860,6 +4901,7 @@ static void ApplyServerPerms()
                       | ((def || settings.permShowIds) ? PERM_SHOW_IDS : 0)   // 3.34
                       | ((def || settings.permNeeds) ? PERM_NEEDS : 0));       // 3.39: hunger + energy HUD
     s_Server.SetModes(def ? (uint16_t)GM_ALL : s_nRunModes);   // 3.03: fixed when the server was created
+    s_Server.SetModes2(def ? (uint8_t)GM2_ALL : s_nRunModes2);  // 5.02.31: Bounty Hunter
 }
 
 bool MP::CheatsBlocked()
@@ -4907,6 +4949,13 @@ bool MP::IsOnDefault()
            (client.GetServerName()[0] ? !strcasecmp(client.GetServerName(), MP_DEFAULT_SERVER_NAME) : s_bConnectingDefault);
 }
 // 3.02: gamemodes - the default server has all of them, a custom server only what its host turned on
+// 5.02.31: the GM2_* gamemodes (PktPerms.pad): Bounty Hunter. The default server (Broker MQQ) always has them.
+static bool ModeOn2(uint8_t gm)
+{
+    if(client.GetState() != NET_CONNECTED) return false;
+    if(MP::IsOnDefault()) return true;
+    return (s_nServerModes2 & gm) != 0;
+}
 bool MP::ModeOn(uint16_t gm)
 {
     if(client.GetState() != NET_CONNECTED) return false;
@@ -4970,6 +5019,8 @@ int MP_DzPackMigrate();   // mp_launcher.inc
 #include "mp_hostmap.inc"   // 4.13.15: host map editor (custom servers, host owner only)
 #include "mp_coop.inc"      // 4.13.15: Co-op story (2 players, SA:COOP style)
 #include "mp_notify.inc"    // 5.00.07: notification system (/notify pop-ups, Broker MQQ look)
+#include "mp_bounty.inc"    // 5.02.31: Bounty Hunter (Blood Deathmatch), Broker MQQ restrictions
+#include "mp_register.inc"  // 5.02.31: Broker MQQ register / login (MP folder register.txt)
 
 // 5.01.12: "CJ can't move at the spawn" (Grove Street; MP LAN, custom and featured servers alike). Several things hold
 // the player during a join (the black server select, the join camera, the spawn hold until the ground is in, the
@@ -5194,6 +5245,19 @@ static void SrvAuthPut(const char* name, int port, bool on)
     ConfigEntry* e = ::cfg->Bind(k, on ? 1 : 0, "MPServerAuth"); e->SetInt(on ? 1 : 0); delete e;
     ::cfg->Save();
 }
+static int SrvModes2Get(const char* name, int port)   // 5.02.31: GM2_* kept per server, -1 = unknown
+{
+    char k[16]; SrvModesKey(name, port, k, sizeof(k)); k[0] = 'G'; k[1] = '2';
+    return ::cfg->GetInt(k, -1, "MPServerModes2");
+}
+static void SrvModes2Put(const char* name, int port, uint8_t modes)
+{
+    if(!name || !*name || MP::IsDefaultServer(name, port)) return;
+    if(SrvModes2Get(name, port) == (int)modes) return;
+    char k[16]; SrvModesKey(name, port, k, sizeof(k)); k[0] = 'G'; k[1] = '2';
+    ConfigEntry* e = ::cfg->Bind(k, (int)modes, "MPServerModes2"); e->SetInt((int)modes); delete e;
+    ::cfg->Save();
+}
 static void SrvModesPut(const char* name, int port, uint16_t modes)
 {
     if(!name || !*name || MP::IsDefaultServer(name, port)) return;
@@ -5279,6 +5343,14 @@ static bool StartLocalServer(const char* name, int port)
         else if(known >= 0) s_nRunModes = (uint16_t)known;                 // it exists: keeps its own
         else if(creating) { s_nRunModes = (uint16_t)settings.hostModes; SrvModesPut(name, port, s_nRunModes); }   // new: your choice
         else s_nRunModes = 0;                                               // someone else's server we never saw: none
+        {   // 5.02.31: Bounty Hunter, kept per server the same way
+            const int k2 = SrvModes2Get(name, port);
+            if(MP::IsDefaultServer(name, port)) s_nRunModes2 = GM2_ALL;
+            else if(bcw) s_nRunModes2 = 0;
+            else if(k2 >= 0 && !creating) s_nRunModes2 = (uint8_t)k2;
+            else if(creating || !strcasecmp(name, settings.serverName)) { s_nRunModes2 = (uint8_t)(settings.hostModes2 & GM2_ALL); SrvModes2Put(name, port, s_nRunModes2); }
+            else s_nRunModes2 = 0;
+        }
         // 3.10: Cheat Menu permission - the server's own, not this phone's switch
         int cm = SrvCmGet(name, port);
         bool own = !strcasecmp(name, settings.serverName) && port == settings.port;
@@ -5298,6 +5370,7 @@ static bool StartLocalServer(const char* name, int port)
     }
     s_Server.SetCineCam(settings.hostCineCam && !bcw && !MP::IsDefaultServer(name, port));   // 4.12
     s_Server.SetDevStage(settings.hostDevStage && !bcw && !MP::IsDefaultServer(name, port));   // 4.13.2
+    s_Server.SetBrowserFmt(MP::IsDefaultServer(name, port) || (settings.hostBrowserFmt && !bcw));   // 5.02.31
     s_Server.SetWelcome(settings.hostWelcomeOn && !bcw && !MP::IsDefaultServer(name, port) ? settings.hostWelcome : "");   // 5.00.08
     MP_CopyStr(settings.hostedPassword, MP::IsDefaultServer(name, port) || bcw ? "" : s_szJoinPw, sizeof(settings.hostedPassword));
     ApplyServerPerms();   // 2.16
@@ -5820,7 +5893,9 @@ static void ProcessLan(uint64_t now)
                     if(ServerEntry* e = ServerList::Get(k)) if(e->cc[0] || e->mode[0] || e->tags[0] || e->desc[0]) { cc = e->cc; md = e->mode; tg = e->tags; ds = e->desc; mc = e->modeCol; }
                     if(IsHostingDefault() || FeaturedName(s_Server.GetName(), s_Server.GetPort())) { cc = ""; md = ""; tg = ""; ds = ""; mc = 0; }   // built-in text
                 }
-                s_Server.SetDetails(cc, mc, md, tg, ds);
+                std::string tgx = tg;   // 5.02.31: Bounty Hunter on = "+bounty hunter" (a gamemode chip + logo in the list)
+                if(run && (s_nRunModes2 & GM2_BOUNTY) && !IsHostingDefault() && !strcasestr(tg, "+bounty")) { if(!tgx.empty()) tgx += ','; tgx += "+bounty hunter"; }
+                s_Server.SetDetails(cc, mc, md, tgx.c_str(), ds);
                 std::string d;
                 if(run)
                 {
@@ -5992,7 +6067,7 @@ void MP::SaveConfig()
     F("NametagSize", settings.nametagSize); F("NametagDistance", settings.nametagDistance);
     B("ShowOwnNametag", settings.showOwnTag); B("ShowHealthBars", settings.showHealthBars); B("ShowRadarIcons", settings.showRadarIcons);
     B("ShowChat", settings.showChat); B("ShowKillFeed", settings.showKillFeed); B("ShowStatus", settings.showStatus);
-    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); B("HostWelcomeOn", settings.hostWelcomeOn); S("HostWelcome", settings.hostWelcome); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); B("HostPcGate", settings.hostPcGate); { char m[12]; snprintf(m, sizeof(m), "%d", settings.hostPcPort); S("HostPcPort", m); } S("PcServer", settings.pcServer); S("PcName", settings.pcName); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
+    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); I("HostGamemodes2", settings.hostModes2); B("HostBrowserFmt", settings.hostBrowserFmt); B("BountyWelcomeOn", settings.bountyWelcomeOn); B("BountySound", settings.bountySound); B("SoloOnJoin", settings.soloOnJoin); S("BountyWelcome", settings.bountyWelcome); B("HostWelcomeOn", settings.hostWelcomeOn); S("HostWelcome", settings.hostWelcome); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); B("HostPcGate", settings.hostPcGate); { char m[12]; snprintf(m, sizeof(m), "%d", settings.hostPcPort); S("HostPcPort", m); } S("PcServer", settings.pcServer); S("PcName", settings.pcName); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
     F("ChatX", settings.chatX); F("ChatY", settings.chatY); I("Skin", settings.skin);
     I("ChatLines", settings.chatLines); F("ChatSize", settings.chatSize); F("ChatScale", settings.chatScale); F("ChatWidth", settings.chatWidth);   // 2.19.6
     I("ChatFade", settings.chatFade); B("ChatFadeOn", settings.chatFadeOn); B("ChatBackground", settings.chatBg);
@@ -6052,6 +6127,12 @@ static void LoadConfig()
     settings.hostAuth        = ::cfg->GetBool("HostAuth", false, "MP");   // 3.21.6
     settings.hostCineCam     = ::cfg->GetBool("HostCineCam", true, "MP");   // 4.12
     settings.hostDevStage    = ::cfg->GetBool("HostDevStage", false, "MP");   // 4.13.2
+    settings.hostModes2      = ::cfg->GetInt("HostGamemodes2", 0, "MP") & GM2_ALL;   // 5.02.31
+    settings.hostBrowserFmt  = ::cfg->GetBool("HostBrowserFmt", false, "MP");
+    settings.bountyWelcomeOn = ::cfg->GetBool("BountyWelcomeOn", true, "MP");
+    settings.bountySound     = ::cfg->GetBool("BountySound", true, "MP");
+    settings.soloOnJoin      = ::cfg->GetBool("SoloOnJoin", true, "MP");
+    { char bw[MP_CHAT_LEN]; ::cfg->GetString(bw, sizeof(bw), "BountyWelcome", settings.bountyWelcome, "MP"); MP_CopyStr(settings.bountyWelcome, bw, sizeof(settings.bountyWelcome)); }
     settings.hostWelcomeOn   = ::cfg->GetBool("HostWelcomeOn", false, "MP");   // 5.00.08
     ::cfg->GetString(settings.hostWelcome, sizeof(settings.hostWelcome), "HostWelcome", "Welcome to {server}, {name}!", "MP");
     settings.phoneKeyboard   = ::cfg->GetBool("PhoneKeyboard", false, "MP");   // 4.12.3
@@ -6547,7 +6628,7 @@ static void RegionPicker(const std::vector<LanServer>& nearby)
     if(prev) v = v <= 0 ? MP_ICON_MAX : v - 1;
     if(def) v = 0;
     if(v != settings.serverIcon) { settings.serverIcon = v; SaveConfig(); }
-    if(IsHostingDefault()) ImGui::TextDisabled("The default MP LAN Server always shows the default icon.");
+    if(IsHostingDefault()) ImGui::TextDisabled("The default server (Broker MQQ) always shows the default icon.");
     ImGui::TextDisabled("Backgrounds: bg_1.jpg ... bg_250.jpg inside files/TYFMC/MP/bg_server.jar (or a loose icon_N.png in files/TYFMC/MP, max 512x512).");
 }
 
@@ -6620,7 +6701,7 @@ static void DefaultServerCard(const std::vector<LanServer>& nearby)
     if(IsOnDefault()) { act = client.GetState() == NET_CONNECTING ? "Cancel" : "Leave"; ac = kLeaveCol; }
     else if(IsBusy() && s_nJob == JOB_CONNECT) { act = "Search..."; ac = kWaitCol; }
 
-    char title[80]; snprintf(title, sizeof(title), "%s  (default)  -  port %d", MP_DEFAULT_SERVER_NAME, MP_DEFAULT_PORT);
+    char title[80]; snprintf(title, sizeof(title), "%s  (default)  -  port %d", MP_DEFAULT_DISPLAY_NAME, MP_DEFAULT_PORT);
     if(ServerRow("default", title, info, col, act, ac, s_bHasNetwork || IsOnDefault(), true, nullptr, 0))
     {
         if(IsOnDefault()) MP::ToggleConnect();
@@ -6770,7 +6851,7 @@ static void SectionServers(void*)
                          IsDefaultServer(sv.name, sv.port) ? 0 : sv.icon))
             {
                 if(on) LeaveServer("Left the server.");
-                else if(IsDefaultServer(sv.name, sv.port)) { if(IsOnDefault()) SysMsg(COL_SYSTEM, "You are already connected to %s.", MP_DEFAULT_SERVER_NAME); else { LeaveServer(nullptr); MP::ToggleConnect(); } }   // 3.10
+                else if(IsDefaultServer(sv.name, sv.port)) { if(IsOnDefault()) SysMsg(COL_SYSTEM, "You are already connected to %s.", MP_DEFAULT_DISPLAY_NAME); else { LeaveServer(nullptr); MP::ToggleConnect(); } }   // 3.10
                 else MP::JoinServer(sv.ip, sv.port, sv.name);
             }
         }
@@ -6881,13 +6962,15 @@ static void GamemodeSwitches(const char* typedName)
     // 3.50.1: the default server ("MP LAN Server") always runs every gamemode: show them all ON (fixed)
     if((typedName && !strcasecmp(typedName, MP_DEFAULT_SERVER_NAME)) || ((!typedName || !*typedName) && MP::IsOnDefault()))
     {
-        ImGui::TextColored(kGreenTxt, "\"%s\" (the default server): every gamemode is ON (fixed).", MP_DEFAULT_SERVER_NAME);
+        ImGui::TextColored(kGreenTxt, "\"%s\" (the default server): every gamemode is ON (fixed).", MP_DEFAULT_DISPLAY_NAME);
         for(int i = 0; i < MP_GAMEMODE_COUNT; ++i)
         {
             bool on = true;
             ImGui::BeginDisabled(); FloatMenu::ToggleSwitch(kGameModes[i].name, &on); ImGui::EndDisabled();
             ImGui::TextDisabled("%s", kGameModes[i].desc);
         }
+        { bool on = true; ImGui::BeginDisabled(); FloatMenu::ToggleSwitch("Bounty Hunter", &on); ImGui::EndDisabled(); ImGui::TextDisabled("%s", kBountyModeDesc); }   // 5.02.31
+        BountySettingsSection();
         ImGui::PopID();
         AntiCheatSection();
         return;
@@ -6902,12 +6985,23 @@ static void GamemodeSwitches(const char* typedName)
         if(FloatMenu::ToggleSwitch(g.name, &on)) { settings.hostModes = on ? (settings.hostModes | g.bit) : (settings.hostModes & ~g.bit); changed = true; }
         ImGui::TextDisabled("%s", g.desc);
     }
+    {   // 5.02.31: Bounty Hunter (GM2_BOUNTY, a 2nd gamemode byte - the 16 GM_* bits are full)
+        bool on = (settings.hostModes2 & GM2_BOUNTY) != 0;
+        if(FloatMenu::ToggleSwitch("Bounty Hunter", &on)) { settings.hostModes2 = on ? (settings.hostModes2 | GM2_BOUNTY) : (settings.hostModes2 & ~GM2_BOUNTY); changed = true; }
+        if(changed && s_Server.IsRunning() && !IsHostingDefault() && !FeaturedName(s_Server.GetName(), s_Server.GetPort()))
+        {   // your own custom server: on / off right away (it is kept for this server)
+            s_nRunModes2 = (uint8_t)(settings.hostModes2 & GM2_ALL); SrvModes2Put(s_Server.GetName(), s_Server.GetPort(), s_nRunModes2); s_Server.SetModes2(s_nRunModes2);
+            SysMsg(COL_GREEN, "Bounty Hunter %s on \"%s\".", (s_nRunModes2 & GM2_BOUNTY) ? "on" : "off", s_Server.GetName());
+        }
+        ImGui::TextDisabled("%s", kBountyModeDesc);
+        if(settings.hostModes2 & GM2_BOUNTY) BountySettingsSection();
+    }
     float w = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
     uint16_t every = 0; for(int i = 0; i < MP_GAMEMODE_COUNT; ++i) every |= kGameModes[i].bit;
-    if(ImGui::Button("All on", ImVec2(w, UI::S(70)))) { settings.hostModes = GM_ALL; changed = true; }
+    if(ImGui::Button("All on", ImVec2(w, UI::S(70)))) { settings.hostModes = GM_ALL; settings.hostModes2 = GM2_ALL; changed = true; }
     ImGui::SameLine();
-    if(ImGui::Button("All off", ImVec2(w, UI::S(70)))) { settings.hostModes = 0; changed = true; }
-    if(changed) { settings.hostModes &= GM_ALL; SaveConfig(); }   // 3.03: only the choice for a NEW server
+    if(ImGui::Button("All off", ImVec2(w, UI::S(70)))) { settings.hostModes = 0; settings.hostModes2 = 0; changed = true; }
+    if(changed) { settings.hostModes &= GM_ALL; settings.hostModes2 &= GM2_ALL; SaveConfig(); }   // 3.03: only the choice for a NEW server
     ImGui::TextDisabled("Only for a NEW server you create (Host). Servers that already exist keep their gamemodes - the one you are on is not changed.");
     if(s_Server.IsRunning())
     {
@@ -7179,6 +7273,28 @@ static void ServerDetailsEditor()
             if(SquareChip(id, kModeCols[i].name, settings.serverModeCol == i, kModeCols[i].col)) { settings.serverModeCol = i; SaveConfig(); }
         }
         ImGui::NewLine();
+        // 5.02.31: up to 3 gamemodes in the server list (1st + 2nd on line 1, the 3rd on line 2), any name you like.
+        // Kept as "+name" tags (older phones just don't show them). Bounty Hunter on = added by itself.
+        ImGui::TextDisabled("More gamemodes (shown next to the first one, your own names are fine)");
+        for(int slot = 0; slot < 2; ++slot)
+        {
+            std::vector<std::string> v = TagList(settings.serverTags), extra;
+            for(auto& x : v) if(x.size() > 1 && x[0] == '+') extra.push_back(x.substr(1));
+            static char s_szExtra[2][MP_MODE_LEN];
+            MP_CopyStr(s_szExtra[slot], slot < (int)extra.size() ? extra[slot].c_str() : "", sizeof(s_szExtra[slot]));
+            FloatMenu::TextField(slot ? "Third gamemode" : "Second gamemode", s_szExtra[slot], slot ? "e.g. Zombies (line 2)" : "e.g. Bounty Hunter", MP_MODE_LEN - 1,
+                [](const char* t, void* d) {
+                    const int sl = (int)(intptr_t)d;
+                    std::vector<std::string> v = TagList(settings.serverTags), keep, extra;
+                    for(auto& x : v) { if(x.size() > 1 && x[0] == '+') extra.push_back(x); else keep.push_back(x); }
+                    std::string nv; for(const char* c = t ? t : ""; *c; ++c) nv += (*c == ',' || *c == '|') ? ' ' : (char)tolower((unsigned char)*c);
+                    while(!nv.empty() && nv.back() == ' ') nv.pop_back();
+                    while((int)extra.size() <= sl) extra.push_back("");
+                    extra[sl] = nv.empty() ? "" : "+" + nv;
+                    for(auto& x : extra) if(!x.empty()) keep.push_back(x);
+                    TagsSet(keep);
+                }, (void*)(intptr_t)slot);
+        }
     }
     // Tags
     ImGui::Separator();
@@ -7187,6 +7303,7 @@ static void ServerDetailsEditor()
         ImGui::Text("Tags (%d/8) - tap to add / remove", (int)v.size());
         for(size_t i = 0; i < v.size(); ++i)
         {
+            if(v[i].size() > 1 && v[i][0] == '+') continue;   // 5.02.31: a 2nd / 3rd gamemode (its own fields above)
             char id[16]; snprintf(id, sizeof(id), "tg%d", (int)i); char t[40]; snprintf(t, sizeof(t), "%s  x", v[i].c_str());
             if(SquareChip(id, t, true, IM_COL32(76, 160, 48, 200))) TagToggle(v[i].c_str());
         }
@@ -7448,6 +7565,31 @@ static void SectionAddServer(void*)
                                                   : "Off: the server is finished, no notice.");
     }
 
+    // 5.02.31: BrowserFormat Join/Leave - "#{name} <!> Connected to the server!" lines (the default server: always)
+    ImGui::Separator();
+    ImGui::TextUnformatted("BrowserFormat Join/Leave");
+    {
+        const bool own = s_Server.IsRunning() && !IsHostingDefault() && !s_Server.IsBcwServer();
+        if(FloatMenu::ToggleSwitch("BrowserFormat Join/Leave", &settings.hostBrowserFmt))
+        {
+            SaveConfig();
+            if(own) { s_Server.SetBrowserFmt(settings.hostBrowserFmt); SysMsg(COL_GREEN, "BrowserFormat Join/Leave %s on \"%s\" (players who join from now on).", settings.hostBrowserFmt ? "on" : "off", s_Server.GetName()); }
+        }
+        // preview of both lines (the chat colours)
+        const ImVec4 yg(0.604f, 0.804f, 0.196f, 1), gr(0.5f, 0.5f, 0.5f, 1), ye(1, 1, 0, 1), rd(1, 0, 0, 1), og(1, 0.647f, 0, 1), wh(1, 1, 1, 1);
+        for(int k = 0; k < 2; ++k)
+        {
+            ImGui::TextColored(yg, "#"); ImGui::SameLine(0, 0); ImGui::TextColored(gr, "{"); ImGui::SameLine(0, 0);
+            ImGui::TextColored(ye, "%s", settings.name); ImGui::SameLine(0, 0); ImGui::TextColored(gr, "} "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(rd, "<"); ImGui::SameLine(0, 0); ImGui::TextColored(og, "!"); ImGui::SameLine(0, 0); ImGui::TextColored(rd, "> "); ImGui::SameLine(0, 0);
+            ImGui::TextColored(gr, k ? "Disconnected from the server" : "Connected to the server"); ImGui::SameLine(0, 0); ImGui::TextColored(wh, "!");
+        }
+        ImGui::PushTextWrapPos(0.0f);
+        ImGui::TextDisabled(settings.hostBrowserFmt ? "On: join / leave lines in the chat use this browser format on your server."
+                                                    : "Off: the classic \"*** name joined the server.\" lines. The default server (Broker MQQ) always uses the browser format.");
+        ImGui::PopTextWrapPos();
+    }
+
     // 5.00.08: Custom welcome message - instead of "Welcome to <server>" after "Connected successfully!"
     ImGui::Separator();
     ImGui::TextUnformatted("Welcome message");
@@ -7547,7 +7689,7 @@ static void SectionConnection(void*)
 
     // ---- the big button: default server only ----
     ImGui::Spacing();
-    char lbl[96]; snprintf(lbl, sizeof(lbl), "Connect  -  %s (default)", MP_DEFAULT_SERVER_NAME);
+    char lbl[96]; snprintf(lbl, sizeof(lbl), "Connect  -  %s (default)", MP_DEFAULT_DISPLAY_NAME);
     ImU32 col = UI::kAccentDark;
     if(client.GetState() == NET_CONNECTING) { snprintf(lbl, sizeof(lbl), "Connecting...  (tap to cancel)"); col = kWaitCol; }
     else if(client.GetState() == NET_CONNECTED) { snprintf(lbl, sizeof(lbl), "Connected  -  tap to Disconnect"); col = kLeaveCol; }
@@ -7569,6 +7711,151 @@ static void SectionConnection(void*)
 // 2.37: SectionHost ("Hosted" page) was merged into SectionAddServer
 
 // 3.00: Settings > Sound
+// ---- 5.02.31: Settings > Sound > Host Media sounds -------------------------------------------------------
+// A volume for every sound MP plays: the Host/Media files (streamed / cached from the media host) and every
+// mp3 / m4a in files/TYFMC/MP. Kept in files/TYFMC/MP/sound_volumes.txt ("name=percent"). Sound applies it by
+// the file name, so the same sound is quieter / louder everywhere (menu clicks, hit, notify, music, Day Z ...).
+// Solo (Host/Media/solo.m4a, 1:01:40) is streamed by the host media player from start to end (never cut).
+#define MP_MEDIA_RAW_URL "https://raw.githubusercontent.com/ThirtyFoxMCx00E1/wagu/main/Host/Media/"
+#define MP_SOLO_FILE     "solo.m4a"
+#define MP_SOLO_FALLBACK "https://github.com/JebetrexxMC/wagu/releases/download/v5.02.30/solo.m4a"
+static const char* const kHostMedia[] = { "Global_click.mp3", "sound_010.mp3", "sound_effect_connected.mp3", "notify.mp3",
+                                          "neon_mainmenu.mp3", "dz_ambient.mp3", "war_ambient.mp3", MP_SOLO_FILE };
+static std::vector<std::string> s_SndLocal; static uint64_t s_nSndScanAt = 0; static bool s_bSndVolLoaded = false;
+static bool s_bSoloOn = false; static int s_nSoloTry = 0; static uint64_t s_nSoloStartAt = 0;
+static void SoundVolSave()
+{
+    char path[512]; snprintf(path, sizeof(path), "%s/sound_volumes.txt", s_szDataDir);
+    FILE* f = fopen(path, "w"); if(!f) return;
+    fprintf(f, "# MP sound volumes (percent), Settings > Sound > Host Media sounds\n");
+    std::vector<std::string> all(kHostMedia, kHostMedia + sizeof(kHostMedia) / sizeof(kHostMedia[0]));
+    for(auto& n : s_SndLocal) { bool d = false; for(auto& a : all) if(!strcasecmp(a.c_str(), n.c_str())) d = true; if(!d) all.push_back(n); }
+    for(auto& n : all) { int v = (int)(Sound::FileVolume(n.c_str()) * 100 + 0.5f); if(v != 100) fprintf(f, "%s=%d\n", n.c_str(), v); }
+    fclose(f);
+}
+static void SoundVolLoad()
+{
+    if(s_bSndVolLoaded || !s_szDataDir[0]) return;
+    s_bSndVolLoaded = true;
+    char path[512]; snprintf(path, sizeof(path), "%s/sound_volumes.txt", s_szDataDir);
+    FILE* f = fopen(path, "r"); if(!f) return;
+    char ln[256];
+    while(fgets(ln, sizeof(ln), f))
+    {
+        if(ln[0] == '#') continue;
+        char* eq = strrchr(ln, '='); if(!eq) continue; *eq = 0;
+        int v = atoi(eq + 1); if(v < 0) v = 0; if(v > 150) v = 150;
+        Sound::SetFileVolume(ln, v / 100.0f);
+    }
+    fclose(f);
+}
+static void SoundScanLocal(uint64_t now)
+{
+    if(s_nSndScanAt && now - s_nSndScanAt < 5000) return;
+    s_nSndScanAt = now; s_SndLocal.clear();
+    if(DIR* d = opendir(s_szDataDir))
+    {
+        while(struct dirent* e = readdir(d))
+        {
+            const char* n = e->d_name; size_t l = strlen(n);
+            if(l > 4 && (!strcasecmp(n + l - 4, ".mp3") || !strcasecmp(n + l - 4, ".m4a") || !strcasecmp(n + l - 4, ".ogg") || !strcasecmp(n + l - 4, ".wav"))) s_SndLocal.push_back(n);
+        }
+        closedir(d);
+    }
+    std::sort(s_SndLocal.begin(), s_SndLocal.end(), [](const std::string& a, const std::string& b) { return strcasecmp(a.c_str(), b.c_str()) < 0; });
+}
+static void SoloPlay()
+{
+    s_nSoloTry = 0; s_bSoloOn = Sound::StreamPlayUrl(MP_MEDIA_RAW_URL MP_SOLO_FILE, 1.0f); s_nSoloStartAt = MP_NowMs();
+    if(!s_bSoloOn) SysMsg(COL_RED, "Solo: %s", Sound::StreamInfo());
+}
+static bool SoloIsOn() { return s_bSoloOn; }
+static void SoloStop() { if(s_bSoloOn) { Sound::StreamStop(); s_bSoloOn = false; } }
+static void SoloTick()   // the 2nd URL (the release asset) when the media host doesn't answer
+{
+    if(!s_bSoloOn) return;
+    if(!Sound::StreamActive())
+    {
+        const bool failed = !Sound::StreamEnded();
+        if(failed && s_nSoloTry == 0) { s_nSoloTry = 1; Sound::StreamPlayUrl(MP_SOLO_FALLBACK, 1.0f); return; }
+        s_bSoloOn = false;
+    }
+}
+static bool SoundVolRow(const char* name, const char* note)
+{
+    ImGui::PushID(name);
+    int v = (int)(Sound::FileVolume(name) * 100 + 0.5f);
+    ImGui::TextUnformatted(name); if(note && *note) { ImGui::SameLine(); ImGui::TextDisabled("%s", note); }
+    const float bw = UI::S(150);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - bw - ImGui::GetStyle().ItemSpacing.x);
+    bool ch = ImGui::SliderInt("##v", &v, 0, 150, v == 0 ? "muted" : "%d %%");
+    if(ch) Sound::SetFileVolume(name, v / 100.0f);
+    ImGui::SameLine();
+    if(ImGui::Button("Test", ImVec2(bw, 0)))
+    {
+        char p[512]; snprintf(p, sizeof(p), "%s/%s", s_szDataDir, name);
+        const size_t l = strlen(name);
+        if(!strcasecmp(name, MP_SOLO_FILE)) SoloPlay();
+        else if(access(p, R_OK) == 0 && l > 4 && !strcasecmp(name + l - 4, ".mp3") && !strstr(name, "ambient") && !strstr(name, "mainmenu")) Sound::PlayUi(p, 1.0f);
+        else if(access(p, R_OK) == 0) Sound::StreamPlay(p, 1.0f);
+        else Sound::StreamPlayUrl((std::string(MP_MEDIA_URL) + name).c_str(), 1.0f);
+    }
+    ImGui::PopID();
+    return ch;
+}
+static void SoundsVolumeSection()
+{
+    SoundVolLoad();
+    const uint64_t now = MP_NowMs();
+    SoundScanLocal(now);
+    bool changed = false;
+    ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+    // the Solo media player
+    ImGui::TextUnformatted("Host media player");
+    ImGui::TextDisabled("Solo (Host/Media/solo.m4a, 1:01:40) - streamed from the media host, played to the end.");
+    if(FloatMenu::ToggleSwitch("Play Solo when I join Broker MQQ", &settings.soloOnJoin)) SaveConfig();
+    {
+        const float w = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+        const bool playing = s_bSoloOn && Sound::StreamActive();
+        if(ImGui::Button(playing ? "Restart Solo" : "Play Solo", ImVec2(w, UI::S(64)))) SoloPlay();
+        ImGui::SameLine();
+        if(ImGui::Button("Stop", ImVec2(w, UI::S(64)))) { Sound::StreamStop(); s_bSoloOn = false; }
+        if(s_bSoloOn)
+        {
+            const float pos = Sound::StreamPosition(), dur = Sound::StreamDuration() > 1 ? Sound::StreamDuration() : 3700.0f;
+            char t[64]; snprintf(t, sizeof(t), "%d:%02d:%02d / %d:%02d:%02d", (int)pos / 3600, ((int)pos / 60) % 60, (int)pos % 60, (int)dur / 3600, ((int)dur / 60) % 60, (int)dur % 60);
+            ImGui::ProgressBar(dur > 0 ? pos / dur : 0.0f, ImVec2(-1, UI::S(30)), t);
+            ImGui::TextDisabled("%s", Sound::StreamInfo());
+        }
+        changed |= SoundVolRow(MP_SOLO_FILE, "(Solo volume)");
+        if(changed && s_bSoloOn) Sound::StreamSetVolume(1.0f);   // the new file volume, right away
+    }
+    ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+    ImGui::TextUnformatted("Host Media sounds");
+    ImGui::TextDisabled("Every sound from the media host (Host/Media). 100 %% = normal, 0 = muted, up to 150 %%.");
+    for(const char* n : kHostMedia) if(strcasecmp(n, MP_SOLO_FILE)) changed |= SoundVolRow(n, nullptr);
+    ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+    ImGui::TextUnformatted("MP folder sounds (files/TYFMC/MP)");
+    int shown = 0;
+    for(auto& n : s_SndLocal)
+    {
+        bool host = false; for(const char* h : kHostMedia) if(!strcasecmp(h, n.c_str())) host = true;
+        if(host) continue;
+        changed |= SoundVolRow(n.c_str(), nullptr); ++shown;
+    }
+    if(!shown) ImGui::TextDisabled("No other mp3 / m4a in the MP folder.");
+    {
+        const float w = ImGui::GetContentRegionAvail().x;
+        if(ImGui::Button("Reset every volume to 100 %", ImVec2(w, UI::S(60))))
+        {
+            for(const char* n : kHostMedia) Sound::SetFileVolume(n, 1.0f);
+            for(auto& n : s_SndLocal) Sound::SetFileVolume(n.c_str(), 1.0f);
+            changed = true;
+        }
+    }
+    if(changed) SoundVolSave();
+}
+
 static void SectionSound(void*)
 {
     ImGui::TextUnformatted("Sound effects");
@@ -7580,6 +7867,7 @@ static void SectionSound(void*)
         char snd[512]; snprintf(snd, sizeof(snd), "%s/sound_010.mp3", s_szDataDir);
         if(!Sound::PlayHit(snd, 1.0f)) SysMsg(COL_RED, "sound_010.mp3 is missing from the MP folder (assets/MP).");
     }
+    SoundsVolumeSection();   // 5.02.31: Host Media + MP folder sound volumes, the Solo media player
 }
 
 static void SectionVoice(void*)   // 3.11
@@ -8368,6 +8656,7 @@ void MP::Init(const char* dataDir)
     MP_CopyStr(s_szDataDir, dataDir, sizeof(s_szDataDir));
     s_nDzPackMoved = MP_DzPackMigrate();   // 4.12.6: Day Z pack out of the model loader folder (Grove Street freeze)
     LoadConfig();
+    SoundVolLoad();   // 5.02.31: Settings > Sound > Host Media volumes
     I18n::SetDataDir(s_szDataDir);   // 3.52: languages
     GImTrText = I18n::Text; GImTrFmt = I18n::Fmt;
     if(strcmp(settings.uiLanguage, "en") && !I18n::Set(settings.uiLanguage)) logger->Info("Language %s: %s", settings.uiLanguage, I18n::LastError());
@@ -8432,7 +8721,7 @@ static void FlushPendingLeaves(uint64_t now)
     for(size_t i = 0; i < s_PendingLeaves.size(); )
     {
         PendingLeave& pl = s_PendingLeaves[i];
-        if(!pl.silent && now - pl.at >= 10000) { SysMsg(COL_SYSTEM, "*** %s left the server.", pl.name); s_PendingLeaves.erase(s_PendingLeaves.begin() + i); }
+        if(!pl.silent && now - pl.at >= 10000) { JoinLeaveMsg(pl.name, false, nullptr); s_PendingLeaves.erase(s_PendingLeaves.begin() + i); }
         else if(pl.silent && now - pl.at >= 60000) s_PendingLeaves.erase(s_PendingLeaves.begin() + i);
         else ++i;
     }

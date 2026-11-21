@@ -104,6 +104,12 @@ struct MPSettings
     char  pcName[24]        = "";      // 5.02.12: name on open.mp / SA-MP servers (RP: Firstname_Lastname); empty = the MP name
     char  pcServer[80]      = "";      // 5.02: the last PC server (ip:port) you joined   // 3.50: which anti-cheat checks (eAcCheck bits)
     bool  phoneKeyboard     = false;   // 4.12.3: Settings > Display > Keyboard: false = MP keyboard, true = the phone's own
+    int   hostModes2        = 0;       // 5.02.31: GM2_* (Bounty Hunter) of a NEW custom server I host
+    bool  hostBrowserFmt    = false;   // 5.02.31: Add server > BrowserFormat Join/Leave (the default server: always on)
+    bool  bountyWelcomeOn   = true;    // 5.02.31: Bounty Hunter: the bloody deathmatch welcome + blood logo in chat
+    bool  bountySound       = true;
+    bool  soloOnJoin        = true;    // 5.02.31: Host/Media/solo.m4a plays (to the end) when you join the default server (Broker MQQ)    // 5.02.31: Bounty Hunter: kill / multi-kill sound
+    char  bountyWelcome[MP_CHAT_LEN] = "{8B0000}>> {FF2020}Welcome to the Blood Deathmatch, {FFFFFF}{name}{FF2020}! {B07040}Kill or be killed - the fog takes the weak.";
     bool  hostDevStage      = false;   // 4.13.2: Add server > Development stage notice (custom servers you host)
     bool  hostWelcomeOn     = false;   // 5.00.08: Add server > Custom welcome message (off = "Welcome to <server>")
     char  hostWelcome[MP_CHAT_LEN] = "Welcome to {server}, {name}!";   // {name} / {server} / {RRGGBB} colours
@@ -385,7 +391,8 @@ namespace MP
     bool IsOnBcw();
     bool BcwOwnTagHidden();    // 3.10: your ped is parked hidden (connection screen - e.g. Gustav's base view - or respawn wait)
     uint32_t BcwDecorate(int id, const char* name, uint32_t color, char* out, size_t n);
-    void DrawDamageIndicator(ImDrawList* dl, int id, const Vec3& head);   // 3.34 (mp_features.inc)
+    void DrawDamageIndicator(ImDrawList* dl, int id, const Vec3& head);
+    void DrawBountyTag(ImDrawList* dl, int id, const Vec3& head);         // 5.02.31 (mp_bounty.inc)   // 3.34 (mp_features.inc)
     void NameTagId(int id, char* name, size_t n);                          // 3.34: "name (id)"
     bool IsAfk(int id);                                                    // 3.34   // [GTV] / [SLZ] tag + team colour
 }

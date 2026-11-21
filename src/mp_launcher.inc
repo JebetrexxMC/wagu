@@ -396,14 +396,80 @@ static ImU32 LModeColor(const LRow& r)
     return !strcasecmp(m, "Freeroam") ? kModeCols[0].col : kModeCols[1 + h % (kModeColCount - 1)].col;
 }
 
+// 5.02.31: up to 3 gamemodes per server. The 1st is the gamemode chip (mode); the others ride in the tags as
+// "+name" (the 24 byte chip text of the listing is too short), the default server (Broker MQQ) has 3 built in.
+static int LModesOf(const LRow& r, std::string out[3])
+{
+    int n = 0;
+    out[n++] = r.mode[0] ? r.mode : "Freeroam";
+    if(r.kind == 0) { out[n++] = "Deathmatch"; out[n++] = "Bounty Hunter"; return n; }
+    std::string cur; const char* t = r.tags;
+    for(const char* c = t; ; ++c)
+    {
+        if(!*c || *c == ',')
+        {
+            while(!cur.empty() && cur.back() == ' ') cur.pop_back();
+            if(cur.size() > 1 && cur[0] == '+' && n < 3)
+            {
+                std::string m = cur.substr(1); bool up = true;
+                for(char& ch : m) { if(up && ch >= 'a' && ch <= 'z') ch = (char)(ch - 32); up = ch == ' ' || ch == '&' || ch == '-'; }
+                bool dup = false; for(int i = 0; i < n; ++i) if(!strcasecmp(out[i].c_str(), m.c_str())) dup = true;
+                if(!dup) out[n++] = m;
+            }
+            cur.clear(); if(!*c) break;
+        }
+        else if(!(cur.empty() && *c == ' ')) cur += *c;
+    }
+    return n;
+}
+static std::string LTagsShown(const char* tags)   // the tags without the "+gamemode" ones
+{
+    std::string o, cur;
+    for(const char* c = tags; ; ++c)
+    {
+        if(!*c || *c == ',') { while(!cur.empty() && cur.back() == ' ') cur.pop_back(); if(!cur.empty() && cur[0] != '+') { if(!o.empty()) o += ','; o += cur; } cur.clear(); if(!*c) break; }
+        else if(!(cur.empty() && *c == ' ')) cur += *c;
+    }
+    return o;
+}
+static ImU32 LModeColorOf(const char* m)   // a stable colour from a gamemode name (the same as the chip's auto colour)
+{
+    if(!m || !*m || !strcasecmp(m, "Freeroam")) return kModeCols[0].col;
+    if(!strcasecmp(m, "Bounty Hunter")) return IM_COL32(176, 34, 28, 235);   // Broker MQQ red
+    if(!strcasecmp(m, "Deathmatch")) return IM_COL32(150, 92, 52, 235);       // Broker MQQ brown
+    unsigned h = 5381; for(const char* c = m; *c; ++c) h = h * 33 + (unsigned char)tolower((unsigned char)*c);
+    return kModeCols[1 + h % (kModeColCount - 1)].col;
+}
+// 5.02.31: a generated round logo for a gamemode (no texture: ring + disc in the mode colour + its initials)
+static void LModeLogo(ImDrawList* dl, ImVec2 c, float r, const char* m)
+{
+    const ImU32 col = LModeColorOf(m) | IM_COL32(0, 0, 0, 255);
+    char ini[4] = ""; int k = 0; bool start = true;
+    for(const char* p = m; *p && k < 2; ++p)
+    {
+        if(start && isalnum((unsigned char)*p)) { ini[k++] = (char)toupper((unsigned char)*p); start = false; }
+        else if(*p == ' ' || *p == '&' || *p == '-' || *p == '/') start = true;
+    }
+    if(k == 1 && m[1] && isalpha((unsigned char)m[1])) ini[k++] = (char)toupper((unsigned char)m[1]);
+    ini[k] = 0;
+    dl->AddCircleFilled(ImVec2(c.x + r * 0.08f, c.y + r * 0.10f), r, IM_COL32(0, 0, 0, 120), 32);
+    dl->AddCircleFilled(c, r, IM_COL32(16, 14, 14, 255), 32);
+    dl->AddCircleFilled(c, r * 0.80f, col, 32);
+    dl->AddCircle(c, r, col, 32, fmaxf(1.0f, r * 0.12f));
+    dl->AddCircle(c, r * 0.80f, IM_COL32(255, 255, 255, 70), 32, fmaxf(1.0f, r * 0.05f));
+    const float fs = r * 0.95f; ImVec2 ts = ImGui::GetFont()->CalcTextSizeA(fs, FLT_MAX, 0, ini);
+    dl->AddText(ImGui::GetFont(), fs, ImVec2(c.x - ts.x * 0.5f + 1, c.y - ts.y * 0.5f + 1), IM_COL32(0, 0, 0, 200), ini);
+    dl->AddText(ImGui::GetFont(), fs, ImVec2(c.x - ts.x * 0.5f, c.y - ts.y * 0.5f), IM_COL32_WHITE, ini);
+}
+
 // featured / default text (nobody can change it)
 static void LFeaturedDetails(LRow& r)
 {
     const char *md = "", *tg = "", *ds = "", *bg = nullptr;
     switch(r.kind)
     {
-    case 0: md = "Freeroam"; tg = "freeroam,missions,races,deathmatch,jobs,24/7"; bg = "bg_default.jpg";
-            ds = "The main MP server, always online. Free roam San Andreas with everyone: missions, races, deathmatch, jobs and events."; break;
+    case 0: md = "Freeroam"; tg = "freeroam,deathmatch,bounty,duels,missions,jobs,24/7"; bg = "bg_default.jpg";
+            ds = "Broker MQQ - the main MP server, always online. Free roam, Deathmatch and Bounty Hunter (kill streaks, bounties, duels) with everyone: missions, races, jobs and events."; break;
     case 3: md = "Brief Case War"; tg = "bcw,team,pvp,objective,24/7"; bg = "bg_bcw.jpg";
             ds = "Two teams fight over the briefcase. Grab it, carry it home and hold the line."; break;
     case 4: md = "MW3"; tg = "mw3,fps,pvp,killstreaks,classes,24/7"; bg = "bg_mw3.jpg";
@@ -1508,16 +1574,37 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
             float nx = a.x + cName;
             if(r.on) { dl->AddCircleFilled(ImVec2(nx + UI::S(7), a.y + rowH * 0.5f), UI::S(6), IM_COL32(90, 200, 90, 255)); nx += UI::S(22); }
             if(LIsFav(r.name, r.port)) { LStar(dl, ImVec2(nx + UI::S(9), a.y + rowH * 0.5f), UI::S(9), IM_COL32(240, 200, 60, 255), true); nx += UI::S(24); }
-            char nm[80]; snprintf(nm, sizeof(nm), "%s%s", r.name, r.kind == 0 ? "  (default)" : (r.mine ? "  (yours)" : ""));
+            char nm[80]; snprintf(nm, sizeof(nm), "%s%s", r.kind == 0 ? MP_DEFAULT_DISPLAY_NAME : r.name, r.kind == 0 ? "  (default)" : (r.mine ? "  (yours)" : ""));   // 5.02.31: Broker MQQ
             dl->AddText(ImVec2(nx, ty), nameCol, nm);
             dl->PopClipRect();
-            // gamemode chip
-            const char* md = r.mode[0] ? r.mode : "Freeroam";
-            LChip(dl, ImVec2(a.x + cMode, a.y + rowH * 0.5f - UI::S(15)), UI::S(30), md, mc, cTags - cMode - UI::S(8));
+            // gamemode chip (5.02.31: 2 or 3 gamemodes = small chips, the 1st + 2nd on line 1, the 3rd on line 2)
+            std::string mds[3]; const int nmd = LModesOf(r, mds);
+            if(nmd <= 1) LChip(dl, ImVec2(a.x + cMode, a.y + rowH * 0.5f - UI::S(15)), UI::S(30), mds[0].c_str(), mc, cTags - cMode - UI::S(8));
+            else
+            {
+                const float ch = rowH * 0.40f, cfs = ImGui::GetFontSize() * 0.70f, maxW = cTags - cMode - UI::S(8);
+                const float y1 = a.y + rowH * 0.5f - ch - UI::S(1), y2 = a.y + rowH * 0.5f + UI::S(1);
+                auto Small = [&](float x, float y, const std::string& t, ImU32 col, float lim) -> float
+                {
+                    float tw = ImMin(ImGui::GetFont()->CalcTextSizeA(cfs, FLT_MAX, 0, t.c_str()).x, lim - UI::S(12));
+                    if(tw < 0) tw = 0;
+                    ImVec2 p(x, y), b(x + tw + UI::S(12), y + ch);
+                    dl->AddRectFilled(p, b, col); dl->AddRect(p, b, IM_COL32(255, 255, 255, 40));
+                    dl->PushClipRect(p, b, true);
+                    dl->AddText(ImGui::GetFont(), cfs, ImVec2(p.x + UI::S(6), p.y + (ch - cfs) * 0.5f), IM_COL32_WHITE, t.c_str());
+                    dl->PopClipRect();
+                    return b.x - x;
+                };
+                const ImU32 c0 = (r.modeCol > 0 || r.kind >= 3) ? mc : LModeColorOf(mds[0].c_str());
+                float w0 = Small(a.x + cMode, y1, mds[0], c0, maxW * 0.5f);
+                Small(a.x + cMode + w0 + UI::S(4), y1, mds[1], LModeColorOf(mds[1].c_str()), maxW - w0 - UI::S(4));
+                if(nmd > 2) Small(a.x + cMode, y2, mds[2], LModeColorOf(mds[2].c_str()), maxW);
+            }
             // tags (comma list, dim)
             dl->PushClipRect(ImVec2(a.x + cTags, a.y), ImVec2(a.x + cLang - UI::S(10), a.y + rowH), true);
             {
-                char tg[MP_TAGS_LEN + 16]; MP_CopyStr(tg, r.tags[0] ? r.tags : "-", sizeof(tg));   // 4.05.3: tags only
+                const std::string tsh = LTagsShown(r.tags);   // 5.02.31: not the "+gamemode" entries
+                char tg[MP_TAGS_LEN + 16]; MP_CopyStr(tg, !tsh.empty() ? tsh.c_str() : "-", sizeof(tg));   // 4.05.3: tags only
                 for(char* c = tg; *c; ++c) if(*c == ',') *c = ' ';
                 std::string t2; for(char* c = tg; *c; ++c) { t2 += *c; if(*c == ' ' && c[1] && c[1] != ' ') t2.insert(t2.size() - 1, ","); }
                 dl->AddText(ImGui::GetFont(), ImGui::GetFontSize() * 0.82f, ImVec2(a.x + cTags, a.y + (rowH - ImGui::GetFontSize() * 0.82f) * 0.5f), IM_COL32(160, 166, 174, 255), t2.c_str());
@@ -1555,7 +1642,21 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
             float y0 = d.y + pad;
             // 1: description, IP, favourite
             dl->AddText(ImVec2(c1, y0), hc, "Server Description");
-            LWrapText(dl, ImVec2(c1, y0 + lh + UI::S(6)), c2 - c1 - pad, e.y - pad - lh * 2.0f - UI::S(28), tc, r.desc[0] ? r.desc : "No description.");
+            const float logoR = UI::S(22), logoY = e.y - pad - lh * 2.0f - UI::S(28) - logoR - UI::S(4);   // 5.02.31: gamemode logos under the text
+            LWrapText(dl, ImVec2(c1, y0 + lh + UI::S(6)), c2 - c1 - pad, logoY - logoR - UI::S(6), tc, r.desc[0] ? r.desc : "No description.");
+            {
+                std::string lm[3]; const int ln = LModesOf(r, lm);
+                float lx = c1;
+                dl->PushClipRect(ImVec2(c1, logoY - logoR - UI::S(4)), ImVec2(c2 - pad, logoY + logoR + UI::S(4)), true);
+                for(int q = 0; q < ln; ++q)
+                {
+                    LModeLogo(dl, ImVec2(lx + logoR, logoY), logoR, lm[q].c_str());
+                    const float lfs = ImGui::GetFontSize() * 0.72f;
+                    dl->AddText(ImGui::GetFont(), lfs, ImVec2(lx + logoR * 2 + UI::S(6), logoY - lfs * 0.5f), tc, lm[q].c_str());
+                    lx += logoR * 2 + UI::S(14) + ImGui::GetFont()->CalcTextSizeA(lfs, FLT_MAX, 0, lm[q].c_str()).x;
+                }
+                dl->PopClipRect();
+            }
             {
                 char ip[96];
                 if(r.kind == 2 && r.saved >= 0) { ServerEntry* se = ServerList::Get(r.saved); snprintf(ip, sizeof(ip), "IP: %s:%d", se ? se->host : "?", r.port); }
@@ -1602,9 +1703,16 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
                 }
             }
             // 2: gamemode + tags
-            dl->AddText(ImVec2(c2, y0), hc, r.mode[0] ? r.mode : "Freeroam");
+            {   // 5.02.31: every gamemode of the server
+                std::string hm[3]; const int hn = LModesOf(r, hm); std::string all;
+                for(int q = 0; q < hn; ++q) { if(q) all += " | "; all += hm[q]; }
+                dl->PushClipRect(ImVec2(c2, y0), ImVec2(c3 - pad, y0 + lh * 1.2f), true);
+                dl->AddText(ImVec2(c2, y0), hc, all.c_str());
+                dl->PopClipRect();
+            }
             {
-                char tl[MP_TAGS_LEN + 8]; MP_CopyStr(tl, r.tags[0] ? r.tags : "-", sizeof(tl));
+                const std::string tsh = LTagsShown(r.tags);
+                char tl[MP_TAGS_LEN + 8]; MP_CopyStr(tl, !tsh.empty() ? tsh.c_str() : "-", sizeof(tl));
                 std::string t; for(char* c = tl; *c; ++c) { t += *c == ',' ? ", " : std::string(1, *c); }
                 dl->AddText(ImVec2(c3 - UI::S(40) > c2 ? c2 : c2, y0 + lh * 1.3f), hc, "Tags");
                 LWrapText(dl, ImVec2(c2, y0 + lh * 2.4f), c3 - c2 - pad, e.y - pad, tc, t.c_str());

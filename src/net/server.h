@@ -97,6 +97,8 @@ public:
     uint8_t GetGame() const { return m_nGame.load(); }
     void SetDevStage(bool on) { m_bDevStage = on; }   // 4.13.2: "server in development" notice (off = finished)
     bool DevStageOn() const { return m_bDevStage; }
+    void SetBrowserFmt(bool on) { m_bBrowserFmt = on; }   // 5.02.31: BrowserFormat Join/Leave messages
+    bool BrowserFmtOn() const { return m_bBrowserFmt; }
     // 5.00.08: custom welcome message (Add server -> Custom welcome message, --welcome "text"). "" = the normal
     // "Welcome to <server>". {name} / {server} are filled in by the phone, {RRGGBB} colours work.
     void SetWelcome(const char* text) { std::lock_guard<std::mutex> lk(m_WelcomeMx); m_sWelcome = text ? text : ""; if(m_sWelcome.size() > MP_CHAT_LEN - 1) m_sWelcome.resize(MP_CHAT_LEN - 1); }
@@ -152,6 +154,8 @@ public:
     uint8_t GetPerms() const { return m_nPerms; }
     void     SetModes(uint16_t modes);   // 3.02: GM_* (the default server always has all of them)
     uint16_t GetModes() const;
+    void     SetModes2(uint8_t modes);   // 5.02.31: GM2_* (Bounty Hunter); the default server always has them
+    uint8_t  GetModes2() const;
     // 2.19: join password (max 16 chars, empty = open server)
     void SetPassword(const char* pw);
     // 3.01: SA-MP features. Welcome dialog (shown once on join, {RRGGBB} colours + \n lines),
@@ -336,6 +340,8 @@ private:
     void AuthDefaultOff(const char* why);
     std::atomic<bool> m_bCineCam{false};
     std::atomic<bool> m_bDevStage{false};
+    std::atomic<bool> m_bBrowserFmt{false};   // 5.02.31
+    uint8_t m_nModes2 = 0;                    // 5.02.31 (under m_Mutex)
     mutable std::mutex m_WelcomeMx;   // 5.00.08
     std::string m_sWelcome;
     std::atomic<uint8_t> m_nGame{0};   // 4.13.35

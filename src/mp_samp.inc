@@ -586,6 +586,7 @@ static void GamesOnServerEvent(const PktEvent& e);   // mp_games.inc: race queue
 static void SampOnEvent(const PktEvent& e)
 {
     if(e.id == MP_EV_SERVER) { GamesOnServerEvent(e); return; }   // 3.01: from the server itself
+    if(e.kind == EVK_DM && e.idx == MP_EV_QUEUE) { BountyOnEvent(e); return; }   // 5.02.31: Bounty Hunter duels / greetings
     if(e.idx == MP_EV_QUEUE) return;                               // someone's queue packet (old server relays it)
     if(e.id >= MP_MAX_PLAYERS || e.id == myId) return;
     SampPart& p = s_Part[e.id];

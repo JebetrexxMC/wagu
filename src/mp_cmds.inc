@@ -257,9 +257,12 @@ static bool HandleCommand(const char* text)
     if(RpCommand(cmd, arg)) return true;    // 3.25: Mega Vil Futuristic RP commands (others blocked)
     if(AuthCommand(cmd)) return true;       // 3.21.6: /stats  /char (also on Brief Case War)
     if(BcwBlockCommand(cmd)) return true;   // 3.04: Brief Case War: no gamemodes / cheats / teleports
+    if(BountyCommand(cmd, arg)) return true;   // 5.02.31: /bounty /duel /accept /decline /bstats /bwelcome
     if(GamesCommand(cmd, arg)) return true;
     // 2.35: the host disabled cheats
     static const char* const kCheatCmds[] = { "tp", "wallhack", "wh", "nofall", "invincible", "god", "freeze", "invisible", "invis", "fly", "flash", "behind", "gravity" };
+    if(MP::IsOnDefault() && DefaultBlocksCheat(cmd))   // 5.02.31: Broker MQQ restrictions (no god / unlimited health / wall hack ...)
+    { SysMsg(COL_RED, "{DC2626}[Broker MQQ] {FFFFFF}/%s is not allowed on the default server (no unlimited health / money / cheats).", cmd); return true; }
     if(MP::CheatsBlocked())
         for(const char* c : kCheatCmds) if(!strcmp(cmd, c)) { SysMsg(COL_RED, ConnectedToSampProxy() ? "MP cheats are off on PC servers (their anti-cheat would kick you)." : "Cheats are disabled on this server by the host."); return true; }
     if(!strcmp(cmd, "tp"))              CmdTp(arg);
@@ -1915,7 +1918,7 @@ static void Render219(void*)
     RenderDz();                // 3.58: Project Day Z Legacy
     RenderLg();                // 4.13.4: Rocket League (was San Andreas Online League)
     CgRender();                // 4.09: CGRP labels, ENTER / EXIT, /editor
-    HkRender(); HmRender(); CoopRender(); NeedsRender(); Modes2Render(); DealerRender(); NotifyRender();   // 3.39 / 3.55
+    HkRender(); HmRender(); CoopRender(); NeedsRender(); Modes2Render(); DealerRender(); NotifyRender(); RenderBounty(); RegRender();   // 5.02.31   // 3.39 / 3.55
     HudRenderExtras();   // 4.07: HUD Player + Ammo Info
     RenderHotelPc();           // 3.36: hotel room computer (every server)
     RenderSafeZones();         // 3.21: hospital safe zones

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stddef.h>
+#include <strings.h>
 
 #define MP_PROTO_VERSION   4
 // 3.04.6: mod build number (3.04.6 = 30406), sent when joining (PktJoin5) and in the welcome (PktWelcome2).
@@ -13,15 +14,17 @@
 // phones refuse servers older than that too (they would let old phones in).
 // 3.10: build 31000. MP_MIN_BUILD stays 30406 and the lobby stays thirtyfox/mp5/: 3.04.6 (no cheats)
 // and 3.10 phones play together on the same servers; only 3.04.5 and older (mp4) stay shut out.
-#define MP_BUILD 50230   // 5.02.30
+#define MP_BUILD 50231   // 5.02.31
 #define MP_MIN_BUILD       30406
 #define MP_AUTH_MIN_BUILD  32106   // 3.21.6: servers with the login system refuse older phones (they could not log in)
-#define MP_VERSION_STR     "5.02.22"
+#define MP_VERSION_STR     "5.02.31"
 #define MP_VOICE_BUILD     31100   // 3.11: phones from this build on get voice packets
 #define MP_DOWNLOAD_URL    "mpsamp-open.github.io"   // 4.05.4: new website (mpsamp-open org); jebetrexxmc.github.io/wagu still works as a backup
 #define MP_DEFAULT_HOST    "127.0.0.1"
 #define MP_DEFAULT_PORT    1922
-#define MP_DEFAULT_SERVER_NAME "MP LAN Server"   // default hosted server; one per Wi-Fi/hotspot
+#define MP_DEFAULT_SERVER_NAME "MP LAN Server"   // default hosted server; one per Wi-Fi/hotspot (the wire / lobby identity - never changes)
+#define MP_DEFAULT_DISPLAY_NAME "Broker MQQ"     // 5.02.31: what every screen shows for it (the name on the wire stays MP LAN Server)
+inline const char* MP_DisplayServerName(const char* n) { return (n && !strcasecmp(n, MP_DEFAULT_SERVER_NAME)) ? MP_DEFAULT_DISPLAY_NAME : n; }
 #define MP_MAX_PLAYERS     250    // 3.25: hard cap (slot ids 0..249); only Mega Vil Futuristic goes past 100
 #define MP_STD_MAX_PLAYERS 100    // 3.25: every other server (default, custom, phone hosted) stays 1..100
 #define MP_MAX_SERVERS     499    // 4.13.47: custom servers in the list (+ the default server = 500; was 99 + 1 = 100)
@@ -471,6 +474,7 @@ struct PktWelcome2    { PktWelcome w; uint32_t build; };   // 3.04.6: + server b
 struct PktWelcome3    { PktWelcome2 w2; uint32_t flags; };   // 4.12: + server flags (MP_SRVF_*); older clients read only PktWelcome2
 #define MP_SRVF_CINECAM 0x01   // 4.12: cinematic connection camera on this custom server
 #define MP_SRVF_DEVSTAGE 0x02  // 4.13.2: the owner marked this server "in development" (players see a notice after joining)
+#define MP_SRVF_BROWSERFMT 0x08   // 5.02.31: Add server > BrowserFormat Join/Leave (the default server: always)
 #define MP_SRVF_WELCOME 0x04   // 5.00.08: a custom welcome message follows the welcome (PktServerMsg, color MP_WELCOME_COLOR)
 #define MP_WELCOME_COLOR 0xFFFFFFFEu   // 5.00.08: 5.00.08+ phones keep it for "Welcome to ..." (older ones just show the line)
 struct PktReject      { uint8_t type; uint8_t reason; };
@@ -522,6 +526,9 @@ enum eGameMode : uint16_t
     GM_ALL = 0xFFFF,
 };
 #define MP_MODES_MAGIC 0x47
+// 5.02.31: the 16 GM_* bits are full - more gamemodes go in PktPerms.pad (= modes2, only with modesMagic).
+// Older phones ignore the pad byte; older servers send 0 there (= none of them).
+enum eGameMode2 : uint8_t { GM2_BOUNTY = 1, GM2_ALL = 0x01 };   // 5.02.31: Bounty Hunter (Blood Deathmatch style)
 struct PktPerms       { uint8_t type; uint8_t perms; uint8_t modesMagic; uint8_t pad; uint16_t modes; };
 // 5.00.07: notification system. C->S NOTIFY_SEND (staff only, the server checks it), S->C NOTIFY_SHOW to
 // everybody (also to players who join while it is still on), NOTIFY_CLEAR, NOTIFY_DENIED (logo = 1: the

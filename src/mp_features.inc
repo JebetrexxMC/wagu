@@ -74,6 +74,7 @@ static const char* DmgPart(int id, int weapon)
 }
 static void DmgIndAdd(int id, float amount, int weapon)
 {
+    BountyOnMyHit(id, amount, weapon);   // 5.02.31: "Death by the Fog!" over their head
     if(id < 0 || id >= MP_MAX_PLAYERS || !FeatOn(PERM_DMG_IND)) return;
     DmgInd& d = s_DmgInd[id];
     float hp = (float)players[id].sync.health;
