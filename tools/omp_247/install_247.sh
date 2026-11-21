@@ -4,6 +4,7 @@
 #          installs the MQTT autobot (omp-autobot), any broker via MQTT_HOST / MQTT_USER / MQTT_PASS.
 # Run as root on the server:
 #   curl -fsSLO https://github.com/JebetrexxMC/wagu/releases/latest/download/install_247.sh
+#   sudo bash install_247.sh                 finds every omp-server / samp03svr folder and installs each (5.02.20)
 #   sudo bash install_247.sh /path/to/Server [name] [port]
 #     /path/to/Server  folder with omp-server (or samp03svr) + config.json / server.cfg
 #     name             status name -> topic thirtyfox/mp4/omp/<name>/status   (default: myserver)
@@ -45,6 +46,10 @@ done
 MQH=${MQTT_HOST:-}; MQP=${MQTT_PORT:-1883}; MQU=${MQTT_USER:-}; MQW=${MQTT_PASS:-}; MQE=""; MQTLS=${MQTT_TLS:-0}
 if [ -z "$MQH" ] && [ -r /etc/mp-hivemq/mp.env ] && grep -q '^BRIDGE_PASS=' /etc/mp-hivemq/mp.env; then
   MQH=127.0.0.1; MQU=bridge; MQE=BRIDGE_PASS
+elif [ -z "$MQH" ] && [ -r "${ETC:-/etc/omp-247}/autobot.env" ]; then   # 5.02.20: same broker as the bot
+  av() { sed -n "s/^$1=//p" "${ETC:-/etc/omp-247}/autobot.env" | tail -1; }
+  MQH=$(av MQTT_HOST); MQP=$(av MQTT_PORT); MQP=${MQP:-1883}; MQU=$(av MQTT_USER); MQW=$(av MQTT_PASS); MQTLS=$(av MQTT_TLS); MQTLS=${MQTLS:-0}
+  [ -n "${BOT_NAME:-}" ] || BOT_NAME=$(av BOT_NAME); [ -n "${BOT_TOKEN:-}" ] || BOT_TOKEN=$(av BOT_TOKEN)
 fi
 
 bot() {   # the MQTT autobot (root: it installs / restarts the 24/7 services)
@@ -75,8 +80,35 @@ EOF
 
 if [ "$BOTONLY" = 1 ]; then bot; exit 0; fi
 
-SRV=$(readlink -f "${1:?usage: install_247.sh /path/to/Server [name] [port]   or   install_247.sh --bot}")
-NAME=${2:-myserver}; PORT=${3:-7777}
+# 5.02.20: no folder (or "auto") = find every open.mp / SA-MP server on this machine and install each one
+srvport() {   # the port in config.json ("port": 7777) or server.cfg (port 7777), else 7777
+  local p=""
+  [ -f "$1/config.json" ] && p=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("network",{}).get("port",""))' "$1/config.json" 2>/dev/null)
+  [ -z "$p" ] && [ -f "$1/server.cfg" ] && p=$(sed -n 's/^port[[:space:]]\+\([0-9]\+\).*/\1/p' "$1/server.cfg" | head -1)
+  echo "${p:-7777}"
+}
+findsrv() {   # folders with an executable omp-server / samp03svr (not the backups, not /proc)
+  find / -xdev \( -path /proc -o -path /sys -o -path /var/backups -o -path '*/node_modules' \) -prune -o \
+       -type f \( -name omp-server -o -name samp03svr \) -perm -u+x -printf '%h\n' 2>/dev/null | sort -u
+}
+if [ -z "${1:-}" ] || [ "${1:-}" = auto ] || [ "${1:-}" = --auto ]; then
+  mapfile -t found < <(findsrv)
+  if [ "${#found[@]}" -eq 0 ]; then
+    echo "No omp-server / samp03svr found on this machine."
+    echo "Put your open.mp server folder on it (with omp-server inside) and run again, or: install_247.sh /path/to/Server name port"
+    bot; exit 1
+  fi
+  used=" "
+  for d in "${found[@]}"; do
+    n=$(basename "$d" | tr -c 'A-Za-z0-9_\n-' '_' | cut -c1-32); n=${n:-server}; [ "$n" = bot ] && n=server
+    case "$used" in *" $n "*) n="${n}_$(srvport "$d")";; esac; used="$used$n "
+    echo "== found $d -> name $n, port $(srvport "$d")"
+    OMP_BOT=0 bash "$LIB/install_247.sh" "$d" "$n" "$(srvport "$d")" || echo "   (failed: $d)"
+  done
+  bot; exit 0
+fi
+SRV=$(readlink -f "$1")
+NAME=${2:-$(basename "$SRV" | tr -c 'A-Za-z0-9_\n-' '_' | cut -c1-32)}; PORT=${3:-$(srvport "$SRV")}
 case "$NAME" in bot|*[!A-Za-z0-9_-]*|"") echo "name: letters, digits, _ and - only (not \"bot\")"; exit 1;; esac
 BIN=omp-server; [ -x "$SRV/omp-server" ] || { [ -x "$SRV/samp03svr" ] && BIN=samp03svr; }
 [ -x "$SRV/$BIN" ] || { echo "no omp-server / samp03svr in $SRV"; exit 1; }
@@ -88,7 +120,14 @@ fi
 PUB=$(hostname -I 2>/dev/null | awk '{print $1}')
 
 CFG="$ETC/$NAME.yml"
-if [ -e "$CFG" ]; then echo "keeping existing $CFG"; else
+if [ -e "$CFG" ]; then echo "keeping existing $CFG"
+  if [ -n "$MQH" ] && grep -qE '^mqtt_host:[[:space:]]*$' "$CFG"; then   # 5.02.20: broker known now - fill it in
+    esc() { printf '%s' "$1" | sed 's/[\\/&]/\\&/g'; }
+    sed -i -e "s/^mqtt_host:.*/mqtt_host: $(esc "$MQH")/" -e "s/^mqtt_port:.*/mqtt_port: $MQP/" -e "s/^mqtt_tls:.*/mqtt_tls: $MQTLS/" \
+      -e "s/^mqtt_user:.*/mqtt_user: $(esc "$MQU")/" -e "s/^mqtt_pass:.*/mqtt_pass: $(esc "$MQW")/" -e "s/^mqtt_pass_env:.*/mqtt_pass_env: $MQE/" "$CFG"
+    chown "$OWNER" "$CFG"; chmod 600 "$CFG"; echo "  broker $MQH:$MQP added to $CFG"
+  fi
+else
 cat > "$CFG" <<EOF
 # written by install_247.sh - see $LIB/openmp_247.sh for every key
 server_dir: $SRV

@@ -4463,3 +4463,318 @@
 	url = https://github.com/openmultiplayer/open.mp-capi.git
 	branch = master
 	shallow = true
+[submodule "third_party/omp-dev/termux/termux-packages"]
+	path = third_party/omp-dev/termux/termux-packages
+	url = https://github.com/termux/termux-packages
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/proot-distro"]
+	path = third_party/omp-dev/termux/proot-distro
+	url = https://github.com/termux/proot-distro
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/repology-metadata"]
+	path = third_party/omp-dev/termux/repology-metadata
+	url = https://github.com/termux/repology-metadata
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/proot"]
+	path = third_party/omp-dev/termux/proot
+	url = https://github.com/termux/proot
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-language-server"]
+	path = third_party/omp-dev/termux/termux-language-server
+	url = https://github.com/termux/termux-language-server
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-x11"]
+	path = third_party/omp-dev/termux/termux-x11
+	url = https://github.com/termux/termux-x11
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-app"]
+	path = third_party/omp-dev/termux/termux-app
+	url = https://github.com/termux/termux-app
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-tools"]
+	path = third_party/omp-dev/termux/termux-tools
+	url = https://github.com/termux/termux-tools
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/glibc-packages"]
+	path = third_party/omp-dev/termux/glibc-packages
+	url = https://github.com/termux/glibc-packages
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/termux/TermuxAm"]
+	path = third_party/omp-dev/termux/TermuxAm
+	url = https://github.com/termux/TermuxAm
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/ndk-toolchain-clang-with-flang"]
+	path = third_party/omp-dev/termux/ndk-toolchain-clang-with-flang
+	url = https://github.com/termux/ndk-toolchain-clang-with-flang
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-api"]
+	path = third_party/omp-dev/termux/termux-api
+	url = https://github.com/termux/termux-api
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-api-package"]
+	path = third_party/omp-dev/termux/termux-api-package
+	url = https://github.com/termux/termux-api-package
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-docker"]
+	path = third_party/omp-dev/termux/termux-docker
+	url = https://github.com/termux/termux-docker
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/ghc-cross-tools"]
+	path = third_party/omp-dev/termux/ghc-cross-tools
+	url = https://github.com/termux/ghc-cross-tools
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/termux/libandroid-shmem"]
+	path = third_party/omp-dev/termux/libandroid-shmem
+	url = https://github.com/termux/libandroid-shmem
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-core-package"]
+	path = third_party/omp-dev/termux/termux-core-package
+	url = https://github.com/termux/termux-core-package
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/android-build-tools"]
+	path = third_party/omp-dev/termux/android-build-tools
+	url = https://github.com/termux/android-build-tools
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux.github.io"]
+	path = third_party/omp-dev/termux/termux.github.io
+	url = https://github.com/termux/termux.github.io
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux.com"]
+	path = third_party/omp-dev/termux/termux.com
+	url = https://github.com/termux/termux.com
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/command-not-found"]
+	path = third_party/omp-dev/termux/command-not-found
+	url = https://github.com/termux/command-not-found
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-exec-package"]
+	path = third_party/omp-dev/termux/termux-exec-package
+	url = https://github.com/termux/termux-exec-package
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-elf-cleaner"]
+	path = third_party/omp-dev/termux/termux-elf-cleaner
+	url = https://github.com/termux/termux-elf-cleaner
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-tasker"]
+	path = third_party/omp-dev/termux/termux-tasker
+	url = https://github.com/termux/termux-tasker
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-widget"]
+	path = third_party/omp-dev/termux/termux-widget
+	url = https://github.com/termux/termux-widget
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-boot"]
+	path = third_party/omp-dev/termux/termux-boot
+	url = https://github.com/termux/termux-boot
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-am-library"]
+	path = third_party/omp-dev/termux/termux-am-library
+	url = https://github.com/termux/termux-am-library
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/termux/upload-release-action"]
+	path = third_party/omp-dev/termux/upload-release-action
+	url = https://github.com/termux/upload-release-action
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-gui"]
+	path = third_party/omp-dev/termux/termux-gui
+	url = https://github.com/termux/termux-gui
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-styling"]
+	path = third_party/omp-dev/termux/termux-styling
+	url = https://github.com/termux/termux-styling
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-float"]
+	path = third_party/omp-dev/termux/termux-float
+	url = https://github.com/termux/termux-float
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-apt-repo-backups"]
+	path = third_party/omp-dev/termux/termux-apt-repo-backups
+	url = https://github.com/termux/termux-apt-repo-backups
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/create-conventional-changelog"]
+	path = third_party/omp-dev/termux/create-conventional-changelog
+	url = https://github.com/termux/create-conventional-changelog
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-create-package"]
+	path = third_party/omp-dev/termux/termux-create-package
+	url = https://github.com/termux/termux-create-package
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/deno-snapshot"]
+	path = third_party/omp-dev/termux/deno-snapshot
+	url = https://github.com/termux/deno-snapshot
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/termux/mirror-minder"]
+	path = third_party/omp-dev/termux/mirror-minder
+	url = https://github.com/termux/mirror-minder
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-apt-repo"]
+	path = third_party/omp-dev/termux/termux-apt-repo
+	url = https://github.com/termux/termux-apt-repo
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-fix-shebang"]
+	path = third_party/omp-dev/termux/termux-fix-shebang
+	url = https://github.com/termux/termux-fix-shebang
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/termux/openjdk-mobile-termux"]
+	path = third_party/omp-dev/termux/openjdk-mobile-termux
+	url = https://github.com/termux/openjdk-mobile-termux
+	branch = termux/jdk-17
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-auth"]
+	path = third_party/omp-dev/termux/termux-auth
+	url = https://github.com/termux/termux-auth
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-community"]
+	path = third_party/omp-dev/termux/termux-community
+	url = https://github.com/termux/termux-community
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/play-audio"]
+	path = third_party/omp-dev/termux/play-audio
+	url = https://github.com/termux/play-audio
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-services"]
+	path = third_party/omp-dev/termux/termux-services
+	url = https://github.com/termux/termux-services
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/libandroid-utimes"]
+	path = third_party/omp-dev/termux/libandroid-utimes
+	url = https://github.com/termux/libandroid-utimes
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-am-socket"]
+	path = third_party/omp-dev/termux/termux-am-socket
+	url = https://github.com/termux/termux-am-socket
+	branch = main
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-packaging"]
+	path = third_party/omp-dev/termux/termux-packaging
+	url = https://github.com/termux/termux-packaging
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/libandroid-support"]
+	path = third_party/omp-dev/termux/libandroid-support
+	url = https://github.com/termux/libandroid-support
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/wcwidth"]
+	path = third_party/omp-dev/termux/wcwidth
+	url = https://github.com/termux/wcwidth
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/tergent"]
+	path = third_party/omp-dev/termux/tergent
+	url = https://github.com/termux/tergent
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/game-packages-21-bin"]
+	path = third_party/omp-dev/termux/game-packages-21-bin
+	url = https://github.com/termux/game-packages-21-bin
+	branch = android5
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-root-packages-21-bin"]
+	path = third_party/omp-dev/termux/termux-root-packages-21-bin
+	url = https://github.com/termux/termux-root-packages-21-bin
+	branch = android5
+	shallow = true
+[submodule "third_party/omp-dev/termux/science-packages-21-bin"]
+	path = third_party/omp-dev/termux/science-packages-21-bin
+	url = https://github.com/termux/science-packages-21-bin
+	branch = android5
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-root-packages"]
+	path = third_party/omp-dev/termux/termux-root-packages
+	url = https://github.com/termux/termux-root-packages
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/x11-packages"]
+	path = third_party/omp-dev/termux/x11-packages
+	url = https://github.com/termux/x11-packages
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/science-packages"]
+	path = third_party/omp-dev/termux/science-packages
+	url = https://github.com/termux/science-packages
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/game-packages"]
+	path = third_party/omp-dev/termux/game-packages
+	url = https://github.com/termux/game-packages
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/tsu"]
+	path = third_party/omp-dev/termux/tsu
+	url = https://github.com/termux/tsu
+	branch = v8
+	shallow = true
+[submodule "third_party/omp-dev/termux/whatprovides"]
+	path = third_party/omp-dev/termux/whatprovides
+	url = https://github.com/termux/whatprovides
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/getconf"]
+	path = third_party/omp-dev/termux/getconf
+	url = https://github.com/termux/getconf
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/distfiles"]
+	path = third_party/omp-dev/termux/distfiles
+	url = https://github.com/termux/distfiles
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/rustls-native-certs"]
+	path = third_party/omp-dev/termux/rustls-native-certs
+	url = https://github.com/termux/rustls-native-certs
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/termux-failsafe"]
+	path = third_party/omp-dev/termux/termux-failsafe
+	url = https://github.com/termux/termux-failsafe
+	branch = master
+	shallow = true
+[submodule "third_party/omp-dev/termux/shared-library-testcase"]
+	path = third_party/omp-dev/termux/shared-library-testcase
+	url = https://github.com/termux/shared-library-testcase
+	branch = master
+	shallow = true

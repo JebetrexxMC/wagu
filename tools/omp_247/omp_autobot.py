@@ -14,7 +14,7 @@ From anywhere (Termux, Termius, a PC, another server) - same file, Python 3 only
   subscribe to .../<bot>/reply.
 
 Commands (plain text; with BOT_TOKEN set, the first word must be the token):
-    help | list | install <name> <port> <server_dir> | status <name> | start|stop|restart <name>
+    help | install (finds every server folder by itself) | find | list | install <name> <port> <server_dir> | status <name> | start|stop|restart <name>
     backup <name> | logs <name> [lines] | update | ping
 Only these run - never a shell line. Names: letters, digits, _ and -. The broker login decides who may
 publish commands (the MP HiveMQ kit: only "admin" and "bridge" may use thirtyfox/mp4/omp/#).
@@ -23,6 +23,7 @@ import json, os, re, socket, ssl, struct, subprocess, sys, threading, time
 
 BASE = "thirtyfox/mp4/omp/bot"
 LIB = "/opt/omp-247"
+ETC = "/etc/omp-247"
 RAW = "https://raw.githubusercontent.com/JebetrexxMC/wagu/main/tools/omp_247/"
 FILES = ("install_247.sh", "openmp_247.sh", "omp_status.py", "omp_autobot.py")
 NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
@@ -149,7 +150,7 @@ def fetch_latest():
             return False, "download %s failed: %s" % (f, e)
     return True, "updated " + ", ".join(got)
 
-HELP = ("commands: list | install <name> <port> <server_dir> | status <name> | start|stop|restart <name> | "
+HELP = ("commands: install (finds every server) | find | list | install <name> <port> <server_dir> | status <name> | start|stop|restart <name> | "
         "backup <name> | logs <name> [lines] | update | ping")
 
 def do(words):
@@ -167,6 +168,21 @@ def do(words):
             threading.Timer(3, lambda: os._exit(0)).start()   # systemd restarts the bot on the new file
             out += "; servers restarted, bot restarting"
         return ok, out
+    inst = os.path.join(LIB, "install_247.sh")
+    if c == "find":   # 5.02.20: the server folders install would pick up
+        ok, out = run(["bash", "-c", "find / -xdev \\( -path /proc -o -path /sys -o -path /var/backups \\) -prune -o -type f "
+                       "\\( -name omp-server -o -name samp03svr \\) -perm -u+x -printf '%h\\n' 2>/dev/null | sort -u"], timeout=120)
+        return ok, out or "no omp-server / samp03svr on this machine - copy your server folder to it first"
+    if c == "install" and (not a or a[0] == "auto"):   # 5.02.20: find every server and install each one
+        if not os.path.exists(inst):
+            ok, out = fetch_latest()
+            if not ok: return False, out
+        return run(["env", "OMP_BOT=0", "bash", inst], timeout=900)   # OMP_BOT=0: don't restart this bot mid-answer
+    if c in ("status", "start", "stop", "restart", "backup", "logs") and (not a or a[0] == "all"):   # 5.02.20: every server
+        names = sorted(f[:-4] for f in os.listdir(ETC) if f.endswith(".yml")) if os.path.isdir(ETC) else []
+        if not names: return False, "no open.mp 24/7 servers on this machine yet - send: install"
+        res = [do([c, x] + a[1:]) for x in names]
+        return all(r[0] for r in res), "\n".join(r[1] for r in res)
     if not a or not NAME_RE.match(a[0]) or a[0] == "bot": return False, "give a server name (letters, digits, _ and -)"
     n = a[0]
     if c == "install":
@@ -174,7 +190,6 @@ def do(words):
         if not a[1].isdigit() or not 0 < int(a[1]) < 65536: return False, "port must be 1-65535"
         d = os.path.realpath(a[2])
         if not a[2].startswith("/") or not os.path.isdir(d): return False, "server_dir must be an existing absolute folder: %s" % a[2]
-        inst = os.path.join(LIB, "install_247.sh")
         if not os.path.exists(inst):
             ok, out = fetch_latest()
             if not ok: return False, out
@@ -277,7 +292,41 @@ def send(argv):
     if not done: print("no answer - is omp-autobot running on the server, and the bot name right?"); return 2
     return 0
 
+def watch(argv):
+    """5.02.20: live status of every open.mp 24/7 server and bot on the broker (Ctrl+C to stop)."""
+    import argparse
+    ap = argparse.ArgumentParser(prog="omp_autobot.py watch")
+    ap.add_argument("-H", "--host", required=True); ap.add_argument("-p", "--port", type=int, default=0)
+    ap.add_argument("-u", "--user", default=""); ap.add_argument("-P", "--password", default=os.environ.get("MQTT_PASS", ""))
+    ap.add_argument("--tls", action="store_true"); ap.add_argument("-s", "--seconds", type=int, default=0)
+    o = ap.parse_args(argv); port = o.port or (8883 if o.tls else 1883)
+    try: m = Mqtt(o.host, port, o.user, o.password, "omp-watch-%x" % int(time.time() * 1000), tls=o.tls)
+    except OSError as e: print("cannot reach %s:%d - %s" % (o.host, port, e)); return 3
+    m.subscribe("thirtyfox/mp4/omp/+/status", BASE + "/+/online")
+    print("live status on %s (Ctrl+C to stop)" % o.host, flush=True)
+    end = time.time() + o.seconds if o.seconds else None; last_ping = time.time()
+    try:
+        while end is None or time.time() < end:
+            t, p = m.read(5)
+            if time.time() - last_ping > 25: m.ping(); last_ping = time.time()
+            if t != 0x30: continue
+            topic, text = parse_publish(p)
+            try: j = json.loads(text)
+            except ValueError: continue
+            if topic.endswith("/online"):
+                print("bot %-16s %s" % (j.get("bot", "?"), "online" if j.get("online") else "OFFLINE"), flush=True)
+            else:
+                pl = "%s/%s" % (j.get("players", "-"), j.get("max", "-"))
+                print("%-16s %-8s %-7s players %-7s %s:%s  %s  restarts/h %s  backup %s" % (
+                    j.get("name", "?"), "ONLINE" if j.get("online") else "offline", j.get("state", ""), pl,
+                    j.get("host", ""), j.get("port", ""), (j.get("hostname") or "")[:40], j.get("restarts_hour", 0),
+                    j.get("last_backup", "") or "-"), flush=True)
+    except KeyboardInterrupt:
+        pass
+    return 0
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "watch": sys.exit(watch(sys.argv[2:]))
     if len(sys.argv) > 1 and sys.argv[1] == "serve": serve()
     elif len(sys.argv) > 1 and sys.argv[1] == "send": sys.exit(send(sys.argv[2:]))
     elif len(sys.argv) > 1 and sys.argv[1] == "fetch": ok, out = fetch_latest(); print(out); sys.exit(0 if ok else 1)

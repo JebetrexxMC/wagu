@@ -91,7 +91,7 @@ omp_menu() {
         systemctl list-units 'omp-247-*' --all --no-legend --plain 2>/dev/null | awk '{printf "  %-34s %s\n", $1, $3}'
         printf '  %-34s %s\n' "omp-autobot.service" "$(svc omp-autobot)"
         line
-        echo "  1) install an open.mp server 24/7 (folder, name, port)"
+        echo "  1) install open.mp servers 24/7 (Enter = find every server by itself)"
         echo "  2) live log of a server     3) restart a server"
         echo "  4) backup a server now      5) stop a server"
         echo "  6) install / update the autobot only"
@@ -100,8 +100,10 @@ omp_menu() {
         line
         read -r -p "  choose: " k || return
         case "$k" in
-            1) read -r -p "  server folder (has omp-server): " d; read -r -p "  name [myserver]: " n; read -r -p "  port [7777]: " p
-               omp_get && bash "$OMP/install_247.sh" "$d" "${n:-myserver}" "${p:-7777}"; read -r -p "  enter to continue" _ ;;
+            1) read -r -p "  server folder (Enter = find all): " d
+               if [ -z "$d" ]; then omp_get && bash "$OMP/install_247.sh"
+               else read -r -p "  name [folder name]: " n; read -r -p "  port [from its config]: " p
+                    omp_get && bash "$OMP/install_247.sh" "$d" $n $p; fi; read -r -p "  enter to continue" _ ;;
             2|3|4|5) read -r -p "  name: " n; case "$n" in ""|*[!A-Za-z0-9_-]*) continue ;; esac
                case "$k" in
                    2) echo "(Ctrl+C to go back)"; journalctl -u "omp-247-$n" -f -n 40 ;;

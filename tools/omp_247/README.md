@@ -1,5 +1,38 @@
 # openmp_247.sh - open.mp / SA-MP server 24/7
 
+## Fully automatic (5.02.20) - nothing to fill in
+
+**On the phone (Termux app, [termux/termux-app](https://github.com/termux/termux-app))** - paste once:
+
+    curl -fsSL https://raw.githubusercontent.com/JebetrexxMC/wagu/main/tools/omp_247/termux_omp247.sh -o $PREFIX/bin/omp247 && chmod +x $PREFIX/bin/omp247 && omp247
+
+It installs python/curl/openssh by itself, asks the HiveMQ broker host / user / password **once** (saved in
+`~/.omp247/conf`, chmod 600) and opens the **omp247** menu. After that just type `omp247` (or `omp247 status`, `omp247 install`, ...):
+
+| Menu | Does |
+|---|---|
+| 1 | first-time server setup over SSH: kit update (if the HiveMQ kit is there) + the 24/7 runner for **every** server folder found + the autobot |
+| 2 | `install` through the autobot - finds every `omp-server` / `samp03svr` folder, port from its config.json / server.cfg |
+| 3 / 4 | servers found on the machine / installed services |
+| 5 6 7 8 | status / logs / restart / backup of every server (or `omp247 status rp2`) |
+| 9 | live status of every server and bot |
+| w | home-screen buttons for [Termux:Widget](https://github.com/termux/termux-widget) (Status, Install all, Restart, Backup, Logs, Live, Menu) |
+| n | phone notification when a server goes offline / comes back ([Termux:API](https://github.com/termux/termux-api)), started again after every phone restart by [Termux:Boot](https://github.com/termux/termux-boot) |
+| u / c | update omp247 + the bot / change the saved settings |
+
+**On the server** (SSH, Termius, or the HiveMQ web console's shell) - no folder, name or port needed:
+
+    curl -fsSLO https://github.com/JebetrexxMC/wagu/releases/latest/download/install_247.sh && sudo bash install_247.sh
+
+It finds every server folder (name = folder name, port = its config), installs each one 24/7 and starts the autobot.
+Copy a new server folder later -> menu 2 in omp247, or publish `install` (alone) on `thirtyfox/mp4/omp/bot/all/cmd`.
+
+**HiveMQ web console / WebSocket client**: publish `install`, `status`, `restart`, `backup`, `logs` (no name = every
+server) on `thirtyfox/mp4/omp/bot/all/cmd`; answers on `thirtyfox/mp4/omp/bot/+/reply`. The MP web console menu
+**p) 1** with Enter on the folder question does the same auto install.
+
+All 63 [termux](https://github.com/termux) repos are pinned (not downloaded) in `third_party/omp-dev/termux/`.
+
 ## Install on a server (5.02.18, systemd)
 
     curl -fsSLO https://github.com/JebetrexxMC/wagu/releases/latest/download/install_247.sh
@@ -22,9 +55,11 @@ The installer also starts **omp-autobot** (as root) when a broker is found. It l
 
 | Command (plain text) | Does |
 |---|---|
+| `install` | finds every server folder and installs each one (5.02.20) |
+| `find` | the server folders `install` would pick up |
 | `install myserver 7777 /home/samp/Server` | runs install_247.sh for that folder (the 24/7 service + backups + status) |
 | `list` | every omp-247 service and its state |
-| `status myserver` / `logs myserver 50` | state + the last log lines |
+| `status myserver` / `logs myserver 50` | state + the last log lines (no name = every server) |
 | `start` / `stop` / `restart myserver` | the service |
 | `backup myserver` | a backup now (into /var/backups/omp-247/myserver) |
 | `update` | the newest 24/7 files from GitHub, restarts the servers and the bot |
