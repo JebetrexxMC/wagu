@@ -317,8 +317,9 @@ struct SampGate::Impl
     bool classShown = false;              // the phone shows the PC class selection (< Spawn >)
 
     SvState* sv = nullptr;                // 5.02.29: SampVoice voice chat on this PC server (null = none seen)
+    std::atomic<bool> svOn{true};         // 5.02.29: Settings > Voice > SampVoice on PC servers (MP_GATE_NOVOICE=1 = off)
     std::atomic<bool>* joinedFlag = nullptr;
-    Impl() { for(int& t : tdOwner) t = -1; }
+    Impl() { for(int& t : tdOwner) t = -1; if(getenv("MP_GATE_NOVOICE")) svOn = false; }
 };
 
 typedef SampGate::Impl Impl;
@@ -2245,7 +2246,8 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                 {   // 5.02.11: the SampVoice client plugin's handshake, so "voice plugin not detected" servers let phones in
                     // (SvGetVersion / SvHasMicro). SampVoice 3.1 looks for EF BE AD DE + version 11 + micro anywhere in
                     // ClientJoin; 4.x for DE AD C0 DE + length + version (big endian 4.2.0) + micro, searching from the end.
-                    static const uint8_t kSv[] = { 0xEF, 0xBE, 0xAD, 0xDE, 11, 1,   0xDE, 0xAD, 0xC0, 0xDE, 5, 4, 2, 0, 0, 1 };
+                    uint8_t kSv[] = { 0xEF, 0xBE, 0xAD, 0xDE, 11, 1,   0xDE, 0xAD, 0xC0, 0xDE, 5, 4, 2, 0, 0, 1 };
+                    if(!I.svOn) { kSv[5] = 0; kSv[15] = 0; }   // 5.02.29: SampVoice off in Settings: SvHasMicro = no (like a PC without a mic)
                     o.Write((const char*)kSv, sizeof(kSv));
                 }
                 I.C->RPC((RPCID)25, &o, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
@@ -2692,6 +2694,7 @@ void SampGate::Loop()
 bool SampGate::Ended() const { return m_bRemote && m_p->phase == 9; }
 
 void SampGate::SetRemoteName(const char* name) { m_p->forceName = name ? name : ""; }
+void SampGate::SetVoice(bool on) { m_p->svOn = on; }
 void SampGate::SetAnnounce(bool on) { m_p->announce = on; m_p->annAt = 0; }
 
 void SampGate::Stop()

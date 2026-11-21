@@ -749,6 +749,10 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.30
+- New setting: Settings > Voice > "SampVoice on PC servers". Turn it off and on PC servers with SampVoice (Life of Player, RP servers) you don't hear the PC players and they don't hear you. The server sees you as a PC without a microphone, so you can still join servers that need the voice plugin. You can switch it while connected.
+- When SampVoice is off, the phone tells you once that the server has voice chat and where to turn it back on.
+
 ### 5.02.29
 - Fixed the "Lost connection to the server. Reconnecting" drop on the Life of Player language screen. open.mp sends a server's first textdraws and its spectate mode before the game starts. MP reset that state when the game started, so it no longer knew you were on a login camera and acted as if you could spawn. The state is now reset when the connection opens, before the server's first message.
 - PC servers: the phone uses 576-byte packets like samp.exe (RakNet used up to 1500). Big ones can be dropped on mobile data, and a 120-textdraw menu sends a lot of them. The log now also notes how long the server had been silent before a lost connection.

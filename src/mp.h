@@ -130,6 +130,7 @@ struct MPSettings
     // 3.11
     bool  chatTimestamps    = false;   // "[18:02:48]" in front of every chat line (Settings > Chat), off until turned on
     bool  voiceChat         = true;    // hear voice chat (the mic is turned on with the mic pill, only while connected)
+    bool  sampVoice         = true;    // 5.02.29: SampVoice voice chat on PC servers (off = you neither hear PC players nor talk to them)
     float voiceVolume       = 1.0f;    // 0..2
     float micGain           = 1.0f;    // 0.5..3
     float voicePitch        = 1.0f;    // 0.6..1.6: how your voice sounds to the others    // 2.16: host permission (custom servers): "Mission sync" (players see each other + share mission markers on missions)

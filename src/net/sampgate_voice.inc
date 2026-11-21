@@ -64,6 +64,7 @@ struct SvState
     uint32_t packid = 0; uint64_t lastUpAt = 0;
     bool saidNoKey = false, saidMute = false, saidReady = false;
     uint32_t rxN = 0, txN = 0, rxBad = 0;
+    bool svWasOn = true;
     std::map<uint16_t, SvSpeaker> spk;        // SA-MP id of the speaker
 };
 
@@ -174,7 +175,8 @@ static void SvControl(Impl& I, MPServer* srv, const uint8_t* d, int n)
             if(!s.saidReady)
             {
                 s.saidReady = true;
-                SvSay(I, srv, "[open.mp] This server has SampVoice voice chat: you hear the PC players, and with your MP mic on (voice button) they hear you. The talk key is pressed for you while you speak.");
+                SvSay(I, srv, I.svOn ? "[open.mp] This server has SampVoice voice chat: you hear the PC players, and with your MP mic on (voice button) they hear you. The talk key is pressed for you while you speak."
+                                     : "[open.mp] This server has SampVoice voice chat. It is off on this phone (Settings > Voice > SampVoice on PC servers).");
             }
             break;
         }
@@ -247,6 +249,7 @@ static void SvVoiceIn(Impl& I, MPServer* srv, const uint8_t* b, int n, uint64_t 
     if(h != SvCrc32c(b + 4, kSvHdr - 4) || kSvHdr + (int)len != n) { ++s.rxBad; return; }
     if(type != 1 || !len || I.phoneSlot < 0) return;
     ++s.rxN;
+    if(!I.svOn) return;   // Settings > Voice: SampVoice off - nothing is played
     Impl::Rp* p = RemPlayer(I, sender); if(!p) return;
     SvSpeaker& k = s.spk[sender];
     if(!k.dec)
@@ -329,6 +332,7 @@ static void SvPhoneVoice(Impl& I, MPServer* srv, const uint8_t* d, int n, uint64
 {
     if(!I.sv || !I.sv->ready || I.sv->sock < 0 || n < (int)sizeof(PktVoiceHdr)) return;
     SvState& s = *I.sv;
+    if(!I.svOn) { SvEndSpurt(I); return; }   // Settings > Voice: SampVoice off - the PC players don't hear you
     PktVoiceHdr vh; memcpy(&vh, d, sizeof(vh));
     if(!vh.len || (int)sizeof(vh) + vh.len > n) return;
     if(s.mute)
@@ -390,7 +394,14 @@ static void SvTick(Impl& I, MPServer* srv, uint64_t now)
         if(from.sin_addr.s_addr != s.to.sin_addr.s_addr) continue;
         SvVoiceIn(I, srv, b, r, now);
     }
-    if(s.talking && now - s.lastUpAt > 600) SvEndSpurt(I);   // the phone's end frame got lost
+    if(s.talking && (now - s.lastUpAt > 600 || !I.svOn)) SvEndSpurt(I);   // the phone's end frame got lost / turned off
+    if(!I.svOn && s.svWasOn)
+    {   // turned off while someone talked: stop his voice on the phone now
+        for(auto& kv : s.spk) { SvSpeaker& k = kv.second; if(k.playing || !k.q.empty()) { k.q.clear(); SvSendEnd(I, srv, k); k.playing = false; k.firstAt = 0; k.any = false; } }
+        printf("[crossplay] SampVoice turned off in Settings\n");
+    }
+    else if(I.svOn && !s.svWasOn) printf("[crossplay] SampVoice turned on in Settings\n");
+    s.svWasOn = I.svOn;
     for(auto it = s.spk.begin(); it != s.spk.end();)
     {
         SvSpeaker& k = it->second;

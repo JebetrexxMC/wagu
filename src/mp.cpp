@@ -6005,7 +6005,7 @@ void MP::SaveConfig()
     for(int i = 0; i < 10; ++i) { char k[16]; snprintf(k, sizeof(k), "Rule%d", i + 1); S(k, settings.rules[i]); }   // 3.39
     B("NoCamShake", settings.noCamShake);   // 3.34
     I("UiFont", settings.uiFont); I("UiFontFx", settings.uiFontFx); F("UiFontScale", settings.uiFontScale); F("UiScale", settings.uiScale);
-    B("ChatTimestamps", settings.chatTimestamps); B("VoiceChat", settings.voiceChat); F("VoiceVolume", settings.voiceVolume); F("MicGain", settings.micGain); F("VoicePitch", settings.voicePitch);   // 3.11
+    B("ChatTimestamps", settings.chatTimestamps); B("VoiceChat", settings.voiceChat); B("SampVoice", settings.sampVoice); F("VoiceVolume", settings.voiceVolume); F("MicGain", settings.micGain); F("VoicePitch", settings.voicePitch);   // 3.11
     B("ChatBubbles", settings.chatBubbles); B("TdStretch", settings.tdStretch); B("Labels3D", settings.labels3d); B("MapIcons", settings.mapIcons); B("Actors", settings.actors); B("GangZones", settings.gangZones);   // 3.01
     I("Team", settings.team); I("ClassSkin", settings.classSkin);
     B("ShowNameTags", settings.showNameTags); B("ShowDmgInd", settings.showDmgInd); B("GlobalChat", settings.globalChat);   // 3.35
@@ -6067,6 +6067,7 @@ static void LoadConfig()
     settings.tdStretch = ::cfg->GetBool("TdStretch", false, "MP");   // 5.02.10: off = no PC-style stretch   // 3.01: off by default
     settings.chatTimestamps = ::cfg->GetBool("ChatTimestamps", false, "MP");   // 3.11: off until the player turns it on
     settings.voiceChat   = ::cfg->GetBool("VoiceChat", true, "MP");
+    settings.sampVoice   = ::cfg->GetBool("SampVoice", true, "MP");   // 5.02.29
     settings.permAfk     = ::cfg->GetBool("PermAfk", true, "MP");       // 3.34
     settings.permDmgInd  = ::cfg->GetBool("PermDmgInd", true, "MP");
     settings.permShowIds = ::cfg->GetBool("PermShowIds", true, "MP");
@@ -7587,6 +7588,9 @@ static void SectionVoice(void*)   // 3.11
     ImGui::TextUnformatted("Voice chat");
     changed |= FloatMenu::ToggleSwitch("Voice chat (hear players near you)", &settings.voiceChat);
     ImGui::TextDisabled("Only on a server. Turn your mic on/off with the mic button next to Chat at the top. Players within 40 m hear you: louder up close, quieter further away.");
+    if(FloatMenu::ToggleSwitch("SampVoice on PC servers", &settings.sampVoice)) { changed = true; s_SampGate.SetVoice(settings.sampVoice); }   // 5.02.29
+    ImGui::TextDisabled(settings.sampVoice ? "On: on PC servers with SampVoice (Life of Player, RP servers) you hear the PC players and they hear you when your mic is on."
+                                           : "Off: on PC servers you don't hear SampVoice and nobody there hears you. The server still sees the voice plugin, so you can join.");
     ImGui::TextUnformatted("Voice volume");
     int vv = (int)(settings.voiceVolume * 100 + 0.5f);
     ImGui::SetNextItemWidth(-FLT_MIN);

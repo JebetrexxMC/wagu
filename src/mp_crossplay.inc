@@ -97,7 +97,7 @@ static void StartPcJoin(const char* addr, const char* pw)
         if(s_SampProxy.Start(port, nm, ServerLog, 2, settings.region)) { ok = true; s_nSampProxyPort = port; }
     }
     if(!ok) { SysMsg(COL_RED, "Could not open the local crossplay port."); return; }
-    SampGate::SetLogHook(GateLog); s_SampGate.SetRemoteName(settings.pcName);   // 5.02.12
+    SampGate::SetLogHook(GateLog); s_SampGate.SetRemoteName(settings.pcName); s_SampGate.SetVoice(settings.sampVoice);   // 5.02.12, 5.02.29
     if(!s_SampGate.StartRemote(&s_SampProxy, h, p, pw && *pw ? pw : nullptr))
     { s_SampProxy.Stop(); s_nSampProxyPort = 0; SysMsg(COL_RED, "Could not start the open.mp connection."); return; }
     MP_CopyStr(settings.pcServer, addr, sizeof(settings.pcServer)); SaveConfig();

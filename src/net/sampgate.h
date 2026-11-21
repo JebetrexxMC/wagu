@@ -53,6 +53,8 @@ public:
     void SetAnnounce(bool on);
     // 5.02.12 remote role: the name on the PC server ("Firstname_Lastname" for RP); empty = the MP name without [MOD] / [VIP] tags
     void SetRemoteName(const char* name);
+    // 5.02.29 remote role: SampVoice voice chat on / off (Settings > Voice). Can change while connected
+    void SetVoice(bool on);
 
     bool Running() const { return m_bRun; }
     bool IsRemote() const { return m_bRemote; }
