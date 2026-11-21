@@ -257,6 +257,7 @@ static bool HandleCommand(const char* text)
     if(RpCommand(cmd, arg)) return true;    // 3.25: Mega Vil Futuristic RP commands (others blocked)
     if(AuthCommand(cmd)) return true;       // 3.21.6: /stats  /char (also on Brief Case War)
     if(BcwBlockCommand(cmd)) return true;   // 3.04: Brief Case War: no gamemodes / cheats / teleports
+    if(OfflineCommand(cmd, arg)) return true;  // 5.02.40: /offline (hotspot play without internet)
     if(BountyCommand(cmd, arg)) return true;   // 5.02.31: /bounty /duel /accept /decline /bstats /bwelcome
     if(GamesCommand(cmd, arg)) return true;
     // 2.35: the host disabled cheats

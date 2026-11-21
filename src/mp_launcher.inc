@@ -1609,7 +1609,7 @@ static void LTable(std::vector<LRow>& rows, float w, float h)
     }
     if(rows.empty())
         ImGui::TextDisabled(s_szSearch[0] ? "No server matches \"%s\"." : (s_nLTab == LT_FAVORITES ? "No favourite servers yet. Tap a server and press Favorite, or tap + to add one." :
-                            s_nLTab == LT_LAN ? "No Wi-Fi servers on this network." : (s_nLTab == LT_INTERNET && OmpSub()) ? OmpEmptyText() : "Searching..."), s_szSearch);
+                            s_nLTab == LT_LAN ? "No Wi-Fi servers on this network yet. Host: tap Host offline server. Friend: Find host and join." : (s_nLTab == LT_INTERNET && OmpSub()) ? OmpEmptyText() : (s_nLTab == LT_INTERNET && OffNoInternet()) ? "No internet. Offline play: open the Lan tab (hotspot / same Wi-Fi)." : "Searching..."), s_szSearch);
     LDragScroll();
     ImGui::EndChild();
     ImGui::EndChild();
@@ -2680,6 +2680,11 @@ static void RenderLauncher(void* openPtr)
             if(n.token) for(auto& l : live) if(l.token == n.token) { n.players = l.players; n.maxPlayers = l.maxPlayers; break; }
     }
     if(s_bHasNetwork && !IsSearching() && MP_NowMs() - s_nNearbyTime > 15000) { s_nNearbyTime = MP_NowMs(); StartJob(JOB_SCAN, false, "", MP_DEFAULT_PORT); }
+    {   // 5.02.40: no internet but a hotspot / Wi-Fi: open on the Lan tab (once per game start)
+        static bool s_bOffSwitched = false;
+        if(!s_bOffSwitched && s_nLTab == LT_INTERNET && s_bHasNetwork && OffNoInternet())
+        { s_bOffSwitched = true; s_nLTab = LT_LAN; SysMsg(COL_SYSTEM, "No internet - Lan tab: offline play over your hotspot / Wi-Fi (/offline help)."); }
+    }
     bool listTab = s_nLTab == LT_INTERNET || s_nLTab == LT_FAVORITES || s_nLTab == LT_LAN;
     std::vector<LRow> rows;
     if(listTab) LBuildRows(s_nLTab, nearby, rows);
@@ -2786,7 +2791,8 @@ static void RenderLauncher(void* openPtr)
     {
         float tableW = contentW - UI::S(10);
         ImGui::SetCursorScreenPos(ImVec2(cx0 + UI::S(4), bodyY + UI::S(4)));
-        LTable(rows, tableW, bodyH - UI::S(4));
+        float cardH = s_nLTab == LT_LAN ? OfflineCard(tableW) : 0;   // 5.02.40: offline play card
+        LTable(rows, tableW, bodyH - UI::S(4) - cardH);
         // the table may have changed the selection
         sel = nullptr;
         { char key[48]; for(auto& r : rows) { LRowKey(r, key, sizeof(key)); if(s_szLSelKey[0] && !strcmp(key, s_szLSelKey)) { sel = &r; break; } } }

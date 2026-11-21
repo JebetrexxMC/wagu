@@ -1,4 +1,4 @@
--- MP mod commands 1.0 (MP 5.02.37): /mods lists the chat command of every script mod that MP ships, with a button
+-- MP mod commands 1.0 (MP 5.02.40): /mods lists the chat command of every script mod that MP ships, with a button
 -- that runs it (plain imgui). A command that no script registered (the mod is switched off) is shown greyed out.
 
 script_name('MP mod commands')
@@ -24,6 +24,9 @@ local LIST = {
     { 'hudexample', 'FiveM example HUD resource' },
     { 'hasslehud', 'HassleHUD panel' },
     { 'messahud', 'MessaHUD settings' },
+    { 'offline', 'Offline play (hotspot, no internet): status' },
+    { 'offline host', 'Offline play: host your server' },
+    { 'offline join', 'Offline play: find the host and join' },
     { 'messahud move', 'MessaHUD: move the HUD' },
     { 'messahud game', 'MessaHUD mini game' },
     { 'snapturn', 'Snap turn' },

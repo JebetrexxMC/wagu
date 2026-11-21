@@ -749,6 +749,13 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.40
+- Offline play: two phones play with no internet, no mobile data and no router. The host phone turns on its Mobile Hotspot (mobile data can be off), the friend connects its Wi-Fi to that hotspot. The MP server runs inside GTA SA on the host phone (built into libMP, no Termux, no server app) and the friend joins it by its local IP, so no data is used.
+  - Lan tab: new "Offline play" card. It shows whether this phone gives the hotspot or is on one, its local IP and the host phone's IP (the hotspot gateway, for example 192.168.43.1), and whether there is internet. Buttons: Host offline server (Stop my server), Find host and join (sweeps the network and joins the host's server; with a password it asks you to tap it in the list) and How to.
+  - New chat command /offline (also /hotspot): status, /offline host, /offline join [ip[:port]], /offline stop, /offline help.
+  - With no internet (and no mobile data link) the launcher opens on the Lan tab once, and the empty Internet list points there. "You are offline" now also mentions the hotspot.
+  - The default and featured servers still need internet (Discord login); your own server does not. Both phones need the same MP version.
+
 ### 5.02.39
 - New lua_scripts/MessaHUD/: MessaHUD 1.2c by hq~ (from Monet loader/messahud.zip), rewritten for Android. The original is a compiled PC script that draws with d3d9 and moves the radar with an .asi, so it can't run on the phone. The rewrite keeps its look and its pictures, sounds and fonts: an FPS and ping box, time and date, nickname (or your own text, the "encrypted nick"), health / armour / sprint / breath bars (and car health in a car) with numbers on or off, the weapon icon with clip / rest, money with dots, and six wanted stars. /messahud opens the settings in a MessaHUD-style window (black, orange frame). /messahud on|off, /messahud move (drag the HUD and the FPS box) and /messahud game (tap-the-target mini game with the original sounds). Sprint and breath come from CWorld::Players. The radar stays the game's. Use one HUD at a time (/messahud off or HassleHUD off).
 - libMP: new MP_HudHideInfo(on) for Lua HUDs. It skips the drawing of the game's player info block (bars, weapon, ammo, money, clock, stars); tapping the weapon still switches weapons. MessaHUD uses it. It does nothing with Advanced Settings installed.

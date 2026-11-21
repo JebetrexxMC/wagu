@@ -3,6 +3,14 @@
 You can play MP with friends on the same Wi-Fi router or on a phone hotspot, without any 24/7 server.
 One phone hosts the server, the others join it from the **Lan** tab.
 
+## Offline: no internet, no mobile data (MP 5.02.40)
+
+1. **Host phone**: Mobile data OFF, **Mobile Hotspot ON**. Start GTA SA, open the MP launcher, **Lan** tab, tap **Host offline server** (or type `/offline host`).
+2. **Friend's phone**: Mobile data OFF, **Wi-Fi ON**, connect to the host's hotspot. Lan tab, tap **Find host and join** (or `/offline join`).
+3. Not found: `/offline join 192.168.43.1` (the host's IP is on the host's Lan tab card; some phones use 192.168.x.1 or 10.x.x.1).
+
+No internet, no load and no router are used: the server runs inside GTA on the host phone. `/offline` shows this phone's IP and the host's IP.
+
 ## What you need
 
 - Every phone has the **same MP version** (4.10). An older phone gets "Server uses a different MP version" or "Your MP version is too old".

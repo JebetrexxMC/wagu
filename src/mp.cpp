@@ -168,6 +168,7 @@ static int  s_nFeatWaitTries = 0;   // 3.53
 static bool DupFallBack();    // 3.23.5
 static void ProcessLan(uint64_t now);
 static void CrossplayTick(uint64_t now);   // 5.02 (mp_crossplay.inc)
+static void OfflineTick(uint64_t now); static bool OfflineCommand(const char* cmd, const char* arg); static float OfflineCard(float w); static bool OffNoInternet();   // 5.02.40 (mp_offline.inc)
 static void RunHostRequest();   // 3.21.2: host / stop from the Add server page, run on the game frame
 
 using namespace MP;
@@ -4992,7 +4993,7 @@ bool MP::ModeOn(uint16_t gm)
 
 static void OfflineMsg()
 {
-    SysMsg(COL_RED, "You are offline. Turn on Wi-Fi or mobile data.");
+    SysMsg(COL_RED, "You are offline. Turn on Wi-Fi, mobile data or your Mobile Hotspot (offline play: /offline).");
 }
 
 static char s_szJoinPw[MP_PASSWORD_LEN + 1] = "";   // 2.19: password for the server we join / host now
@@ -5888,6 +5889,7 @@ static void ProcessLan(uint64_t now)
     RunHostRequest();
     ProcessBrokerStandby(now);
     CrossplayTick(now);   // 5.02: open.mp / SA-MP crossplay
+    OfflineTick(now);     // 5.02.40: offline hotspot play
     // online lobby: announce the server this phone hosts (player count refreshed every 0.5 s)
     {
         static uint64_t lastCount = 0; static int count = 0;
@@ -7404,6 +7406,7 @@ static void ServerDetailsEditor()
 }
 
 #include "mp_crossplay.inc"   // 5.02
+#include "mp_offline.inc"     // 5.02.40: offline play (hotspot / same Wi-Fi, no internet)
 
 static void SectionAddServer(void*)
 {
