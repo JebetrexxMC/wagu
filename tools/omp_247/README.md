@@ -24,7 +24,14 @@ It installs python/curl/openssh by itself, asks the HiveMQ broker host / user / 
 
     curl -fsSLO https://github.com/JebetrexxMC/wagu/releases/latest/download/install_247.sh && sudo bash install_247.sh
 
-It finds every server folder (name = folder name, port = its config), installs each one 24/7 and starts the autobot.
+It finds every server folder (name = folder name, port = its config), installs each one 24/7 and starts the autobot. It also puts
+**`omp247` on the server**: type `omp247` there and it uses the server's own broker login (`/etc/omp-247/autobot.env`
+or the HiveMQ kit's `/etc/mp-hivemq/mp.env`), so it asks nothing. A folder whose port is already in use (a server
+running in screen) is skipped, so nothing runs twice.
+
+**HiveMQ kit = automatic**: every kit install / update (console menu 7, `update.sh`) now runs that same line by itself
+(`OMP247=0` in mp.env turns it off). In the **MP web console**: `a)` = that line (find + install every server + autobot +
+omp247), `t)` = the omp247 console, also as `p) a` and `p) 9`.
 Copy a new server folder later -> menu 2 in omp247, or publish `install` (alone) on `thirtyfox/mp4/omp/bot/all/cmd`.
 
 **HiveMQ web console / WebSocket client**: publish `install`, `status`, `restart`, `backup`, `logs` (no name = every

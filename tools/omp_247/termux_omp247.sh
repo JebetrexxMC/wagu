@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# omp247 - phone console for the open.mp 24/7 servers (Termux, also any Linux).  5.02.20
+# omp247 - phone + server console for the open.mp 24/7 servers (Termux, HiveMQ web console, any Linux).  5.02.20c
 #
 # One line in Termux (https://github.com/termux/termux-app):
 #   curl -fsSL https://raw.githubusercontent.com/JebetrexxMC/wagu/main/tools/omp_247/termux_omp247.sh -o $PREFIX/bin/omp247 && chmod +x $PREFIX/bin/omp247 && omp247
@@ -10,7 +10,9 @@
 #   omp247 install      find every open.mp / SA-MP server folder on the server and run it 24/7
 #   omp247 find|list|status|logs|restart|backup|update|ping   same as the menu
 #   omp247 watch        live status of every server
-#   omp247 setup        first-time server setup over SSH (installs the 24/7 runner + bot)
+#   omp247 setup        first-time server setup (on the server itself, or over SSH from the phone)
+# On the server (HiveMQ web console menu p) 9, or SSH) omp247 is installed by install_247.sh and reads the
+# server's own broker login (/etc/omp-247/autobot.env or /etc/mp-hivemq/mp.env): nothing to type.
 #   omp247 widget       home-screen buttons for Termux:Widget  (https://github.com/termux/termux-widget)
 #   omp247 boot         phone notifications when a server goes offline, started by Termux:Boot
 #                       (https://github.com/termux/termux-boot + https://github.com/termux/termux-api)
@@ -21,6 +23,7 @@ REL=https://github.com/JebetrexxMC/wagu/releases/latest/download
 D="$HOME/.omp247"; CONF="$D/conf"; BOT="$D/omp_autobot.py"
 mkdir -p "$D"; chmod 700 "$D"
 TERMUX=0; [ -n "${PREFIX:-}" ] && [ -d "${PREFIX:-/x}/bin" ] && case "$PREFIX" in *com.termux*) TERMUX=1;; esac
+SUDO=sudo; [ "$(id -u)" = 0 ] && SUDO=
 SELF="$(command -v omp247 2>/dev/null || echo "$0")"
 
 need() {   # install what is missing (pkg on Termux, apt/dnf elsewhere)
@@ -31,8 +34,8 @@ need() {   # install what is missing (pkg on Termux, apt/dnf elsewhere)
   [ ${#miss[@]} -eq 0 ] && return 0
   echo "installing: ${miss[*]}"
   if [ $TERMUX = 1 ]; then pkg install -y "${miss[@]}"
-  elif command -v apt-get >/dev/null; then sudo apt-get install -y $(printf '%s\n' "${miss[@]}" | sed 's/^python$/python3/;s/^openssh$/openssh-client/')
-  elif command -v dnf >/dev/null; then sudo dnf install -y $(printf '%s\n' "${miss[@]}" | sed 's/^python$/python3/;s/^openssh$/openssh-clients/')
+  elif command -v apt-get >/dev/null; then $SUDO apt-get install -y $(printf '%s\n' "${miss[@]}" | sed 's/^python$/python3/;s/^openssh$/openssh-client/')
+  elif command -v dnf >/dev/null; then $SUDO dnf install -y $(printf '%s\n' "${miss[@]}" | sed 's/^python$/python3/;s/^openssh$/openssh-clients/')
   else echo "please install: ${miss[*]}"; return 1; fi
 }
 PY() { if command -v python3 >/dev/null; then python3 "$@"; else python "$@"; fi; }
@@ -57,7 +60,25 @@ config() {
       printf '%s=%q\n' "$k" "${!k}"; done; } > "$CONF"
   chmod 600 "$CONF"; echo "saved in $CONF"
 }
-load() { [ -f "$CONF" ] || config; . "$CONF"; [ -n "${MQTT_HOST:-}" ] || { echo "no broker host set"; config; . "$CONF"; }; }
+autoconf() {   # 5.02.20c: on the server the broker login is already there - nothing to ask
+  local f=/etc/omp-247/autobot.env e=/etc/mp-hivemq/mp.env v
+  gv() { sed -n "s/^$1=//p" "$2" 2>/dev/null | tail -1 | tr -d '"'"'"; }
+  if [ -r "$f" ] && [ -n "$(gv MQTT_HOST $f)" ]; then
+    MQTT_HOST=$(gv MQTT_HOST $f); MQTT_PORT=$(gv MQTT_PORT $f); MQTT_USER=$(gv MQTT_USER $f); MQTT_PASS=$(gv MQTT_PASS $f)
+    [ -z "$MQTT_PASS" ] && [ "$MQTT_USER" = bridge ] && MQTT_PASS=$(gv BRIDGE_PASS $e)
+    v=$(gv MQTT_TLS $f); case "$v" in 1|y*|true) MQTT_TLS=y;; *) MQTT_TLS=n;; esac
+    BOT_NAME=$(gv BOT_NAME $f); BOT_TOKEN=$(gv BOT_TOKEN $f)
+  elif [ -r "$e" ] && [ -n "$(gv ADMIN_PASS $e)$(gv BRIDGE_PASS $e)" ]; then
+    MQTT_HOST=127.0.0.1; MQTT_PORT=1883; MQTT_TLS=n
+    if [ -n "$(gv ADMIN_PASS $e)" ]; then MQTT_USER=admin; MQTT_PASS=$(gv ADMIN_PASS $e); else MQTT_USER=bridge; MQTT_PASS=$(gv BRIDGE_PASS $e); fi
+    BOT_NAME=all; BOT_TOKEN=
+  else return 1; fi
+  MQTT_PORT=${MQTT_PORT:-1883}; BOT_NAME=${BOT_NAME:-all}; SSH_TARGET=local
+  umask 077; { for k in MQTT_HOST MQTT_PORT MQTT_TLS MQTT_USER MQTT_PASS BOT_NAME BOT_TOKEN SSH_TARGET; do
+      printf '%s=%q\n' "$k" "${!k}"; done; } > "$CONF"; chmod 600 "$CONF"
+  echo "omp247: using this server's broker ($MQTT_USER@$MQTT_HOST:$MQTT_PORT) - nothing to set up"
+}
+load() { [ -f "$CONF" ] || autoconf || config; . "$CONF"; [ -n "${MQTT_HOST:-}" ] || { echo "no broker host set"; config; . "$CONF"; }; }
 mqargs() { A=(-H "$MQTT_HOST" -p "$MQTT_PORT"); [ -n "$MQTT_USER" ] && A+=(-u "$MQTT_USER")
   [ "$MQTT_TLS" = y ] && A+=(--tls); export MQTT_PASS; }
 
@@ -69,7 +90,12 @@ cmd() {   # send one command to the bot(s) and print the answer
 watch() { need && getbot && load || return 1; mqargs; PY "$BOT" watch "${A[@]}" "$@"; }
 
 setup() {   # first time on the server: 24/7 runner for every server found + the bot, all automatic
+  if [ $TERMUX = 0 ] && command -v systemctl >/dev/null && { [ "${SSH_TARGET:-}" = local ] || [ ! -f "$CONF" ]; } \
+     && { [ -r /etc/mp-hivemq/mp.env ] || [ -r /etc/omp-247/autobot.env ] || [ -d /opt/omp-247 ]; }; then   # we are on the server
+    cd /tmp && curl -fsSLO "$REL/install_247.sh" && $SUDO bash install_247.sh; local r=$?; [ -f "$CONF" ] || autoconf; return $r
+  fi
   need ssh && load || return 1
+  [ "${SSH_TARGET:-}" = local ] && SSH_TARGET=
   [ -n "${SSH_TARGET:-}" ] || { SSH_TARGET=$(ask "SSH login, e.g. root@1.2.3.4" ""); [ -n "$SSH_TARGET" ] || return 1
     sed -i '/^SSH_TARGET=/d' "$CONF"; printf 'SSH_TARGET=%q\n' "$SSH_TARGET" >> "$CONF"; }
   local tls=0; [ "$MQTT_TLS" = y ] && tls=1
@@ -115,7 +141,7 @@ menu() {
   need && getbot && load || return 1
   while true; do
     echo; echo "== omp247  broker $MQTT_HOST:$MQTT_PORT  bot ${BOT_NAME:-all} =="
-    echo " 1) first-time server setup (SSH)     2) install every server (auto)"
+    echo " 1) server setup (here, or over SSH)  2) install every server (auto)"
     echo " 3) servers found on the machine      4) list installed"
     echo " 5) status   6) logs   7) restart    8) backup   9) live status"
     echo " w) home-screen buttons   n) offline notifications   u) update   c) settings   0) exit"

@@ -78,6 +78,8 @@ railway_menu() {
             6) "$RW" env set AUTH_PRIVATE_KEY; read -r -p "  enter to continue" _ ;;
             7) "$RW" env; read -r -p "  enter to continue" _ ;;
             8) tail -n 30 /opt/mp/railway/discordpy-bot/deploys.log 2>/dev/null || echo "(no deploys yet)"; read -r -p "  enter to continue" _ ;;
+            9) omp_con ;;
+            a|A) omp_auto ;;
             0|q|b) return ;;
         esac
     done
@@ -85,6 +87,15 @@ railway_menu() {
 # 5.02.20: open.mp 24/7 servers (tools/omp_247 of the wagu repo) + the MQTT autobot, from the browser console
 OMP=/opt/omp-247
 omp_get() { [ -s "$OMP/install_247.sh" ] || { mkdir -p "$OMP"; curl -fsSL https://raw.githubusercontent.com/JebetrexxMC/wagu/main/tools/omp_247/install_247.sh -o "$OMP/install_247.sh"; }; }
+omp_auto() {   # 5.02.20c: the one line, from the console
+    echo "  curl -fsSLO https://github.com/JebetrexxMC/wagu/releases/latest/download/install_247.sh && sudo bash install_247.sh"
+    (cd /tmp && curl -fsSLO https://github.com/JebetrexxMC/wagu/releases/latest/download/install_247.sh && bash install_247.sh)
+    read -r -p "  enter to continue" _
+}
+omp_con() {    # 5.02.20c: omp247 here, with this server's broker login (asks nothing)
+    [ -x /usr/local/bin/omp247 ] || { curl -fsSL https://raw.githubusercontent.com/JebetrexxMC/wagu/main/tools/omp_247/termux_omp247.sh -o /usr/local/bin/omp247 && chmod 755 /usr/local/bin/omp247; } || return
+    /usr/local/bin/omp247
+}
 omp_menu() {
     while true; do
         clear; c '1;36' "  open.mp 24/7 servers + autobot"; echo; line
@@ -96,7 +107,8 @@ omp_menu() {
         echo "  4) backup a server now      5) stop a server"
         echo "  6) install / update the autobot only"
         echo "  7) update the 24/7 files (newest from GitHub) + restart"
-        echo "  8) live status (MQTT)       0) back"
+        echo "  8) live status (MQTT)       9) omp247 console (same as the phone)"
+        echo "  a) AUTO: find + install every server + autobot + omp247   0) back"
         line
         read -r -p "  choose: " k || return
         case "$k" in
@@ -132,6 +144,7 @@ while true; do
     echo "  o) old MP versions refused (name, version, phone id, IP)"
     echo "  r) MP Railway: Discord bot 24/7 (/gen /stats /help /streaming)"
     echo "  p) open.mp 24/7 servers + autobot (install / log / restart / backup)"
+    echo "  a) AUTO open.mp 24/7: find + install every server + autobot    t) omp247 console"
     line
     read -r -p "  choose: " k || exit 0
     case "$k" in
@@ -147,6 +160,8 @@ while true; do
         9) echo "type exit to come back"; bash -l ;;
         r|R) railway_menu ;;
         p|P) omp_menu ;;
+        a|A) omp_auto ;;
+        t|T) omp_con ;;
         s|S) servers_menu ;;
         0|q|exit) exit 0 ;;
     esac

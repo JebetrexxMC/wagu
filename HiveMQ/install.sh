@@ -576,6 +576,15 @@ ufw --force enable >/dev/null
 sleep 6
 systemctl is-active --quiet hivemq && say "HiveMQ is running" || warn "HiveMQ did not start: journalctl -u hivemq -n 50"
 echo
+# 5.02.20c: open.mp 24/7 + autobot + omp247 console, all automatic (the same as
+#   curl -fsSLO https://github.com/JebetrexxMC/wagu/releases/latest/download/install_247.sh && sudo bash install_247.sh)
+# It finds every omp-server / samp03svr folder, runs each one 24/7, starts omp-autobot on this broker.  OMP247=0 in mp.env skips it.
+if [ "${OMP247:-1}" = 1 ]; then
+    say "open.mp 24/7 + autobot (finds the server folders by itself)"
+    if curl -fsSL --max-time 60 https://github.com/JebetrexxMC/wagu/releases/latest/download/install_247.sh -o /tmp/install_247.sh; then
+        timeout 900 bash /tmp/install_247.sh 2>&1 | sed 's/^/  omp: /' || true
+    else say "could not download install_247.sh - later: console menu p) 1"; fi
+fi
 say "Done. This region: $REGION   (restarted this run:${CHANGED})"
 echo "    speed:   sudo $BASE/console/mp-xdp.sh status   (XDP flood filter)   |  XDP=0 / XDP_PPS= / NOTRACK=0 in $ENV_FILE"
 echo "    status:  sudo $SRC_DIR/tools/status.sh     menu: sudo $BASE/console/mp-console.sh"

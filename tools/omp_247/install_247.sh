@@ -37,10 +37,12 @@ if command -v apt-get >/dev/null; then
 fi
 
 ETC=/etc/omp-247; LIB=/opt/omp-247; mkdir -p "$ETC" "$LIB"
-for f in openmp_247.sh omp_status.py omp_autobot.py install_247.sh; do   # next to this file, else the newest from GitHub
+for f in openmp_247.sh omp_status.py omp_autobot.py install_247.sh termux_omp247.sh; do   # next to this file, else the newest from GitHub
   if [ -f "$HERE/$f" ]; then [ "$HERE/$f" -ef "$LIB/$f" ] || install -m 755 "$HERE/$f" "$LIB/$f"
   else curl -fsSL "$RAW/$f" -o "$LIB/$f.new" && chmod 755 "$LIB/$f.new" && mv -f "$LIB/$f.new" "$LIB/$f" || { echo "could not download $f"; exit 1; }; fi
 done
+
+ln -sf "$LIB/termux_omp247.sh" /usr/local/bin/omp247 2>/dev/null   # 5.02.20c: the omp247 console on the server too
 
 # broker: env vars > the MP HiveMQ kit > off
 MQH=${MQTT_HOST:-}; MQP=${MQTT_PORT:-1883}; MQU=${MQTT_USER:-}; MQW=${MQTT_PASS:-}; MQE=""; MQTLS=${MQTT_TLS:-0}
@@ -103,6 +105,9 @@ if [ -z "${1:-}" ] || [ "${1:-}" = auto ] || [ "${1:-}" = --auto ]; then
     n=$(basename "$d" | tr -c 'A-Za-z0-9_\n-' '_' | cut -c1-32); n=${n:-server}; [ "$n" = bot ] && n=server
     case "$used" in *" $n "*) n="${n}_$(srvport "$d")";; esac; used="$used$n "
     echo "== found $d -> name $n, port $(srvport "$d")"
+    if ! systemctl is-active --quiet "omp-247-$n" && command -v ss >/dev/null && ss -Hlun "sport = :$(srvport "$d")" 2>/dev/null | grep -q .; then
+      echo "   skipped: port $(srvport "$d") is already used (running in screen / another way?) - stop it, then run this again"; continue
+    fi
     OMP_BOT=0 bash "$LIB/install_247.sh" "$d" "$n" "$(srvport "$d")" || echo "   (failed: $d)"
   done
   bot; exit 0

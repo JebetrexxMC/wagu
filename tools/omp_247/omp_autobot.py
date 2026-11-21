@@ -25,7 +25,7 @@ BASE = "thirtyfox/mp4/omp/bot"
 LIB = "/opt/omp-247"
 ETC = "/etc/omp-247"
 RAW = "https://raw.githubusercontent.com/JebetrexxMC/wagu/main/tools/omp_247/"
-FILES = ("install_247.sh", "openmp_247.sh", "omp_status.py", "omp_autobot.py")
+FILES = ("install_247.sh", "openmp_247.sh", "omp_status.py", "omp_autobot.py", "termux_omp247.sh")
 NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
 
 # ---------------------------------------------------------------- tiny MQTT 3.1.1 (QoS 0)
@@ -148,6 +148,8 @@ def fetch_latest():
             os.replace(tmp, os.path.join(LIB, f)); got.append(f)
         except Exception as e:
             return False, "download %s failed: %s" % (f, e)
+    try: os.symlink(os.path.join(LIB, "termux_omp247.sh"), "/usr/local/bin/omp247.tmp"); os.replace("/usr/local/bin/omp247.tmp", "/usr/local/bin/omp247")
+    except OSError: pass
     return True, "updated " + ", ".join(got)
 
 HELP = ("commands: install (finds every server) | find | list | install <name> <port> <server_dir> | status <name> | start|stop|restart <name> | "
