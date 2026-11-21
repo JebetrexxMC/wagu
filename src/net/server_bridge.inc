@@ -29,7 +29,7 @@ int MPServer::BridgeAdd(const char* name, uint32_t color, uint16_t skin)
     return -1;
 }
 
-void MPServer::BridgeSync(int slot, const SyncData& d)
+void MPServer::BridgeSync(int slot, const SyncData& d, const SyncExt* ext)
 {
     std::lock_guard<std::mutex> lk(m_Mutex);
     if(slot < 0 || slot >= MP_MAX_PLAYERS || !m_Slots[slot].used || !m_Slots[slot].ghost) return;
@@ -42,6 +42,14 @@ void MPServer::BridgeSync(int slot, const SyncData& d)
     bool important = ((d.flags ^ me.lastFlags) & stateMask) != 0;
     me.lastFlags = d.flags; me.skin = d.skin; me.lastSeen = MP_NowMs();
     me.lastSync = d; me.hasSync = true;
+    if(ext)
+    {   // 5.02.27: with anims (a PC player's ApplyAnimation / AnimationID shown on his ghost)
+        uint8_t out[sizeof(PktSync) + sizeof(SyncExt) + 16];
+        memcpy(out, &p, sizeof(p));
+        const int el = MP_EncodeSyncExt(*ext, out + sizeof(p));
+        RelaySync(slot, out, (int)sizeof(p) + el, important);
+        return;
+    }
     RelaySync(slot, &p, (int)sizeof(p), important);
 }
 
@@ -74,6 +82,7 @@ void MPServer::BridgePeers(std::vector<BridgePeer>& out)
         BridgePeer b; memset(&b, 0, sizeof(b));
         b.slot = i; MP_CopyStr(b.name, s.name, MP_NAME_LEN); b.skin = s.skin;
         b.hasSync = s.hasSync; if(s.hasSync) b.d = s.lastSync;
+        b.hasAnim = s.hasSync && s.bHasAnim; if(b.hasAnim) b.anim = s.bAnim;
         out.push_back(b);
     }
 }

@@ -749,6 +749,14 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.27
+- PC servers (open.mp, SA-MP 0.3.7, 0.3.DL): the phone now sends aim sync, so PC players see where you aim and shoot. It also sends spectator sync while a script spectates you, and the player or actor you aim at (weapon target).
+- Special actions (ducking, phone, hands up, drinking and so on) are echoed in on-foot sync.
+- Animations work both ways using the open.mp animation index table (1813 animations). PC players see your script animations, and you see theirs on the phone.
+- Radar markers of far-away PC players show up as blips.
+- PC players who ride as passengers sit in the right car and seat on the phone. Their aim direction is used too.
+- Parked cars and trailers that PC players push or tow now move on the phone.
+
 - **5.02.26** (app + gate: libMP32.so / libMP64.so, MP_BUILD 50226): **the rest of the [open.mp functions](https://open.mp/docs/server/omp-functions) on the phone, and clickable sprite menus**.
   - **Textdraw menus fixed** (Life of Player language / login picker and every LD_SPAC / sprite GUI): sprite and model textdraws (font 4 / 5) now get their TextSize as width / height. Before, they came out 1 pixel big, so only the text showed and nothing could be tapped. Taps use the touch position, a little slack around small buttons, and only the top-most selectable textdraw. Tested: tapping ENGLISH on Life of Player moves on to its account dialog.
   - **HUD**: TogglePlayerWidescreen, TogglePlayerClock (clock at the top), SetPlayerWorldBounds, SetPlayerSkillLevel, EnableStuntBonusForPlayer (stored).

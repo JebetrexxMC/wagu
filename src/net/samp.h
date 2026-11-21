@@ -57,5 +57,7 @@ enum eSampOp : uint8_t
                       //       4 interior (b), 5 damage (text = "panels doors lights tyres"), 6 colours (b = c1, f[0] = c2)
     SPO_EDIT,         // S->C  a = 1 EditObject / 2 EditAttachedObject / 3 SelectObject panel (text = title), 0 hide
                       // C->S  a = button: 1..6 x- x+ y- y+ z- z+, 7..10 rx+ ry+ rz- rz+, 11 step, 20 save, 21 cancel, 30 pick nearest
+    SPO_MARKER,       // S->C  5.02.27: radar marker of a far PC player (ShowPlayerMarkers): val = PC player id, a = 1 show (f = x y z,
+                      //       b unused, text = colour "RRGGBBAA" hex) / 0 hide, a = 2 hide all
 };
 struct PktSamp { uint8_t type, op, a, b; int32_t val; float f[4]; char text[200]; };

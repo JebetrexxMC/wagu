@@ -55,6 +55,7 @@ static int GatePrintf(const char* fmt, ...)
     return n;
 }
 #define printf GatePrintf
+#include "net/samp_anims.h"   // 5.02.27
 void SampGate::SetLogHook(void (*fn)(const char*)) { g_GateLog = fn; }
 
 namespace {
@@ -66,6 +67,53 @@ const uint8_t  kPlayerSync = 207, kVehicleSync = 200;   // SA-MP 0.3.7 sync pack
 const float    kPi = 3.14159265358979f;
 const int      kTdSlots = 200;            // MP client textdraw slots a SA-MP server may use (SAMP_TD_BASE 0..199)
 const int      kLabelBase = 0;
+
+// 5.02.27: SA-MP animation index <-> GTA anim (IFP block + CKeyGen::GetUppercaseKey hash of the name)
+uint32_t AnimKey(const char* s, size_t n)
+{   // CRC-32 table, upper case, no final xor (= the game's CKeyGen::GetUppercaseKey)
+    uint32_t k = 0xFFFFFFFFu;
+    for(size_t i = 0; i < n && s[i]; ++i)
+    {
+        uint8_t c = (uint8_t)s[i]; if(c >= 'a' && c <= 'z') c -= 32;
+        uint32_t r = (k ^ c) & 0xFF;
+        for(int b = 0; b < 8; ++b) r = (r & 1) ? (r >> 1) ^ 0xEDB88320u : (r >> 1);
+        k = r ^ (k >> 8);
+    }
+    return k;
+}
+const std::multimap<uint32_t, int>& AnimTable()
+{
+    static std::multimap<uint32_t, int> t;
+    if(t.empty()) for(int i = 1; i < kSampAnimCount; ++i) { const char* c = strchr(kSampAnimNames[i], ':'); if(c) t.emplace(AnimKey(c + 1, 64), i); }
+    return t;
+}
+int AnimIndex(uint32_t hash, const char* block)
+{   // 0 = not a SA-MP animation
+    const auto& t = AnimTable(); auto r = t.equal_range(hash); int any = 0;
+    for(auto it = r.first; it != r.second; ++it)
+    {
+        const char* n = kSampAnimNames[it->second]; const char* c = strchr(n, ':');
+        if(!any) any = it->second;
+        if(block && *block && (size_t)(c - n) == strlen(block) && !strncasecmp(n, block, (size_t)(c - n))) return it->second;
+    }
+    return any;
+}
+bool AnimName(int idx, std::string& lib, std::string& name)
+{
+    if(idx <= 0 || idx >= kSampAnimCount) return false;
+    const char* n = kSampAnimNames[idx]; const char* c = strchr(n, ':'); if(!c) return false;
+    lib.assign(n, c - n); name = c + 1; return true;
+}
+// walking / running / idle / aiming: the ghost's own movement plays them - only the rest is copied onto the ghost
+bool AnimIsMove(const std::string& lib, const std::string& name)
+{
+    static const char* const kLibs[] = { "COLT45", "PYTHON", "SILENCED", "SHOTGUN", "BUDDY", "UZI", "RIFLE", "SNIPER", "FLAME", "TEC", "GRENADE", "SWIM", "PARACHUTE" };
+    for(const char* l : kLibs) if(!strcasecmp(lib.c_str(), l)) return true;
+    if(strcasecmp(lib.c_str(), "PED")) return false;
+    static const char* const kPre[] = { "WALK_", "RUN_", "SPRINT_", "IDLE_", "JOG_", "WOMAN_", "TURN_", "GUN_", "FALL_", "JUMP_", "CLIMB_", "WEAPON_", "GUNCROUCH", "GUNMOVE", "CAR_", "ENTER_", "EXIT_", "GETUP", "KO_", "HIT_", "FIGHT", "ABSEIL", "XPRESS", "CROUCH", "COWER", "HANDSCOWER", "STEP_", "BIKE_", "RUN", "WALK" };
+    for(const char* p : kPre) if(!strncasecmp(name.c_str(), p, strlen(p))) return true;
+    return false;
+}
 
 uint64_t NowMs() { return (uint64_t)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 
@@ -190,7 +238,9 @@ struct SampGate::Impl
     // space and sent 1 s apart (script anti-spam kicks), and a check that the server showed our line back
     std::deque<std::string> chatOut; uint64_t chatOutAt = 0;
     std::string echoWant; uint64_t echoAt = 0; uint32_t chatSentN = 0, echoMissN = 0; bool echoHint = false;
-    struct Rp { std::string name; uint32_t color = 0xFFFFFFFF; uint16_t skin = 0; int slot = -1; SyncData last; bool hasPos = false; int vehicle = -1; };
+    struct Rp { std::string name; uint32_t color = 0xFFFFFFFF; uint16_t skin = 0; int slot = -1; SyncData last; bool hasPos = false; int vehicle = -1;
+                uint16_t animId = 0; bool animLoop = false; uint64_t animAt = 0, animSeen = 0; std::string animLib, animName;
+                float aimPt[3] = { 0, 0, 0 }; uint64_t aimMs = 0; };   // 5.02.27: his SA-MP anim
     std::map<int, Rp> rp;                                  // remote player id -> ghost
     std::map<int, std::pair<int32_t, uint32_t>> pcScore;  // 5.02.12: id -> score, ping (RPC 155) for the phone's player list
     uint64_t scoreAskAt = 0;
@@ -226,7 +276,7 @@ struct SampGate::Impl
     // 5.02.25: the callbacks samp.exe fires. The PC server's cars are made on the phone (SPO_VEHICLE); sitting in one
     // sends OnPlayerEnterVehicle + driver / passenger sync instead of "on foot at the car"
     struct Veh { uint16_t model = 0; uint8_t c1 = 0, c2 = 0; float p[3] = { 0, 0, 0 }; float a = 0; bool taken = false; bool locked = false;
-                 uint8_t interior = 0; int paintjob = -1; std::vector<uint16_t> mods; };   // 5.02.26: interior / paintjob / parts too
+                 uint8_t interior = 0; int paintjob = -1; std::vector<uint16_t> mods; uint64_t movedAt = 0; };   // 5.02.26: interior / paintjob / parts too, 5.02.27 movedAt
     std::map<int, Veh> vehs;                                // server vehicle id -> what the phone was told
     int myVeh = -1, mySeat = 0; uint64_t myVehAt = 0;       // the server car the phone sits in
     bool vsHave = false; PktVehState vsLast{};              // the phone's last car state of it (mods / paintjob / colours / damage)
@@ -242,6 +292,12 @@ struct SampGate::Impl
     struct Att { bool on = false; uint32_t model = 0, bone = 0, c1 = 0, c2 = 0; float off[3] = { 0, 0, 0 }, rot[3] = { 0, 0, 0 }, sc[3] = { 1, 1, 1 }; };
     Att att[10];
     bool specOn = false;                  // PlayerSpectatePlayer / Vehicle camera is on
+    // 5.02.27: the rest of samp.exe's sync - special action echo, aim (203), spectator (212), weapons (204), markers (208)
+    uint8_t special = 0;                  // SetPlayerSpecialAction (handsup, cuffed, phone, dance...) reported back in on-foot sync
+    uint64_t aimAt = 0, specSyncAt = 0, weapAt = 0;
+    uint32_t targetSent = 0xFFFFFFFF;     // last target player << 16 | actor in the weapons update
+    struct Marker { int16_t p[3] = { 0, 0, 0 }; bool on = false; uint64_t at = 0; };
+    std::map<int, Marker> markers;        // PC player id -> radar marker the phone shows (far players, ShowPlayerMarkers)
     struct Edit { int mode = 0; bool pobj = false; uint16_t id = 0; uint32_t idx = 0; float p[3] = { 0, 0, 0 }, r[3] = { 0, 0, 0 }, p0[3] = { 0, 0, 0 }, r0[3] = { 0, 0, 0 }; float step = 0.25f; } edit;
     // 5.02.24: samp.exe's own client commands (/save /rs /interior /vw /rcon) - the gate answers them like the PC client
     uint8_t interior = 0; int32_t vworld = 0; SyncData lastMe{}; bool haveMe = false;
@@ -869,6 +925,8 @@ static void RemReset(Impl& I, MPServer* srv)
     I.rp.clear(); I.vehModel.clear(); I.pcScore.clear(); I.scoreAskAt = 0; I.listFullAt = 0; I.resetPending = false; I.holdUntil = 0;
     RemClassSel(I, srv, false);
     if(I.phoneSlot >= 0) srv->GateOp(I.phoneSlot, SPO_PCLIST, 0, 0, 0);
+    if(I.phoneSlot >= 0 && !I.markers.empty()) srv->GateOp(I.phoneSlot, SPO_MARKER, 2, 0, 0);   // 5.02.27
+    I.markers.clear(); I.special = 0; I.targetSent = 0xFFFFFFFF;
     for(auto& kv : I.objs) { float z[3] = { 0, 0, 0 }; srv->GateObject(kv.second.row, kv.second.model, z, z, false); }
     I.objs.clear();
     if(I.edit.mode && I.phoneSlot >= 0) srv->GateOp(I.phoneSlot, SPO_EDIT, 0, 0, 0);   // 5.02.26
@@ -1021,6 +1079,7 @@ static void RemHold(Impl& I, const float* pos, uint64_t ms)
 static void RemSpawned(Impl& I, MPServer* srv)
 {
     I.phase = 4; I.wasDead = false;
+    I.spect = false; I.special = 0;   // 5.02.27: a spawned player is not spectating any more
     const int s = I.phoneSlot;
     I.lastHealth = 100; I.lastArmour = 0;   // 5.02.15: what SA-MP's spawn gives
     memset(I.gunOk, 0, sizeof(I.gunOk));
@@ -1178,7 +1237,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             float f4[4] = { 0, 0, 0, 0 }; srv->GateOp(s, SPO_PCLIST, 1, 0, (int32_t)u16a, f4, nm.c_str());   // 5.02.12: the full player list
             break;
         }
-        case 138: bs.Read(u16a); if(Impl::Rp* p = RemPlayer(I, u16a)) { if(p->slot >= 0) srv->BridgeRemove(p->slot); I.rp.erase(u16a); } I.pcScore.erase(u16a); srv->GateOp(s, SPO_PCLIST, 2, 0, (int32_t)u16a); break;
+        case 138: bs.Read(u16a); if(I.markers.count(u16a) && I.markers[u16a].on) srv->GateOp(s, SPO_MARKER, 0, 0, u16a); I.markers.erase(u16a); if(Impl::Rp* p = RemPlayer(I, u16a)) { if(p->slot >= 0) srv->BridgeRemove(p->slot); I.rp.erase(u16a); } I.pcScore.erase(u16a); srv->GateOp(s, SPO_PCLIST, 2, 0, (int32_t)u16a); break;
         case 155:  // 5.02.12: scores + pings (the answer to our RPC 155, like the PC client's Tab list)
         {
             uint16_t id; int32_t sc; uint32_t pg;
@@ -1197,6 +1256,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             bs.Read(u16a); bs.Read(u8a); bs.Read(u32a);
             if(I.cliVer == kSampVersionDL) { uint32_t custom = 0; bs.Read(custom); }   // 5.02.23: DL custom skin - was read as the position
             RdVec(bs, v); bs.Read(fa); bs.Read(u32b);
+            if(I.markers.count(u16a) && I.markers[u16a].on) { I.markers[u16a].on = false; srv->GateOp(s, SPO_MARKER, 0, 0, u16a); }   // 5.02.27: its ped has the blip now
             if(Impl::Rp* p = RemPlayer(I, u16a))
             {
                 static const bool dbg = getenv("MP_GATE_DEBUG") != nullptr;
@@ -1559,7 +1619,7 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             srv->GateOp(s, SPO_DEATHMSG, 0, 0, u8a, nullptr, t.c_str()); break;
         }
         case 87: bs.Read(u16a); if((int)u16a == I.myId) srv->GateOp(s, SPO_ACTION, 0, 0, 0); break;   // ClearAnimations
-        case 88: bs.Read(u8a); srv->GateOp(s, SPO_ACTION, 1, 0, u8a); break;                          // SetPlayerSpecialAction
+        case 88: bs.Read(u8a); I.special = (u8a == 2 || u8a == 1) ? 0 : u8a; srv->GateOp(s, SPO_ACTION, 1, 0, u8a); break;   // SetPlayerSpecialAction (jetpack / duck come from the ped itself)
         case 89: bs.Read(u16a); bs.Read(u8a); if((int)u16a == I.myId) srv->GateOp(s, SPO_ACTION, 2, 0, u8a); break;   // SetPlayerFightingStyle
         case 126:  // PlayerSpectatePlayer: the camera on that PC player's ghost
         {
@@ -1651,15 +1711,27 @@ static void RemFootIn(Impl& I, MPServer* srv, Packet* pk, bool vehicle)
     }
     if(p->slot < 0) RemGhostIn(I, srv, id, nullptr, 0);
     if(p->slot < 0) return;
-    SyncData d;
+    SyncData d; float footVel[3] = { 0, 0, 0 };
     if(!vehicle)
     {
         bool has; uint16_t lr = 0, ud = 0, keys = 0; float pos[3], q[4], vel[3]; uint8_t ha = 0, wp = 0, sa = 0;
         bs.Read(has); if(has) bs.Read(lr); bs.Read(has); if(has) bs.Read(ud);
         if(!bs.Read(keys) || !RdVec(bs, pos) || !bs.ReadNormQuat(q[0], q[1], q[2], q[3])) return;
         bs.Read(ha); bs.Read(wp); bs.Read(sa); RdCompVec(bs, vel);
+        for(int k = 0; k < 3; ++k) footVel[k] = vel[k] * 50.0f;   // GTA units per frame -> m/s
+        {   // 5.02.27: surfing, then the PC player's animation (ApplyAnimation / dances / sitting) - onto his ghost
+            bool surf = false, hasAnim = false; uint16_t animId = 0, animFl = 0;
+            if(bs.Read(surf) && surf) { uint16_t sid; float so[3]; bs.Read(sid); RdVec(bs, so); }
+            if(bs.Read(hasAnim) && hasAnim) { bs.Read(animId); bs.Read(animFl); }
+            std::string lib, an;
+            const bool show = animId && AnimName(animId, lib, an) && !AnimIsMove(lib, an);
+            if(show && animId != p->animId) { p->animId = animId; p->animAt = NowMs(); }
+            if(!show) p->animId = 0;
+            if(show) { p->animLib = lib; p->animName = an; p->animLoop = (animFl & 0x100) != 0; p->animSeen = NowMs(); }
+        }
         int h, a; UnpackHA(ha, h, a);
         d = FootToSync(pos, QuatHeading(q[0], q[1], q[2], q[3]), vel, h, a, wp, keys, p->skin);
+        if(NowMs() - p->aimMs < 600) memcpy(d.aim, p->aimPt, sizeof(d.aim));   // 5.02.27: where he really aims (aim sync)
         if(sa == 1) d.flags |= SYNC_DUCKING;
         if(ud || lr) d.speed = std::max(d.speed, 3.0f);
         if(p->vehicle >= 0) RemVehFree(I, srv, p->vehicle);   // 5.02.25: he got out - the parked car is back on the phone
@@ -1686,6 +1758,22 @@ static void RemFootIn(Impl& I, MPServer* srv, Packet* pk, bool vehicle)
         p->vehicle = vid;
     }
     p->last = d; p->hasPos = true;
+    if(!vehicle && (p->animId || NowMs() - p->animSeen < 1500))
+    {   // 5.02.27: the anim as a script anim (IFP block + name hash) - an empty list for a moment after it ends fades it out
+        SyncExt e; memset(&e, 0, sizeof(e)); e.ver = MP_SYNC_EXT_VER; e.time = (uint32_t)NowMs();
+        memcpy(e.vel, footVel, sizeof(footVel));
+        if(p->animId)
+        {
+            AnimSync a; memset(&a, 0, sizeof(a));
+            a.group = -1; a.id = -1; a.hash = AnimKey(p->animName.c_str(), 64);
+            std::string b = p->animLib; for(auto& c : b) c = (char)tolower((unsigned char)c);
+            MP_CopyStr(a.block, b.c_str(), sizeof(a.block));
+            a.time = (float)(NowMs() - p->animAt) / 1000.0f; a.blend = 255; a.speed = 50; a.flags = p->animLoop ? 0x2 : 0;
+            memcpy(&e.anim[0], &a, sizeof(a)); e.animCount = 1;
+        }
+        srv->BridgeSync(p->slot, d, &e);
+        return;
+    }
     srv->BridgeSync(p->slot, d);
 }
 
@@ -1728,7 +1816,7 @@ static bool RemClientCmd(Impl& I, MPServer* srv, const std::string& t)
     return false;
 }
 
-static void RemSendFoot(Impl& I, const SyncData& d)
+static void RemSendFoot(Impl& I, const SyncData& d, uint16_t animIdx = 0, uint16_t animFl = 0)
 {   // the phone's movement -> PC server (client format on-foot sync; in a car = on foot at the car)
     const bool car = (d.flags & SYNC_IN_CAR) != 0;
     const float* pos = car ? d.carPos : d.pos; float h = car ? d.carHeading : d.heading;
@@ -1757,9 +1845,13 @@ static void RemSendFoot(Impl& I, const SyncData& d)
     // Before, H (262144) came out as 0 and Y + N together as CTRL_BACK.
     const uint8_t addKey = (extra & 262144) ? 3 : (extra & 131072) ? 2 : (extra & 65536) ? 1 : 0;
     o.Write((uint8_t)((wp & 63) | (addKey << 6)));
-    o.Write((uint8_t)((d.flags & SYNC_DUCKING) ? 1 : 0));
+    // 5.02.27: the special action the server set (SPECIAL_ACTION_HANDSUP / CUFFED / USECELLPHONE / DANCE...) goes back like
+    // samp.exe does - GetPlayerSpecialAction on the server read 0 for a phone player, so arrest / phone / dance scripts broke
+    o.Write((uint8_t)((d.flags & SYNC_DUCKING) ? 1 : (I.special != 1 ? I.special : 0)));
     float vel[3] = { -sinf(a) * sp, cosf(a) * sp, 0 }; WrVec(o, vel);
-    float z[3] = { 0, 0, 0 }; WrVec(o, z); o.Write((uint16_t)0); o.Write((uint16_t)0); o.Write((uint16_t)0);
+    // surfing offset + id 0, then AnimationID / flags (5.02.27: the phone's script anim, e.g. ApplyAnimation, dances,
+    // sitting - GetPlayerAnimationIndex read 0 and PC players never saw the phone's animations)
+    float z[3] = { 0, 0, 0 }; WrVec(o, z); o.Write((uint16_t)0); o.Write(animIdx); o.Write(animIdx ? animFl : (uint16_t)0);
     I.C->Send(&o, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 1);
 }
 
@@ -1893,6 +1985,60 @@ static void RemModShop(Impl& I, const float* p)
     if(in == I.modShop) return;
     BitStream o; o.Write((uint32_t)I.myVeh); o.Write((uint32_t)(in ? 1 : 0)); o.Write((uint32_t)(in ? in : I.modShop)); o.Write((uint32_t)4); CliRpc(I, 96, o);
     I.modShop = in;
+}
+
+// 5.02.27: aim sync (203) like samp.exe: camera mode, look direction, camera spot, zoom / weapon state. Servers read it
+// with GetPlayerCameraPos / FrontVector / Mode / Zoom / Aspect Ratio and GetPlayerWeaponState - it was all 0 for a phone
+// player (aim-direction scripts, "look at the door" /enter, anti-aimbot checks), and PC players saw the phone never aim
+static void RemSendAim(Impl& I, const SyncData& d, bool aiming)
+{
+    const bool car = (d.flags & SYNC_IN_CAR) != 0;
+    const float* p = car ? d.carPos : d.pos; const float h = car ? d.carHeading : d.heading;
+    const float a = h * kPi / 180.0f; float fw[3] = { -sinf(a), cosf(a), -0.08f };
+    float cam[3] = { p[0] - fw[0] * (car ? 6.0f : 3.2f), p[1] - fw[1] * (car ? 6.0f : 3.2f), p[2] + (car ? 1.6f : 0.75f) };
+    const float ax = d.aim[0] - cam[0], ay = d.aim[1] - cam[1], az = d.aim[2] - cam[2], al = sqrtf(ax * ax + ay * ay + az * az);
+    if(aiming && al > 0.5f && al < 300.0f)
+    {   // over the shoulder, towards the aim point
+        cam[0] = p[0] - fw[0] * 1.2f + fw[1] * 0.35f; cam[1] = p[1] - fw[1] * 1.2f - fw[0] * 0.35f; cam[2] = p[2] + 0.6f;
+        const float bx = d.aim[0] - cam[0], by = d.aim[1] - cam[1], bz = d.aim[2] - cam[2], bl = sqrtf(bx * bx + by * by + bz * bz);
+        if(bl > 0.1f) { fw[0] = bx / bl; fw[1] = by / bl; fw[2] = bz / bl; }
+    }
+    else { const float l = sqrtf(fw[0] * fw[0] + fw[1] * fw[1] + fw[2] * fw[2]); fw[0] /= l; fw[1] /= l; fw[2] /= l; }
+    const int wp = (d.weapon < 64 && (d.weapon == 0 || I.gunOk[d.weapon])) ? d.weapon : 0;
+    uint8_t mode = car ? 18 : 4;                                   // 4 = on foot follow, 18 = car follow
+    if(aiming && !car) mode = (wp == 34) ? 7 : (wp == 35 || wp == 36) ? 8 : (wp == 43) ? 46 : (wp >= 22) ? 53 : 4;
+    if(aiming && car) mode = 55;                                   // drive-by
+    // weapon state (2 high bits): 0 no bullets, 1 last bullet, 2 more bullets, 3 reloading - fists / melee = 2 like samp.exe
+    const uint8_t zoom = 35 & 63, ws = 2;
+    BitStream o; o.Write((uint8_t)203);
+    o.Write(mode); WrVec(o, fw); WrVec(o, cam); o.Write(asinf(std::max(-1.0f, std::min(1.0f, fw[2])))); o.Write((uint8_t)(zoom | (ws << 6)));
+    o.Write((uint8_t)198);                                         // (aspect ratio - 1) * 255: 16:9 like a PC screen
+    I.C->Send(&o, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 1);
+}
+// 5.02.27: spectator sync (212): samp.exe sends it all the time while TogglePlayerSpectating is on (login cameras,
+// admin spectate). Without it OnPlayerUpdate never ran for a phone on a login screen - AFK / paused checks kicked it
+static void RemSendSpec(Impl& I, const SyncData* d)
+{
+    const uint32_t extra = NowMs() < I.keysUntil ? I.heldKeys : 0;
+    float p[3] = { 0, 0, 0 }; if(d) memcpy(p, (d->flags & SYNC_IN_CAR) ? d->carPos : d->pos, sizeof(p));
+    BitStream o; o.Write((uint8_t)212); o.Write((uint16_t)0); o.Write((uint16_t)0); o.Write((uint16_t)(extra & 0xFFFF)); WrVec(o, p);
+    I.C->Send(&o, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 1);
+}
+// 5.02.27: weapons update (204) like samp.exe: the player / actor the phone aims at (GetPlayerTargetPlayer /
+// GetPlayerTargetActor). No slot data: open.mp copies it over its own weapon record, and the phone doesn't count ammo
+// the way samp.exe does - the server keeps the weapons / ammo it gave (no weapon / ammo hack kick)
+static void RemSendWeapons(Impl& I, uint16_t target, uint16_t actor)
+{
+    BitStream o; o.Write((uint8_t)204); o.Write(target); o.Write(actor);
+    I.C->Send(&o, HIGH_PRIORITY, RELIABLE, 1);
+}
+static uint16_t RemAimTarget(Impl& I, const SyncData& d, bool aiming, bool actor)
+{
+    if(!aiming) return kInvalid;
+    float best = 2.2f * 2.2f; uint16_t id = kInvalid;
+    if(!actor) { for(auto& kv : I.rp) if(kv.second.hasPos) { const float* q = kv.second.last.pos; const float dx = q[0] - d.aim[0], dy = q[1] - d.aim[1], dz = q[2] - d.aim[2], e = dx * dx + dy * dy + dz * dz; if(e < best) { best = e; id = (uint16_t)kv.first; } } }
+    else { for(auto& kv : I.actors) { const float* q = kv.second.p; const float dx = q[0] - d.aim[0], dy = q[1] - d.aim[1], dz = q[2] - d.aim[2], e = dx * dx + dy * dy + dz * dz; if(e < best) { best = e; id = (uint16_t)kv.first; } } }
+    return id;
 }
 
 static void RemSendCar(Impl& I, const SyncData& d)
@@ -2143,6 +2289,90 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
                 RemEnd(I, srv, "Lost the connection to the PC server."); break;
             case kPlayerSync: RemFootIn(I, srv, pk, false); break;
             case kVehicleSync: RemFootIn(I, srv, pk, true); break;
+            case 203:
+            {   // 5.02.27: a PC player's aim sync - his ghost aims / shoots where he really looks (was always straight ahead)
+                BitStream bs(pk->data, pk->length, false); bs.IgnoreBits(8);
+                uint16_t pid = 0; uint8_t mode = 0; float fr[3], cp[3];
+                if(!bs.Read(pid) || !bs.Read(mode) || !RdVec(bs, fr) || !RdVec(bs, cp)) break;
+                Impl::Rp* p = RemPlayer(I, pid); if(!p) break;
+                const float l = sqrtf(fr[0] * fr[0] + fr[1] * fr[1] + fr[2] * fr[2]); if(l < 0.1f || l > 10.0f) break;
+                for(int k = 0; k < 3; ++k) p->aimPt[k] = cp[k] + fr[k] / l * 30.0f;
+                p->aimMs = now; break;
+            }
+            case 211:
+            {   // 5.02.27: a PC player as a passenger: on the phone he sits in the same car (with its PC driver / the phone)
+                BitStream bs(pk->data, pk->length, false); bs.IgnoreBits(8);
+                uint16_t pid = 0, vid = 0, lr, ud, keys; uint8_t seat = 0, wp = 0, hp = 0, ar = 0; float pos[3];
+                if(!bs.Read(pid) || !bs.Read(vid) || !bs.Read(seat) || !bs.Read(wp) || !bs.Read(hp) || !bs.Read(ar) || !bs.Read(lr) || !bs.Read(ud) || !bs.Read(keys) || !RdVec(bs, pos)) break;
+                Impl::Rp* p = RemPlayer(I, pid); if(!p) break;
+                if(p->slot < 0) RemGhostIn(I, srv, pid, nullptr, 0);
+                if(p->slot < 0) break;
+                const float zv[3] = { 0, 0, 0 }; const float hd = p->hasPos ? p->last.heading : 0.0f;
+                SyncData d = FootToSync(pos, hd, zv, hp, ar, wp & 63, keys, p->skin);
+                int owner = -1;
+                if(I.myVeh == (int)vid && I.mySeat == 0) owner = I.phoneSlot;   // he rides in the car the phone drives
+                else for(auto& kv : I.rp) if(kv.first != (int)pid && kv.second.vehicle == (int)vid && kv.second.slot >= 0) { owner = kv.second.slot; break; }
+                auto mt = I.vehModel.find(vid);
+                if(owner >= 0 && mt != I.vehModel.end())
+                {
+                    d.flags |= SYNC_IN_CAR; d.carModel = mt->second; memcpy(d.carPos, pos, sizeof(d.carPos));
+                    SyncExt e; memset(&e, 0, sizeof(e)); e.ver = MP_SYNC_EXT_VER; e.time = (uint32_t)now;
+                    e.hasVeh = 1; e.vehOwner = (uint8_t)owner; e.vehSeat = (int8_t)std::max(0, (int)(seat & 0x7F) - 1);
+                    p->last = d; p->hasPos = true; srv->BridgeSync(p->slot, d, &e);
+                }
+                else { p->last = d; p->hasPos = true; srv->BridgeSync(p->slot, d); }   // no driver on the phone: he moves with the car
+                break;
+            }
+            case 209: case 210:
+            {   // 5.02.27: unoccupied (pushed / hit by a PC player) and trailer sync - the parked car on the phone moves too
+                BitStream bs(pk->data, pk->length, false); bs.IgnoreBits(8);
+                uint16_t pid = 0, vid = 0; float pos[3], hd = 0;
+                if(!bs.Read(pid) || !bs.Read(vid)) break;
+                if(pk->data[0] == 209)
+                {
+                    uint8_t seat; float roll[3], dir[3];
+                    if(!bs.Read(seat) || !RdVec(bs, roll) || !RdVec(bs, dir) || !RdVec(bs, pos)) break;
+                    hd = atan2f(-dir[0], dir[1]) * 180.0f / kPi; if(hd < 0) hd += 360.0f;
+                }
+                else
+                {
+                    float q[4];
+                    if(!RdVec(bs, pos) || !bs.Read(q[0]) || !bs.Read(q[1]) || !bs.Read(q[2]) || !bs.Read(q[3])) break;
+                    hd = QuatHeading(q[0], q[1], q[2], q[3]);
+                }
+                if((int)vid == I.myVeh) break;                         // the phone drives / sits in it: the phone is right
+                auto vt = I.vehs.find(vid); if(vt == I.vehs.end() || vt->second.taken) break;
+                Impl::Veh& v = vt->second;
+                const float dx = pos[0] - v.p[0], dy = pos[1] - v.p[1], dz = pos[2] - v.p[2];
+                if(dx * dx + dy * dy + dz * dz < 0.25f || now - v.movedAt < 400) break;
+                memcpy(v.p, pos, sizeof(v.p)); v.a = hd; v.movedAt = now;
+                { std::array<float, 3> vp = { pos[0], pos[1], pos[2] }; I.vehPos[vid] = vp; }
+                RemVehShow(I, srv, vid); break;
+            }
+            case 208:
+            {   // 5.02.27: player markers (ShowPlayerMarkers / LimitPlayerMarkerRadius): the PC client shows far players as
+                // coloured radar squares - the phone showed only streamed-in players
+                BitStream bs(pk->data, pk->length, false); bs.IgnoreBits(8);
+                uint32_t n = 0; if(!bs.Read(n) || n > 1000) break;
+                for(uint32_t k = 0; k < n; ++k)
+                {
+                    uint16_t pid = 0; bool on = false; int16_t q[3] = { 0, 0, 0 };
+                    if(!bs.Read(pid) || !bs.Read(on)) break;
+                    if(on && (!bs.Read(q[0]) || !bs.Read(q[1]) || !bs.Read(q[2]))) break;
+                    Impl::Rp* p = (int)pid == I.myId ? nullptr : RemPlayer(I, pid);
+                    const bool show = on && p && p->slot < 0;          // streamed in = its ped is on the radar already
+                    Impl::Marker& m = I.markers[pid];
+                    if(!show) { if(m.on) { m.on = false; srv->GateOp(I.phoneSlot, SPO_MARKER, 0, 0, pid); } continue; }
+                    const int dx = q[0] - m.p[0], dy = q[1] - m.p[1];
+                    if(m.on && dx * dx + dy * dy < 25 && now - m.at < 5000) continue;
+                    if(m.on && now - m.at < 1000) continue;            // at most once a second per player
+                    m.on = true; m.at = now; memcpy(m.p, q, sizeof(q));
+                    const uint32_t c = p->color; char col[12]; snprintf(col, sizeof(col), "%08X", (unsigned)((c & 0xFF) ? c : (c | 0xFF)));
+                    float f[4] = { (float)q[0], (float)q[1], (float)q[2], 0 };
+                    srv->GateOp(I.phoneSlot, SPO_MARKER, 1, 0, pid, f, col);
+                }
+                break;
+            }
             case 206:
             {   // 5.02.25: a PC player's bullet hit me -> the damage on the phone + OnPlayerTakeDamage (like samp.exe with lagcomp)
                 BitStream bs(pk->data, pk->length, false); bs.IgnoreBits(8);
@@ -2302,7 +2532,8 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
         srv->BridgePeers(peers);
         const MPServer::BridgePeer* me = nullptr; for(auto& b : peers) if(b.slot == I.phoneSlot) me = &b;
         if(!me) { RemEnd(I, srv, "The phone player left."); return; }
-        if(me->hasSync && I.phase == 4)
+        if(I.spect && I.phase >= 3 && now - I.specSyncAt >= 100) { I.specSyncAt = now; RemSendSpec(I, me->hasSync ? &me->d : nullptr); }
+        if(me->hasSync && I.phase == 4 && !I.spect)
         {
             const bool dead = (me->d.flags & SYNC_DEAD) || me->d.health == 0;
             if(dead && !I.wasDead) { BitStream o; o.Write((uint8_t)255); o.Write(kInvalid); CliRpc(I, 53, o); }
@@ -2315,7 +2546,21 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             // 5.02.25: in a server car (1 s after OnPlayerEnterVehicle, like the enter animation) = driver / passenger sync
             const bool inCar = (me->d.flags & SYNC_IN_CAR) != 0;
             if(!dead && I.myVeh >= 0 && inCar && now - I.myVehAt >= 800) { RemSendCar(I, me->d); if(I.mySeat == 0) RemModShop(I, me->d.carPos); }
-            else if(!dead) RemSendFoot(I, me->d);
+            else if(!dead)
+            {   // 5.02.27: SA-MP flags = frame delta (4.1) | loop << 8 | lock x << 9 | lock y << 10 | freeze << 11
+                uint16_t ai = 0, af = 0;
+                if(me->hasAnim) { ai = (uint16_t)AnimIndex(me->anim.hash, me->anim.block); af = (uint16_t)(4 | ((me->anim.flags & 0x2) ? 0x100 : 0x800) | 0x600); }
+                RemSendFoot(I, me->d, ai, af);
+            }
+            if(!dead)
+            {   // 5.02.27: aim sync 10 times a second while aiming / shooting, once a second otherwise (like samp.exe)
+                const uint32_t keys = (now < I.keysUntil ? I.heldKeys : 0) | KeysFromFlags(me->d.flags);
+                const bool aiming = (keys & 128) || (me->d.flags & SYNC_SHOOTING);
+                if(now - I.aimAt >= (aiming ? 100u : 1000u)) { I.aimAt = now; RemSendAim(I, me->d, aiming); }
+                const uint16_t tp = RemAimTarget(I, me->d, aiming, false), ta = RemAimTarget(I, me->d, aiming, true);
+                const uint32_t tk = ((uint32_t)tp << 16) | ta;
+                if(tk != I.targetSent && now - I.weapAt >= 250) { I.weapAt = now; I.targetSent = tk; RemSendWeapons(I, tp, ta); }
+            }
             if(dead) { I.lastHp = -1; if(I.myVeh >= 0) RemMyCar(I, srv, -1, 0, now); }
             else
             {   // 5.02.25: health lost without a PC bullet (fall, fire, explosion, car crash) = OnPlayerTakeDamage, issuer INVALID_PLAYER_ID

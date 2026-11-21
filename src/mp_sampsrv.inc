@@ -19,6 +19,7 @@ static struct SampSrvState
     bool select = false; uint32_t hover = 0xFFFF00FF;
     bool cp[2] = { false, false }, inCp[2] = { false, false }; Vec3 cpPos[2]; float cpSize[2] = { 0, 0 };
     int icon[100] = { 0 };
+    std::map<int, int> markers;   // 5.02.27: PC player id -> radar blip of a far player
     std::unordered_map<int, SsLabel> labels;
     SsAttach att[10];
     bool cam = false; Vec3 camPos{ 0, 0, 0 }, camLook{ 0, 0, 0 }; bool haveLook = false;
@@ -56,6 +57,7 @@ static void SampSrvClickPlayer(int id) { if(SampSrvOn()) SampSrvSend(SPO_CLICKPL
 static void SampSrvReset()
 {
     for(auto& b : s_SS.icon) if(b) { Game::RemoveBlip(b); b = 0; }
+    for(auto& kv : s_SS.markers) if(kv.second) Game::RemoveBlip(kv.second);   // 5.02.27
     for(auto& a : s_SS.att) { if(a.obj > 0) Game::DeleteWorldObject(a.obj); a = SsAttach(); }
     if(s_SS.cam) Game::RestoreCamera();
     if(s_SS.frozen) Game::SetPlayerControl(true);
@@ -299,6 +301,18 @@ static void SampSrvOnPacket(const uint8_t* d, int len)
             break;
         }
         case SPO_EDIT: s_SS.edit = p.a; s_SS.editTitle = p.text; break;
+        case SPO_MARKER:
+        {   // 5.02.27: a far PC player's radar square (ShowPlayerMarkers)
+            if(p.a == 2) { for(auto& kv : s_SS.markers) if(kv.second) Game::RemoveBlip(kv.second); s_SS.markers.clear(); break; }
+            auto it = s_SS.markers.find(p.val);
+            if(it != s_SS.markers.end()) { if(it->second) Game::RemoveBlip(it->second); s_SS.markers.erase(it); }
+            if(p.a == 1)
+            {
+                uint32_t c = (uint32_t)strtoul(p.text, nullptr, 16); if(!(c & 0xFF)) c |= 0xFF;
+                s_SS.markers[p.val] = Game::AddCoordBlip(f, c, 2);
+            }
+            break;
+        }
         default: break;   // SPO_SOUND / SPO_REMOVEBLD: not on MP yet
     }
 }

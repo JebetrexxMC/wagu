@@ -104,10 +104,10 @@ public:
     // 4.12: open.mp cross-play bridge (crossplay/mp_crossplay.cpp, an open.mp server component).
     // Each PC player on the open.mp server is a "ghost" slot here (no address: nothing is sent to it),
     // each phone player here becomes an open.mp NPC there. All calls lock m_Mutex (any thread).
-    struct BridgePeer { int slot; char name[MP_NAME_LEN]; uint16_t skin; bool hasSync; SyncData d; };
+    struct BridgePeer { int slot; char name[MP_NAME_LEN]; uint16_t skin; bool hasSync; SyncData d; bool hasAnim; AnimSync anim; };   // 5.02.27: + strongest anim (SA-MP AnimationID)
     void BridgeEnable(bool on) { m_bBridge = on; }
     int  BridgeAdd(const char* name, uint32_t color, uint16_t skin);   // -1 = full
-    void BridgeSync(int slot, const SyncData& d);
+    void BridgeSync(int slot, const SyncData& d, const SyncExt* ext = nullptr);   // 5.02.27: + anims (PC player's ApplyAnimation)
     void BridgeChat(int slot, const char* text);
     void BridgeRemove(int slot);
     void BridgePeers(std::vector<BridgePeer>& out);                   // the real (phone) players
@@ -244,6 +244,8 @@ private:
         bool         ghost;          // 4.12: open.mp PC player (cross-play bridge), no address
         bool         hasSync;        // 4.12: lastSync is valid
         SyncData     lastSync;       // 4.12: for the bridge
+        AnimSync     bAnim;          // 5.02.27: strongest anim of the last sync (crossplay AnimationID)
+        bool         bHasAnim;
         bool         authed;         // 3.21.6: login done (always true on servers without the login system)
         char         account[24];    // 3.21.6: the account (only the server knows it, never sent to others)
         char         chal[33];       // 3.21.6: this connection's random challenge (hex)

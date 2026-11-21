@@ -1204,6 +1204,18 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             m_Slots[slot].lastFlags = p.d.flags;
             m_Slots[slot].skin = p.d.skin;
             m_Slots[slot].lastSync = p.d; m_Slots[slot].hasSync = true;   // 4.12: cross-play bridge
+            if(m_bBridge)
+            {   // 5.02.27: the gate reports the phone's animation to the PC server (GetPlayerAnimationIndex, PC players see it)
+                SyncExt e; memset(&e, 0, sizeof(e));
+                // only script / IFP anims (hash + block: ApplyAnimation, dances, sitting...) - group anims carry no name on the wire
+                m_Slots[slot].bHasAnim = false;
+                if(rawLen > (int)sizeof(PktSync) && MP_DecodeSyncExt(raw + sizeof(PktSync), rawLen - (int)sizeof(PktSync), e))
+                    for(int i = 0; i < e.animCount && i < MP_ANIM_SLOTS; ++i)
+                    {
+                        AnimSync a; memcpy(&a, &e.anim[i], sizeof(a));
+                        if(a.block[0] && a.hash && a.blend >= 64) { m_Slots[slot].bAnim = a; m_Slots[slot].bHasAnim = true; break; }
+                    }
+            }
             m_Slots[slot].paused = false;
             {   // 2.9 sync flags also carry mission / cutscene (works without PKT_STATUS)
                 uint8_t st = ((p.d.flags & SYNC_MISSION) ? STATUS_MISSION : 0) | ((p.d.flags & SYNC_CUTSCENE) ? STATUS_CUTSCENE : 0);
