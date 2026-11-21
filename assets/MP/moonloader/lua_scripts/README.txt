@@ -38,3 +38,18 @@ Inside:
                         (moonloader/hitmarker.lua + moonloader/resources/hitmarker/), started straight from the zip.
   Hasslehud/            HassleHUD Android 1.0 by SurtzyX and GustaX (from Hasslehud/HassleHUD Android 1.0 -
                         Monetloader.zip): self-contained mod folder, /hasslehud opens its panel. See Hasslehud/README.txt.
+  WeaponX/              Weapon Wheel 1.4.6 by mistus_ (https://libertycity.net/files/file234128.html), 1.4.6-mp:
+                        tap WX (a button you can drag) or type /weaponx, tap a weapon. /weaponx cfg or /wheelcfg
+                        settings, /wheel on / off. Clip ammo comes from lib/mp_weaponslots.lua on Android.
+  DynamicAmmoHUD/       Dynamic Ammo HUD & Animated Crosshair 2.0 by Fausto200
+                        (https://libertycity.net/files/file246763.html), 2.0-mp: /ammohud menu, /ammohud on|off,
+                        /ammohud calib. On Android the game's crosshair is hidden through a hook, aiming is read from
+                        the camera, the sprint bar is off (its PC memory offset means something else on the phone).
+  AutoCleanStreaming/   AutoCleanStreaming V2 by sebicu (https://libertycity.net/files/file242203.html): frees
+                        streaming memory. /memclean window, /memclean now, /memclean on|off.
+  AdvancedTacticalCompass.lua  MW3-style compass, a new Lua version of zConnor.i22's PC mod
+                        (https://libertycity.net/files/gta-san-andreas/239690-advanced-tactical-compass.html):
+                        /compass settings, /compass mode, /compass top|bottom, /compass hide.
+  fpp_realistic.lua     first person camera at the head bone: /fpp on / off, /fppcfg settings. Drag on the right
+                        half of the screen to look around.
+  mod_commands.lua      /mods: every mod command with a button.

@@ -1,0 +1,18 @@
+----------------
+
+Changelog from V1
+
+FOR SAMP USE!!
+
+----------------
+
+- Lag has been fixed after 1h
+- No more script models cleanup that ensure crashes
+- Anticrasher implementated after 2.9 GB of game memmory reached
+- Now you can change the limit from memmory at any number you want in the folder .INI config
+
+Thats all!
+
+If you have any issues with it please send me a message in liberty city and i deal the problem 
+
+thanks for using!
