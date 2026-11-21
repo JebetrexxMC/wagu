@@ -35,6 +35,7 @@ local show = new.bool(false)
 local bChat, bMpLang, bPlayers, bMine = new.bool(true), new.bool(true), new.bool(true), new.bool(true)
 local cache, cacheN = {}, 0
 local busy, queue = 0, {}
+local lastMine, lastMineAt = nil, 0
 local MAX_BUSY = 3
 
 local function loadCfg()
@@ -111,7 +112,8 @@ end
 
 local function translate(text, tl, cb)
   local key = tl .. '\1' .. text
-  if cache[key] ~= nil then cb(cache[key] or nil) return end
+  -- cached: still answer on the next frame, so the [TR] line always lands under the original line
+  if cache[key] ~= nil then local v = cache[key] lua_thread.create(function() wait(0) cb(v or nil) end) return end
   local url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=' .. tl .. '&dt=t&q=' .. urlencode(text)
   httpGet(url, function(body, err)
     local out
@@ -231,18 +233,26 @@ function main()
     ev.onSendChat = function(msg)
       if prevO then local r = prevO(msg) if r ~= nil then return r end end
       -- your own line goes to the server unchanged; the translation is only added to your chat box
-      if cfg.mine and type(msg) == 'string' and msg:sub(1, 1) ~= '/' then push(msg, myName() .. ': ') end
+      if cfg.mine and type(msg) == 'string' and msg:sub(1, 1) ~= '/' then
+        lastMine, lastMineAt = plain(msg), os.time()
+        push(msg, myName() .. ': ')
+      end
     end
     ev.onServerMessage = function(color, text)
       if prevS then local r = prevS(color, text) if r ~= nil then return r end end
+      -- a gamemode that sends my own line back as a server message ("Name says: ...") - already translated
+      if lastMine and os.time() - lastMineAt <= 5 and type(text) == 'string' and plain(text):find(lastMine, 1, true) then
+        lastMine = nil return
+      end
       push(text)
     end
     ev.onChatMessage = function(id, text)
       if prevC then local r = prevC(id, text) if r ~= nil then return r end end
       if cfg.players then
         -- my own line coming back from the server: already shown by onSendChat
+        -- (and with "My own messages too" off, my lines are not translated at all)
         local okm, r, me = pcall(sampGetPlayerIdByCharHandle, PLAYER_PED)
-        if cfg.mine and okm and r and me == id then return end
+        if okm and r and me == id then return end
         local okn, name = pcall(sampGetPlayerNickname, id)
         push(text, okn and name and (name .. ': ') or '')
       end
