@@ -751,6 +751,7 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ### 5.02.57 (servers)
 - PC join through the playit tunnel fixed: SA-MP / open.mp encrypt the game packets with the server port, and a PC client uses the port it dials (56616), so a server on 7778 dropped every packet (the query, which is not encrypted, still worked). open.mp now listens on the tunnel's public port: playit_agent.py sets the tunnel's local port to it (or says on the MP Tunnel console to change "Local Port" on playit.gg) and keeps it in playit.port; omp_crossplay.sh restarts open.mp when the port changes. Tested with a UDP relay: a different port fails at InitGame, the same port joins, gets class selection, spawns and chats.
+- Website: [Works with MP](https://mpsamp-open.github.io/works.html), the open.mp servers MP for Android joined and stayed on in the 2026-11-22 check of the whole open.mp list (909 of 1,159 open servers; 229 no answer, 11 kicked, 10 class-selection loops). Made by `tools/omp_sweep/spawn_sweep.py` + `tools/omp_sweep/works_json.py`; linked from pc.html.
 
 ### 5.02.56 (servers)
 - MP Crossplay 24/7 is reachable from PC: playit.gg UDP tunnel "Gta sa" wap-fresh.tun.ply.gg:56616 -> 127.0.0.1:7778 (the SA-MP query answers over the internet, 0/100). The tunnel agent now clears an agent left over from an earlier start ("Another instance is already running").

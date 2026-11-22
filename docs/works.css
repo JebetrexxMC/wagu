@@ -1,0 +1,22 @@
+/* Works with MP (5.02.57) - on top of termux.css + pc.css */
+.w-h1{font-size:17px;margin:0}
+.w-kv{grid-template-columns:repeat(4,minmax(0,1fr))}
+.w-kv dd{font-size:16px;font-weight:700}
+#c-ok{color:var(--p)}
+.w-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.w-top h2{margin:0}
+.w-search{margin-left:auto;flex:1 1 220px;max-width:340px}
+.w-search input{width:100%;min-height:38px;padding:6px 10px;border-radius:8px;border:1px solid #2c5039;background:#06100b;color:var(--text);font:inherit;font-size:13px}
+.w-search input:focus-visible{outline:2px solid var(--c);outline-offset:1px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.w-wrap{overflow-x:auto}
+.w-t{width:100%;border-collapse:collapse;font-size:13px}
+.w-t th{text-align:left;color:var(--muted);font-weight:400;font-size:11px;padding:4px 6px;border-bottom:1px solid #1d3a28}
+.w-t td{padding:7px 6px;border-bottom:1px solid #16301f;vertical-align:middle}
+.w-t .r{text-align:right;font-variant-numeric:tabular-nums}
+.w-n{display:block;overflow-wrap:anywhere}
+.w-a{display:block;color:var(--muted);font-size:11px;white-space:nowrap}
+.w-v{color:var(--muted);font-size:12px;white-space:nowrap}
+.w-j{display:flex;gap:6px;justify-content:flex-end}
+.w-j .btn{min-height:32px;padding:4px 10px;font-size:12px;flex:none}
+@media (max-width:640px){.w-kv{grid-template-columns:repeat(2,minmax(0,1fr))}.w-kv div:first-child{grid-column:auto}.w-t .w-vc{display:none}.w-j .btn.cp{display:none}}

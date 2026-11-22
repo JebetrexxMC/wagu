@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script>/* the old wagu address forwards to mpsamp-open.github.io (same as the other pages) */if(location.hostname==="jebetrexxmc.github.io"){location.replace("https://mpsamp-open.github.io"+location.pathname.replace(/^\/wagu/,"")+location.search+location.hash);}</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Works with MP - open.mp servers you can join from Android</title>
+<meta name="description" content="The open.mp and SA-MP servers that MP for Android joined, got class selection on and stayed connected to, from a check of the whole open.mp server list.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://raw.githubusercontent.com https://api.github.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#06100b">
+<link rel="stylesheet" href="termux.css">
+<link rel="stylesheet" href="pc.css?v=5.02.57">
+<link rel="stylesheet" href="works.css?v=5.02.57">
+<link rel="icon" href="favicon.ico?v=savc2" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=savc2">
+<link rel="manifest" href="site.webmanifest?v=savc2">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="MP Multiplayer">
+<meta property="og:title" content="Works with MP - open.mp servers for Android">
+<meta property="og:description" content="open.mp / SA-MP servers a phone with MP can join, checked against the whole open.mp list.">
+<meta property="og:url" content="https://mpsamp-open.github.io/works.html">
+<meta property="og:image" content="https://mpsamp-open.github.io/social-preview.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=savc2">
+</head>
+<body class="pc">
+<header class="bar">
+  <a class="brand" href="./">MP <span>server list</span></a>
+  <nav class="pc-nav" aria-label="Pages"><a href="./">Home</a><a href="pc.html">PC</a><a href="playit.html">Tunnel</a></nav>
+</header>
+
+<main class="pc-main">
+  <section class="card" aria-labelledby="w-h">
+    <h1 id="w-h" class="w-h1">Works with MP</h1>
+    <p class="note" id="w-sum">Loading the list…</p>
+    <dl class="kv w-kv">
+      <div><dt>Works</dt><dd id="c-ok">-</dd></div>
+      <div><dt>Checked</dt><dd id="c-all">-</dd></div>
+      <div><dt>No answer</dt><dd id="c-no">-</dd></div>
+      <div><dt>Kicked / loop</dt><dd id="c-k">-</dd></div>
+    </dl>
+    <p class="note m">How it was checked: every open server on the open.mp list (no password) was joined once by MP for Android's PC gate. A server is listed when the phone got InitGame and the class selection and stayed connected. "No answer" servers did not let the phone in (often they are full, behind a firewall, or only allow their own launcher). On a phone: MP &gt; Add server &gt; open.mp / SA-MP (PC crossplay), type the address, then Join PC server.</p>
+  </section>
+
+  <section class="card" aria-labelledby="l-h">
+    <div class="w-top">
+      <h2 id="l-h">Servers</h2>
+      <label class="w-search"><span class="sr">Search</span><input id="q" type="search" placeholder="Search servers" autocomplete="off"></label>
+    </div>
+    <div class="w-wrap">
+      <table class="w-t">
+        <thead><tr><th scope="col">Server</th><th scope="col" class="r">Players</th><th scope="col" class="w-vc">Version</th><th scope="col"><span class="sr">Join</span></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="note m" id="w-more"></p>
+  </section>
+</main>
+<footer class="foot">MP Multiplayer · <a href="./">mpsamp-open.github.io</a> · <a href="pc.html">MP Crossplay 24/7 for PC</a></footer>
+<script src="works.js?v=5.02.57"></script>
+</body>
+</html>
