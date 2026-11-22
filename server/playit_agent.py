@@ -230,7 +230,12 @@ def get_bin():
     publish(state="error", note="agent download failed (%s)" % err); return False
 
 
-def run_agent(key):
+def run_agent(key, first=False):
+    if first:   # 5.02.56: an agent left over from an earlier start holds the IPC socket ("Another instance is already running")
+        subprocess.run(["pkill", "-f", BIN + " --secret"], capture_output=True)
+        time.sleep(1)
+        try: os.remove(os.path.join(HERE, "run", "playit.sock"))
+        except OSError: pass
     lf = open(LOG, "ab")
     # 5.02.55: --secret and --secret-path can not be used together (the agent exited at once = "agent is offline")
     return subprocess.Popen([BIN, "--secret", key, "--socket-path", os.path.join(HERE, "run", "playit.sock")],
@@ -316,7 +321,7 @@ def main():
     agent, last = None, 0
     while True:
         if agent is None or agent.poll() is not None:
-            agent = run_agent(secret)
+            agent = run_agent(secret, first=agent is None)
         if time.time() - last > 60:
             last = time.time()
             addr, why = ensure_tunnel(secret)

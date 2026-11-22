@@ -749,6 +749,9 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.56 (servers)
+- MP Crossplay 24/7 is reachable from PC: playit.gg UDP tunnel "Gta sa" wap-fresh.tun.ply.gg:56616 -> 127.0.0.1:7778 (the SA-MP query answers over the internet, 0/100). The tunnel agent now clears an agent left over from an earlier start ("Another instance is already running").
+
 ### 5.02.55 (servers)
 - PC tunnel fixes after the first real playit link: the agent exited at start ("agent is offline") because --secret and --secret-path can not be used together. The tunnel is now made with the playit 2.0.2 v1 API (/v1/agents/rundata, /v1/tunnels/create custom-udp -> 127.0.0.1:7778, /v1/tunnels/config) as in JebetrexxMC/playit-agent. A running shift restarts the tunnel agent when playit_agent.py changes.
 
