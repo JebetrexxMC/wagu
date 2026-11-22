@@ -57,7 +57,9 @@
       if (st && st.state === 'claim' && st.claim_url && fresh() && (!st.expires || st.expires > Date.now() / 1000)) {
         var left = st.expires ? Math.max(0, Math.round(st.expires - Date.now() / 1000)) : 0;
         p('y', 'Link your playit.gg account (one time)' + (left ? ' - this link ends in ' + Math.floor(left / 60) + ':' + ('0' + left % 60).slice(-2) : '') + ':');
-        print('  1. open ' + link(st.claim_url));
+        var code = st.claim_url.split('/').pop();
+        print('  <span class="g">Claim Code: ' + esc(code) + '</span>  <span class="m">(playit.gg new agent wizard -> Third party / any option -> "Enter claim code")</span>');
+        print('  1. open ' + link(st.claim_url) + ' <span class="m">or paste the claim code on playit.gg</span>');
         p('m', '  2. log in or make a free account at playit.gg');
         p('m', '  3. press Accept - the agent key is saved encrypted (AUTH_PRIVATE_KEY) for every next shift');
         p('m', '  4. the UDP tunnel to 127.0.0.1:7778 is made by itself; its address shows up here');
