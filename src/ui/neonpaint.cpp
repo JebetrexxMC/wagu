@@ -45,7 +45,7 @@ namespace
     enum { RS_TEXADDRESS = 2, RS_ZTEST = 6, RS_ZWRITE = 8, RS_TEXFILTER = 9, RS_SRCBLEND = 10, RS_DESTBLEND = 11, RS_VERTEXALPHA = 12 };
 
     struct NamedTex { char name[32]; NeonPaint::Tex t; };
-    NamedTex s_Tex[40]; int s_nTex = 0;
+    NamedTex s_Tex[48]; int s_nTex = 0;
 
     struct Glyph { float u0, v0, u1, v1; int w, h, xo, yo; float adv; bool ok; };
     struct Atlas { const NeonPaint::Tex* tex = nullptr; int size = 64, asc = 50; Glyph g[128]; };
@@ -63,6 +63,37 @@ namespace
     bool  f_bWasDown = false;
 
     bool LoadTex(const std::string& dir, const char* name);
+    // 5.02.43: a texture straight from memory (the backgrounds built into libMP, src/embed/menubg_blob.S): MP's own
+    // decoder (stb_image, PNG / JPEG) into a RwImage, then a raster + texture - no file is read or written
+    bool LoadMem(const char* name, const unsigned char* data, size_t size)
+    {
+        for(int i = 0; i < s_nTex; ++i) if(!strcmp(s_Tex[i].name, name)) return true;
+        if(s_nTex >= (int)(sizeof(s_Tex) / sizeof(s_Tex[0])) || !data || size < 16 || !fnImgCreate || !fnImgAlloc) return false;
+        int w = 0, h = 0, c = 0;
+        unsigned char* px = stbi_load_from_memory(data, (int)size, &w, &h, &c, 4);
+        if(!px || w <= 0 || h <= 0) { if(px) stbi_image_free(px); logger->Error("Neon menu: built-in %s could not be decoded", name); return false; }
+        void* img = fnImgCreate(w, h, 32);
+        bool ok = false;
+        if(img)
+        {
+            fnImgAlloc(img);
+            struct RwImg { int flags, width, height, depth, stride; unsigned char* pixels; void* pal; };
+            RwImg* ri = (RwImg*)img;
+            if(ri->pixels && ri->stride >= w * 4) { for(int y = 0; y < h; ++y) memcpy(ri->pixels + (size_t)y * ri->stride, px + (size_t)y * w * 4, (size_t)w * 4); ok = true; }
+        }
+        stbi_image_free(px);
+        if(!ok) { if(img) fnImgDestroy(img); logger->Error("Neon menu: built-in %s - no image (out of memory?)", name); return false; }
+        void* tex = nullptr;
+        int rw = 0, rh = 0, d = 0, flags = 0;
+        fnFindRasterFmt(img, 4 /*rwRASTERTYPETEXTURE*/, &rw, &rh, &d, &flags);
+        if(void* r = fnRasterCreate(rw, rh, d, flags)) { fnRasterFromImg(r, img); tex = fnTexCreate(r); }
+        fnImgDestroy(img);
+        if(!tex) { logger->Error("Neon menu: built-in %s - no texture (out of memory?)", name); return false; }
+        NamedTex& n = s_Tex[s_nTex++];
+        snprintf(n.name, sizeof(n.name), "%s", name); n.t.t = tex; n.t.w = w; n.t.h = h;
+        logger->Info("Neon menu: built-in %s (%dx%d, %u bytes) loaded from libMP", name, w, h, (unsigned)size);
+        return true;
+    }
     bool LoadTexOld(const std::string& dir, const char* name)
     {
         if(s_nTex >= (int)(sizeof(s_Tex) / sizeof(s_Tex[0]))) return false;
@@ -193,6 +224,9 @@ float NeonPaint::W() { return s_pRsGlobal ? (float)*(int*)((char*)s_pRsGlobal + 
 float NeonPaint::H() { return s_pRsGlobal ? (float)*(int*)((char*)s_pRsGlobal + sizeof(void*) + 4) : 720.0f; }
 
 namespace NeonEmbed { int Ensure(const std::string& dir); }   // 4.13.33 (src/ui/neon_embed.cpp)
+extern "C" {   // 5.02.43: src/embed/menubg_blob.S
+    extern const unsigned char mp_menubg_0[], mp_menubg_0_end[], mp_menubg_1[], mp_menubg_1_end[], mp_menubg_2[], mp_menubg_2_end[];
+}
 bool NeonPaint::Load(const char* mpDir)
 {
     if(s_bLoaded) return true;
@@ -201,7 +235,7 @@ bool NeonPaint::Load(const char* mpDir)
     NeonEmbed::Ensure(dir);   // 4.13.33: missing / old files come from the copy built into MP
     static const char* const kTex[] = { "art.png", "logo.png", "shade_left.png", "shade_bottom.png", "shade_top.png", "card_identity.png",
         "card_featured.png", "dialog.png", "button.png", "pill.png", "discord.png", "arrow.png", "arrow_down.png", "dot.png", "white.png", "nb_bg.png", "nb_flags.png",
-        "nb_bg1080.png", "nb_button.png", "nb_card.png", "nb_dialog.png", "nb_pill.png" };
+        "nb_button.png", "nb_card.png", "nb_dialog.png", "nb_pill.png" };   // 5.02.43: no nb_bg1080.png (the built-in backgrounds)
     // 5.01.08: a texture that does not load no longer turns the whole neon menu off (it is just not drawn); only no
     // font at all does. What failed goes to mp_log.txt + neon_mode_status.txt.
     s_szErr.clear();
@@ -212,6 +246,12 @@ bool NeonPaint::Load(const char* mpDir)
     {
         if(s_Font[i].tex || LoadFont(dir, i, kFont[i])) ++fontOk;
         else s_szErr += std::string(s_szErr.empty() ? "" : ", ") + kFont[i] + ".png/.txt";
+    }
+    {   // 5.02.43: the three menu backgrounds, decoded from libMP itself (not from assets/MP, files/TYFMC or Host)
+        const unsigned char* const b[3] = { mp_menubg_0, mp_menubg_1, mp_menubg_2 };
+        const unsigned char* const e[3] = { mp_menubg_0_end, mp_menubg_1_end, mp_menubg_2_end };
+        static const char* const nm[3] = { "menubg0", "menubg1", "menubg2" };
+        for(int i = 0; i < 3; ++i) if(!LoadMem(nm[i], b[i], (size_t)(e[i] - b[i]))) s_szErr += std::string(s_szErr.empty() ? "" : ", ") + nm[i] + " (built-in)";
     }
     if(!fontOk)
     {
