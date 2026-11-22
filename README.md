@@ -749,6 +749,9 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.49 (website)
+- Main site: the "PC" link in the top bar shows a live badge with the players on MP Crossplay 24/7 (for example 3/100), green when the server is online, yellow when the last check is over 25 minutes old, "offline" when it is down. It refreshes every minute (docs/xpbadge.js, the same omp247.json as pc.html).
+
 ### 5.02.48 (servers + website)
 - MP Crossplay 24/7: a real open.mp 1.6.7 server with mp-crossplay.so now runs in the 24/7 workflow (mp-247-servers.yml), next to the 7 MP featured servers. PC players join with the open.mp launcher or the SA-MP 0.3.7 / 0.3.DL client on UDP 7778. Phones find "MP Crossplay 24/7 [PC + Mobile]" in the MP Internet list (through the broker, UDP 7780). Script: server/omp_crossplay.sh (start / stop / status, also for a VPS).
 - PC address: a GitHub runner has no public UDP port, so the PC side goes through a playit.gg tunnel. One-time setup: make a free playit.gg account, add an agent and a UDP tunnel to 127.0.0.1:7778, then add the repo secret PLAYIT_SECRET (the agent key) and the repo variable OMP_PUBLIC_ADDR (the tunnel address, host:port). On a VPS with UDP 7778 open, set only OMP_PUBLIC_ADDR=<ip>:7778. Variable OMP_CROSSPLAY=off turns only this server off.

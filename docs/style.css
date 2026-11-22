@@ -321,3 +321,13 @@ tbody tr:not(.skel):not(.empty):hover{background:#1b2025}
 code{background:#1b1f24;color:#9fe083}
 .foot{border-top:1px solid #23272d}
 @media (max-width:720px){#TitleBar{height:auto;flex-wrap:wrap;padding:10px 12px;gap:8px}.tnav{margin-left:0;width:100%;justify-content:space-between}.tnav a{padding:6px 6px;font-size:.84rem}.twin{position:absolute;right:14px;top:20px}#TitleBar{position:relative}.heroart .h2a{display:none}#Stats{flex-wrap:wrap}#Stats span{width:50%!important;text-align:center!important}}
+
+/* 5.02.49: MP Crossplay 24/7 live player badge (xpbadge.js) */
+.xpb{display:inline-flex;align-items:center;gap:5px;margin-left:2px;padding:1px 7px;border-radius:99px;font-size:.72rem;font-weight:700;line-height:1.5;background:#1d2126;color:#9aa3ab;border:1px solid #2b3138}
+.xpb[hidden]{display:none}
+.xpd{width:7px;height:7px;border-radius:50%;background:#9aa3ab;flex:none}
+.xpb.on{color:#0b0d0f;background:var(--green);border-color:var(--green)}
+.xpb.on .xpd{background:#0b0d0f}
+.xpb.stale{color:#0b0d0f;background:#e8c25a;border-color:#e8c25a}
+.xpb.stale .xpd{background:#0b0d0f}
+.xpb.off .xpd{background:#ef6b5b}
