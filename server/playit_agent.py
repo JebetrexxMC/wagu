@@ -277,8 +277,14 @@ def ensure_tunnel(key):
         if not pp:
             continue
         if cfg(t, "local_port") != pp:
-            c = api("/v1/tunnels/config", {"tunnel_id": t.get("id"), "new_agent_id": d.get("agent_id"),
+            # new_agent_id null = keep the agent (a self-managed agent may not "reassign" - SelfManagedAgentCannotReassignTunnel)
+            c = api("/v1/tunnels/config", {"tunnel_id": t.get("id"), "new_agent_id": None,
                     "new_config": {"fields": [{"name": "local_ip", "value": "127.0.0.1"}, {"name": "local_port", "value": pp}]}}, key)
+            if c.get("status") != "success":
+                c2 = api("/tunnels/update", {"tunnel_id": t.get("id"), "local_ip": "127.0.0.1", "local_port": int(pp),
+                                             "agent_id": None, "enabled": True}, key)
+                if c2.get("status") == "success": c = c2
+                else: c = {"data": "%s; update: %s" % (c.get("data"), c2.get("data"))}
             if c.get("status") != "success":
                 with open(PORTF + ".tmp", "w") as f: f.write(cfg(t, "local_port") or str(PORT))
                 os.replace(PORTF + ".tmp", PORTF)
