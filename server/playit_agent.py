@@ -267,14 +267,35 @@ def ensure_tunnel(key):
         return "", "tunnel being made: %s" % (pend[0].get("status_msg") or "")
     if st.get("made"):
         return "", "waiting for the new tunnel"
-    req = {"name": "MP Crossplay 24/7", "ports": {"type": "custom-udp", "details": 1},
-           "origin": {"type": "agent", "data": {"agent_id": d.get("agent_id"),
-                      "config": {"fields": [{"name": "local_ip", "value": "127.0.0.1"}, {"name": "local_port", "value": str(PORT)}]}}},
-           "enabled": True, "alloc": None, "firewall_id": None}
-    c = api("/v1/tunnels/create", req, key)
-    if c.get("status") == "success":
-        st["made"] = True
-        return "", "UDP tunnel made (-> 127.0.0.1:%d), waiting for its address" % PORT
+    if st.get("tried"):
+        return "", "make the tunnel on playit.gg: Tunnels -> Add -> Custom UDP, 1 port, agent %s, local 127.0.0.1:%d (auto: %s)" % (
+            str(d.get("agent_id"))[:8], PORT, st["tried"])
+    aid = d.get("agent_id")
+    fields = [{"name": "local_ip", "value": "127.0.0.1"}, {"name": "local_port", "value": str(PORT)}]
+    tries = [   # the request formats of playit 2.0.2 (v1) and the older API; the first that works is kept
+        ("/v1/tunnels/create", {"name": "MP Crossplay 24/7", "ports": {"type": "custom-udp", "details": 1},
+                                "origin": {"type": "agent", "data": {"agent_id": aid, "config": {"fields": fields}}},
+                                "enabled": True, "alloc": None, "firewall_id": None}),
+        ("/v1/tunnels/create", {"name": "MP Crossplay 24/7", "ports": {"type": "custom-udp", "details": 1},
+                                "origin": {"type": "agent", "data": {"agent_id": aid, "config": {"fields": fields}}}, "enabled": True}),
+        ("/v1/tunnels/create", {"name": "MP Crossplay 24/7", "ports": {"type": "custom-udp", "details": 1},
+                                "origin": {"type": "agent", "data": {"agent_id": None, "config": {"fields": fields}}},
+                                "enabled": True, "alloc": None, "firewall_id": None}),
+        ("/tunnels/create", {"name": "MP Crossplay 24/7", "tunnel_type": None, "port_type": "udp", "port_count": 1,
+                             "origin": {"type": "agent", "data": {"agent_id": aid, "local_ip": "127.0.0.1", "local_port": PORT}},
+                             "enabled": True, "alloc": None, "firewall_id": None, "proxy_protocol": None, "description": "MP Crossplay 24/7"}),
+    ]
+    errs = []
+    for path, body in tries:
+        c = api(path, body, key)
+        if c.get("status") == "success":
+            st["made"] = True
+            return "", "UDP tunnel made (-> 127.0.0.1:%d), waiting for its address" % PORT
+        e = c.get("data")
+        errs.append("%s%s" % (path.split("/")[1][:2], (e.get("message") if isinstance(e, dict) else e)))
+        if "RequiresVerifiedAccount" in str(e): break
+    st["tried"] = "; ".join(errs)
+    c = {"data": st["tried"]}
     why = c.get("data")
     if "RequiresVerifiedAccount" in str(why):
         return "", "playit.gg wants a verified account for a new tunnel: verify your email on playit.gg, or make a UDP tunnel there (local port %d)" % PORT
