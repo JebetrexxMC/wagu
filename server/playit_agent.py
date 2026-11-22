@@ -248,6 +248,14 @@ def cfg(t, name):
     return ""
 
 
+PORTF = os.path.join(HERE, "playit.port")   # kept on mp247-data: the next shift starts open.mp on it
+
+
+def pub_port(t):
+    a = str(t.get("display_address") or "")
+    return a.rsplit(":", 1)[1] if ":" in a and a.rsplit(":", 1)[1].isdigit() else ""
+
+
 def ensure_tunnel(key):
     """5.02.55: the playit 2.0.2 API (/v1/agents/rundata + /v1/tunnels/create, as in JebetrexxMC/playit-agent)"""
     r = api("/v1/agents/rundata", {}, key)
@@ -259,14 +267,26 @@ def ensure_tunnel(key):
     st["account"] = str(perm.get("account_status", ""))
     st["tunnels"] = [{"name": t.get("name"), "proto": t.get("port_type"), "local": "%s:%s" % (cfg(t, "local_ip") or "127.0.0.1", cfg(t, "local_port")),
                       "addr": t.get("display_address", ""), "disabled": bool(t.get("disabled_reason"))} for t in ts]
-    for t in ts:
-        if cfg(t, "local_port") == str(PORT) and str(t.get("port_type", "")).lower() in ("udp", "both") and not t.get("disabled_reason"):
-            return t.get("display_address", ""), ""
-    for t in ts:   # a UDP tunnel with no local port set yet (made in the dashboard) -> use it, it points at 7778 below
-        if str(t.get("port_type", "")).lower() in ("udp", "both") and not t.get("disabled_reason") and not cfg(t, "local_port"):
-            api("/v1/tunnels/config", {"tunnel_id": t.get("id"), "new_agent_id": d.get("agent_id"), "new_config": {"fields": [{"name": "local_ip", "value": "127.0.0.1"},
-                                                                                       {"name": "local_port", "value": str(PORT)}]}}, key)
-            return t.get("display_address", ""), ""
+    # 5.02.57: SA-MP/open.mp encrypt the game packets with the server port - the client uses the port it dials,
+    # so the server must listen on the tunnel's PUBLIC port (56616 etc.), not 7778: the tunnel's local port is set
+    # to the public port and omp_crossplay.sh moves open.mp there (run/playit.port)
+    udp = [t for t in ts if str(t.get("port_type", "")).lower() in ("udp", "both") and not t.get("disabled_reason")]
+    udp.sort(key=lambda t: (cfg(t, "local_port") != pub_port(t), cfg(t, "local_port") != str(PORT)))
+    for t in udp:
+        pp = pub_port(t)
+        if not pp:
+            continue
+        if cfg(t, "local_port") != pp:
+            c = api("/v1/tunnels/config", {"tunnel_id": t.get("id"), "new_agent_id": d.get("agent_id"),
+                    "new_config": {"fields": [{"name": "local_ip", "value": "127.0.0.1"}, {"name": "local_port", "value": pp}]}}, key)
+            if c.get("status") != "success":
+                with open(PORTF + ".tmp", "w") as f: f.write(cfg(t, "local_port") or str(PORT))
+                os.replace(PORTF + ".tmp", PORTF)
+                return t.get("display_address", ""), ("PC join needs the same port: on playit.gg open tunnel '%s' and set Local Port to %s "
+                                                     "(now %s) - SA-MP packets are keyed on the port (%s)" % (t.get("name"), pp, cfg(t, "local_port"), c.get("data")))
+        with open(PORTF + ".tmp", "w") as f: f.write(pp)
+        os.replace(PORTF + ".tmp", PORTF)
+        return t.get("display_address", ""), ""
     pend = d.get("pending") or []
     if pend:
         return "", "tunnel being made: %s" % (pend[0].get("status_msg") or "")
@@ -326,7 +346,7 @@ def main():
             last = time.time()
             addr, why = ensure_tunnel(secret)
             if addr:
-                publish(state="online", addr=addr, note="PC players: " + addr)
+                publish(state="online", addr=addr, note=why or ("PC players: " + addr))
             elif "invalidagentkey" in why.lower().replace(" ", "") or "AgentKeyNotFound" in why or "AgentNotFound" in why:
                 if os.path.exists(ENC) and not os.environ.get("PLAYIT_SECRET"):
                     os.remove(ENC)                       # the saved key was removed on playit.gg -> link again

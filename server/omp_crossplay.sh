@@ -23,7 +23,13 @@ HERE=$PWD
 V=v1.6.7.3218                                   # = the open.mp-sdk commit mp-crossplay.so is built against
 OMP_DIR="${OMP_DIR:-$HERE/omp}"
 SRV="$OMP_DIR/Server"
-PORT="${OMP_PORT:-7778}"
+PORT="${OMP_PORT:-}"
+# 5.02.57: SA-MP/open.mp key the game packets on the server port, so behind playit open.mp listens on the tunnel's
+# public port (playit_agent.py writes it to playit.port and points the tunnel's local port there). frp keeps 7778 = 7778.
+if [ -z "$PORT" ] && [ -z "${FRP_SERVER:-}" ] && [ "${PLAYIT:-auto}" != off ] && grep -qxE '[0-9]{2,5}' playit.port 2>/dev/null; then
+    PORT=$(cat playit.port)
+fi
+PORT="${PORT:-7778}"
 MPORT="${OMP_MOBILE_PORT:-7780}"
 NAME="${OMP_NAME:-MP Crossplay 24/7 [PC + Mobile]}"
 MODE="${OMP_GAMEMODE:-simpletdm}"
@@ -59,6 +65,7 @@ p = sys.argv[1]; c = json.load(open(p))
 c["name"] = os.environ["NAME"]; c["announce"] = False; c["password"] = ""
 c["max_players"] = int(os.environ["MAX"]); c["max_bots"] = int(os.environ["MAX"])
 c.setdefault("network", {})["port"] = int(os.environ["PORT"])
+if os.environ.get("OMP_BIND"): c["network"]["bind"] = os.environ["OMP_BIND"]   # tests: relay on the same port
 c["network"]["allow_037_clients"] = True                     # SA-MP 0.3.7 client + open.mp launcher
 c.setdefault("artwork", {})["enable"] = False
 c.setdefault("rcon", {})["enable"] = False
@@ -154,6 +161,10 @@ case "${1:-start}" in
 esac
 
 echo "open.mp crossplay server, region $REGION:"
+if [ -f run/omp.pid ] && kill -0 "$(cat run/omp.pid)" 2>/dev/null && [ "$(cat run/omp.port 2>/dev/null || echo "$PORT")" != "$PORT" ]; then
+    echo "  PC port changed $(cat run/omp.port) -> $PORT (the tunnel's public port): restarting open.mp"
+    kill "$(cat run/omp.pid)" 2>/dev/null; pkill -f "$SRV/omp-server" 2>/dev/null; rm -f run/omp.pid; sleep 2
+fi
 if [ -f run/omp.pid ] && kill -0 "$(cat run/omp.pid)" 2>/dev/null; then
     echo "  already running (PC UDP $PORT, phones UDP $MPORT)"
 else
@@ -162,7 +173,7 @@ else
           ./omp-server < /dev/null >> "$HERE/logs/omp.log" 2>&1
           echo "[omp_crossplay] omp-server exited ($?), back in 3 s" >> "$HERE/logs/omp.log"; sleep 3
       done ) &
-    echo $! > run/omp.pid
+    echo $! > run/omp.pid; echo "$PORT" > run/omp.port
     echo "  started: \"$NAME\" ($MODE), PC UDP $PORT, phones UDP $MPORT + MP lobby"
 fi
 start_tunnel
