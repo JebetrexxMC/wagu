@@ -19,10 +19,11 @@ html:has(body.pc){height:auto}
 .srv.on .badge{color:#000;background:var(--g);border-color:var(--g)}
 .srv.off .badge{color:#fff;background:#7a2a22;border-color:#7a2a22}
 .srv.stale .badge{color:#000;background:var(--y);border-color:var(--y)}
-.kv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 12px;margin:12px 0}
+.kv{display:grid;grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr));gap:8px 12px;margin:12px 0}
 .kv div{min-width:0}
 .kv dt{color:var(--muted);font-size:11px}
 .kv dd{margin:0;overflow-wrap:anywhere}
+#k-addr{overflow-wrap:normal;word-break:keep-all;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .join-row,.dl-btns{display:flex;flex-wrap:wrap;gap:8px}
 .btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 14px;border-radius:8px;border:1px solid #2c5039;background:#10241a;color:var(--text);font:inherit;font-size:13px;text-decoration:none;cursor:pointer}
 .btn:hover{border-color:var(--p)}
@@ -43,4 +44,4 @@ html:has(body.pc){height:auto}
 body.pc{overflow-x:hidden}
 .pc .bar{min-width:0}
 .btn{white-space:normal;text-align:center;max-width:100%}
-@media (max-width:640px){.kv{grid-template-columns:repeat(2,minmax(0,1fr))}.pc-nav{gap:8px}.btn{flex:1 1 140px}.pc .live{display:none}.dl-btns{width:100%}}
+@media (max-width:640px){.kv{grid-template-columns:repeat(2,minmax(0,1fr))}.kv div:first-child{grid-column:span 2}.pc-nav{gap:8px}.btn{flex:1 1 140px}.pc .live{display:none}.dl-btns{width:100%}}
