@@ -232,39 +232,53 @@ def get_bin():
 
 def run_agent(key):
     lf = open(LOG, "ab")
-    return subprocess.Popen([BIN, "--secret", key, "--secret-path", os.path.join(HERE, "run", "playit.toml"),
-                             "--socket-path", os.path.join(HERE, "run", "playit.sock")],
+    # 5.02.55: --secret and --secret-path can not be used together (the agent exited at once = "agent is offline")
+    return subprocess.Popen([BIN, "--secret", key, "--socket-path", os.path.join(HERE, "run", "playit.sock")],
                             stdout=lf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
 
 
-def tunnel_addr(t):
-    host = t.get("custom_domain") or t.get("assigned_domain") or ""
-    p = t.get("port") or {}
-    port = p.get("from") if isinstance(p, dict) else p
-    return "%s:%s" % (host, port) if host and port else ""
+def cfg(t, name):
+    for f in ((t.get("agent_config") or {}).get("fields") or []):
+        if f.get("name") == name: return str(f.get("value", ""))
+    return ""
 
 
 def ensure_tunnel(key):
-    r = api("/agents/rundata", {}, key)
+    """5.02.55: the playit 2.0.2 API (/v1/agents/rundata + /v1/tunnels/create, as in JebetrexxMC/playit-agent)"""
+    r = api("/v1/agents/rundata", {}, key)
     if r.get("status") != "success":
         return "", "agent rundata: %s" % (r.get("data"),)
     d = r["data"]
     ts = d.get("tunnels") or []
-    st["account"] = str(d.get("account_status", ""))
-    st["tunnels"] = [{"name": t.get("name"), "proto": t.get("proto"), "local": "%s:%s" % (t.get("local_ip"), t.get("local_port")),
-                      "addr": tunnel_addr(t), "disabled": bool(t.get("disabled"))} for t in ts]
+    perm = d.get("permissions") or {}
+    st["account"] = str(perm.get("account_status", ""))
+    st["tunnels"] = [{"name": t.get("name"), "proto": t.get("port_type"), "local": "%s:%s" % (cfg(t, "local_ip") or "127.0.0.1", cfg(t, "local_port")),
+                      "addr": t.get("display_address", ""), "disabled": bool(t.get("disabled_reason"))} for t in ts]
     for t in ts:
-        if int(t.get("local_port") or 0) == PORT and str(t.get("proto", "")).lower() in ("udp", "both") and not t.get("disabled"):
-            return tunnel_addr(t), ""
-    if d.get("pending"):
-        return "", "tunnel being made"
-    c = api("/tunnels/create", {"name": "MP Crossplay 24/7", "tunnel_type": None, "port_type": "udp", "port_count": 1,
-                               "origin": {"type": "agent", "data": {"agent_id": d.get("agent_id"), "local_ip": "127.0.0.1",
-                                                                     "local_port": PORT}},
-                               "enabled": True, "alloc": None, "firewall_id": None, "proxy_protocol": None}, key)
+        if cfg(t, "local_port") == str(PORT) and str(t.get("port_type", "")).lower() in ("udp", "both") and not t.get("disabled_reason"):
+            return t.get("display_address", ""), ""
+    for t in ts:   # a UDP tunnel with no local port set yet (made in the dashboard) -> use it, it points at 7778 below
+        if str(t.get("port_type", "")).lower() in ("udp", "both") and not t.get("disabled_reason") and not cfg(t, "local_port"):
+            api("/v1/tunnels/config", {"tunnel_id": t.get("id"), "new_agent_id": d.get("agent_id"), "new_config": {"fields": [{"name": "local_ip", "value": "127.0.0.1"},
+                                                                                       {"name": "local_port", "value": str(PORT)}]}}, key)
+            return t.get("display_address", ""), ""
+    pend = d.get("pending") or []
+    if pend:
+        return "", "tunnel being made: %s" % (pend[0].get("status_msg") or "")
+    if st.get("made"):
+        return "", "waiting for the new tunnel"
+    req = {"name": "MP Crossplay 24/7", "ports": {"type": "custom-udp", "details": 1},
+           "origin": {"type": "agent", "data": {"agent_id": d.get("agent_id"),
+                      "config": {"fields": [{"name": "local_ip", "value": "127.0.0.1"}, {"name": "local_port", "value": str(PORT)}]}}},
+           "enabled": True, "alloc": None, "firewall_id": None}
+    c = api("/v1/tunnels/create", req, key)
     if c.get("status") == "success":
+        st["made"] = True
         return "", "UDP tunnel made (-> 127.0.0.1:%d), waiting for its address" % PORT
-    return "", "make the tunnel in the playit.gg dashboard: UDP, local 127.0.0.1:%d (%s)" % (PORT, c.get("data"))
+    why = c.get("data")
+    if "RequiresVerifiedAccount" in str(why):
+        return "", "playit.gg wants a verified account for a new tunnel: verify your email on playit.gg, or make a UDP tunnel there (local port %d)" % PORT
+    return "", "make the tunnel in the playit.gg dashboard: Custom UDP, 1 port, local 127.0.0.1:%d (%s)" % (PORT, why)
 
 
 def main():
@@ -287,7 +301,7 @@ def main():
             addr, why = ensure_tunnel(secret)
             if addr:
                 publish(state="online", addr=addr, note="PC players: " + addr)
-            elif "invalid" in why.lower() or "unauthorized" in why.lower() or "AgentKeyNotFound" in why:
+            elif "invalidagentkey" in why.lower().replace(" ", "") or "AgentKeyNotFound" in why or "AgentNotFound" in why:
                 if os.path.exists(ENC) and not os.environ.get("PLAYIT_SECRET"):
                     os.remove(ENC)                       # the saved key was removed on playit.gg -> link again
                 agent.terminate(); agent = None

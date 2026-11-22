@@ -749,6 +749,9 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.55 (servers)
+- PC tunnel fixes after the first real playit link: the agent exited at start ("agent is offline") because --secret and --secret-path can not be used together. The tunnel is now made with the playit 2.0.2 v1 API (/v1/agents/rundata, /v1/tunnels/create custom-udp -> 127.0.0.1:7778, /v1/tunnels/config) as in JebetrexxMC/playit-agent. A running shift restarts the tunnel agent when playit_agent.py changes.
+
 ### 5.02.53 (servers + website)
 - Short-lived playit.gg account link: the 24/7 host only shows a link when someone presses "Link playit account" on the MP Tunnel console (MQTT request on thirtyfox/mp5/playit/req). Each link ends after 5 minutes (PLAYIT_LINK_MIN), with at most 6 links an hour. The console counts down the time left and hides an expired link.
 

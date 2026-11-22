@@ -112,7 +112,12 @@ CFG
 start_tunnel() {   # 5.02.50: playit.gg agent from release v5.02.30 (playit_agent.py: account link, key, UDP tunnel, address)
     start_frp && [ "${PLAYIT:-auto}" != on ] && return 0          # 5.02.52: own frp server first
     [ "${PLAYIT:-auto}" = off ] && { echo "  PC tunnel: playit off (PLAYIT=off)"; return 0; }
-    if [ -f run/playit.pid ] && kill -0 "$(cat run/playit.pid)" 2>/dev/null; then return 0; fi
+    local ver; ver=$(md5sum "$HERE/playit_agent.py" | cut -c1-12)
+    if [ -f run/playit.pid ] && kill -0 "$(cat run/playit.pid)" 2>/dev/null; then
+        [ "$(cat run/playit.ver 2>/dev/null)" = "$ver" ] && return 0
+        kill "$(cat run/playit.pid)" 2>/dev/null; pkill -f playit-linux-amd64 2>/dev/null; sleep 1   # 5.02.55: new code -> restart
+    fi
+    echo "$ver" > run/playit.ver
     ( set -m; nohup python3 "$HERE/playit_agent.py" >> logs/playit_agent.log 2>&1 & echo $! > run/playit.pid )
     echo "  PC tunnel: playit.gg agent started (UDP $PORT) - live on mpsamp-open.github.io/playit.html"
 }
