@@ -12,6 +12,8 @@
 # UDP tunnel (5.02.50: playit_agent.py runs the playit agent from release v5.02.30 here - nothing to
 # download on a computer; link the playit account from the website console mpsamp-open.github.io/playit.html).
 # The address comes from the tunnel by itself; OMP_PUBLIC_ADDR (repo variable) overrides it.
+# 5.02.52: or our own open-source tunnel (frp): FRP_SERVER (variable, host:7000) + FRP_TOKEN (secret) from
+# HiveMQ/frps-setup.sh on the HiveMQ VPS - used first; playit then only runs with PLAYIT=on.
 # On a VPS with an open UDP 7778: OMP_PUBLIC_ADDR=<vps ip>:7778 and PLAYIT=off.
 #
 # Optional env: OMP_NAME, OMP_GAMEMODE (simpletdm | derby | gungame, default simpletdm), OMP_MAX (100),
@@ -34,6 +36,8 @@ stop_all() {
     pkill -f "$SRV/omp-server" 2>/dev/null
     [ -f run/playit.pid ] && kill "$(cat run/playit.pid)" 2>/dev/null; rm -f run/playit.pid
     pkill -f playit-linux-amd64 2>/dev/null
+    [ -f run/frpc.pid ] && kill "$(cat run/frpc.pid)" 2>/dev/null; rm -f run/frpc.pid
+    pkill -f "$OMP_DIR/frpc" 2>/dev/null
     return 0
 }
 
@@ -73,8 +77,41 @@ max=$MAX
 EOF
 }
 
+start_frp() {   # 5.02.52: our own open-source tunnel (frp) to the box set up with HiveMQ/frps-setup.sh
+    [ -n "${FRP_SERVER:-}" ] && [ -n "${FRP_TOKEN:-}" ] || return 1
+    if [ -f run/frpc.pid ] && kill -0 "$(cat run/frpc.pid)" 2>/dev/null; then return 0; fi
+    local v=0.72.0 host="${FRP_SERVER%:*}" sport="${FRP_SERVER##*:}" rport="${FRP_REMOTE_PORT:-7778}"
+    [ "$sport" = "$FRP_SERVER" ] && sport=7000
+    if [ ! -x "$OMP_DIR/frpc" ]; then
+        mkdir -p "$OMP_DIR"
+        curl -fsSL "https://github.com/fatedier/frp/releases/download/v$v/frp_${v}_linux_amd64.tar.gz" \
+            | tar -xz -C "$OMP_DIR" --strip-components=1 "frp_${v}_linux_amd64/frpc" || { echo "  PC tunnel: frpc download failed"; return 1; }
+    fi
+    umask 077; cat > run/frpc.toml <<CFG
+serverAddr = "$host"
+serverPort = $sport
+auth.method = "token"
+auth.token = "$FRP_TOKEN"
+loginFailExit = false
+log.to = "$HERE/logs/frpc.log"
+log.maxDays = 1
+
+[[proxies]]
+name = "mp-crossplay-pc-${REGION:-Asia}"
+type = "udp"
+localIP = "127.0.0.1"
+localPort = $PORT
+remotePort = $rport
+CFG
+    umask 022
+    ( set -m; nohup bash -c "while true; do '$OMP_DIR/frpc' -c '$HERE/run/frpc.toml' > /dev/null 2>&1; sleep 3; done" > /dev/null 2>&1 & echo $! > run/frpc.pid )
+    echo "$host:$rport" > run/frp.addr
+    echo "  PC tunnel: frp -> $host:$rport (UDP, own server $host:$sport)"
+}
+
 start_tunnel() {   # 5.02.50: playit.gg agent from release v5.02.30 (playit_agent.py: account link, key, UDP tunnel, address)
-    [ "${PLAYIT:-on}" = off ] && { echo "  PC tunnel: off (PLAYIT=off)"; return 0; }
+    start_frp && [ "${PLAYIT:-auto}" != on ] && return 0          # 5.02.52: own frp server first
+    [ "${PLAYIT:-auto}" = off ] && { echo "  PC tunnel: playit off (PLAYIT=off)"; return 0; }
     if [ -f run/playit.pid ] && kill -0 "$(cat run/playit.pid)" 2>/dev/null; then return 0; fi
     ( set -m; nohup python3 "$HERE/playit_agent.py" >> logs/playit_agent.log 2>&1 & echo $! > run/playit.pid )
     echo "  PC tunnel: playit.gg agent started (UDP $PORT) - live on mpsamp-open.github.io/playit.html"
@@ -82,8 +119,8 @@ start_tunnel() {   # 5.02.50: playit.gg agent from release v5.02.30 (playit_agen
 
 status() {   # SA-MP query 'i' (works on open.mp): online, players, max -> JSON for docs/pc.html
     local out="${1:-$HERE/omp247.json}"
-    PORT="$PORT" NAME="$NAME" MPORT="$MPORT" REGION="$REGION" ADDR="${OMP_PUBLIC_ADDR:-$(cat run/playit.addr 2>/dev/null)}" MODE="$MODE" \
-    TUNNEL="$([ -f run/playit.pid ] && echo playit || echo none)" python3 - "$out" <<'PY'
+    PORT="$PORT" NAME="$NAME" MPORT="$MPORT" REGION="$REGION" ADDR="${OMP_PUBLIC_ADDR:-$(cat run/frp.addr 2>/dev/null || cat run/playit.addr 2>/dev/null)}" MODE="$MODE" \
+    TUNNEL="$([ -f run/frpc.pid ] && echo frp || { [ -f run/playit.pid ] && echo playit; } || echo none)" python3 - "$out" <<'PY'
 import json, os, socket, struct, sys, time
 port = int(os.environ["PORT"]); res = {"online": False, "players": 0, "max": 0}
 try:

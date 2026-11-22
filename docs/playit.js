@@ -9,6 +9,7 @@
   var RAWJ = 'https://raw.githubusercontent.com/JebetrexxMC/wagu/mp247-data/playit.json';
   var REL = 'https://github.com/JebetrexxMC/wagu/releases/download/v5.02.30/';
   var MPREL = 'https://github.com/JebetrexxMC/wagu/releases/download/playit-mp/';
+  var OMPJ = 'https://raw.githubusercontent.com/JebetrexxMC/wagu/mp247-data/omp247.json', omp = null;
   var BINS = ['playit-linux-amd64', 'playit-linux-aarch64', 'playit-linux-armv7', 'playit-linux-i686'];
   var $ = function (id) { return document.getElementById(id); };
   var out = $('out'), stick = window.MPAutoScroll(out);
@@ -30,7 +31,8 @@
     c.on('message', function (t, pl) { try { take(JSON.parse(pl.toString())); } catch (e) {} });
     conns.push(c);
   }
-  function pull() { return fetch(RAWJ + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(take).catch(function () {}); }
+  function pullOmp() { fetch(OMPJ + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (o) { if (o) omp = o; }).catch(function () {}); }
+  function pull() { pullOmp(); return fetch(RAWJ + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(take).catch(function () {}); }
   function live() {
     var on = conns.filter(function (c) { return c.connected; }).length;
     var s = !st ? 'no data yet' : !fresh() ? 'host offline (last ' + ago(st.updated) + ' ago)' : st.state + (st.addr ? ' · ' + st.addr : '');
@@ -79,15 +81,22 @@
       p('m', '  or: curl -fsSL https://packages.playit.gg/install.sh | bash');
     },
     'join': function () {
+      if (omp && omp.addr && omp.tunnel === 'frp') { p('g', 'PC players: samp://' + omp.addr + '  ·  omp://' + omp.addr); return; }
       if (st && st.addr) { p('g', 'PC players: samp://' + st.addr + '  ·  omp://' + st.addr); print('  ' + link('https://mpsamp-open.github.io/join.html?addr=' + encodeURIComponent(st.addr), 'one-tap join page')); }
       else p('m', 'no tunnel address yet');
+    },
+    'frp status': function () {   // 5.02.52: our own open-source tunnel (frp) on the HiveMQ VPS
+      if (omp && omp.tunnel === 'frp') p('g', 'frp tunnel: UDP ' + omp.addr + ' -> 127.0.0.1:' + omp.port + ' (own server, ' + (omp.online ? 'online' : 'offline') + ')');
+      else p('m', 'frp tunnel: not set up' + (omp ? ' (now: ' + (omp.tunnel || 'none') + ')' : ''));
+      p('m', '  own server, on the HiveMQ VPS as root: curl -fsSL https://mpsamp-open.github.io/HiveMQ/frps-setup.sh | sudo bash');
+      p('m', '  then repo secret FRP_TOKEN + variable FRP_SERVER=<vps>:7000 - frp is used first, playit only with PLAYIT=on');
     },
     'clear': function () { out.innerHTML = ''; }
   };
   function run(line) { print('<span class="g">~ $</span> ' + esc(line)); var f = CMDS[line]; if (!f) { p('r', line.split(' ')[0] + ': command not found'); return; } return f(); }
 
   var boot = ['curl -fsSL https://packages.playit.gg/install.sh | bash', 'playit download', 'playit status'];
-  var rot = ['playit status', 'tail -n 12 logs/playit.log', 'playit tunnels', 'playit status', 'join'], ri = 0, n = 0;
+  var rot = ['playit status', 'tail -n 12 logs/playit.log', 'frp status', 'playit tunnels', 'playit status', 'join'], ri = 0, n = 0;
   function next() {
     if (boot.length) return { cmd: boot.shift(), why: 'start-up check' };
     if (st) {

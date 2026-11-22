@@ -46,7 +46,9 @@ jobs:
       OMP_ON: ${{ vars.OMP_CROSSPLAY != 'off' }}
       PLAYIT_SECRET: ${{ secrets.PLAYIT_SECRET }}
       PLAYIT_KEY_PASS: ${{ secrets.AUTH_PRIVATE_KEY }}   # 5.02.50: encrypts the linked playit agent key (playit.enc)
-      PLAYIT: ${{ vars.PLAYIT || 'on' }}
+      PLAYIT: ${{ vars.PLAYIT || 'auto' }}
+      FRP_SERVER: ${{ vars.FRP_SERVER }}       # 5.02.52: own frp tunnel server (HiveMQ/frps-setup.sh), host:7000
+      FRP_TOKEN: ${{ secrets.FRP_TOKEN }}
       OMP_PUBLIC_ADDR: ${{ vars.OMP_PUBLIC_ADDR }}
     steps:
       - name: Skip if a shift is already running

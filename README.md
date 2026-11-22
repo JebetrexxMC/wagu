@@ -749,6 +749,11 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.52 (servers + HiveMQ)
+- Our own open-source PC tunnel, no playit.gg account: HiveMQ/frps-setup.sh installs frp 0.72.0 (github.com/fatedier/frp) on the HiveMQ VPS as the mp-frps service (TCP 7000 for the 24/7 host with token auth, UDP 7778-7799 for PC players) and prints the token. With repo secret FRP_TOKEN and variable FRP_SERVER=<vps>:7000, omp_crossplay.sh runs frpc on the 24/7 host (UDP 7778 -> <vps>:7778, FRP_REMOTE_PORT to change it). It is used before playit, and its address goes to omp247.json. Tested locally: the SA-MP query answers through the tunnel port.
+- Why frp: SA-MP / open.mp is UDP. frp and rathole tunnel UDP, but bore is TCP-only. All three need one box with a public IP, because a GitHub runner cannot accept connections.
+- MP Tunnel console: "frp status" command.
+
 ### 5.02.51 (servers)
 - Our own playit agent: .github/workflows/playit-agent.yml builds playitd + playit-cli from source (github.com/JebetrexxMC/playit-agent, fork of playit-cloud/playit-agent) for linux amd64 and aarch64 into the release playit-mp, every Monday or on demand. server/playit_agent.py runs that build on the 24/7 host and falls back to the v5.02.30 upload. Only the agent is open source: the tunnel servers and agent keys stay on playit.gg, so the key still comes from the account link on playit.html.
 
