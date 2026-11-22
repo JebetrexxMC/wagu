@@ -92,7 +92,7 @@ static std::vector<std::string> s_GifCats = { "All" };
 void Gifs::Init() {}
 bool Gifs::Ready() { return false; }
 const Gifs::Info* Gifs::Get(int) { return nullptr; }
-const std::vector<std::string>& Gifs::Categories() { return s_GifCats; }
+std::vector<std::string> Gifs::Categories() { return s_GifCats; }   // 5.02.43: returns a copy, like src/ui/gifs.h
 void Gifs::List(const char*, const char*, std::vector<int>& out) { out.clear(); }
 bool Gifs::SheetPath(int, std::string&) { return false; }
 int  Gifs::ParseToken(const char*) { return 0; }
