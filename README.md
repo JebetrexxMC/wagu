@@ -749,6 +749,12 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.45
+- HassleHUD: the fist GIF is back to the way it worked before. The 60 fps sprite sheets from 5.02.42 (resource/HassleHUD/frames/) showed on the phone as one picture with every frame stacked in it. They are off now, and the GIF is decoded by MP's extractGif again. The frames/ folder is no longer used and can be deleted. For testing only, an empty config/HassleHUD_60fps.txt turns the sheets back on.
+- The bars fix and the HUD scale slider from 5.02.44 stay.
+- Scripts no longer all start by themselves. A script MP has not seen before starts switched off. Switch it on in the Script Manager (moon icon on the top bar), or with its own command (/hasslehud switches HassleHUD on). This covers moonloader/, moonloader/mods/ and moonloader/lua_scripts/. config/mp_scripts_seen.txt remembers every script already met, so a script you switched on stays on after a restart. On the first start of 5.02.45 every script you have is switched off once. The loaders (lua_scripts_loader.lua, mods_loader.lua, fivem_loader.lua) and MP's mod_commands.lua (/mods) stay on.
+- lua_scripts_loader 1.8-mp (built into libMP, it replaces an older copy by itself).
+
 ### 5.02.44
 - Menu music: neon_mainmenu.mp3 now plays the full 5:46 and loops. It streams from Host/Media through the phone's media player, the same way solo.m4a and dz_ambient.mp3 play. Until 5.02.43 MP downloaded a copy into files/TYFMC/MP and played it with its own mp3 decoder, which keeps only about 4 s of sound queued and refills it from the menu tick. When the menu stopped ticking, the music went silent after about 4 s. If the stream stalls, the song carries on from the same second. If raw.githubusercontent.com does not answer, jebetrexxmc.github.io is used.
 - No more neon_mainmenu.mp3 in the MP folder. MP deletes an old neon_mainmenu.mp3 (and its .ok, .bad and .part files) from files/TYFMC/MP once, and the release zips no longer ship it.

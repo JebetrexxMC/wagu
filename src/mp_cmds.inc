@@ -1431,7 +1431,12 @@ static std::string LuaModRunner(const std::string& src)
       end
       local clock = (type(localClock) == 'function' and pcall(localClock)) and localClock or os.clock
       local seq
+      -- 5.02.45: the 60 fps sheets are off again (on the phone the whole sheet showed: every frame stacked in one
+      --  picture). The fist GIF is decoded by MP's extractGif like before 5.02.42. Opt-in for testing only:
+      --  an empty file config/HassleHUD_60fps.txt in the HassleHUD folder.
+      local sheetsOn = doesFileExist(__mp_pkg .. '/config/HassleHUD_60fps.txt')
       __mp_hhseq = function(gif)
+        if not sheetsOn then return nil end
         local stem = tostring(gif):gsub('\\', '/'):match('([^/]+)%.[gG][iI][fF]$')
         if not stem then return nil end
         if seq and seq.stem == stem then return seq.n end

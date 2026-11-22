@@ -8,6 +8,8 @@
 #include <mod/config.h>
 #include "game/game.h"
 #include <dlfcn.h>
+#include <dirent.h>
+#include <strings.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -207,6 +209,70 @@ static void InstallCore()
     }
 }
 
+// 5.02.45: a script MP has not seen before starts switched OFF (MonetLoader, mods_loader.lua and
+// lua_scripts_loader.lua all skip what is in config/mp_scripts_off.txt). config/mp_scripts_seen.txt remembers every
+// script already met, so one you switch on in the Script Manager (moon icon) stays on. The loaders and MP's own
+// helpers stay on. lua_scripts/ is handled by lua_scripts_loader.lua (same files).
+static void MarkNewScriptsOff()
+{
+    const char* dd = MP::DataDir(); if(!dd || !dd[0]) return;
+    const std::string root = std::string(dd) + "/moonloader";
+    auto lower = [](std::string v) { for(auto& c : v) { if(c == '\\') c = '/'; else c = (char)tolower((unsigned char)c); } return v; };
+    auto readSet = [&](const std::string& p, std::vector<std::string>& out) {
+        FILE* f = fopen(p.c_str(), "rb"); if(!f) return;
+        char ln[1024];
+        while(fgets(ln, sizeof(ln), f))
+        {
+            std::string v = ln;
+            while(!v.empty() && (v.back() == '\n' || v.back() == '\r' || v.back() == ' ' || v.back() == '\t')) v.pop_back();
+            size_t b = v.find_first_not_of(" \t"); if(b == std::string::npos || v[b] == '#') continue;
+            out.push_back(lower(v.substr(b)));
+        }
+        fclose(f);
+    };
+    std::vector<std::string> seen, off;
+    readSet(root + "/config/mp_scripts_seen.txt", seen);
+    readSet(root + "/config/mp_scripts_off.txt", off);
+    auto has = [](const std::vector<std::string>& v, const std::string& k) { for(auto& x : v) if(x == k) return true; return false; };
+    static const char* const kOn[] = { "lua_scripts_loader.lua", "mods_loader.lua", "fivem_loader.lua" };
+    std::vector<std::string> newSeen, newOff;
+    auto scan = [&](const std::string& dir, const char* prefix) {
+        DIR* d = opendir(dir.c_str()); if(!d) return;
+        while(dirent* e = readdir(d))
+        {
+            if(e->d_name[0] == '.') continue;
+            size_t l = strlen(e->d_name);
+            if(!((l > 4 && !strcasecmp(e->d_name + l - 4, ".lua")) || (l > 5 && !strcasecmp(e->d_name + l - 5, ".luac")))) continue;
+            struct stat st; if(stat((dir + "/" + e->d_name).c_str(), &st) != 0 || !S_ISREG(st.st_mode)) continue;
+            const std::string key = lower(std::string(prefix) + e->d_name);
+            if(has(seen, key) || has(newSeen, key)) continue;
+            newSeen.push_back(key);
+            bool sys = false; for(const char* n : kOn) if(key == n) sys = true;
+            if(!sys && !has(off, key)) newOff.push_back(key);
+        }
+        closedir(d);
+    };
+    scan(root, ""); scan(root + "/mods", "mods/");
+    if(newSeen.empty()) return;
+    mkdir((root + "/config").c_str(), 0777);
+    if(FILE* f = fopen((root + "/config/mp_scripts_seen.txt").c_str(), "ab"))
+    {
+        if(seen.empty()) fputs("# Scripts MP has met (a new one starts switched off). Delete this file to switch every script off again.\n", f);
+        for(auto& k : newSeen) { fputs(k.c_str(), f); fputc('\n', f); }
+        fclose(f);
+    }
+    if(!newOff.empty())
+    {
+        if(FILE* f = fopen((root + "/config/mp_scripts_off.txt").c_str(), "ab"))
+        {
+            for(auto& k : newOff) { fputs(k.c_str(), f); fputc('\n', f); }
+            fclose(f);
+        }
+        std::string list; for(auto& k : newOff) { if(!list.empty()) list += ", "; list += k; }
+        logger->Info("MonetLoader: %u new script(s) switched off until you switch them on (Script Manager, moon icon): %s", (unsigned)newOff.size(), list.c_str());
+    }
+}
+
 static void MonetLogLine(int level, const char* text)   // 5.02.44: called by MonetLoader's logger (any thread)
 {
     if(!text) return;
@@ -219,6 +285,7 @@ void Start()
     ConfigEntry* e = cfg->Bind("MonetLoader", true, "MP");   // written to TYFMC.MP.ini so it can be switched off
     const bool on = e->GetBool(); delete e; cfg->Save();
     if(!on) { logger->Info("MonetLoader: off (MonetLoader = 0 in TYFMC.MP.ini)"); return; }
+    MarkNewScriptsOff();   // 5.02.45: new scripts start switched off
     InstallCore();   // 5.01.06: lua_scripts_loader.lua + mods_loader.lua before MonetLoader loads moonloader/
     if(aml->HasMod("com.monetloader.aml") || dlopen("libmonetloader.so", RTLD_NOW | RTLD_NOLOAD))
     {

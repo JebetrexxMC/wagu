@@ -1,6 +1,6 @@
 script_name('MP Lua Scripts Loader')
 script_author('JebetrexxMC')
-script_version('1.6-mp')
+script_version('1.8-mp')
 script_description('Starts every .lua / .luac script in moonloader/lua_scripts/, loose or inside .zip files')
 
 -- Entry point of moonloader/lua_scripts/. MonetLoader only starts the scripts right in moonloader/; this one starts:
@@ -162,6 +162,40 @@ local function readOff()
   end
 end
 local function isOff(rel) return off[(DIR_NAME .. '/' .. rel):lower()] == true end
+-- 5.02.45: a script MP has not seen before starts switched OFF - switch it on in the Script Manager (moon icon) or
+-- with its command (/hasslehud). config/mp_scripts_seen.txt remembers every script already met, so a script you
+-- switched on stays on. MP's own helpers (mod_commands.lua) are on by default.
+local SEEN_FILE = 'config/mp_scripts_seen.txt'
+local ALWAYS_ON = { ['lua_scripts/mod_commands.lua'] = true }
+local seen
+local function readSeen()
+  seen = {}
+  local s = readall(ROOT .. '/' .. SEEN_FILE)
+  if not s then return end
+  for line in s:gmatch('[^\r\n]+') do
+    line = line:gsub('^%s+', ''):gsub('%s+$', '')
+    if line ~= '' and line:sub(1, 1) ~= '#' then seen[norm(line):lower()] = true end
+  end
+end
+local function append(file, line)
+  mkdirs(ROOT .. '/config')
+  local f = io.open(ROOT .. '/' .. file, 'ab')
+  if f then f:write(line .. '\n') f:close() end
+end
+local function offOrNew(rel)
+  local key = (DIR_NAME .. '/' .. rel):lower()
+  if not seen then readSeen() end
+  if not seen[key] then
+    seen[key] = true
+    append(SEEN_FILE, key)
+    if not ALWAYS_ON[key] and not off[key] then
+      off[key] = true
+      append(OFF_FILE, key)
+      log(rel .. ': new script - switched off until you switch it on (Script Manager, moon icon)')
+    end
+  end
+  return off[key] == true
+end
 local function offChanged()
   local a = lfs.attributes(ROOT .. '/' .. OFF_FILE)
   local st = a and (a.modification .. ':' .. a.size) or ''
@@ -244,7 +278,7 @@ local function addScript(path, rel, pkg)
   if not info.script then return end
   if pkg then
     -- a mod folder with its own lib/: everything stays in that folder, the name check below does not apply
-    found[#found + 1] = { src = path, rel = rel, cheat = info.cheat, backslash = info.backslash, pkg = pkg, off = isOff(rel) }
+    found[#found + 1] = { src = path, rel = rel, cheat = info.cheat, backslash = info.backslash, pkg = pkg, off = offOrNew(rel) }
     return
   end
   -- MonetLoader / mods_loader already start a script with this name from moonloader/ or moonloader/mods/
@@ -253,7 +287,7 @@ local function addScript(path, rel, pkg)
     log(rel .. ': a script with this name is in moonloader/ already - not started twice')
     return
   end
-  found[#found + 1] = { src = path, rel = rel, cheat = info.cheat, backslash = info.backslash, off = isOff(rel) }
+  found[#found + 1] = { src = path, rel = rel, cheat = info.cheat, backslash = info.backslash, off = offOrNew(rel) }
 end
 
 -- d: folder, rel: its path inside lua_scripts/, pkg: true when d is laid out like moonloader/
@@ -353,7 +387,12 @@ do
       end
       local clock = (type(localClock) == 'function' and pcall(localClock)) and localClock or os.clock
       local seq
+      -- 5.02.45: the 60 fps sheets are off again (on the phone the whole sheet showed: every frame stacked in one
+      --  picture). The fist GIF is decoded by MP's extractGif like before 5.02.42. Opt-in for testing only:
+      --  an empty file config/HassleHUD_60fps.txt in the HassleHUD folder.
+      local sheetsOn = doesFileExist(__mp_pkg .. '/config/HassleHUD_60fps.txt')
       __mp_hhseq = function(gif)
+        if not sheetsOn then return nil end
         local stem = tostring(gif):gsub('\\', '/'):match('([^/]+)%.[gG][iI][fF]$')
         if not stem then return nil end
         if seq and seq.stem == stem then return seq.n end
