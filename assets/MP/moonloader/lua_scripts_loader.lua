@@ -1,6 +1,6 @@
 script_name('MP Lua Scripts Loader')
 script_author('JebetrexxMC')
-script_version('1.5-mp')
+script_version('1.6-mp')
 script_description('Starts every .lua / .luac script in moonloader/lua_scripts/, loose or inside .zip files')
 
 -- Entry point of moonloader/lua_scripts/. MonetLoader only starts the scripts right in moonloader/; this one starts:
