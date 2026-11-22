@@ -68,9 +68,21 @@ print = function() end
 package.preload.ffi = function() return { cdef = function() end, abi = function() return true end, load = function() error('no MP') end } end
 local real_ffi_ok = true
 
+function wait() coroutine.yield() end
+-- 5.02.45: a script the loader has not seen before starts switched off. First run: every script is new, so
+-- nothing but MP's own helpers starts. Then switch them all on (empty mp_scripts_off.txt) and start a fresh loader.
+dofile(ML .. '/lua_scripts_loader.lua')
+local ok0, err0 = coroutine.resume(coroutine.create(main))
+print = _print
+check('first run: loader main runs', ok0, err0)
+local n0 = 0 for p in pairs(running) do if not p:find('mod_commands.lua', 1, true) then n0 = n0 + 1 end end
+check('first run: new scripts start switched off (MP helpers stay on)', n0 == 0, n0 .. ' started')
+check('first run: scripts remembered in mp_scripts_seen.txt', lfs.attributes(TMP .. '/config/mp_scripts_seen.txt'))
+write(TMP .. '/config/mp_scripts_off.txt', '')
+running, loads = {}, {}
+print = function() end
 dofile(ML .. '/lua_scripts_loader.lua')
 local co = coroutine.create(main)
-function wait() coroutine.yield() end
 local ok, err = coroutine.resume(co)
 print = _print
 check('loader main runs', ok, err)
@@ -102,8 +114,13 @@ check('no script started twice', #loads == n, #loads .. ' vs ' .. n)
 -- a new file dropped in is picked up
 write(TMP .. '/lua_scripts/late.lua', "script_name('late') function main() end\n")
 local t0 = os.time()
+local function offHas(k) local f = io.open(TMP .. '/config/mp_scripts_off.txt') local s = f and f:read('*a') or '' if f then f:close() end return s:find(k, 1, true) end
+while os.time() - t0 < 7 and not offHas('late.lua') do coroutine.resume(co) end
+check('new file picked up by the rescan (switched off)', offHas('late.lua') and not loaded('late.lua'))
+write(TMP .. '/config/mp_scripts_off.txt', '')
+t0 = os.time()
 while os.time() - t0 < 7 and not loaded('late.lua') do coroutine.resume(co) end
-check('new file picked up by the rescan', loaded('late.lua'))
+check('new file starts once switched on', loaded('late.lua'))
 -- an existing settings file is never overwritten
 write(TMP .. '/config/mphelper.ini', 'mine')
 cmds.luascripts('rescan')
