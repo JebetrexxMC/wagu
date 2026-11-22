@@ -5,6 +5,11 @@
 #include <spdlog/common.h>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/callback_sink.h>
+#include <cstdint>
+#include <cstdlib>
+#include <string>
+#include <vector>
 #include <spdlog/spdlog.h>
 
 namespace {
@@ -44,10 +49,29 @@ void logger::init()
   absolute_path = file_path.parent_path();
   std::filesystem::create_directories(absolute_path, ec);
 
-  auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(file_path, true);
-  file_sink->set_level(spdlog::level::trace);
+  // 5.02.44: a folder that can't be written no longer throws out of init (no MonetLoader at all); the important
+  // lines (warnings, errors, [LuaScripts] / [mimgui] / HassleHUD) are mirrored into MP's own log as "[ML] ..."
+  std::vector<spdlog::sink_ptr> sinks;
+  try {
+    auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(file_path, true);
+    file_sink->set_level(spdlog::level::trace);
+    sinks.push_back(file_sink);
+  } catch (...) {
+  }
+  typedef void (*mp_log_fn)(int, const char*);
+  mp_log_fn mp_log = nullptr;
+  if (const char* e = getenv("MP_LOG_FN")) mp_log = (mp_log_fn)(uintptr_t)strtoull(e, nullptr, 16);
+  if (mp_log) {
+    sinks.push_back(std::make_shared<spdlog::sinks::callback_sink_mt>([mp_log](const spdlog::details::log_msg& m) {
+      std::string t(m.payload.data(), m.payload.size());
+      if (m.level >= spdlog::level::warn || t.find("[LuaScripts]") != std::string::npos || t.find("[mimgui]") != std::string::npos
+          || t.find("HassleHUD") != std::string::npos || t.find("rror") != std::string::npos)
+        mp_log((int)m.level, t.c_str());
+    }));
+  }
+  if (sinks.empty()) return;
 
-  auto logger = std::make_shared<spdlog::logger>("monetloader", spdlog::sinks_init_list { file_sink });
+  auto logger = std::make_shared<spdlog::logger>("monetloader", sinks.begin(), sinks.end());
   logger->set_level(spdlog::level::trace);
   logger->flush_on(spdlog::level::trace);
 
