@@ -571,7 +571,7 @@ Every GIF below is generated on a PC by running MP's own code, not taken from sc
 
 ### Online play and sync
 
-![Sync: other players on the MP radar](Screenshots/gifs/freeroam_sync.gif)
+![Sync: other players on the MP radar](Screenshots/previews/freeroam_sync.png)
 
 - **Servers that run on your phone, a PC or a 24/7 VPS.** The UDP server uses port **1922**. You can host a LAN server from the game, play online through the Broker (MQTT) relay, or run the standalone server on Debian or Ubuntu.
 - **What is synced:**
@@ -595,7 +595,7 @@ Every GIF below is generated on a PC by running MP's own code, not taken from sc
 
 ### Combat
 
-![Hit markers from the Hitmarker mod](Screenshots/gifs/combat.gif)
+![Hit markers from the Hitmarker mod](Screenshots/previews/combat.png)
 
 - **The shooter decides the damage.** Hits on players and on the street NPC copies are sent at once.
 - **Hit markers and kill feed:** kills, headshots, explosions and armour hits. The MonetLoader Hitmarker mod reads them through `MP_PopHit`.
@@ -611,7 +611,7 @@ Every GIF below is generated on a PC by running MP's own code, not taken from sc
 
 ### Gamemodes
 
-![Mega Vil RP inventory, documents and ATM](Screenshots/gifs/megavil_rp.gif)
+![Mega Vil RP inventory, documents and ATM](Screenshots/previews/megavil_rp.png)
 
 - **Mega Vil Futuristic (Roleplay).** It includes:
   - phone with apps and calls, inventory and items, ATM
@@ -626,7 +626,7 @@ Every GIF below is generated on a PC by running MP's own code, not taken from sc
 
 ### Radar, maps and HUD
 
-![MP radar](Screenshots/gifs/radar.gif)
+![MP radar](Screenshots/previews/radar.png)
 
 - **MP radar** in 2D (north up) and 3D (it turns with you). Its map is drawn from the game's own path nodes, water, parks and district names, without textures, and it has a GPS route.
 - **Compass** with heading, waypoints and distance.
