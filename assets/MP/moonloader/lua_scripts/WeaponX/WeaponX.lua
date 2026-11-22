@@ -10,7 +10,7 @@ local u8 = encoding.UTF8
 
 script_name('SA-MP Weapon Wheel (mimgui)')
 script_author('mistus_')
-script_version('1.4.6-mp')
+script_version('1.4.7-mp')
 
 -- MP 5.02.37 (Android / MonetLoader port of WeaponX 1.4.6 by mistus_):
 --   * /weaponx opens the wheel for touch: tap a segment to equip, tap outside to close. A small "WX" button
@@ -55,9 +55,10 @@ local cfg = inicfg.load({
         use_weapon_icons = true,         -- show PNG weapon icons (0.png..46.png) if available
         icon_dir = 'weapon_wheel',       -- moonloader/resource/<icon_dir>/
         center_icon_scale = 0.95,        -- relative to inner radius (0.6..1.3)
-        segment_icon_scale = 10.0,      -- icon size relative to ring thickness (0.4..0.9)
-        base_icon_boost = 1.63,        -- base boost for non-hovered icons (+55%)
-        hover_icon_scale = 1.8,       -- hovered icon scale multiplier (1.8 = +80%)
+        segment_icon_scale = 0.8,       -- icon size relative to ring thickness (0.4..1.5)
+        base_icon_boost = 1.0,         -- base boost for non-hovered icons
+        hover_icon_scale = 1.25,      -- hovered icon scale multiplier (1.25 = +25%)
+        icon_size = 1.0,                -- MP: icon size in the wheel (Settings, 0.5..1.5)
         smooth_icon_scale = true,       -- smooth lerp for icon scale on hover changes
         icon_scale_speed = 18.0,        -- higher = snappier scale interpolation
         rotate_icons = true,            -- rotate icons slightly toward cursor direction
@@ -669,10 +670,19 @@ iconAlpha = iconAlpha + (iconTarget - iconAlpha) * math.min(1.0, dt * iconSpeed)
                 if iconId ~= nil and weaponTex[iconId] ~= nil then
                     
 local ringThick = math.max(16.0, (outerR - r0))
-                    local baseMul = cfg.main.base_icon_boost or 1.63
-                    local baseSize = ringThick * (cfg.main.segment_icon_scale or 10.0) * baseMul
+                    -- MP 5.02.46: the icons were huge (segment_icon_scale 10.0 x boost 1.63 = 16x the ring
+                    -- thickness, ~700 px). Each icon now fits its segment: at most the ring thickness and the
+                    -- width of the segment, times "icon_size" (Settings, 0.5..1.5)
+                    local function clampN(v, lo, hi, d) v = tonumber(v) or d if v < lo or v > hi then return d end return v end
+                    local baseMul = clampN(cfg.main.base_icon_boost, 0.5, 1.4, 1.0)
+                    local segScale = clampN(cfg.main.segment_icon_scale, 0.4, 1.5, 0.8)
+                    local userMul = clampN(cfg.main.icon_size, 0.5, 1.5, 1.0)
+                    local rMid = r0 + (outerR - r0) * 0.58
+                    local segW = 2 * rMid * math.sin(math.abs(a1 - a0) / 2)
+                    local fit = math.min(ringThick, segW) * 0.95
+                    local baseSize = math.min(ringThick * segScale * baseMul, fit) * userMul
 
-                    local targetMul = (isSel and (cfg.main.hover_icon_scale or 1.8) or 1.0)
+                    local targetMul = (isSel and clampN(cfg.main.hover_icon_scale, 1.0, 1.6, 1.25) or 1.0)
                     local targetSize = baseSize * targetMul
 
                     -- Smooth icon size interpolation per-slot
@@ -872,6 +882,9 @@ imgui.OnFrame(
                 S[k][0] = cfg.main[k] and true or false
                 if imgui.Checkbox(k, S[k]) then cfg.main[k] = S[k][0]; changed = true end
             end
+            S.icon_size = S.icon_size or imgui.new.float(1.0)
+            S.icon_size[0] = tonumber(cfg.main.icon_size) or 1.0
+            if imgui.SliderFloat('icon_size', S.icon_size, 0.5, 1.5, '%.2fx') then cfg.main.icon_size = math.floor(S.icon_size[0] * 100 + 0.5) / 100; changed = true end
             for _, d in ipairs({ { 'radius', 120, 420 }, { 'inner_radius', 30, 200 }, { 'ring_thickness', 20, 120 }, { 'button_size', 40, 140 } }) do
                 local k = d[1]
                 S[k] = S[k] or imgui.new.int(0)

@@ -749,6 +749,15 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.46
+- HassleHUD: every part of the HUD now has its own X / Y position and size. Open HassleHUD Settings, then "HUD layout (MP)". It has X, Y and size sliders for the stamina circle, the fist / weapon, the health, armour and stamina bars, money, ammo and the wanted stars, plus "Reset HUD layout (MP)". The layout is saved in config/HassleHUD_layout.txt. The whole-HUD scale slider stays.
+- HassleHUD: the stamina circle failed with "calling 'PathClear' on bad self". The HUD scale wrapper passed mimgui's DrawList functions (FFI C functions) through without wrapping them. They are wrapped now, and the circle draws again.
+- Snap Turn: the 180 and 360 buttons are gone. It is an auto aim snap turn now. While you aim, the camera turns smoothly to the nearest player or ped in front of you. "Auto" does this once each time you start aiming, and the AIM button on the screen does it again. /snapturn has the settings: auto on or off, players and peds, turn time, range, angle, and the button size and position. On a server it works only where MonetLoader cheats are allowed. Offline it always works.
+- WeaponX: the weapon icons in the wheel were huge. segment_icon_scale 10.0 with a 1.63 boost made them 16 times the ring thickness. Each icon now fits inside its segment, and old saved values are ignored. Settings has a new icon_size slider (0.5x - 1.5x).
+- Lua scripts loader (1.9-mp): on the phone it stopped right after its first scan ("MP Lua Scripts Loader: Script terminated."). Because of that, switching a lua_scripts/ mod on in the Script Manager did nothing until a rejoin. The loader now keeps running, rescans from its event handlers when its loop stops, and survives a rescan error.
+- PC scripts that use VK_* key names after require "lib.moonloader" work again. DriftCameraLock died on isKeyDown(nil). lib/moonloader.lua sets the VK_* globals now, and it is built into libMP too.
+- Script Manager: tap any script to see its chat commands in the details on the right. Tap a command to run it. A running script lists the commands it registered (new MonetLoader export MonetMP_Commands). Otherwise MP lists the ones found in its .lua file.
+
 ### 5.02.45
 - HassleHUD: the fist GIF is back to the way it worked before. The 60 fps sprite sheets from 5.02.42 (resource/HassleHUD/frames/) showed on the phone as one picture with every frame stacked in it. They are off now, and the GIF is decoded by MP's extractGif again. The frames/ folder is no longer used and can be deleted. For testing only, an empty config/HassleHUD_60fps.txt turns the sheets back on.
 - The bars fix and the HUD scale slider from 5.02.44 stay.

@@ -1,3 +1,4 @@
+-- mp_moonloader 1.0: MP copy of MoonLoader's lib/moonloader.lua (adds the VK_* key globals PC scripts expect).
 -- This file is part of SA MoonLoader package.
 -- Licensed under the MIT License.
 -- Copyright (c) 2016, BlastHack Team <blast.hk>
@@ -108,6 +109,17 @@ local audiostream_status = {
 	PLAYING =  1,
 	PAUSED  =  2
 }
+
+-- MP 5.02.46: MoonLoader 0.26 gave every script the VK_* key codes after require 'lib.moonloader'. PC scripts such as
+-- DriftCameraLock call isKeyDown(VK_MENU) and died with "expected number, received nil" without them.
+do
+	local ok, vk = pcall(require, 'vkeys')
+	if ok and type(vk) == 'table' then
+		for k, v in pairs(vk) do
+			if type(k) == 'string' and k:sub(1, 3) == 'VK_' and rawget(_G, k) == nil then _G[k] = v end
+		end
+	end
+end
 
 return {
 	message_prefix = TAG,

@@ -19,4 +19,5 @@ mp_core_\name\()_end:
     MP_CORE zip, "lib/mp_zip.lua"
     MP_CORE pcp, "lib/mp_pcpaths.lua"
     MP_CORE mimgui, "lib/mimgui/init.lua"
+    MP_CORE mlib, "lib/moonloader.lua"
     .section .note.GNU-stack,"",%progbits

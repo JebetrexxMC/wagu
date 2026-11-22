@@ -782,8 +782,9 @@ typedef void (*IdFn)(int);
 typedef void (*VoidFn)();
 typedef int  (*ExecFn)(int, const char*, char*, int);
 typedef const char* (*VerFn)();
+typedef int  (*CmdsFn)(int, char*, int);
 struct Api { void* h = nullptr; ListFn list = nullptr, crashes = nullptr; PathFn load = nullptr; IdFn unload = nullptr, reload = nullptr;
-             VoidFn reloadAll = nullptr, clearCrashes = nullptr; ExecFn exec = nullptr; VerFn ver = nullptr; };
+             VoidFn reloadAll = nullptr, clearCrashes = nullptr; ExecFn exec = nullptr; VerFn ver = nullptr; CmdsFn cmds = nullptr; };
 static Api Get()
 {
     Api a; a.h = MonetEmbed::Handle();
@@ -797,6 +798,7 @@ static Api Get()
     a.clearCrashes = (VoidFn)dlsym(a.h, "MonetMP_ClearCrashes");
     a.exec = (ExecFn)dlsym(a.h, "MonetMP_Exec");
     a.ver = (VerFn)dlsym(a.h, "MonetMP_Version");
+    a.cmds = (CmdsFn)dlsym(a.h, "MonetMP_Commands");   // 5.02.46
     return a;
 }
 static std::string Root() { return std::string(MP::DataDir()) + "/moonloader"; }
@@ -842,6 +844,7 @@ static void WriteOff()
 }
 static bool IsOff(const Item& it) { return s_off.count(Lower(it.rel)) != 0; }
 static bool Running(const Item& it) { return it.id && !it.dead; }
+static void Commands(const struct Api& a, const Item& it);   // 5.02.46: the script's chat commands (details)
 
 static void AddDir(const std::string& dir, const std::string& prefix, int group, bool luaOnly)
 {
@@ -1182,8 +1185,102 @@ static void TabScripts(const Api& a)
         }
         if(!canRe) ImGui::EndDisabled();
         if(run && ImGui::Button("Open in Shell##smsh", ImVec2(-1, UI::S(56)))) { s_shellId = it.id; s_tab = 3; }
+        Commands(a, it);
     }
     ImGui::EndChild();
+}
+
+// 5.02.46: the chat commands of a script, for its details. A running script: the ones it registered (MonetLoader's
+// MonetMP_Commands). Otherwise / also: sampRegisterChatCommand('name' / RegisterCommand('name' found in its .lua
+// text (a .luac is compiled, so only the running list has its commands).
+static std::map<std::string, std::vector<std::string>> s_cmdScan;
+static void AddUnique(std::vector<std::string>& v, std::string c)
+{
+    while(!c.empty() && c[0] == '/') c.erase(0, 1);
+    if(c.empty() || c.size() > 48) return;
+    for(char ch : c) if((unsigned char)ch <= ' ') return;
+    for(auto& x : v) if(Lower(x) == Lower(c)) return;
+    v.push_back(c);
+}
+static const std::vector<std::string>& ScanCmds(const Item& it)
+{
+    auto f = s_cmdScan.find(it.rel);
+    if(f != s_cmdScan.end()) return f->second;
+    std::vector<std::string>& v = s_cmdScan[it.rel];
+    std::string path = Root() + "/" + it.rel, src;
+    if(FILE* fp = fopen(path.c_str(), "rb"))
+    {
+        char buf[16384]; size_t n;
+        while((n = fread(buf, 1, sizeof(buf), fp)) > 0 && src.size() < (4u << 20)) src.append(buf, n);
+        fclose(fp);
+    }
+    static const char* const kFns[] = { "sampRegisterChatCommand", "RegisterCommand", "registerChatCommand" };
+    for(const char* fn : kFns)
+    {
+        const size_t fl = strlen(fn);
+        for(size_t p = src.find(fn); p != std::string::npos; p = src.find(fn, p + fl))
+        {
+            size_t q = p + fl;
+            while(q < src.size() && (src[q] == ' ' || src[q] == '\t')) ++q;
+            if(q >= src.size() || src[q] != '(') continue;
+            ++q;
+            while(q < src.size() && (src[q] == ' ' || src[q] == '\t')) ++q;
+            if(q >= src.size() || (src[q] != '\'' && src[q] != '"')) continue;
+            const char quote = src[q++];
+            size_t e = src.find(quote, q);
+            if(e == std::string::npos || e - q > 48) continue;
+            AddUnique(v, src.substr(q, e - q));
+        }
+    }
+    return v;
+}
+static void Commands(const Api& a, const Item& it)
+{
+    std::vector<std::string> v;
+    bool live = false;
+    if(Running(it) && a.cmds)
+    {
+        static char buf[4096];
+        if(a.cmds(it.id, buf, sizeof(buf)) > 0)
+        {
+            live = true;
+            for(const char* l = buf; *l; )
+            {
+                const char* nl = strchr(l, '\n');
+                AddUnique(v, std::string(l, nl ? (size_t)(nl - l) : strlen(l)));
+                if(!nl) break;
+                l = nl + 1;
+            }
+        }
+    }
+    for(auto& c : ScanCmds(it)) AddUnique(v, c);
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Text("Commands (%d)", (int)v.size());
+    if(v.empty())
+    {
+        ImGui::TextDisabled("%s", Running(it) ? "This script has no chat commands." :
+            "No commands found - start the script to see the ones it registers.");
+        return;
+    }
+    ImGui::TextDisabled("%s", live ? "Tap one to run it." : "Found in the file. Tap one to run it (the script has to be running).");
+    std::sort(v.begin(), v.end(), [](const std::string& x, const std::string& y) { return Lower(x) < Lower(y); });
+    const float full = ImGui::GetContentRegionAvail().x, gap = ImGui::GetStyle().ItemSpacing.x;
+    float x = 0;
+    for(size_t i = 0; i < v.size(); ++i)
+    {
+        const std::string label = "/" + v[i];
+        const float w = ImGui::CalcTextSize(label.c_str()).x + UI::S(28);
+        if(i > 0 && x + gap + w <= full) ImGui::SameLine(); else x = 0;
+        x += (x > 0 ? gap : 0) + w;
+        ImGui::PushID((int)i);
+        if(ImGui::Button(label.c_str(), ImVec2(w, UI::S(52))))
+        {
+            MP::SendChat(label.c_str());
+            s_listAt = 0;
+        }
+        ImGui::PopID();
+    }
 }
 
 static void TabLog()
@@ -1507,7 +1604,7 @@ static std::string LuaModRunner(const std::string& src)
           local f = fns[key]
           if f then return f end
           local fv = dl[key]
-          if type(fv) ~= 'function' then return fv end
+          if type(fv) ~= 'function' and not (type(fv) == 'cdata' and tostring(fv):match('^cdata<[^>]-%(')) then return fv end
           if key == 'AddImage' or key == 'AddImageRounded' then
             f = function(_, tex, a, b, ua, ub, ...)
               if isMark(tex) then tex, ua, ub = cell(ua, ub) end
@@ -1569,6 +1666,56 @@ static std::string LuaModRunner(const std::string& src)
       if k < 0.5 or k > 2.0 then k = 1.0 end
       local kp = im.new.float(k)
       local cx, cy, on = 0, 0, false
+      -- 5.02.46: every HUD part has its own X / Y offset and size (Settings > HUD layout (MP)), saved in
+      -- config/HassleHUD_layout.txt as "name x y size" lines. A part is scaled around the middle of the first thing
+      -- it draws, then the whole HUD scale applies.
+      local LYF = __mp_pkg .. '/config/HassleHUD_layout.txt'
+      local EL = { { 'circle', 'Stamina circle' }, { 'weapon', 'Fist / weapon' }, { 'hp', 'Health bar' },
+        { 'armour', 'Armour bar' }, { 'stamina', 'Stamina bar' }, { 'money', 'Money' }, { 'ammo', 'Ammo' },
+        { 'stars', 'Wanted stars' } }
+      local lay, lp = {}, {}
+      for _, e in ipairs(EL) do lay[e[1]] = { x = 0, y = 0, s = 1 } end
+      do
+        local f = io.open(LYF, 'rb')
+        if f then
+          for l in (f:read('*a') or ''):gmatch('[^\r\n]+') do
+            local nm, a, b, c = l:match('^%s*(%a+)%s+(%-?[%d%.]+)%s+(%-?[%d%.]+)%s+([%d%.]+)')
+            if nm and lay[nm] then
+              lay[nm] = { x = tonumber(a) or 0, y = tonumber(b) or 0, s = math.max(0.3, math.min(3, tonumber(c) or 1)) }
+            end
+          end
+          f:close()
+        end
+      end
+      for _, e in ipairs(EL) do local L = lay[e[1]] lp[e[1]] = { im.new.float(L.x), im.new.float(L.y), im.new.float(L.s) } end
+      local function anyLay()
+        for _, L in pairs(lay) do if L.x ~= 0 or L.y ~= 0 or L.s ~= 1 then return true end end
+        return false
+      end
+      local hasLay = anyLay()
+      local function saveLay()
+        local out = { '# HassleHUD layout (MP): name x y size' }
+        for _, e in ipairs(EL) do local L = lay[e[1]] out[#out + 1] = ('%s %d %d %.2f'):format(e[1], L.x, L.y, L.s) end
+        local f = io.open(LYF, 'wb') if f then f:write(table.concat(out, '\n') .. '\n') f:close() end
+        hasLay = anyLay()
+      end
+      local cur, piv = nil, {}   -- the HUD part being drawn, the pivot of each part this frame
+      local ex, ey, es = 0, 0, 1
+      __mp_hhel = function(nm)
+        cur = nm
+        local L = nm and lay[nm]
+        if L then ex, ey, es = L.x, L.y, L.s else ex, ey, es = 0, 0, 1 end
+      end
+      local function pivot(a, b)
+        if not cur or es == 1 or piv[cur] or a == nil then return end
+        if b ~= nil and type(b) ~= 'number' then piv[cur] = { (a.x + b.x) / 2, (a.y + b.y) / 2 }
+        else piv[cur] = { a.x, a.y } end
+      end
+      local function E(x, y)
+        local p = cur and piv[cur]
+        if p and es ~= 1 then x, y = p[1] + (x - p[1]) * es, p[2] + (y - p[2]) * es end
+        return x + ex, y + ey
+      end
       local said = {}
       __mp_hhcall = function(what, fn, ...)
         local ok, er = pcall(fn, ...)
@@ -1577,31 +1724,46 @@ static std::string LuaModRunner(const std::string& src)
           print('[LuaScripts] HassleHUD ' .. what .. ' error (the rest of the HUD still draws): ' .. tostring(er))
         end
       end
-      local function T(p) if p == nil then return p end return V2(cx + (p.x - cx) * k, cy + (p.y - cy) * k) end
-      local function S(v) if type(v) ~= 'number' then return v end return v * k end
+      local function T(p)
+        if p == nil then return p end
+        local x, y = E(p.x, p.y)
+        return V2(cx + (x - cx) * k, cy + (y - cy) * k)
+      end
+      local function S(v) if type(v) ~= 'number' then return v end return v * k * es end
       local wraps = {
-        AddRectFilled = function(dl, f, a, b, col, rnd, fl) return f(dl, T(a), T(b), col, S(rnd or 0), fl) end,
-        AddRect = function(dl, f, a, b, col, rnd, fl, th) return f(dl, T(a), T(b), col, S(rnd or 0), fl, S(th)) end,
-        AddImage = function(dl, f, t, a, b, ...) return f(dl, t, T(a), T(b), ...) end,
-        AddImageRounded = function(dl, f, t, a, b, ua, ub, col, rnd, fl) return f(dl, t, T(a), T(b), ua, ub, col, S(rnd), fl) end,
-        AddCircle = function(dl, f, c, r, col, n, th) return f(dl, T(c), S(r), col, n, S(th)) end,
-        AddCircleFilled = function(dl, f, c, r, ...) return f(dl, T(c), S(r), ...) end,
-        AddLine = function(dl, f, a, b, col, th) return f(dl, T(a), T(b), col, S(th)) end,
-        PathArcTo = function(dl, f, c, r, ...) return f(dl, T(c), S(r), ...) end,
-        PathLineTo = function(dl, f, p) return f(dl, T(p)) end,
+        AddRectFilled = function(dl, f, a, b, col, rnd, fl) pivot(a, b) return f(dl, T(a), T(b), col, S(rnd or 0), fl) end,
+        AddRect = function(dl, f, a, b, col, rnd, fl, th) pivot(a, b) return f(dl, T(a), T(b), col, S(rnd or 0), fl, S(th)) end,
+        AddImage = function(dl, f, t, a, b, ...) pivot(a, b) return f(dl, t, T(a), T(b), ...) end,
+        AddImageRounded = function(dl, f, t, a, b, ua, ub, col, rnd, fl) pivot(a, b) return f(dl, t, T(a), T(b), ua, ub, col, S(rnd), fl) end,
+        AddCircle = function(dl, f, c, r, col, n, th) pivot(c) return f(dl, T(c), S(r), col, n, S(th)) end,
+        AddCircleFilled = function(dl, f, c, r, ...) pivot(c) return f(dl, T(c), S(r), ...) end,
+        AddLine = function(dl, f, a, b, col, th) pivot(a, b) return f(dl, T(a), T(b), col, S(th)) end,
+        PathArcTo = function(dl, f, c, r, ...) pivot(c) return f(dl, T(c), S(r), ...) end,
+        PathLineTo = function(dl, f, p) pivot(p) return f(dl, T(p)) end,
         PathStroke = function(dl, f, col, cl, th) return f(dl, col, cl, S(th)) end,
         AddText = function(dl, f, pos, col, txt, ...)
           if type(pos) ~= 'cdata' and type(pos) ~= 'table' or type(txt) ~= 'string' then return f(dl, pos, col, txt, ...) end
           local okt, ts = pcall(im.CalcTextSize, txt)
           local tf = dl.AddTextFontPtr
-          if not okt or not ts or type(tf) ~= 'function' then return f(dl, T(pos), col, txt, ...) end
-          local c = T(V2(pos.x + ts.x / 2, pos.y + ts.y / 2))
-          return tf(dl, im.GetFont(), im.GetFontSize() * k, V2(c.x - ts.x * k / 2, c.y - ts.y * k / 2), col, txt)
+          if not okt or not ts or (type(tf) ~= 'function' and type(tf) ~= 'cdata') then return f(dl, T(pos), col, txt, ...) end
+          local mid = V2(pos.x + ts.x / 2, pos.y + ts.y / 2)
+          pivot(mid)
+          local c = T(mid)
+          local kk = k * es
+          return tf(dl, im.GetFont(), im.GetFontSize() * kk, V2(c.x - ts.x * kk / 2, c.y - ts.y * kk / 2), col, txt)
         end,
       }
+      -- mimgui's DrawList methods are FFI C functions (type 'cdata', not 'function'): 5.02.45 returned them as they
+      -- were, so DL:PathClear() got the wrapper table ("bad self ... cannot convert 'table'") and the circle failed
+      local function callable(v)
+        if type(v) == 'function' then return true end
+        return type(v) == 'cdata' and tostring(v):match('^cdata<[^>]-%(') ~= nil   -- a C function, not a struct field
+      end
       local cache = setmetatable({}, { __mode = 'k' })
       __mp_hhdl = function(dl, x, y)
-        cx, cy, on = x, y, k ~= 1.0
+        cx, cy, on = x, y, k ~= 1.0 or hasLay
+        piv = {}
+        __mp_hhel(nil)
         if not on or dl == nil then return dl end
         local w = cache[dl]
         if w then return w end
@@ -1610,7 +1772,7 @@ static std::string LuaModRunner(const std::string& src)
           local g = fns[key]
           if g then return g end
           local fv = dl[key]
-          if type(fv) ~= 'function' then return fv end
+          if not callable(fv) then return fv end
           local wr = wraps[key]
           g = wr and function(_, ...) return wr(dl, fv, ...) end or function(_, ...) return fv(dl, ...) end
           fns[key] = g
@@ -1619,9 +1781,13 @@ static std::string LuaModRunner(const std::string& src)
         cache[dl] = w
         return w
       end
-      __mp_hhmouse = function(mx, my)   -- hit(): the tap goes through the same scale
+      __mp_hhmouse = function(mx, my)   -- hit(): the tap goes through the same scale and the part's layout
         if not on then return mx, my end
-        return cx + (mx - cx) / k, cy + (my - cy) / k
+        mx, my = cx + (mx - cx) / k, cy + (my - cy) / k
+        mx, my = mx - ex, my - ey
+        local p = cur and piv[cur]
+        if p and es ~= 1 then mx, my = p[1] + (mx - p[1]) / es, p[2] + (my - p[2]) / es end
+        return mx, my
       end
       __mp_hhscaleUI = function(SF)
         if type(SF) ~= 'function' then return end
@@ -1629,22 +1795,51 @@ static std::string LuaModRunner(const std::string& src)
           k = math.floor(kp[0] * 100 + 0.5) / 100
           local f = io.open(SCF, 'wb') if f then f:write(('%.2f\n'):format(k)) f:close() end
         end
+        local open = true
+        if im.CollapsingHeader then
+          local okc, r = pcall(im.CollapsingHeader, 'HUD layout (MP): X / Y / size of each part##mphl')
+          open = okc and r
+        end
+        if not open then return end
+        local ch = false
+        for _, e in ipairs(EL) do
+          local nm, p = e[1], lp[e[1]]
+          if im.Text then pcall(im.Text, e[2]) end
+          if SF(e[2] .. ' X##mpx' .. nm, p[1], -600, 600, '%.0f') then lay[nm].x = math.floor(p[1][0] + 0.5) ch = true end
+          if SF(e[2] .. ' Y##mpy' .. nm, p[2], -600, 600, '%.0f') then lay[nm].y = math.floor(p[2][0] + 0.5) ch = true end
+          if SF(e[2] .. ' size##mps' .. nm, p[3], 0.3, 3.0, '%.2fx') then lay[nm].s = math.floor(p[3][0] * 100 + 0.5) / 100 ch = true end
+        end
+        if im.Button and im.Button('Reset HUD layout (MP)##mphlr') then
+          for _, e in ipairs(EL) do lay[e[1]] = { x = 0, y = 0, s = 1 } local p = lp[e[1]] p[1][0], p[2][0], p[3][0] = 0, 0, 1 end
+          ch = true
+        end
+        if ch then saveLay() end
       end
+      local BARS = 'local function bars(DL,x,y,r,sM)'
       local reps = {
         { '    staminaped()\n    if savePend', "    __mp_hhcall('stamina', staminaped)\n    if savePend" },
         { "    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n    return mx >= x",
           "    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n    if __mp_hhmouse then mx, my = __mp_hhmouse(mx, my) end\n    return mx >= x" },
         { "    if not st2[0] then\n        sprCircle(DL,x,y,r,pol)\n        wep1(DL,x,y,r,sM,gIdx,wid)\n    else\n        wep2(DL,x,y,gIdx,wid)\n    end\n    bars(DL,x,y,r,sM)\n",
-          "    local __sdl = __mp_hhdl(DL, x, y)\n    if not st2[0] then\n        __mp_hhcall('circle', sprCircle, __sdl,x,y,r,pol)\n        __mp_hhcall('weapon', wep1, __sdl,x,y,r,sM,gIdx,wid)\n    else\n        __mp_hhcall('weapon', wep2, __sdl,x,y,gIdx,wid)\n    end\n    __mp_hhcall('bars', bars, __sdl,x,y,r,sM)\n" },
+          "    local __sdl = __mp_hhdl(DL, x, y)\n    if not st2[0] then\n        __mp_hhel('circle') __mp_hhcall('circle', sprCircle, __sdl,x,y,r,pol)\n        __mp_hhel('weapon') __mp_hhcall('weapon', wep1, __sdl,x,y,r,sM,gIdx,wid)\n    else\n        __mp_hhel('weapon') __mp_hhcall('weapon', wep2, __sdl,x,y,gIdx,wid)\n    end\n    __mp_hhel(nil) __mp_hhcall('bars', bars, __sdl,x,y,r,sM)\n    __mp_hhel(nil)\n" },
         { "        if imgui.IsItemClicked() then hsz[0] = i-1; qSave() end\n    end\n    imgui.Spacing()\n",
           "        if imgui.IsItemClicked() then hsz[0] = i-1; qSave() end\n    end\n    imgui.Spacing()\n    if __mp_hhscaleUI then __mp_hhscaleUI(SF) end\n" },
+        -- the parts inside bars(): each one is marked so its own X / Y / size applies
+        { '    bar(bXB - r - ofL[1] - l1, bYB - alt/2,', "    __mp_hhel('hp')\n    bar(bXB - r - ofL[1] - l1, bYB - alt/2,", BARS },
+        { '    if ap > 0 or hpe[0] then\n', "    __mp_hhel('armour')\n    if ap > 0 or hpe[0] then\n", BARS },
+        { '    if mfl[0] then\n        bar(', "    __mp_hhel('stamina')\n    if mfl[0] then\n        bar(", BARS },
+        { '    imgui.PushFont(fDin)\n', "    __mp_hhel('money')\n    imgui.PushFont(fDin)\n", BARS },
+        { '    if ma[0] then\n        local cur', "    __mp_hhel('ammo')\n    if ma[0] then\n        local cur", BARS },
+        { '    local ss = te[0]\n', "    __mp_hhel('stars')\n    local ss = te[0]\n", BARS },
       }
       local function patch(src)
         if type(src) ~= 'string' or not src:find('script_name("HassleHUD Android")', 1, true) then return src end
         src = src:gsub('\r\n', '\n')
         local done = 0
         for _, r in ipairs(reps) do
-          local a, b = src:find(r[1], 1, true)
+          local from = 1
+          if r[3] then from = src:find(r[3], 1, true) or #src + 1 end
+          local a, b = src:find(r[1], from, true)
           if a then src = src:sub(1, a - 1) .. r[2] .. src:sub(b + 1) done = done + 1 end
         end
         print(('[LuaScripts] HassleHUD: %d/%d HUD patches (bars in their own pcall, HUD scale %.2fx)'):format(done, #reps, k))
