@@ -17,8 +17,10 @@ import json, os, re, secrets, socket, struct, subprocess, sys, time, urllib.requ
 HERE = os.path.dirname(os.path.abspath(__file__))
 os.chdir(HERE)
 API = "https://api.playit.gg"
-BIN_URL = os.environ.get("PLAYIT_BIN_URL",
-                         "https://github.com/JebetrexxMC/wagu/releases/download/v5.02.30/playit-linux-amd64")
+# 5.02.51: our own build first (playit-agent.yml, from github.com/JebetrexxMC/playit-agent), then the v5.02.30 upload
+BIN_URLS = [u for u in [os.environ.get("PLAYIT_BIN_URL", ""),
+                        "https://github.com/JebetrexxMC/wagu/releases/download/playit-mp/mp-playitd-linux-amd64",
+                        "https://github.com/JebetrexxMC/wagu/releases/download/v5.02.30/playit-linux-amd64"] if u]
 BIN = os.path.join(os.environ.get("OMP_DIR", os.path.join(HERE, "omp")), "playit-linux-amd64")
 PORT = int(os.environ.get("OMP_PORT", "7778"))
 ENC = os.path.join(HERE, "playit.enc")
@@ -142,11 +144,18 @@ def claim():
 def get_bin():
     if os.access(BIN, os.X_OK): return True
     os.makedirs(os.path.dirname(BIN), exist_ok=True)
-    try:
-        urllib.request.urlretrieve(BIN_URL, BIN + ".part"); os.chmod(BIN + ".part", 0o755); os.replace(BIN + ".part", BIN)
-        return True
-    except Exception as e:
-        publish(state="error", note="agent download failed: %s" % e); return False
+    err = ""
+    for u in BIN_URLS:
+        try:
+            urllib.request.urlretrieve(u, BIN + ".part"); os.chmod(BIN + ".part", 0o755)
+            if subprocess.run([BIN + ".part", "--help"], capture_output=True, timeout=20).returncode != 0: raise OSError("does not run")
+            os.replace(BIN + ".part", BIN)
+            st["agent"] = ("playit 2.0.2, MP build (JebetrexxMC/playit-agent)" if "playit-mp" in u
+                           else "playit 2.0.2 (release v5.02.30, linux-amd64)")
+            return True
+        except Exception as e:
+            err = "%s: %s" % (u.rsplit("/", 2)[-2], e)
+    publish(state="error", note="agent download failed (%s)" % err); return False
 
 
 def run_agent(key):

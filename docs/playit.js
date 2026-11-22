@@ -8,6 +8,7 @@
   var TOPIC = 'thirtyfox/mp5/playit';
   var RAWJ = 'https://raw.githubusercontent.com/JebetrexxMC/wagu/mp247-data/playit.json';
   var REL = 'https://github.com/JebetrexxMC/wagu/releases/download/v5.02.30/';
+  var MPREL = 'https://github.com/JebetrexxMC/wagu/releases/download/playit-mp/';
   var BINS = ['playit-linux-amd64', 'playit-linux-aarch64', 'playit-linux-armv7', 'playit-linux-i686'];
   var $ = function (id) { return document.getElementById(id); };
   var out = $('out'), stick = window.MPAutoScroll(out);
@@ -40,7 +41,7 @@
   var CMDS = {
     'curl -fsSL https://packages.playit.gg/install.sh | bash': function () {
       p('m', 'playit installer for Debian / Ubuntu - already done on the 24/7 host:');
-      p('g', '  agent: ' + REL + 'playit-linux-amd64 (playit 2.0.2, release v5.02.30)');
+      p('g', '  agent: ' + (st && st.agent ? st.agent : 'MP build of playit 2.0.2 (release playit-mp), else release v5.02.30'));
       p('m', '  runs as server/playit_agent.py next to the open.mp crossplay server - nothing to download on a computer');
     },
     'playit status': function () {
@@ -71,7 +72,9 @@
       l.forEach(function (x) { p(/WARN|ERROR/.test(x) ? 'y' : 'm', x); });
     },
     'playit download': function () {
-      p('m', 'playit agent builds (release v5.02.30), for your own Linux box / VPS / Termux:');
+      p('m', 'our own playit agent, built from source (github.com/JebetrexxMC/playit-agent), release playit-mp:');
+      ['mp-playitd-linux-amd64', 'mp-playitd-linux-aarch64', 'mp-playit-cli-linux-amd64', 'mp-playit-cli-linux-aarch64'].forEach(function (b) { print('  ' + link(MPREL + b, b)); });
+      p('m', 'playit 2.0.2 builds (release v5.02.30), for your own Linux box / VPS / Termux:');
       BINS.forEach(function (b) { print('  ' + link(REL + b, b)); });
       p('m', '  or: curl -fsSL https://packages.playit.gg/install.sh | bash');
     },

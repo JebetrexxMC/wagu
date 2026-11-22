@@ -749,6 +749,9 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.51 (servers)
+- Our own playit agent: .github/workflows/playit-agent.yml builds playitd + playit-cli from source (github.com/JebetrexxMC/playit-agent, fork of playit-cloud/playit-agent) for linux amd64 and aarch64 into the release playit-mp, every Monday or on demand. server/playit_agent.py runs that build on the 24/7 host and falls back to the v5.02.30 upload. Only the agent is open source: the tunnel servers and agent keys stay on playit.gg, so the key still comes from the account link on playit.html.
+
 ### 5.02.50 (servers + website)
 - MP Crossplay 24/7 PC tunnel without a computer: server/playit_agent.py runs the playit.gg agent (playit-linux-amd64 2.0.2 from release v5.02.30) on the 24/7 host. No PLAYIT_SECRET needed: it shows a playit.gg account link, and after Accept the agent key is saved encrypted (AES-256, AUTH_PRIVATE_KEY) as playit.enc on mp247-data for the next shifts. It makes the UDP tunnel to 127.0.0.1:7778 by itself, and the tunnel address goes into omp247.json, so pc.html and join.html links fill in automatically.
 - New website console mpsamp-open.github.io/playit.html (web Termux + MP Bot): live agent status, the account link, tunnels, agent log, join links and the 4 playit downloads, over MQTT (HiveMQ retained topic thirtyfox/mp5/playit) plus playit.json on mp247-data.
