@@ -34,7 +34,7 @@ os.makedirs(os.path.join(HERE, "run"), exist_ok=True)
 os.makedirs(os.path.join(HERE, "logs"), exist_ok=True)
 
 st = {"state": "starting", "agent": "playit 2.0.2 (release v5.02.30, linux-amd64)", "port": PORT,
-      "proto": "udp", "addr": "", "claim_url": "", "account": "", "tunnels": [], "log": [], "note": ""}
+      "proto": "udp", "addr": "", "claim_url": "", "expires": 0, "link_min": int(os.environ.get("PLAYIT_LINK_MIN", "5")), "account": "", "tunnels": [], "log": [], "note": ""}
 secret = ""
 
 
@@ -60,6 +60,41 @@ def mqtt_publish(payload):
             c.close()
         except Exception:
             pass
+
+
+def mqtt_read(topic, secs=3):
+    """subscribe, return the retained payload of one topic (or None)"""
+    def s(b): return struct.pack(">H", len(b)) + b
+    cid = ("mp247-plreq-" + secrets.token_hex(3)).encode()
+    var = s(b"MQTT") + bytes([4, 2]) + struct.pack(">H", 30) + s(cid)
+    sub = struct.pack(">H", 1) + s(topic.encode()) + b"\x00"
+    for host, port in BROKERS:
+        try:
+            c = socket.create_connection((host, port), timeout=6)
+            c.sendall(b"\x10" + bytes([len(var)]) + var)
+            if c.recv(4)[:1] != b"\x20": raise OSError("no CONNACK")
+            c.sendall(b"\x82" + bytes([len(sub)]) + sub)
+            c.settimeout(secs); buf = b""; end = time.time() + secs
+            while time.time() < end:
+                try: d = c.recv(4096)
+                except socket.timeout: break
+                if not d: break
+                buf += d
+                while len(buf) >= 2:
+                    n, m, i = 0, 1, 1
+                    while i < len(buf) and buf[i] & 0x80: n += (buf[i] & 0x7f) * m; m *= 128; i += 1
+                    if i >= len(buf): break
+                    n += buf[i] * m; i += 1
+                    if len(buf) < i + n: break
+                    h, body, buf = buf[0], buf[i:i + n], buf[i + n:]
+                    if h >> 4 == 3:
+                        tl = struct.unpack(">H", body[:2])[0]
+                        if body[2:2 + tl].decode(errors="replace") == topic:
+                            c.close(); return body[2 + tl + (2 if h & 6 else 0):]
+            c.close(); return None
+        except Exception:
+            continue
+    return None
 
 
 def clean(t):
@@ -113,31 +148,68 @@ def save_key(key):
     return p.returncode == 0
 
 
-def claim():
-    """account link: playit.gg/claim/<code> on the website console until someone presses Accept"""
+LINK_MIN = int(os.environ.get("PLAYIT_LINK_MIN", "5"))    # 5.02.53: a link lives 5 min, then it is gone
+REQ = TOPIC + "/req"                                     # the MP Tunnel console asks for a new link here
+handled = 0
+
+
+def wait_request():
+    """no link on show: wait until someone presses "Link playit account" on the MP Tunnel console"""
+    global handled
+    publish(state="waiting", claim_url="", expires=0,
+            note="no link on show - press \"Link playit account\" on the MP Tunnel console for a %d min link" % LINK_MIN)
+    tries = []
     while True:
+        time.sleep(10)
+        raw = mqtt_read(REQ)
+        try: t = int(json.loads(raw or b"{}").get("t", 0))
+        except Exception: t = 0
+        if t > handled and abs(time.time() - t) < 180:
+            handled = t
+            tries = [x for x in tries if time.time() - x < 3600]
+            if len(tries) >= 6:                              # at most 6 links an hour
+                publish(note="link limit reached (6 an hour) - try again later"); continue
+            tries.append(time.time())
+            mqtt_publish_to(REQ, b"")                        # clear the request
+            return
+
+
+def mqtt_publish_to(topic, payload):
+    global TOPIC
+    old, TOPIC = TOPIC, topic
+    try: mqtt_publish(payload)
+    finally: TOPIC = old
+
+
+def claim(first=True):
+    """account link: a short-lived playit.gg/claim/<code> on the MP Tunnel console; Accept on playit.gg"""
+    ver = "mp-crossplay-247 2.0.2"
+    while True:
+        if not first: wait_request()
+        first = False
         code = secrets.token_hex(5)
-        r = api("/claim/setup", {"code": code, "agent_type": "self-managed", "version": "mp-crossplay-247 2.0.2"})
+        r = api("/claim/setup", {"code": code, "agent_type": "self-managed", "version": ver})
         if r.get("status") != "success":
             publish(state="error", note="playit.gg claim setup failed: %s" % r.get("data")); time.sleep(60); continue
-        url = "https://playit.gg/claim/" + code
-        publish(state="claim", claim_url=url, note="open the link, log in or sign up at playit.gg, press Accept")
-        t0 = time.time()
-        while time.time() - t0 < 900:               # a fresh link every 15 min
+        exp = int(time.time()) + LINK_MIN * 60
+        publish(state="claim", claim_url="https://playit.gg/claim/" + code, expires=exp,
+                note="open the link, log in or sign up at playit.gg, press Accept (link ends in %d min)" % LINK_MIN)
+        while time.time() < exp:
             time.sleep(5)
-            r = api("/claim/setup", {"code": code, "agent_type": "self-managed", "version": "mp-crossplay-247 2.0.2"})
-            d = r.get("data")
+            d = api("/claim/setup", {"code": code, "agent_type": "self-managed", "version": ver}).get("data")
             if d == "UserAccepted":
                 k = api("/claim/exchange", {"code": code})
-                key = (k.get("data") or {}).get("secret_key", "") if isinstance(k.get("data"), dict) else ""
+                key = k["data"].get("secret_key", "") if isinstance(k.get("data"), dict) else ""
                 if key:
                     saved = save_key(key)
-                    publish(state="linked", claim_url="", note="account linked" + (", key saved (encrypted)" if saved else ""))
+                    publish(state="linked", claim_url="", expires=0,
+                            note="account linked" + (", key saved (encrypted)" if saved else ""))
                     return key
             elif d == "UserRejected":
-                publish(state="claim", claim_url="", note="the link was rejected - a new one comes next"); break
-            elif d == "WaitingForUser":
-                if st["note"] != "link opened - press Accept on playit.gg": publish(note="link opened - press Accept on playit.gg")
+                break
+            elif d == "WaitingForUser" and st["note"] != "link opened - press Accept on playit.gg":
+                publish(note="link opened - press Accept on playit.gg")
+        # the link is over: this host stops asking for that code and never uses it again
 
 
 # ---------------------------------------------------------------- the agent + the UDP tunnel
@@ -204,7 +276,7 @@ def main():
     else:
         if not PASS:
             st["note"] = "no AUTH_PRIVATE_KEY: the linked key is only kept for this shift"
-        secret = claim()
+        secret = claim(first=False)      # 5.02.53: a link only when asked for on the console
     if not get_bin(): return 1
     agent, last = None, 0
     while True:
@@ -220,7 +292,7 @@ def main():
                     os.remove(ENC)                       # the saved key was removed on playit.gg -> link again
                 agent.terminate(); agent = None
                 publish(state="claim", addr="", note="agent key not accepted - link the account again")
-                secret = claim()
+                secret = claim(first=False)
             else:
                 publish(state="linked", note=why)
         time.sleep(10)

@@ -51,17 +51,18 @@
       p(fresh() ? 'g' : 'r', 'agent   ' + st.agent + ' · ' + (fresh() ? st.state : 'host offline') + ' · updated ' + ago(st.updated) + ' ago');
       p('m', 'tunnel  UDP ' + (st.addr || '(no address yet)') + ' -> 127.0.0.1:' + st.port + ' (open.mp PC port)');
       if (st.note) p('c', 'note    ' + st.note);
-      if (st.state === 'claim' && st.claim_url) print('<span class="y">account </span>' + link(st.claim_url) + ' <span class="m">- log in / sign up at playit.gg, press Accept</span>');
+      if (st.state === 'claim' && st.claim_url && (!st.expires || st.expires > Date.now() / 1000)) print('<span class="y">account </span>' + link(st.claim_url) + ' <span class="m">- log in / sign up at playit.gg, press Accept</span>');
     },
     'playit claim': function () {
-      if (st && st.state === 'claim' && st.claim_url && fresh()) {
-        p('y', 'Link your playit.gg account (one time):');
+      if (st && st.state === 'claim' && st.claim_url && fresh() && (!st.expires || st.expires > Date.now() / 1000)) {
+        var left = st.expires ? Math.max(0, Math.round(st.expires - Date.now() / 1000)) : 0;
+        p('y', 'Link your playit.gg account (one time)' + (left ? ' - this link ends in ' + Math.floor(left / 60) + ':' + ('0' + left % 60).slice(-2) : '') + ':');
         print('  1. open ' + link(st.claim_url));
         p('m', '  2. log in or make a free account at playit.gg');
         p('m', '  3. press Accept - the agent key is saved encrypted (AUTH_PRIVATE_KEY) for every next shift');
         p('m', '  4. the UDP tunnel to 127.0.0.1:7778 is made by itself; its address shows up here');
       } else if (st && st.state === 'online') p('g', 'account already linked - tunnel online: ' + st.addr);
-      else p('m', 'no link waiting (' + (st ? (fresh() ? st.state : 'host offline') : 'no data') + ')');
+      else p('m', 'no link on show (' + (st ? (fresh() ? st.state : 'host offline') : 'no data') + ') - press "Link playit account" for a ' + ((st && st.link_min) || 5) + ' min link');
     },
     'playit tunnels': function () {
       var ts = (st && st.tunnels) || [];
@@ -100,7 +101,7 @@
   function next() {
     if (boot.length) return { cmd: boot.shift(), why: 'start-up check' };
     if (st) {
-      if (st.claim_url && st.claim_url !== seenClaim && st.state === 'claim') { seenClaim = st.claim_url; return { cmd: 'playit claim', why: 'account link waiting' }; }
+      if (st.claim_url && st.claim_url !== seenClaim && st.state === 'claim' && (!st.expires || st.expires > Date.now() / 1000)) { seenClaim = st.claim_url; return { cmd: 'playit claim', why: 'account link waiting' }; }
       if (st.addr && st.addr !== seenAddr) { seenAddr = st.addr; return { cmd: 'join', why: 'tunnel address ' + st.addr }; }
       if (st.state !== seenState) { seenState = st.state; return { cmd: 'playit status', why: 'tunnel: ' + st.state }; }
       if (st.updated !== seenUpd && n % 3 === 0) { seenUpd = st.updated; n++; return { cmd: 'tail -n 12 logs/playit.log', why: 'new agent log' }; }
@@ -109,6 +110,16 @@
     return { cmd: rot[ri++ % rot.length], why: 'routine check' };
   }
 
+  var asked = 0;
+  $('linkbtn').addEventListener('click', function () {
+    var on = conns.filter(function (c) { return c.connected; });
+    if (!on.length) { p('r', 'not connected to a broker yet - try again in a few seconds'); return; }
+    if (st && st.state === 'online') { p('g', 'account already linked - tunnel online: ' + st.addr); return; }
+    var t = Math.floor(Date.now() / 1000);
+    on.forEach(function (c) { c.publish(TOPIC + '/req', JSON.stringify({ t: t }), { retain: true, qos: 0 }); });
+    asked = Date.now(); this.disabled = true; var b = this; setTimeout(function () { b.disabled = false; }, 60000);
+    p('y', 'asked the 24/7 host for a playit.gg link (ends after ' + ((st && st.link_min) || 5) + ' min) - it shows here in about 10 s');
+  });
   print('<span class="g">Welcome to MP Tunnel!</span>  <span class="m">(web Termux for the playit.gg PC tunnel)</span>');
   print('<span class="m">Agent:  </span>playit 2.0.2 runs on the 24/7 host - this page only watches it');
   print('<span class="m">Bot:    </span>MP Bot types and presses Enter by itself');

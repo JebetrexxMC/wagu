@@ -11,6 +11,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#000000">
 <link rel="stylesheet" href="termux.css">
+<link rel="stylesheet" href="playit.css?v=5.02.53">
 <link rel="icon" href="favicon.ico?v=savc2" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=savc2">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=savc2">
@@ -21,7 +22,8 @@
 <header class="bar">
   <a class="brand" href="./">MP <span>Tunnel</span></a>
   <span id="live" class="live"><span class="dot"></span><span id="live-t">starting…</span></span>
-  <a class="other" href="pc.html">PC</a>
+  <button id="linkbtn" class="linkbtn other" type="button" title="Shows a playit.gg account link for 5 minutes">Link playit account</button>
+  <a class="other2" href="pc.html">PC</a>
   <a class="other2" href="termux.html">Termux</a>
 </header>
 
@@ -36,10 +38,10 @@
   <span>TAB</span><span>CTRL</span><span>ALT</span><span>&larr;</span><span>&darr;</span><span>&rarr;</span><span id="kenter">&#x23CE;</span>
 </div>
 
-<footer class="foot">The playit.gg agent (release v5.02.30) runs on the 24/7 host next to the open.mp crossplay server - nothing to download on your computer. First time: open the claim link the bot prints, log in at playit.gg and press Accept.
+<footer class="foot">The playit.gg agent (our MP build, v5.02.30 as backup) runs on the 24/7 host next to the open.mp crossplay server - nothing to download on your computer. First time: press "Link playit account", open the link within 5 minutes, log in at playit.gg and press Accept. The link is only shown when asked for and ends after 5 minutes.
   · <a href="pc.html">PC download</a> · <a href="join.html">Join links</a> · <a href="termux.html">Termux</a> · <a href="./">Website</a></footer>
 <script src="vendor/mqtt-5.10.1.min.js"></script>
 <script src="autobot.js?v=3.31d"></script>
-<script src="playit.js?v=5.02.52"></script>
+<script src="playit.js?v=5.02.53"></script>
 </body>
 </html>

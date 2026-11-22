@@ -749,6 +749,9 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.53 (servers + website)
+- Short-lived playit.gg account link: the 24/7 host only shows a link when someone presses "Link playit account" on the MP Tunnel console (MQTT request on thirtyfox/mp5/playit/req). Each link ends after 5 minutes (PLAYIT_LINK_MIN), with at most 6 links an hour. The console counts down the time left and hides an expired link.
+
 ### 5.02.52 (servers + HiveMQ)
 - Our own open-source PC tunnel, no playit.gg account: HiveMQ/frps-setup.sh installs frp 0.72.0 (github.com/fatedier/frp) on the HiveMQ VPS as the mp-frps service (TCP 7000 for the 24/7 host with token auth, UDP 7778-7799 for PC players) and prints the token. With repo secret FRP_TOKEN and variable FRP_SERVER=<vps>:7000, omp_crossplay.sh runs frpc on the 24/7 host (UDP 7778 -> <vps>:7778, FRP_REMOTE_PORT to change it). It is used before playit, and its address goes to omp247.json. Tested locally: the SA-MP query answers through the tunnel port.
 - Why frp: SA-MP / open.mp is UDP. frp and rathole tunnel UDP, but bore is TCP-only. All three need one box with a public IP, because a GitHub runner cannot accept connections.
