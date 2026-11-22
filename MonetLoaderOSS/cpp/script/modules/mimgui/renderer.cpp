@@ -206,7 +206,9 @@ extern "C" __attribute__((visibility("default"))) int MonetMP_ImguiHit(int x, in
   std::lock_guard<std::mutex> lk { g_hit_mx };
   for (const auto& h : g_hit) {
     if (!h.on) continue;
-    if (h.held) return 1;
+    // MP 5.02.47: "held" only while a window is still up. A finger mimgui never saw lift (script reloaded,
+    // window closed under it) used to make every tap anywhere mimgui's, so MP's menus got none.
+    if (h.held && !h.rects.empty()) return 1;
     for (const auto& r : h.rects) {
       if (x >= r.x && y >= r.y && x < r.z && y < r.w) return 1;
     }

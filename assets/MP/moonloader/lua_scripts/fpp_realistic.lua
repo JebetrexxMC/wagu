@@ -1,4 +1,6 @@
--- FPP Realistic for MP (Android MonetLoader) 1.0-mp
+-- FPP Realistic for MP (Android MonetLoader) 1.1-mp
+-- 1.1-mp: switching the script on in the Script Manager now really gives first person. 1.0 shipped with
+-- enabled = false, so the script loaded but the camera stayed third person until /fpp was typed.
 -- A real first-person camera: the camera sits at the player's head bone, you look around by dragging on the right
 -- half of the screen, the body turns with the view while walking, with head bob, an in-vehicle first person view and
 -- an option to give the camera back to the game while aiming (so the game's own aiming works).
@@ -9,7 +11,7 @@
 
 script_name('FPP Realistic')
 script_author('MP port')
-script_version('1.0-mp')
+script_version('1.1-mp')
 
 local imgui = require 'mimgui'
 local inicfg = require 'inicfg'
@@ -18,7 +20,7 @@ local ffi = require 'ffi'
 local CFG = 'fpp_realistic.ini'
 local cfg = inicfg.load({
     main = {
-        enabled = false,
+        enabled = true,       -- 1.1: on as soon as the script is switched on (/fpp toggles)
         sensitivity = 0.25,   -- degrees per pixel
         invertY = false,
         headBob = true,
@@ -30,6 +32,8 @@ local cfg = inicfg.load({
         bodyFollow = true,    -- turn the body to the view when walking
     },
 }, CFG)
+-- 1.1: an fpp_realistic.ini from 1.0 saved enabled = false by itself: turn first person on once
+if (tonumber(cfg.main.ver) or 1) < 2 then cfg.main.enabled = true; cfg.main.ver = 2 end
 inicfg.save(cfg, CFG)
 local function save() inicfg.save(cfg, CFG) end
 
@@ -183,6 +187,10 @@ function main()
         printStringNow(cfg.main.enabled and 'First person ON' or 'First person OFF', 1200)
     end)
     sampRegisterChatCommand('fppcfg', function() win[0] = not win[0] end)
+    if cfg.main.enabled then
+        printStringNow('First person ON - /fpp off, /fppcfg settings', 2500)
+        print('[fpp] first person on (/fpp toggles, /fppcfg settings)' .. (getBone and '' or ' - head bone not found, using the body position'))
+    end
     while true do
         wait(0)
         local ok, err = pcall(update)

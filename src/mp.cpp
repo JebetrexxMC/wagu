@@ -143,6 +143,9 @@ static std::vector<LanServer> s_Nearby;              // last search result (Serv
 static uint32_t               s_nNearbyVersion = 0;  // guarded
 static uint64_t               s_nNearbyTime = 0;
 static std::atomic<bool>      s_bHasNetwork{true};
+// 5.02.47: localhost play - your own server on this phone at 127.0.0.1. It works with no Wi-Fi, no hotspot
+// and no data at all (the loopback is always there); friends on the same Wi-Fi / your hotspot still see it.
+static bool                   s_bLocalhostMode = false;
 static uint64_t               s_nLastNetCheck = 0, s_nLastDupCheck = 0;
 static bool                   s_bTakeoverPending = false;
 static uint64_t               s_nTakeoverAt = 0;
@@ -5542,7 +5545,7 @@ void MP::SetHostLan(bool on, bool autoConnect)
     {
         // 2.37 / 3.00: hosting with a cheat menu only when your own server allows it
         if(CheatMenuBlocks(settings.serverName, !settings.allowCheatMenu || !settings.serverName[0] || !strcasecmp(settings.serverName, MP_DEFAULT_SERVER_NAME))) { settings.hostLan = false; return; }
-        if(!LAN::HasNetwork()) { s_bHasNetwork = false; OfflineMsg(); settings.hostLan = false; return; }
+        if(!LAN::HasNetwork() && !s_bLocalhostMode) { s_bHasNetwork = false; OfflineMsg(); settings.hostLan = false; return; }
         if(IsBusy()) { SysMsg(COL_YELLOW, "Please wait..."); return; }
         // 2.19.6: hosting used to fail silently. With the default name + port, "Host" found the
         // default server online and just joined it; a custom name on port 1922 was refused.
@@ -5560,6 +5563,19 @@ void MP::SetHostLan(bool on, bool autoConnect)
         }
         SaveConfig();
         MP_CopyStr(s_szJoinPw, settings.serverPassword, sizeof(s_szJoinPw));   // 2.19
+        // 5.02.47: localhost with no network at all: nothing to sweep, start it here and join 127.0.0.1
+        if(s_bLocalhostMode && !LAN::HasNetwork())
+        {
+            s_bHasNetwork = true;
+            s_bCreatingNew = true;
+            if(StartLocalServer(settings.serverName, settings.port))
+            {
+                SysMsg(COL_GREEN, "Localhost: \"%s\" runs on this phone at 127.0.0.1:%d (no network needed).", settings.serverName, settings.port);
+                if(autoConnect && client.GetState() == NET_DISCONNECTED) { s_bConnectingDefault = false; JoinOverlayStart(); DoConnect("127.0.0.1", settings.port); }
+            }
+            settings.hostLan = s_Server.IsRunning(); SaveConfig();
+            return;
+        }
         // never create a second copy of a server that is already online
         s_bHostJobCreate = true;   // 3.03
         StartJob(JOB_HOST, autoConnect, settings.serverName, settings.port);
@@ -5569,6 +5585,7 @@ void MP::SetHostLan(bool on, bool autoConnect)
     {
         if(client.GetState() != NET_DISCONNECTED && IsLocalHost(client.GetHost())) LeaveServer(nullptr);
         s_Server.Stop();   // connected players move to a new host automatically
+        s_bLocalhostMode = false;   // 5.02.47
         SysMsg(COL_YELLOW, "Server stopped.");
     }
     settings.hostLan = s_Server.IsRunning();
@@ -6017,7 +6034,7 @@ static void ProcessLan(uint64_t now)
         // 2.21: Android drops the interface list for a moment on Wi-Fi scans / data handover: only
         // count it as offline after ~6 s in a row, and never while the internet relay still talks
         static int s_nNoNetChecks = 0;
-        bool has = LAN::HasNetwork() || Online::IsConnected();
+        bool has = LAN::HasNetwork() || Online::IsConnected() || (s_bLocalhostMode && (s_Server.IsRunning() || client.GetState() != NET_DISCONNECTED));   // 5.02.47: localhost needs no network
         s_nNoNetChecks = has ? 0 : s_nNoNetChecks + 1;
         if(!has && s_nNoNetChecks < 3) has = true;
         if(!has && client.GetState() != NET_DISCONNECTED) { LeaveServer(nullptr); OfflineMsg(); }
@@ -6567,7 +6584,8 @@ static void ConnectLocalIp(const char* ip, int port)
 {
     if(!ip || !*ip || port <= 0 || port > 65535) { SysMsg(COL_RED, "Type the IP and the port (1-65535)."); return; }
     if(CheatMenuBlocks(ip, false)) return;   // 2.37 / 3.00: decided by the server's permissions
-    if(!LAN::HasNetwork()) { s_bHasNetwork = false; OfflineMsg(); return; }
+    if(IsLocalHost(ip) || (ip[0] == '1' && ip[1] == '2' && ip[2] == '7' && ip[3] == '.')) { s_bLocalhostMode = true; s_bHasNetwork = true; ip = "127.0.0.1"; }   // 5.02.47: a server on this phone (MP, Termux ...)
+    else if(!LAN::HasNetwork()) { s_bHasNetwork = false; OfflineMsg(); return; }
     if(IsBusy()) { SysMsg(COL_YELLOW, "Please wait..."); return; }
     LeaveServer(nullptr);
     s_bConnectingDefault = false;

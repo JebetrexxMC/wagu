@@ -37,7 +37,7 @@
 #include "net/server.h"
 
 // 4.12.7: the config is files/TYFMC/TYFMC.MP.ini (the old configs/net.thirtyfox.mp.ini is moved there)
-TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.46, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
+TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.47, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
 // 4.13.36: no NEEDGAME(com.rockstargames.gtasa) - AML would refuse libMP in GTA Vice City. OnModLoad starts the
 // San Andreas code only when libGTASA.so is there, and the Vice City layer (src/vc/) when libGTAVC.so is.
 
@@ -211,6 +211,7 @@ DECL_HOOKv(LS_RenderSplash)
 static uint8_t* s_pPointers = nullptr; static bool s_bPointersLooked = false;
 static uint32_t s_SavedPtr[2][3]; static int s_SavedPtrXY[2][2]; static bool s_bPtrMasked[2] = { false, false };
 static bool s_bNeonPrevDown = false;
+static int  s_nNeonPrevSt = 0, s_nNeonPrevX = -1, s_nNeonPrevY = -1; static bool s_bNeonPrevFrame = false;   // 5.02.47: quick taps between two frames
 static const int kPtrStride = BYBIT(0x70, 0x78), kPtrX = 0x0C, kPtrOff = -30000;
 static void NeonMaskPointers()
 {
@@ -242,7 +243,7 @@ static void NeonPadPoll();   // 5.01.11 (below, with the controller code)
 DECL_HOOKv(MobileMenu_Update, void* self)
 {
     const bool neon = NeonCoverRecent() && LIB_PointerGetButton && LIB_PointerGetCoordinates;
-    bool down = false; int tx = 0, ty = 0;
+    bool down = false; int tx = 0, ty = 0, st = 0;
     if(neon)
     {
         if(!s_bPointersLooked)
@@ -251,7 +252,7 @@ DECL_HOOKv(MobileMenu_Update, void* self)
             s_pPointers = (uint8_t*)aml->GetSym(aml->GetLibHandle("libGTASA.so"), "pointers");
             logger->Info("5.01.10: neon menu touches like PCMenu (game pointers table %s)", s_pPointers ? "found - the game's menu under it is blinded" : "MISSING - the game's menu may still get taps");
         }
-        const int st = LIB_PointerGetButton(0, 0);
+        st = LIB_PointerGetButton(0, 0);
         down = (st == 2 || st == 3);
         float pr = 0; LIB_PointerGetCoordinates(0, &tx, &ty, &pr); MapTouch(tx, ty);
         NeonMaskPointers();
@@ -263,9 +264,17 @@ DECL_HOOKv(MobileMenu_Update, void* self)
         if(down && !s_bNeonPrevDown) MP::NeonTouch(1, 0, (float)tx, (float)ty);
         else if(down) MP::NeonTouch(2, 0, (float)tx, (float)ty);
         else if(s_bNeonPrevDown) MP::NeonTouch(3, 0, (float)tx, (float)ty);
-        s_bNeonPrevDown = down;
+        else if(st == 1 && s_bNeonPrevFrame && (s_nNeonPrevSt != 1 || abs(tx - s_nNeonPrevX) > 2 || abs(ty - s_nNeonPrevY) > 2))
+        {   // 5.02.47: a quick tap went down and up between two menu frames (slow frames while the menu music,
+            // the backgrounds or the Lua scripts load): the finger was never seen down, so the tap was lost.
+            // The pointer says "just released" at a new spot: it is a full tap there.
+            MP::NeonTouch(1, 0, (float)tx, (float)ty);
+            MP::NeonTouch(3, 0, (float)tx, (float)ty);
+        }
+        s_bNeonPrevDown = down; s_nNeonPrevSt = st; s_nNeonPrevX = tx; s_nNeonPrevY = ty;
     }
     else if(s_bNeonPrevDown) { s_bNeonPrevDown = false; MP::NeonTouch(3, 0, -1, -1); }
+    s_bNeonPrevFrame = neon;   // 5.02.47: a stale "released" from before the neon menu showed is not a tap
     if(neon) NeonPadPoll();   // 5.01.11: the controller drives the neon title menu
     MP::NeonMenuTick();   // 4.13.28: the tapped title menu action
     MP::MenuMpMenuTick();
@@ -479,11 +488,27 @@ static int MimguiHit(int x, int y)
     if(h != s_h) { s_h = h; s_fn = (HitFn)dlsym(h, "MonetMP_ImguiHit"); if(!s_logged) { s_logged = true; logger->Info("5.01.08: mimgui touches %s", s_fn ? "from MP (MonetMP_ImguiHit)" : "- this MonetLoader has no MonetMP_ImguiHit"); } }
     return s_fn ? s_fn(x, y) : 0;
 }
+// 5.02.47: taps on MP's own menus were lost. A Lua HUD's mimgui window (HassleHUD, MessaHUD, WeaponX ...) that
+// covers the screen, or a mimgui finger that never lifted after a script reload, made MimguiHit say yes for the
+// ⋮ / Chat bar, the ⋮ dropdown and its pages, the launcher (three dots > Server) and the menus, so MP never saw
+// the press. MP's UI now gets the finger first wherever it is open or drawn under it; mimgui gets the rest.
+static bool MpUiFirst(int x, int y)
+{
+    if(MPScreenOwnsTouches()) return true;   // launcher / keyboard / login / dealer / neon menu
+    float x0, y0, x1, y1;
+    if(FloatMenu::GetBarRect(&x0, &y0, &x1, &y1))
+    {
+        const float m = (y1 - y0) * 0.35f;   // a little slack around the ⋮ / Chat pills
+        if(x >= x0 - m && x <= x1 + m && y >= y0 - m && y <= y1 + m) return true;
+    }
+    if(FloatMenu::IsOpen() && HUD::WantsTouch((float)x, (float)y)) return true;   // the ⋮ dropdown / an MP page under the finger
+    return false;
+}
 static bool DispatchTouchFed(int type, int finger, int x, int y)
 {
     if(finger < 0 || finger >= 16) return DispatchTouch(type, finger, x, y);
     const bool isRel = (type == TOUCH_RELEASE || type == TOUCH_POINTER_UP);
-    if(type == TOUCH_PUSH) s_bMimguiFinger[finger] = MimguiHit(x, y) != 0;
+    if(type == TOUCH_PUSH) s_bMimguiFinger[finger] = !MpUiFirst(x, y) && MimguiHit(x, y) != 0;   // 5.02.47: MP's menus first
     if(s_bMimguiFinger[finger])
     {
         if(isRel) s_bMimguiFinger[finger] = false;

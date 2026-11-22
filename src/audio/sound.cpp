@@ -50,9 +50,35 @@ namespace
         return it == s_FileVol.end() ? 1.0f : it->second;
     }
     float s_fStreamMul = 1.0f, s_fMusicMul = 1.0f;
+    // 5.02.47: the file volume of what plays now is read live. Before, the multiplier was taken once when the
+    // track started, so moving the Solo / Host Media slider while it played changed nothing until a restart.
+    std::string s_StreamKey, s_MusicKey;          // VolKey of the stream / music that plays now
+    float s_fStreamBase = 1.0f, s_fMusicBase = 1.0f;   // the caller's own volume (fades, distance), before the file volume
+    void ReapplyStreamVolume();
+    void ReapplyMusicVolume();
 }
-void  Sound::SetFileVolume(const char* name, float v) { if(v < 0) v = 0; if(v > 1.5f) v = 1.5f; std::lock_guard<std::mutex> lk(s_VolMx); s_FileVol[VolKey(name)] = v; }
+void  Sound::SetFileVolume(const char* name, float v)
+{
+    if(v < 0) v = 0; if(v > 1.5f) v = 1.5f;
+    std::string k = VolKey(name);
+    { std::lock_guard<std::mutex> lk(s_VolMx); s_FileVol[k] = v; }
+    if(!k.empty() && k == s_StreamKey) ReapplyStreamVolume();   // 5.02.47: right away, while it plays
+    if(!k.empty() && k == s_MusicKey)  ReapplyMusicVolume();
+}
 float Sound::FileVolume(const char* name) { return VolOf(name); }
+
+// 5.02.47: 0..1.5 -> millibel. Above 100 % uses the player's own headroom (GetMaxVolumeLevel, 0 on most
+// phones, so there it stays at 100 %); 0 = muted.
+static SLmillibel SlLevel(SLVolumeItf vol, float volume)
+{
+    if(volume <= 0.01f) return SL_MILLIBEL_MIN;
+    SLmillibel mx = 0; if(vol) (*vol)->GetMaxVolumeLevel(vol, &mx);
+    float mb = 2000.0f * log10f(volume > 1.5f ? 1.5f : volume);
+    if(mb > (float)mx) mb = (float)mx;
+    if(mb < (float)SL_MILLIBEL_MIN) mb = (float)SL_MILLIBEL_MIN;
+    return (SLmillibel)mb;
+}
+#define SL_SET_VOL(itf, volume) do { if(itf) (*(itf))->SetVolumeLevel((itf), SlLevel((itf), (volume))); } while(0)
 
 static SLObjectItf g_Engine = nullptr, g_Mix = nullptr;
 static SLEngineItf g_EngineItf = nullptr;
@@ -136,7 +162,7 @@ namespace
             if(v.obj) { (*v.obj)->Destroy(v.obj); v = Voice(); }   // never playing anything from a decoder: safe
             if(!BuildVoice(v, p.ch, p.hz)) return false;
         }
-        if(v.vol) (*v.vol)->SetVolumeLevel(v.vol, (volume <= 0.01f) ? SL_MILLIBEL_MIN : (SLmillibel)(2000.0f * log10f(volume > 1.0f ? 1.0f : volume)));
+        SL_SET_VOL(v.vol, volume);
         (*v.bq)->Clear(v.bq);
         return (*v.bq)->Enqueue(v.bq, p.data.data(), (SLuint32)(p.data.size() * sizeof(int16_t))) == SL_RESULT_SUCCESS;
     }
@@ -234,13 +260,14 @@ namespace
     }
     void SetVoiceVolume(Voice& v, float volume)
     {
-        if(v.vol) (*v.vol)->SetVolumeLevel(v.vol, (volume <= 0.01f) ? SL_MILLIBEL_MIN : (SLmillibel)(2000.0f * log10f(volume > 1.0f ? 1.0f : volume)));
+        SL_SET_VOL(v.vol, volume);
     }
 }
 
 bool Sound::PlayMusic(const char* path, float volume, bool loop)
 {
     if(!path || !*path || !EnsureEngine()) return false;
+    s_MusicKey = VolKey(path); s_fMusicBase = volume;   // 5.02.47
     s_fMusicMul = VolOf(path); volume *= s_fMusicMul;   // 5.02.31
     s_Music.vol = volume; s_Music.loop = loop; s_Music.want = true;
     if(s_Music.path == path && s_Music.state != -1)
@@ -289,7 +316,8 @@ void Sound::MusicUpdate()
 
 void Sound::SetMusicVolume(float volume)
 {
-    volume *= s_fMusicMul;   // 5.02.31
+    s_fMusicBase = volume;
+    s_fMusicMul = VolOf(s_MusicKey.c_str()); volume *= s_fMusicMul;   // 5.02.47: live file volume
     s_Music.vol = volume;
     if(s_Music.state == 3) SetVoiceVolume(s_Music.v, volume);
 }
@@ -440,7 +468,7 @@ namespace
     }
     void FdVolume(float volume)
     {
-        if(s_Fd.vol) (*s_Fd.vol)->SetVolumeLevel(s_Fd.vol, (volume <= 0.01f) ? SL_MILLIBEL_MIN : (SLmillibel)(2000.0f * log10f(volume > 1.0f ? 1.0f : volume)));
+        SL_SET_VOL(s_Fd.vol, volume);
     }
     bool FdStart(const std::string& path, float volume)
     {
@@ -524,6 +552,7 @@ bool Sound::StreamPlay(const char* path, float volume, float startSec)
     if(!path || !*path || !EnsureEngine()) { snprintf(s_StInfo, sizeof(s_StInfo), "no audio engine"); return false; }
     char what[96]; int kind = Sniff(path, what, sizeof(what));
     StreamStop();
+    s_StreamKey = VolKey(path); s_fStreamBase = volume;   // 5.02.47
     s_fStreamMul = VolOf(path); volume *= s_fStreamMul;   // 5.02.31
     s_StPath = path; s_FdTried = false;
     if(kind == 0) { snprintf(s_StInfo, sizeof(s_StInfo), "file: %s", what); return false; }
@@ -551,6 +580,7 @@ bool Sound::StreamPlayUrl(const char* url, float volume, float startSec)
     s_StInfo[0] = 0;
     if(!url || strncmp(url, "http", 4) || !EnsureEngine()) { snprintf(s_StInfo, sizeof(s_StInfo), "no audio engine / bad URL"); return false; }
     StreamStop();
+    s_StreamKey = VolKey(url); s_fStreamBase = volume;   // 5.02.47
     s_fStreamMul = VolOf(url); volume *= s_fStreamMul;   // 5.02.31
     s_StPath.clear(); s_FdTried = true;
     { std::lock_guard<std::mutex> ls(s_St.mx); s_St.eof = false; s_St.failed = false; s_St.active = false; }
@@ -615,12 +645,19 @@ const char* Sound::StreamInfo() { return s_StInfo; }
 
 void Sound::StreamSetVolume(float volume)
 {
-    volume *= s_fStreamMul;   // 5.02.31
+    s_fStreamBase = volume;
+    s_fStreamMul = VolOf(s_StreamKey.c_str()); volume *= s_fStreamMul;   // 5.02.47: live file volume
     { std::lock_guard<std::mutex> lu(s_UrlMx); s_UrlVol = volume; }
     if(s_FdMode) { FdVolume(volume); return; }
     std::lock_guard<std::mutex> lk(s_St.mx);
     s_St.vol = volume;
     if(s_St.v.obj) SetVoiceVolume(s_St.v, volume);
+}
+
+namespace
+{
+    void ReapplyStreamVolume() { Sound::StreamSetVolume(s_fStreamBase); }
+    void ReapplyMusicVolume()  { Sound::SetMusicVolume(s_fMusicBase); }
 }
 
 void Sound::StreamStop()
@@ -683,7 +720,7 @@ namespace
             u->fd = fd;
             logger->Info("Sound: %s plays with the Android decoder", path);
         }
-        if(u->vol) (*u->vol)->SetVolumeLevel(u->vol, (volume <= 0.01f) ? SL_MILLIBEL_MIN : (SLmillibel)(2000.0f * log10f(volume > 1.0f ? 1.0f : volume)));
+        SL_SET_VOL(u->vol, volume);
         (*u->play)->SetPlayState(u->play, SL_PLAYSTATE_STOPPED);   // stopped = back to the start
         if(u->seek) (*u->seek)->SetPosition(u->seek, 0, SL_SEEKMODE_FAST);
         return (*u->play)->SetPlayState(u->play, SL_PLAYSTATE_PLAYING) == SL_RESULT_SUCCESS;

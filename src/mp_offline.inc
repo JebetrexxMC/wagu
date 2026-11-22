@@ -7,6 +7,10 @@
 //   /offline            status + how to      /offline host   host your server for the hotspot
 //   /offline join [ip[:port]]   find the host on this hotspot (or connect to that IP)   /offline stop
 // With no internet the launcher opens on the Lan tab (once per game start).
+// 5.02.47: localhost - "Play on localhost" hosts your server on this phone and joins it at 127.0.0.1. No Wi-Fi,
+// hotspot or data is needed (a private game just for you); with Wi-Fi / hotspot on, people on that same network
+// can still join it by your local IP. "Join 127.0.0.1" joins a server that already runs on this phone (Termux ...).
+//   /offline local      host + join on localhost      /offline join 127.0.0.1[:port]   join a server on this phone
 
 struct OffNet
 {
@@ -81,6 +85,30 @@ static void OffHost()
     else SysMsg(COL_SYSTEM, "Server on this Wi-Fi: friends on the same Wi-Fi join %s:%d.", s_Off.myIp, settings.port);
 }
 
+static int OffLocalPort() { return s_Server.IsRunning() ? s_Server.GetPort() : (settings.port > MP_DEFAULT_PORT ? settings.port : MP_DEFAULT_PORT + 1); }
+
+static void OffHostLocal()   // 5.02.47
+{
+    OffRefresh(MP_NowMs(), true);
+    s_bLocalhostMode = true;
+    if(s_Server.IsRunning())
+    {
+        if(client.GetState() != NET_DISCONNECTED && IsLocalHost(client.GetHost())) { SysMsg(COL_GREEN, "You already play on localhost: \"%s\" (127.0.0.1:%d).", s_Server.GetName(), s_Server.GetPort()); return; }
+        SysMsg(COL_SYSTEM, "Joining your own server on localhost (127.0.0.1:%d)...", s_Server.GetPort());
+        ConnectLocalIp("127.0.0.1", s_Server.GetPort());
+        return;
+    }
+    MP::SetHostLan(true, true);
+    if(s_Off.any) SysMsg(COL_SYSTEM, "Localhost server: you play at 127.0.0.1:%d. People on the same Wi-Fi / your hotspot can join %s:%d.", settings.port, s_Off.myIp, settings.port);
+    else SysMsg(COL_SYSTEM, "Localhost server: you play at 127.0.0.1:%d - private, only this phone (no Wi-Fi / hotspot on).", settings.port);
+}
+
+static void OffJoinLocal()   // 5.02.47: a server that already runs on this phone
+{
+    s_bLocalhostMode = true;
+    ConnectLocalIp("127.0.0.1", OffLocalPort());
+}
+
 static void OffFind()
 {
     OffRefresh(MP_NowMs(), true);
@@ -140,17 +168,20 @@ static void OffHelp()
     SysMsg(COL_SYSTEM, "1. Host phone: Mobile data OFF, Mobile Hotspot ON. In GTA: Lan tab > Host offline server (/offline host).");
     SysMsg(COL_SYSTEM, "2. Friend: Mobile data OFF, Wi-Fi ON, connect to the host's hotspot. Lan tab > Find host and join (/offline join).");
     SysMsg(COL_SYSTEM, "3. Not found? /offline join 192.168.43.1 (the host's IP, shown on its Lan tab). Same MP version on both phones.");
+    SysMsg(COL_SYSTEM, "Alone / no network: Lan tab > Play on localhost (/localhost) - your server on this phone at 127.0.0.1.");
     SysMsg(COL_SYSTEM, "Keep the host's screen on. The default and featured servers need internet (Discord login); your own server does not.");
 }
 
 static bool OfflineCommand(const char* cmd, const char* arg)
 {
+    if(!strcmp(cmd, "localhost")) { OffRefresh(MP_NowMs(), true); OffHostLocal(); return true; }   // 5.02.47
     if(strcmp(cmd, "offline") && strcmp(cmd, "hotspot")) return false;
     OffRefresh(MP_NowMs(), true);
     char a[80] = ""; MP_CopyStr(a, arg ? arg : "", sizeof(a));
     char* sp = strchr(a, ' '); const char* rest = "";
     if(sp) { *sp = 0; rest = sp + 1; while(*rest == ' ') ++rest; }
     if(!strcasecmp(a, "host")) OffHost();
+    else if(!strcasecmp(a, "local") || !strcasecmp(a, "localhost")) OffHostLocal();   // 5.02.47
     else if(!strcasecmp(a, "stop")) { if(s_Server.IsRunning()) MP::SetHostLan(false); else SysMsg(COL_SYSTEM, "You don't host a server."); }
     else if(!strcasecmp(a, "join"))
     {
@@ -169,7 +200,7 @@ static bool OfflineCommand(const char* cmd, const char* arg)
         else SysMsg(COL_GREEN, "Wi-Fi (%s): your IP %s, the hotspot / router is %s.", s_Off.ifname, s_Off.myIp, s_Off.hostIp);
         SysMsg(COL_SYSTEM, "Internet: %s (not needed for your own server).", Online::IsConnected() ? "yes" : "no");
         if(s_Server.IsRunning()) SysMsg(COL_SYSTEM, "You host \"%s\" on %s:%d (%d players).", s_Server.GetName(), s_Off.myIp[0] ? s_Off.myIp : "127.0.0.1", s_Server.GetPort(), s_Server.GetPlayerCount());
-        SysMsg(COL_SYSTEM, "/offline host | join [ip[:port]] | stop | help");
+        SysMsg(COL_SYSTEM, "/offline host | local | join [ip[:port]] | stop | help   (/localhost = play on 127.0.0.1)");
     }
     return true;
 }
@@ -180,7 +211,7 @@ static bool OfflineCommand(const char* cmd, const char* arg)
 static float OfflineCard(float w)
 {
     const float pad = UI::S(12), bh = UI::S(54), lh = ImGui::GetTextLineHeightWithSpacing();
-    const float h = pad + lh * 2 + UI::S(10) + bh + pad + UI::S(6);
+    const float h = pad + lh * 3 + UI::S(10) + bh * 2 + UI::S(8) + pad + UI::S(6);   // 5.02.47: + the localhost line and row
     ImVec2 p = ImGui::GetCursorScreenPos();
     ImDrawList* dl = ImGui::GetWindowDrawList();
     dl->AddRectFilled(p, ImVec2(p.x + w, p.y + h - UI::S(6)), IM_COL32(16, 20, 26, 200), UI::S(6));
@@ -192,10 +223,15 @@ static float OfflineCard(float w)
     else if(s_Off.hotspot) snprintf(l2, sizeof(l2), "Hotspot ON (%s) - your IP %s. Tap Host offline server, friends then tap Find host and join.", s_Off.ifname, s_Off.myIp);
     else snprintf(l2, sizeof(l2), "Wi-Fi (%s) - your IP %s, host phone %s. Tap Find host and join.", s_Off.ifname, s_Off.myIp, s_Off.hostIp);
     dl->AddText(ImVec2(p.x + pad, p.y + pad), IM_COL32(255, 165, 0, 255), l1);
-    dl->PushClipRect(p, ImVec2(p.x + w - pad, p.y + pad + lh * 2), true);
+    char l3[200];   // 5.02.47: localhost
+    const bool onLocal = client.GetState() != NET_DISCONNECTED && IsLocalHost(client.GetHost());
+    if(onLocal) snprintf(l3, sizeof(l3), "LOCALHOST  127.0.0.1:%d  -  you play on this phone%s", client.GetPort(), s_Off.any ? "; same Wi-Fi / hotspot can join too" : " (private, no network)");
+    else snprintf(l3, sizeof(l3), "LOCALHOST  127.0.0.1:%d  -  your server on this phone, no Wi-Fi / hotspot / data needed", OffLocalPort());
+    dl->PushClipRect(p, ImVec2(p.x + w - pad, p.y + pad + lh * 3), true);
     dl->AddText(ImVec2(p.x + pad, p.y + pad + lh), IM_COL32(230, 230, 230, 255), l2);
+    dl->AddText(ImVec2(p.x + pad, p.y + pad + lh * 2), onLocal ? IM_COL32(90, 230, 120, 255) : IM_COL32(150, 200, 255, 255), l3);
     dl->PopClipRect();
-    ImGui::SetCursorScreenPos(ImVec2(p.x + pad, p.y + pad + lh * 2 + UI::S(10)));
+    ImGui::SetCursorScreenPos(ImVec2(p.x + pad, p.y + pad + lh * 3 + UI::S(10)));
     const float bw = (w - pad * 4) / 3;
     ImGui::PushID("offcard");
     if(ImGui::Button(s_Server.IsRunning() ? "Stop my server" : "Host offline server", ImVec2(bw, bh))) { if(s_Server.IsRunning()) MP::SetHostLan(false); else OffHost(); }
@@ -203,6 +239,13 @@ static float OfflineCard(float w)
     if(ImGui::Button(s_nOffFind ? "Searching..." : "Find host and join", ImVec2(bw, bh)) && !s_nOffFind) OffFind();
     ImGui::SameLine(0, pad);
     if(ImGui::Button("How to (chat)", ImVec2(bw, bh))) OffHelp();
+    // 5.02.47: localhost row
+    ImGui::SetCursorScreenPos(ImVec2(p.x + pad, p.y + pad + lh * 3 + UI::S(10) + bh + UI::S(8)));
+    const float bw2 = (w - pad * 3) / 2;
+    if(ImGui::Button(onLocal ? "Playing on localhost" : "Play on localhost", ImVec2(bw2, bh)) && !onLocal) OffHostLocal();
+    ImGui::SameLine(0, pad);
+    char jl[48]; snprintf(jl, sizeof(jl), "Join 127.0.0.1:%d", OffLocalPort());
+    if(ImGui::Button(jl, ImVec2(bw2, bh)) && !onLocal) OffJoinLocal();
     ImGui::PopID();
     ImGui::SetCursorScreenPos(ImVec2(p.x, p.y + h));
     return h;

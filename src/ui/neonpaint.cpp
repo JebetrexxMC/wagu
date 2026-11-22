@@ -342,7 +342,9 @@ void NeonPaint::OnTouch(int kind, int finger, float x, float y)
     std::lock_guard<std::mutex> lk(s_TouchMx);
     if(kind == 1)
     {
-        if(s_nFinger >= 0 && s_nFinger != finger) return;   // one finger is enough for a menu
+        // 5.02.47: the newest finger wins. Before, a second finger was ignored while the first was down - and when
+        // the first one's release was lost (the touch source switches between the touch hook and the game's
+        // pointer table as the menu opens / closes), the menu stayed locked on that finger and no tap worked.
         s_nFinger = finger; s_bDown = true; s_fX = s_fPX = x; s_fY = s_fPY = y; s_fMove = 0;
     }
     else if(finger == s_nFinger)
@@ -360,7 +362,7 @@ void NeonPaint::FrameInput()
     f_bTap = s_bUp; f_fUX = s_fUX; f_fUY = s_fUY; s_bUp = false;
 }
 static inline bool In(float x, float y, float x0, float y0, float x1, float y1) { return x >= x0 && x <= x1 && y >= y0 && y <= y1; }
-bool NeonPaint::Tap(float x0, float y0, float x1, float y1) { return f_bTap && f_fMove < H() * 0.035f && In(f_fPX, f_fPY, x0, y0, x1, y1) && In(f_fUX, f_fUY, x0, y0, x1, y1); }
+bool NeonPaint::Tap(float x0, float y0, float x1, float y1) { return f_bTap && f_fMove < H() * 0.05f &&   /* 5.02.47: 3.5 % lost taps with a little finger roll */ In(f_fPX, f_fPY, x0, y0, x1, y1) && In(f_fUX, f_fUY, x0, y0, x1, y1); }
 bool NeonPaint::Held(float x0, float y0, float x1, float y1) { return f_bDown && In(f_fX, f_fY, x0, y0, x1, y1) && In(f_fPX, f_fPY, x0, y0, x1, y1); }
 void NeonPaint::EatTap() { f_bTap = false; }
 // 5.01.11: lists scroll with the finger, sliders follow it
