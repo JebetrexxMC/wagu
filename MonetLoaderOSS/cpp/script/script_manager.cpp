@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 #include <unordered_set>
 #include <dlfcn.h>
@@ -1587,6 +1588,27 @@ extern "C" __attribute__((visibility("default"))) void MonetMP_Reload(int id)
   if (lua::script_manager::initialized()) {
     lua::script_manager::mp_queue(static_cast<std::size_t>(id), true);
   }
+}
+// MP 5.02.46: the chat commands script <id> registered (sampRegisterChatCommand), one per line, sorted. Returns the
+// count. MP's Script Manager lists them when you pick the script.
+extern "C" __attribute__((visibility("default"))) int MonetMP_Commands(int id, char* buf, int n)
+{
+  if (!buf || n <= 0) {
+    return 0;
+  }
+  buf[0] = 0;
+  lua::script* s = lua::script_manager::initialized() ? lua::script_manager::get_script(static_cast<std::size_t>(id)) : nullptr;
+  if (!s) {
+    return 0;
+  }
+  std::vector<std::string> v(s->commands.begin(), s->commands.end());
+  std::sort(v.begin(), v.end());
+  std::string out;
+  for (auto& c : v) {
+    out += c + "\n";
+  }
+  std::snprintf(buf, static_cast<std::size_t>(n), "%s", out.c_str());
+  return static_cast<int>(v.size());
 }
 // Last crashes, newest first: "unix time\tname\tpath\terror\n".
 extern "C" __attribute__((visibility("default"))) int MonetMP_Crashes(char* buf, int n)
