@@ -749,6 +749,11 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.50 (servers + website)
+- MP Crossplay 24/7 PC tunnel without a computer: server/playit_agent.py runs the playit.gg agent (playit-linux-amd64 2.0.2 from release v5.02.30) on the 24/7 host. No PLAYIT_SECRET needed: it shows a playit.gg account link, and after Accept the agent key is saved encrypted (AES-256, AUTH_PRIVATE_KEY) as playit.enc on mp247-data for the next shifts. It makes the UDP tunnel to 127.0.0.1:7778 by itself, and the tunnel address goes into omp247.json, so pc.html and join.html links fill in automatically.
+- New website console mpsamp-open.github.io/playit.html (web Termux + MP Bot): live agent status, the account link, tunnels, agent log, join links and the 4 playit downloads, over MQTT (HiveMQ retained topic thirtyfox/mp5/playit) plus playit.json on mp247-data.
+- Turn the tunnel off with repo variable PLAYIT = off; OMP_PUBLIC_ADDR still overrides the address.
+
 ### 5.02.49 (website)
 - Main site: the "PC" link in the top bar shows a live badge with the players on MP Crossplay 24/7 (for example 3/100), green when the server is online, yellow when the last check is over 25 minutes old, "offline" when it is down. It refreshes every minute (docs/xpbadge.js, the same omp247.json as pc.html).
 

@@ -9,9 +9,10 @@
 #               7780 = Android phones (MP mod) - they also find it in the MP internet lobby through the broker,
 #                      so phones need no open port at all.
 # PC players need a public UDP address. A GitHub runner has none, so the PC side goes through a playit.gg
-# tunnel when PLAYIT_SECRET is set (repo secret), and the address players use is OMP_PUBLIC_ADDR
-# (repo variable, e.g. 147.185.221.20:12345 - the tunnel's address in the playit.gg dashboard).
-# On a VPS with an open UDP 7778 just set OMP_PUBLIC_ADDR=<vps ip>:7778 and leave PLAYIT_SECRET empty.
+# UDP tunnel (5.02.50: playit_agent.py runs the playit agent from release v5.02.30 here - nothing to
+# download on a computer; link the playit account from the website console mpsamp-open.github.io/playit.html).
+# The address comes from the tunnel by itself; OMP_PUBLIC_ADDR (repo variable) overrides it.
+# On a VPS with an open UDP 7778: OMP_PUBLIC_ADDR=<vps ip>:7778 and PLAYIT=off.
 #
 # Optional env: OMP_NAME, OMP_GAMEMODE (simpletdm | derby | gungame, default simpletdm), OMP_MAX (100),
 #               OMP_PORT (7778), OMP_MOBILE_PORT (7780), OMP_DIR (omp/), OMP_COMPONENT (mp-crossplay.so path)
@@ -31,7 +32,8 @@ mkdir -p logs run
 stop_all() {
     [ -f run/omp.pid ] && kill "$(cat run/omp.pid)" 2>/dev/null; rm -f run/omp.pid
     pkill -f "$SRV/omp-server" 2>/dev/null
-    command -v docker > /dev/null && docker rm -f mp-playit > /dev/null 2>&1
+    [ -f run/playit.pid ] && kill "$(cat run/playit.pid)" 2>/dev/null; rm -f run/playit.pid
+    pkill -f playit-linux-amd64 2>/dev/null
     return 0
 }
 
@@ -71,21 +73,17 @@ max=$MAX
 EOF
 }
 
-start_tunnel() {   # playit.gg agent (UDP tunnel for the PC side); the tunnel itself is made once in the playit dashboard
-    [ -n "${PLAYIT_SECRET:-}" ] || { echo "  PC tunnel: off (no PLAYIT_SECRET) - PC players need OMP_PUBLIC_ADDR on a VPS"; return 0; }
-    command -v docker > /dev/null || { echo "  PC tunnel: docker missing"; return 0; }
-    if [ "$(docker inspect -f '{{.State.Running}}' mp-playit 2>/dev/null)" = true ]; then return 0; fi
-    docker rm -f mp-playit > /dev/null 2>&1
-    docker run -d --name mp-playit --restart unless-stopped --network host \
-        -e SECRET_KEY="$PLAYIT_SECRET" ghcr.io/playit-cloud/playit-agent:latest > /dev/null \
-        && echo "  PC tunnel: playit.gg agent started (UDP $PORT -> ${OMP_PUBLIC_ADDR:-the dashboard address})" \
-        || echo "  PC tunnel: playit agent did not start"
+start_tunnel() {   # 5.02.50: playit.gg agent from release v5.02.30 (playit_agent.py: account link, key, UDP tunnel, address)
+    [ "${PLAYIT:-on}" = off ] && { echo "  PC tunnel: off (PLAYIT=off)"; return 0; }
+    if [ -f run/playit.pid ] && kill -0 "$(cat run/playit.pid)" 2>/dev/null; then return 0; fi
+    ( set -m; nohup python3 "$HERE/playit_agent.py" >> logs/playit_agent.log 2>&1 & echo $! > run/playit.pid )
+    echo "  PC tunnel: playit.gg agent started (UDP $PORT) - live on mpsamp-open.github.io/playit.html"
 }
 
 status() {   # SA-MP query 'i' (works on open.mp): online, players, max -> JSON for docs/pc.html
     local out="${1:-$HERE/omp247.json}"
-    PORT="$PORT" NAME="$NAME" MPORT="$MPORT" REGION="$REGION" ADDR="${OMP_PUBLIC_ADDR:-}" MODE="$MODE" \
-    TUNNEL="$([ -n "${PLAYIT_SECRET:-}" ] && echo playit || echo none)" python3 - "$out" <<'PY'
+    PORT="$PORT" NAME="$NAME" MPORT="$MPORT" REGION="$REGION" ADDR="${OMP_PUBLIC_ADDR:-$(cat run/playit.addr 2>/dev/null)}" MODE="$MODE" \
+    TUNNEL="$([ -f run/playit.pid ] && echo playit || echo none)" python3 - "$out" <<'PY'
 import json, os, socket, struct, sys, time
 port = int(os.environ["PORT"]); res = {"online": False, "players": 0, "max": 0}
 try:

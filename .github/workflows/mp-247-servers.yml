@@ -9,7 +9,10 @@
 # 5.02.48: + MP Crossplay 24/7, a real open.mp 1.6.7 server with mp-crossplay.so (server/omp_crossplay.sh):
 #   PC players join on UDP 7778 (open.mp launcher / SA-MP 0.3.7 / 0.3.DL), phones through the MP lobby (UDP 7780).
 #   PC address: secret PLAYIT_SECRET (playit.gg agent key, tunnel UDP -> 127.0.0.1:7778 made once in the playit
-#   dashboard) + variable OMP_PUBLIC_ADDR (the tunnel's host:port). Status for mpsamp-open.github.io/pc.html:
+#   dashboard) + variable OMP_PUBLIC_ADDR (the tunnel's host:port).
+# 5.02.50: no PLAYIT_SECRET needed - server/playit_agent.py runs the playit agent (release v5.02.30) here and
+#   shows a playit.gg account link on mpsamp-open.github.io/playit.html; the key is saved encrypted
+#   (AUTH_PRIVATE_KEY) as playit.enc on mp247-data, the UDP tunnel + its address are made by themselves. Status for mpsamp-open.github.io/pc.html:
 #   omp247.json on the mp247-data branch. Turn only this server off: variable OMP_CROSSPLAY = off.
 name: MP 24/7 featured servers
 
@@ -42,6 +45,8 @@ jobs:
       OVERLAP_MIN: 6        # keep serving this long after the next shift was queued
       OMP_ON: ${{ vars.OMP_CROSSPLAY != 'off' }}
       PLAYIT_SECRET: ${{ secrets.PLAYIT_SECRET }}
+      PLAYIT_KEY_PASS: ${{ secrets.AUTH_PRIVATE_KEY }}   # 5.02.50: encrypts the linked playit agent key (playit.enc)
+      PLAYIT: ${{ vars.PLAYIT || 'on' }}
       OMP_PUBLIC_ADDR: ${{ vars.OMP_PUBLIC_ADDR }}
     steps:
       - name: Skip if a shift is already running
@@ -106,7 +111,7 @@ jobs:
         if: steps.guard.outputs.run == '1'
         run: |
           if git fetch -q --depth 1 origin mp247-data 2>/dev/null; then
-            for f in bans.txt homes.txt homes_rp.txt mw3_stats.txt progress.txt ranks.txt rp_citizens.txt dayz_survivors.txt league_stats.txt turf.txt; do
+            for f in playit.enc bans.txt homes.txt homes_rp.txt mw3_stats.txt progress.txt ranks.txt rp_citizens.txt dayz_survivors.txt league_stats.txt turf.txt; do
               git show "FETCH_HEAD:$f" > "server/$f" 2>/dev/null || rm -f "server/$f"; done
             echo "data restored"; else echo "no saved data yet"; fi
 
@@ -119,7 +124,7 @@ jobs:
           # 5.02.48: MP Crossplay 24/7 (open.mp + mp-crossplay.so)
           OMP=0; [ "$OMP_ON" = true ] && [ -f ../crossplay/out/linux/mp-crossplay.so ] && ./omp_crossplay.sh start "$REGION" && OMP=1
           [ "$OMP" = 1 ] && { sleep 6; ./omp_crossplay.sh status; } || echo "open.mp crossplay server not started"
-          FILES="omp247.json bans.txt homes.txt homes_rp.txt mw3_stats.txt progress.txt ranks.txt rp_citizens.txt dayz_survivors.txt league_stats.txt turf.txt"
+          FILES="omp247.json playit.json playit.enc bans.txt homes.txt homes_rp.txt mw3_stats.txt progress.txt ranks.txt rp_citizens.txt dayz_survivors.txt league_stats.txt turf.txt"
           save() {
             rm -rf /tmp/d; mkdir -p /tmp/d
             for f in $FILES; do [ -s "$f" ] && cp -f "$f" /tmp/d/; done

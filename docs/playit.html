@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script>/* 4.05.4: the website moved to mpsamp-open.github.io - the old wagu address forwards (files like regions.txt stay as a backup) */if(location.hostname==="jebetrexxmc.github.io"){location.replace("https://mpsamp-open.github.io"+location.pathname.replace(/^\/wagu/,"")+location.search+location.hash);}</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MP Tunnel - playit.gg PC tunnel console</title>
+<meta name="description" content="Web Termux for the MP Crossplay 24/7 PC tunnel: the playit.gg agent runs on the 24/7 host, MP Bot shows its status, account link, UDP tunnel and address live.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' wss: https://raw.githubusercontent.com; img-src 'self' data:; worker-src blob:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#000000">
+<link rel="stylesheet" href="termux.css">
+<link rel="icon" href="favicon.ico?v=savc2" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=savc2">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=savc2">
+<link rel="manifest" href="site.webmanifest?v=savc2">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=savc2">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="./">MP <span>Tunnel</span></a>
+  <span id="live" class="live"><span class="dot"></span><span id="live-t">starting…</span></span>
+  <a class="other" href="pc.html">PC</a>
+  <a class="other2" href="termux.html">Termux</a>
+</header>
+
+<main class="screen" aria-label="Terminal">
+  <div id="out" class="out" role="log" aria-live="polite"></div>
+  <div class="prompt" aria-hidden="true"><span class="ps">~ $</span><span id="typed" class="typed"></span><span class="cur"></span></div>
+</main>
+
+<p id="botst" class="botst" role="status">bot: starting…</p>
+<div class="xkeys" aria-hidden="true">
+  <span>ESC</span><span>/</span><span>-</span><span>HOME</span><span>&uarr;</span><span>END</span><span>PGUP</span>
+  <span>TAB</span><span>CTRL</span><span>ALT</span><span>&larr;</span><span>&darr;</span><span>&rarr;</span><span id="kenter">&#x23CE;</span>
+</div>
+
+<footer class="foot">The playit.gg agent (release v5.02.30) runs on the 24/7 host next to the open.mp crossplay server - nothing to download on your computer. First time: open the claim link the bot prints, log in at playit.gg and press Accept.
+  · <a href="pc.html">PC download</a> · <a href="join.html">Join links</a> · <a href="termux.html">Termux</a> · <a href="./">Website</a></footer>
+<script src="vendor/mqtt-5.10.1.min.js"></script>
+<script src="autobot.js?v=3.31d"></script>
+<script src="playit.js?v=5.02.50"></script>
+</body>
+</html>

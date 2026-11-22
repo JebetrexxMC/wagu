@@ -45,3 +45,5 @@ server/run/
 crossplay/obj/
 crossplay/out/
 crossplay/open.mp-sdk/
+server/playit.enc
+server/playit.json
