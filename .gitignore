@@ -38,3 +38,10 @@ tools/pawn/build/
 tools/pawn/examples/*.amx
 third_party/omp-dev/examples/**/*.amx
 third_party/omp-dev/examples/**/*_samp/
+server/omp/
+server/omp247.json
+server/logs/
+server/run/
+crossplay/obj/
+crossplay/out/
+crossplay/open.mp-sdk/

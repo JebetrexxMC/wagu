@@ -6,6 +6,11 @@
 # The hourly cron is only a safety net that restarts the chain if a shift ever failed.
 # Server data (homes, turf, progress, MW3 stats, RP citizens, DayZ survivors, league ranks, bans) is kept on the mp247-data branch.
 # Turn it off (e.g. when a VPS runs server/run_24_7.sh): repository variable MP247_RUNNER = off.
+# 5.02.48: + MP Crossplay 24/7, a real open.mp 1.6.7 server with mp-crossplay.so (server/omp_crossplay.sh):
+#   PC players join on UDP 7778 (open.mp launcher / SA-MP 0.3.7 / 0.3.DL), phones through the MP lobby (UDP 7780).
+#   PC address: secret PLAYIT_SECRET (playit.gg agent key, tunnel UDP -> 127.0.0.1:7778 made once in the playit
+#   dashboard) + variable OMP_PUBLIC_ADDR (the tunnel's host:port). Status for mpsamp-open.github.io/pc.html:
+#   omp247.json on the mp247-data branch. Turn only this server off: variable OMP_CROSSPLAY = off.
 name: MP 24/7 featured servers
 
 on:
@@ -17,7 +22,7 @@ on:
         default: 'false'
   push:
     branches: [main]
-    paths: ['.github/workflows/mp-247-servers.yml', 'server/**', 'src/net/**']
+    paths: ['.github/workflows/mp-247-servers.yml', 'server/**', 'src/net/**', 'crossplay/**']
   schedule:
     - cron: '7 * * * *'
 
@@ -35,6 +40,9 @@ jobs:
       REGION: ${{ vars.MP247_REGION || 'Asia' }}
       SHIFT_MIN: 340        # queue the next shift after this many minutes
       OVERLAP_MIN: 6        # keep serving this long after the next shift was queued
+      OMP_ON: ${{ vars.OMP_CROSSPLAY != 'off' }}
+      PLAYIT_SECRET: ${{ secrets.PLAYIT_SECRET }}
+      OMP_PUBLIC_ADDR: ${{ vars.OMP_PUBLIC_ADDR }}
     steps:
       - name: Skip if a shift is already running
         id: guard
@@ -68,6 +76,32 @@ jobs:
         if: steps.guard.outputs.run == '1'
         run: make -C server -j"$(nproc)"
 
+      # 5.02.48: open.mp crossplay server - never blocks the MP servers (continue-on-error)
+      - name: open.mp crossplay - 32-bit libs + zig
+        if: steps.guard.outputs.run == '1' && env.OMP_ON == 'true'
+        continue-on-error: true
+        run: |
+          sudo dpkg --add-architecture i386 && sudo apt-get update -qq
+          sudo apt-get install -y -qq libc6:i386 libstdc++6:i386 libatomic1:i386 > /dev/null
+          curl -fsL --retry 3 https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz | tar xJ -C /tmp
+          mv /tmp/zig-linux-x86_64-0.13.0 /tmp/zig
+
+      - name: Cache crossplay build
+        if: steps.guard.outputs.run == '1' && env.OMP_ON == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            crossplay/obj
+            crossplay/open.mp-sdk
+          key: mp-crossplay-${{ hashFiles('crossplay/*.cpp', 'crossplay/*.h', 'crossplay/build.sh', 'src/net/**') }}
+          restore-keys: mp-crossplay-
+
+      - name: Build mp-crossplay.so
+        id: xp
+        if: steps.guard.outputs.run == '1' && env.OMP_ON == 'true'
+        continue-on-error: true
+        run: ZIG=/tmp/zig/zig JOBS="$(nproc)" bash crossplay/build.sh linux
+
       - name: Load saved server data
         if: steps.guard.outputs.run == '1'
         run: |
@@ -82,7 +116,10 @@ jobs:
         run: |
           cd server
           ./run_24_7.sh "$REGION"
-          FILES="bans.txt homes.txt homes_rp.txt mw3_stats.txt progress.txt ranks.txt rp_citizens.txt dayz_survivors.txt league_stats.txt turf.txt"
+          # 5.02.48: MP Crossplay 24/7 (open.mp + mp-crossplay.so)
+          OMP=0; [ "$OMP_ON" = true ] && [ -f ../crossplay/out/linux/mp-crossplay.so ] && ./omp_crossplay.sh start "$REGION" && OMP=1
+          [ "$OMP" = 1 ] && { sleep 6; ./omp_crossplay.sh status; } || echo "open.mp crossplay server not started"
+          FILES="omp247.json bans.txt homes.txt homes_rp.txt mw3_stats.txt progress.txt ranks.txt rp_citizens.txt dayz_survivors.txt league_stats.txt turf.txt"
           save() {
             rm -rf /tmp/d; mkdir -p /tmp/d
             for f in $FILES; do [ -s "$f" ] && cp -f "$f" /tmp/d/; done
@@ -103,12 +140,13 @@ jobs:
           }
           handover() {
             echo "A newer shift is already online (duplicate) - handing over and stopping this one"
-            save; ./run_24_7.sh stop; exit 0
+            save; ./run_24_7.sh stop; ./omp_crossplay.sh stop; exit 0
           }
           end=$(( $(date +%s) + SHIFT_MIN * 60 ))
           while [ "$(date +%s)" -lt "$end" ]; do
             sleep 600
             [ "$(newer)" -gt 0 ] && handover
+            [ "$OMP" = 1 ] && ./omp_crossplay.sh status
             save
             # 3.59: hot update - a push to main (new server code, a new featured server) is picked up by the
             # shift that is already online, instead of waiting up to 5 h 40 min for the next shift
@@ -126,6 +164,8 @@ jobs:
               fi
             fi
             ./run_24_7.sh "$REGION" > /dev/null   # restarts a server if its loop ever died
+            [ "$OMP" = 1 ] && ./omp_crossplay.sh start "$REGION" > /dev/null   # same for open.mp + the PC tunnel
+            [ -f logs/omp.log ] && { echo "== logs/omp.log"; tail -n 2 logs/omp.log; }
             for l in logs/*.log; do [ -f "$l" ] && { echo "== $l"; tail -n 2 "$l"; }; done
           done
           [ "$(newer)" -gt 0 ] && handover   # 4.05.1: never start a second chain
@@ -133,6 +173,8 @@ jobs:
           gh workflow run mp-247-servers.yml -R "$GITHUB_REPOSITORY" --ref "${GITHUB_REF_NAME}" -f handoff=true \
             || echo "queueing failed - the hourly safety net will start the next shift"
           sleep $(( OVERLAP_MIN * 60 ))
+          [ "$OMP" = 1 ] && ./omp_crossplay.sh status
           save
           ./run_24_7.sh stop
+          ./omp_crossplay.sh stop
           exit 0

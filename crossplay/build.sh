@@ -45,9 +45,10 @@ build() {   # name target ext extra-cflags extra-ldflags
     for f in $UNRAR_SRC; do o=$O/unrar/$f.o; [ -f $o ] || echo "cxx -std=c++11 -w -DMP_NO_UNRAR_SSE -DRARDLL -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -c $UNRAR/$f.cpp -o $o"; done >> $O/jobs
     for f in $NET; do echo "cxx -std=c++17 -I$ROOT/src -I$MBED/include $AMX_FLAGS -DMP_CROSSPLAY -c $ROOT/src/net/$f.cpp -o $O/net/$f.o"; done >> $O/jobs
     echo "cxx -std=c++17 -I$ROOT/src -I$MBED/include $AMX_FLAGS -c bridge_api.cpp -o $O/net/bridge_api.o" >> $O/jobs
+    echo "cxx -std=c++17 -I$ROOT/src -I$MBED/include -c sampgate_stub.cpp -o $O/net/sampgate_stub.o" >> $O/jobs   # 5.02.48
     echo "cxx -std=c++17 $SDK_FLAGS -c mp_crossplay.cpp -o $O/net/mp_crossplay.o" >> $O/jobs
     xargs -P $J -I{} env ZIG="$ZIG" T=$T CF="$CF" bash -c 'set -e; cc() { "$ZIG" cc -target $T -O2 -fPIC $CF "$@"; }; cxx() { "$ZIG" c++ -target $T -O2 -fPIC $CF "$@"; }; {}' < $O/jobs
-    "$ZIG" c++ -target $T -shared -O2 -s -o out/$N/mp-crossplay.$EXT $O/net/*.o $O/unrar/*.o $O/samp/*.o $O/mbed/*.o $LF
+    "$ZIG" c++ -target $T -shared -O2 -s -o out/$N/mp-crossplay.$EXT $O/net/*.o $O/unrar/*.o $O/samp/*.o $O/mbed/*.o $LF -Wl,--no-undefined   # 5.02.48: a missing symbol fails here, not in omp-server
     ls -la out/$N/mp-crossplay.$EXT
 }
 

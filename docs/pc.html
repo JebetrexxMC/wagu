@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script>/* the old wagu address forwards to mpsamp-open.github.io (same as the other pages) */if(location.hostname==="jebetrexxmc.github.io"){location.replace("https://mpsamp-open.github.io"+location.pathname.replace(/^\/wagu/,"")+location.search+location.hash);}</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MP for PC - SA-MP and open.mp launchers + the 24/7 crossplay server</title>
+<meta name="description" content="Play with MP Android players from a PC: download the SA-MP 0.3.7 / 0.3.DL client or the open.mp launcher and join the 24/7 open.mp crossplay server in one tap.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://raw.githubusercontent.com https://api.github.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#06100b">
+<link rel="stylesheet" href="termux.css">
+<link rel="stylesheet" href="pc.css">
+<link rel="icon" href="favicon.ico?v=savc2" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=savc2">
+<link rel="manifest" href="site.webmanifest?v=savc2">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="MP Multiplayer">
+<meta property="og:title" content="MP for PC - join the 24/7 crossplay server">
+<meta property="og:description" content="SA-MP and open.mp launchers for PC, and one-tap join to the open.mp server where PC and Android players play together.">
+<meta property="og:url" content="https://mpsamp-open.github.io/pc.html">
+<meta property="og:image" content="https://mpsamp-open.github.io/social-preview.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=savc2">
+</head>
+<body class="pc">
+<header class="bar">
+  <a class="brand" href="./">MP <span>for PC</span></a>
+  <span id="live" class="live"><span class="dot"></span><span id="live-t">checking the server…</span></span>
+  <nav class="pc-nav" aria-label="Pages"><a href="./">Home</a><a href="#join">Join</a><a href="#downloads">Downloads</a></nav>
+</header>
+
+<main class="pc-main">
+  <section class="card srv" id="join" aria-labelledby="srv-h">
+    <div class="srv-h">
+      <span class="srv-dot" aria-hidden="true"></span>
+      <div class="srv-t">
+        <h1 id="srv-h">MP Crossplay 24/7</h1>
+        <span id="srv-sub">open.mp server · PC and Android players in one world</span>
+      </div>
+      <span class="badge" id="srv-badge">…</span>
+    </div>
+    <dl class="kv">
+      <div><dt>Address</dt><dd id="k-addr">-</dd></div>
+      <div><dt>Players</dt><dd id="k-pl">-</dd></div>
+      <div><dt>Region</dt><dd id="k-reg">-</dd></div>
+      <div><dt>Last check</dt><dd id="k-up">-</dd></div>
+    </dl>
+    <div class="join-row" id="join-row">
+      <a class="btn main" id="j-samp" href="#" aria-disabled="true">Join (SA-MP / open.mp)</a>
+      <a class="btn" id="j-omp" href="#" aria-disabled="true">Open in open.mp launcher</a>
+      <button class="btn" id="j-copy" type="button" disabled>Copy address</button>
+      <button class="btn" id="j-share" type="button" disabled>Copy one-tap link</button>
+    </div>
+    <p class="note" id="j-note">The Join button opens the game through the <code>samp://</code> link that the SA-MP client and the open.mp launcher register when you install them. If nothing happens, copy the address and add it under Favorites in the launcher.</p>
+    <p class="note">On Android: open MP, go to the Internet list and pick <b>MP Crossplay 24/7</b>. Phones join through the MP lobby, so no address is needed.</p>
+  </section>
+
+  <section class="card" id="downloads" aria-labelledby="dl-h">
+    <h2 id="dl-h">Downloads for PC</h2>
+    <p class="note">You need GTA San Andreas for PC, version 1.0 (US or EU). Install one client, then join with the button above.</p>
+    <ul class="dl-list">
+      <li>
+        <div><strong>open.mp launcher</strong><span class="tag">recommended</span><span class="m">Server list, favorites, joins open.mp and SA-MP servers. Setup installs it; the plain .exe runs without installing.</span></div>
+        <div class="dl-btns">
+          <a class="btn main" href="https://github.com/JebetrexxMC/wagu/releases/download/v5.02.05/omp-launcher-setup.exe">Setup (3.8 MB)</a>
+          <a class="btn" href="https://github.com/JebetrexxMC/wagu/releases/download/v5.02.05/omp-launcher.exe">Portable .exe (8.7 MB)</a>
+        </div>
+      </li>
+      <li>
+        <div><strong>SA-MP 0.3.7-R5</strong><span class="m">The classic SA-MP client. Choose your GTA San Andreas folder during the install.</span></div>
+        <div class="dl-btns"><a class="btn" href="https://github.com/JebetrexxMC/wagu/releases/download/v5.02.06/sa-mp-0.3.7-R5-2-MP-install.exe">Installer (24.3 MB)</a></div>
+      </li>
+      <li>
+        <div><strong>SA-MP 0.3.DL-R1</strong><span class="m">The SA-MP client with custom models (0.3.DL servers).</span></div>
+        <div class="dl-btns"><a class="btn" href="https://github.com/JebetrexxMC/wagu/releases/download/v5.02.06/sa-mp-0.3.DL-R1-2-MP-install.exe">Installer (24.4 MB)</a></div>
+      </li>
+    </ul>
+    <p class="note m">Files from the wagu releases (v5.02.05 and v5.02.06). Official sources: <a href="https://open.mp/downloads/launcher" rel="noopener">open.mp launcher</a>, <a href="https://github.com/openmultiplayer/launcher" rel="noopener">launcher source</a>.</p>
+  </section>
+
+  <section class="card" aria-labelledby="how-h">
+    <h2 id="how-h">How crossplay works</h2>
+    <ol class="how">
+      <li>The server is a real <a href="https://github.com/openmultiplayer/open.mp" rel="noopener">open.mp</a> 1.6.7 server with the MP crossplay component. It runs 24/7 next to the other MP featured servers.</li>
+      <li>PC players join on the open.mp/SA-MP side, and phones join on the MP side. PC players show up on phones as <code>Name (PC)</code>, and phones show up on PC as <code>M_Name</code>.</li>
+      <li>Chat crosses both ways. Damage between PC and phones is not shared yet.</li>
+    </ol>
+  </section>
+</main>
+<footer class="foot">MP Multiplayer · <a href="./">mpsamp-open.github.io</a> · <a href="join.html">one-tap join link</a></footer>
+<script src="pc.js"></script>
+</body>
+</html>
