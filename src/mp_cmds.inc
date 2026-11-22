@@ -1548,6 +1548,109 @@ static std::string LuaModRunner(const std::string& src)
         print(('[LuaScripts] HassleHUD: the saved HUD position was off this %dx%d screen - moved back inside'):format(w, h))
       end
     end)
+    -- 5.02.44: the HP / armour / stamina bars did not show (the fist GIF did): any error in the HUD frame after the
+    --  fist threw the rest of the frame away and only went to moonloader.log. HassleHUD's source is patched as it loads
+    --  (it is loadstring()ed by "HassleHUD Android.luac"): the stamina code, the circle, the weapon and the bars each run
+    --  in their own pcall (the first error of each is printed once as [LuaScripts] HassleHUD ... - MP's log has it too),
+    --  and a HUD scale (0.50x - 2.00x, Settings > the size buttons, saved in config/HassleHUD_scale.txt) scales the
+    --  whole HUD around its position.
+    pcall(function()
+      local okm2, im = pcall(require, 'mimgui')
+      if not (okm2 and type(im) == 'table') then return end
+      local V2 = im.ImVec2
+      local SCF = __mp_pkg .. '/config/HassleHUD_scale.txt'
+      local k = 1.0
+      do local f = io.open(SCF, 'rb') if f then k = tonumber((f:read('*a') or ''):match('[%d%.]+')) or 1.0 f:close() end end
+      if k < 0.5 or k > 2.0 then k = 1.0 end
+      local kp = im.new.float(k)
+      local cx, cy, on = 0, 0, false
+      local said = {}
+      __mp_hhcall = function(what, fn, ...)
+        local ok, er = pcall(fn, ...)
+        if not ok and not said[what] then
+          said[what] = true
+          print('[LuaScripts] HassleHUD ' .. what .. ' error (the rest of the HUD still draws): ' .. tostring(er))
+        end
+      end
+      local function T(p) if p == nil then return p end return V2(cx + (p.x - cx) * k, cy + (p.y - cy) * k) end
+      local function S(v) if type(v) ~= 'number' then return v end return v * k end
+      local wraps = {
+        AddRectFilled = function(dl, f, a, b, col, rnd, fl) return f(dl, T(a), T(b), col, S(rnd or 0), fl) end,
+        AddRect = function(dl, f, a, b, col, rnd, fl, th) return f(dl, T(a), T(b), col, S(rnd or 0), fl, S(th)) end,
+        AddImage = function(dl, f, t, a, b, ...) return f(dl, t, T(a), T(b), ...) end,
+        AddImageRounded = function(dl, f, t, a, b, ua, ub, col, rnd, fl) return f(dl, t, T(a), T(b), ua, ub, col, S(rnd), fl) end,
+        AddCircle = function(dl, f, c, r, col, n, th) return f(dl, T(c), S(r), col, n, S(th)) end,
+        AddCircleFilled = function(dl, f, c, r, ...) return f(dl, T(c), S(r), ...) end,
+        AddLine = function(dl, f, a, b, col, th) return f(dl, T(a), T(b), col, S(th)) end,
+        PathArcTo = function(dl, f, c, r, ...) return f(dl, T(c), S(r), ...) end,
+        PathLineTo = function(dl, f, p) return f(dl, T(p)) end,
+        PathStroke = function(dl, f, col, cl, th) return f(dl, col, cl, S(th)) end,
+        AddText = function(dl, f, pos, col, txt, ...)
+          if type(pos) ~= 'cdata' and type(pos) ~= 'table' or type(txt) ~= 'string' then return f(dl, pos, col, txt, ...) end
+          local okt, ts = pcall(im.CalcTextSize, txt)
+          local tf = dl.AddTextFontPtr
+          if not okt or not ts or type(tf) ~= 'function' then return f(dl, T(pos), col, txt, ...) end
+          local c = T(V2(pos.x + ts.x / 2, pos.y + ts.y / 2))
+          return tf(dl, im.GetFont(), im.GetFontSize() * k, V2(c.x - ts.x * k / 2, c.y - ts.y * k / 2), col, txt)
+        end,
+      }
+      local cache = setmetatable({}, { __mode = 'k' })
+      __mp_hhdl = function(dl, x, y)
+        cx, cy, on = x, y, k ~= 1.0
+        if not on or dl == nil then return dl end
+        local w = cache[dl]
+        if w then return w end
+        local fns = {}
+        w = setmetatable({}, { __index = function(_, key)
+          local g = fns[key]
+          if g then return g end
+          local fv = dl[key]
+          if type(fv) ~= 'function' then return fv end
+          local wr = wraps[key]
+          g = wr and function(_, ...) return wr(dl, fv, ...) end or function(_, ...) return fv(dl, ...) end
+          fns[key] = g
+          return g
+        end })
+        cache[dl] = w
+        return w
+      end
+      __mp_hhmouse = function(mx, my)   -- hit(): the tap goes through the same scale
+        if not on then return mx, my end
+        return cx + (mx - cx) / k, cy + (my - cy) / k
+      end
+      __mp_hhscaleUI = function(SF)
+        if type(SF) ~= 'function' then return end
+        if SF('HUD scale (MP)', kp, 0.5, 2.0, '%.2fx') then
+          k = math.floor(kp[0] * 100 + 0.5) / 100
+          local f = io.open(SCF, 'wb') if f then f:write(('%.2f\n'):format(k)) f:close() end
+        end
+      end
+      local reps = {
+        { '    staminaped()\n    if savePend', "    __mp_hhcall('stamina', staminaped)\n    if savePend" },
+        { "    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n    return mx >= x",
+          "    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n    if __mp_hhmouse then mx, my = __mp_hhmouse(mx, my) end\n    return mx >= x" },
+        { "    if not st2[0] then\n        sprCircle(DL,x,y,r,pol)\n        wep1(DL,x,y,r,sM,gIdx,wid)\n    else\n        wep2(DL,x,y,gIdx,wid)\n    end\n    bars(DL,x,y,r,sM)\n",
+          "    local __sdl = __mp_hhdl(DL, x, y)\n    if not st2[0] then\n        __mp_hhcall('circle', sprCircle, __sdl,x,y,r,pol)\n        __mp_hhcall('weapon', wep1, __sdl,x,y,r,sM,gIdx,wid)\n    else\n        __mp_hhcall('weapon', wep2, __sdl,x,y,gIdx,wid)\n    end\n    __mp_hhcall('bars', bars, __sdl,x,y,r,sM)\n" },
+        { "        if imgui.IsItemClicked() then hsz[0] = i-1; qSave() end\n    end\n    imgui.Spacing()\n",
+          "        if imgui.IsItemClicked() then hsz[0] = i-1; qSave() end\n    end\n    imgui.Spacing()\n    if __mp_hhscaleUI then __mp_hhscaleUI(SF) end\n" },
+      }
+      local function patch(src)
+        if type(src) ~= 'string' or not src:find('script_name("HassleHUD Android")', 1, true) then return src end
+        src = src:gsub('\r\n', '\n')
+        local done = 0
+        for _, r in ipairs(reps) do
+          local a, b = src:find(r[1], 1, true)
+          if a then src = src:sub(1, a - 1) .. r[2] .. src:sub(b + 1) done = done + 1 end
+        end
+        print(('[LuaScripts] HassleHUD: %d/%d HUD patches (bars in their own pcall, HUD scale %.2fx)'):format(done, #reps, k))
+        return src
+      end
+      local ls, ld = loadstring, load
+      loadstring = function(src, ...) return ls(patch(src), ...) end
+      if type(ld) == 'function' then
+        load = function(src, ...) if type(src) == 'string' then src = patch(src) end return ld(src, ...) end
+      end
+    end)
   end
   -- a .so of the mod that can't load here (HassleHUD's libGIF.so is 32-bit only: on a 64-bit game) no longer kills
   -- the whole mod: its functions return 0 and the rest of the mod runs

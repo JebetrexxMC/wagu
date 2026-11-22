@@ -749,6 +749,15 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.44
+- Menu music: neon_mainmenu.mp3 now plays the full 5:46 and loops. It streams from Host/Media through the phone's media player, the same way solo.m4a and dz_ambient.mp3 play. Until 5.02.43 MP downloaded a copy into files/TYFMC/MP and played it with its own mp3 decoder, which keeps only about 4 s of sound queued and refills it from the menu tick. When the menu stopped ticking, the music went silent after about 4 s. If the stream stalls, the song carries on from the same second. If raw.githubusercontent.com does not answer, jebetrexxmc.github.io is used.
+- No more neon_mainmenu.mp3 in the MP folder. MP deletes an old neon_mainmenu.mp3 (and its .ok, .bad and .part files) from files/TYFMC/MP once, and the release zips no longer ship it.
+- MonetLoader: moonloader.log and the Lua scripts now use the same folder as MP. MP passes its data folder to MonetLoader (MP_DATA_ROOT). Before, MonetLoader took the first folder with files/TYFMC/MP, so a leftover Android/data/com.rockstargames.gtasa/files/TYFMC/MP won over Android_unprotected: moonloader.log was written there and scripts loaded from the wrong place. Without MP_DATA_ROOT, Android_unprotected is now tried first.
+- MonetLoader: script errors, warnings and the [LuaScripts] / [mimgui] lines are also written into MP's own log as "[ML] ...". A moonloader.log that can't be written no longer stops MonetLoader.
+- HassleHUD: the HP, armour and stamina bars show again next to the 60 fps fist. Any error in the HUD frame after the fist used to throw away the rest of the frame, bars included. Now the stamina code, the circle, the weapon and the bars each run on their own, and the first error of each is printed once as "[LuaScripts] HassleHUD ... error" in moonloader.log and MP's log.
+- HassleHUD: new HUD scale slider (0.50x - 2.00x) under the size buttons in the HUD settings. It scales the whole HUD (circle, fist, bars, text, money, ammo, stars) around the HUD position, and taps on the fist follow the scale. It is saved in config/HassleHUD_scale.txt.
+- Not tested on a phone yet.
+
 ### 5.02.43
 - Neon title menu: the TrueMenu look (research/truemenu-a-modern-sa-menu). The logo and the items are centred in spaced caps (RESUME, NEW GAME, LOAD GAME, BROWSE SERVERS, QUICK CONNECT, SETTINGS, ABOUT, QUIT GAME). The focused item sits on a soft glass bar with a diamond. Your last save shows under the list (mission, file, date, %). The language is a glass pill at the top right and the version is at the bottom left.
 - Every neon page (Game, Browse servers, Settings, the dialogs) uses see-through glass panels and buttons over the pictures, with the TrueMenu colours (highlight 169,200,242, text 242,239,232, blue-black tint 12,20,38). The accents are soft blue-white and JOIN SERVER is readable again.

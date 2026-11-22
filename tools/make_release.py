@@ -73,9 +73,8 @@ if not VL: sys.exit("ViceLoader.apk missing: put the CI build (gh run download <
 APKS = [(n, find_apk(n)) for n in ("ViceLoader.apk", "Moquil.apk", "MP-Voice.apk", "MP-Textdraw-Editor.apk")]
 APKS = [(n, a) for n, a in APKS if a]
 INST = open("tools/INSTALL_template.txt", encoding="utf-8").read().replace("{V}", V)
-# 5.02.06: the release zips carry the menu song (Host/Media/neon_mainmenu.mp3, 5:46) + its .ok, so the title menu
-# plays the whole track from the phone instead of streaming it from GitHub (that stream stopped part way); not in
-# assets/MP/MP.zip / the client zip (over the repo's file limit)
+# 5.02.44: the menu song is no longer shipped (it streams from Host/Media like solo.m4a / dz_ambient.mp3; MP deletes
+# an old files/TYFMC/MP/neon_mainmenu.mp3). music=True is kept for the call sites but does nothing.
 MUSIC = "Host/Media/neon_mainmenu.mp3"
 def full_zip(path, with_vl=True, package=False, apks=True, music=False):
     with zf(path) as z:
@@ -85,7 +84,7 @@ def full_zip(path, with_vl=True, package=False, apks=True, music=False):
             z.write(a, f + "/apks/" + n)
         z.write("bin/libMP64.so", f + "/lib/arm64-v8a/libMP64.so"); z.write("bin/libMP32.so", f + "/lib/armeabi-v7a/libMP32.so")
         tree(z, "assets/MP", f + "/assets/MP", ASKIP)
-        if music and os.path.isfile(MUSIC):
+        if False and music and os.path.isfile(MUSIC):
             z.write(MUSIC, f + "/assets/MP/neon_mainmenu.mp3")
             z.writestr(f + "/assets/MP/neon_mainmenu.mp3.ok", "%d\n" % os.path.getsize(MUSIC))
         inst = INST

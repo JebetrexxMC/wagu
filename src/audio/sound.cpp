@@ -425,7 +425,7 @@ namespace
 // from the file itself, any length.
 namespace
 {
-    struct FdPlayer { SLObjectItf obj = nullptr; SLPlayItf play = nullptr; SLVolumeItf vol = nullptr; int fd = -1; };
+    struct FdPlayer { SLObjectItf obj = nullptr; SLPlayItf play = nullptr; SLVolumeItf vol = nullptr; SLSeekItf seek = nullptr; int fd = -1; };
     FdPlayer s_Fd;
     bool s_FdMode = false, s_FdTried = false;
     std::atomic<bool> s_FdEnd{false};
@@ -473,6 +473,7 @@ namespace
     // Wi-Fi or mobile data, so the big mp3s don't have to be in files/TYFMC/MP. Prepare (Realize) blocks while it
     // connects, so it runs on its own thread; the game thread takes the ready player in StreamUpdate.
     std::mutex s_UrlMx; int s_UrlGen = 0; bool s_UrlPending = false; FdPlayer s_UrlReady; bool s_UrlHave = false; float s_UrlVol = 0.0f;
+    float s_UrlStart = 0.0f;   // 5.02.44: where a URL track starts (a stalled stream carries on there)
     std::string s_UrlErr;
     void UrlThread(std::string url, int gen)
     {
@@ -481,13 +482,17 @@ namespace
         SLDataSource src = { &loc, &mime };
         SLDataLocator_OutputMix outMix = { SL_DATALOCATOR_OUTPUTMIX, g_Mix };
         SLDataSink sink = { &outMix, nullptr };
-        const SLInterfaceID ids[1] = { SL_IID_VOLUME };
-        const SLboolean req[1] = { SL_BOOLEAN_FALSE };
+        const SLInterfaceID ids[2] = { SL_IID_VOLUME, SL_IID_SEEK };
+        const SLboolean req[2] = { SL_BOOLEAN_FALSE, SL_BOOLEAN_FALSE };
         FdPlayer p; const char* err = nullptr;
-        if((*g_EngineItf)->CreateAudioPlayer(g_EngineItf, &p.obj, &src, &sink, 1, ids, req) != SL_RESULT_SUCCESS) { p.obj = nullptr; err = "media player: this phone can't play URLs"; }
+        if((*g_EngineItf)->CreateAudioPlayer(g_EngineItf, &p.obj, &src, &sink, 2, ids, req) != SL_RESULT_SUCCESS) { p.obj = nullptr; err = "media player: this phone can't play URLs"; }
         else if((*p.obj)->Realize(p.obj, SL_BOOLEAN_FALSE) != SL_RESULT_SUCCESS || (*p.obj)->GetInterface(p.obj, SL_IID_PLAY, &p.play) != SL_RESULT_SUCCESS)
         { (*p.obj)->Destroy(p.obj); p = FdPlayer(); err = "media player: no internet / the music URL did not answer"; }
-        else if((*p.obj)->GetInterface(p.obj, SL_IID_VOLUME, &p.vol) != SL_RESULT_SUCCESS) p.vol = nullptr;
+        else
+        {
+            if((*p.obj)->GetInterface(p.obj, SL_IID_VOLUME, &p.vol) != SL_RESULT_SUCCESS) p.vol = nullptr;
+            if((*p.obj)->GetInterface(p.obj, SL_IID_SEEK, &p.seek) != SL_RESULT_SUCCESS) p.seek = nullptr;
+        }
         std::lock_guard<std::mutex> lk(s_UrlMx);
         if(gen != s_UrlGen) { if(p.obj) (*p.obj)->Destroy(p.obj); return; }   // stopped meanwhile
         s_UrlPending = false;
@@ -541,7 +546,7 @@ bool Sound::StreamPlay(const char* path, float volume, float startSec)
     return true;
 }
 
-bool Sound::StreamPlayUrl(const char* url, float volume)
+bool Sound::StreamPlayUrl(const char* url, float volume, float startSec)
 {
     s_StInfo[0] = 0;
     if(!url || strncmp(url, "http", 4) || !EnsureEngine()) { snprintf(s_StInfo, sizeof(s_StInfo), "no audio engine / bad URL"); return false; }
@@ -551,7 +556,7 @@ bool Sound::StreamPlayUrl(const char* url, float volume)
     { std::lock_guard<std::mutex> ls(s_St.mx); s_St.eof = false; s_St.failed = false; s_St.active = false; }
     {
         std::lock_guard<std::mutex> lk(s_UrlMx);
-        int g = ++s_UrlGen; s_UrlPending = true; s_UrlVol = volume; s_UrlErr.clear();
+        int g = ++s_UrlGen; s_UrlPending = true; s_UrlVol = volume; s_UrlErr.clear(); s_UrlStart = startSec > 0.0f ? startSec : 0.0f;
         std::thread(UrlThread, std::string(url), g).detach();
     }
     snprintf(s_StInfo, sizeof(s_StInfo), "media player: connecting");
@@ -564,12 +569,13 @@ void Sound::StreamUpdate()
         std::unique_lock<std::mutex> lk(s_UrlMx);
         if(s_UrlHave)
         {
-            FdPlayer p = s_UrlReady; s_UrlHave = false; s_UrlReady = FdPlayer(); float vol = s_UrlVol; lk.unlock();
+            FdPlayer p = s_UrlReady; s_UrlHave = false; s_UrlReady = FdPlayer(); float vol = s_UrlVol, from = s_UrlStart; s_UrlStart = 0.0f; lk.unlock();
             FdStop();
             s_Fd = p; s_FdMode = true; s_FdEnd = false;
             (*p.play)->RegisterCallback(p.play, FdCb, nullptr);
             (*p.play)->SetCallbackEventsMask(p.play, SL_PLAYEVENT_HEADATEND);
             FdVolume(vol);
+            if(from > 0.0f && p.seek) (*p.seek)->SetPosition(p.seek, (SLmillisecond)(from * 1000.0f), SL_SEEKMODE_FAST);   // 5.02.44
             if((*p.play)->SetPlayState(p.play, SL_PLAYSTATE_PLAYING) != SL_RESULT_SUCCESS) { FdStop(); snprintf(s_StInfo, sizeof(s_StInfo), "media player: could not start"); s_St.failed = true; }
             else snprintf(s_StInfo, sizeof(s_StInfo), "media player: streaming");
             return;

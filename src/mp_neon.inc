@@ -1175,80 +1175,23 @@ static void NeonPToast(float W, float H, float u)
 // ---- the menu music ----
 static int s_nNeonMus = 0;                   // 0 off, 1 playing, -1 failed (try again later)
 static uint64_t s_nNeonMusAt = 0;
-static std::atomic<int> s_nNeonMusDl{0};     // the local copy: 0 not asked, 1 downloading, 2 done, 3 failed
 #define NEON_MUSIC_FILE "neon_mainmenu.mp3"
 #define NEON_MUSIC_URL1 "https://raw.githubusercontent.com/JebetrexxMC/wagu/main/Host/Media/" NEON_MUSIC_FILE
 #define NEON_MUSIC_URL2 "https://jebetrexxmc.github.io/wagu/Host/Media/" NEON_MUSIC_FILE
-// 5.01.16: why it still stopped after ~3 s: the download (HttpsFetch, 60 s timeout) kept whatever had arrived when the
-// time ran out - on a slow connection the first few hundred KB = a few seconds of the 5:46 track - and saved it as
-// neon_mainmenu.mp3. Every start then played those seconds and "ended". Now: a cut download is never saved (the body
-// must match its Content-Length, 10 min to download, >= 1 MB), a finished download writes neon_mainmenu.mp3.ok (its
-// size), a copy without a matching .ok is downloaded again (it still plays meanwhile), and a file that ends in under
-// 30 s is put aside (.bad) - the URL stream plays until the new copy is in.
-static std::set<std::string> s_NeonMusBad;    // files that ended early this run
-static long NeonFileSize(const char* p) { struct stat st; return stat(p, &st) == 0 ? (long)st.st_size : -1; }
-static bool NeonMusicVerified()
-{   // the downloaded copy is complete (its .ok has the same size)
-    char p[600], q[620]; snprintf(p, sizeof(p), "%s/" NEON_MUSIC_FILE, MP::DataDir()); snprintf(q, sizeof(q), "%s.ok", p);
-    const long sz = NeonFileSize(p); if(sz <= 0) return false;
-    long want = -1; if(FILE* f = fopen(q, "r")) { if(fscanf(f, "%ld", &want) != 1) want = -1; fclose(f); }
-    return want == sz;
-}
-static bool NeonMusicLocal(char* out, size_t n)
-{   // files/TYFMC/MP/neon_mainmenu.mp3 (the user's own copy, or the one MP downloaded); "neon_mainmene.mp3" too
-    static const char* const kNames[] = { NEON_MUSIC_FILE, "neon_mainmene.mp3", "neon_menu.mp3" };
-    for(const char* nm : kNames)
+// 5.02.44: the menu music streams from Host/Media only, through the Android media player - the same way solo.m4a and
+// dz_ambient.mp3 play their full length. Until 5.02.43 MP downloaded a copy into files/TYFMC/MP and played that with
+// its own mp3 decoder, whose queue holds only ~4 s of sound and is refilled from the menu tick: when the menu stopped
+// ticking (a sub-menu, the game's settings) the music went silent after ~4 s. No copy is kept in the MP folder any
+// more; the old neon_mainmenu.mp3 / .ok / .bad / .part there are deleted once.
+static void NeonMusicCleanMpFolder()
+{
+    static bool done = false; if(done) return; done = true;
+    static const char* const kExt[] = { "", ".ok", ".bad", ".part" };
+    for(const char* e : kExt)
     {
-        snprintf(out, n, "%s/%s", MP::DataDir(), nm);
-        if(access(out, R_OK) != 0 || s_NeonMusBad.count(out)) continue;
-        if(NeonFileSize(out) < 300 * 1024) continue;   // a few seconds at most: a broken copy
-        return true;
+        char p[620]; snprintf(p, sizeof(p), "%s/" NEON_MUSIC_FILE "%s", MP::DataDir(), e);
+        if(remove(p) == 0) logger->Info("Neon menu: deleted the old MP-folder copy %s (the music streams from Host/Media)", p);
     }
-    return false;
-}
-static void NeonMusicPutAside(const char* path)
-{   // a copy that ended in seconds: not played again this run; MP's own copy is renamed and downloaded again
-    s_NeonMusBad.insert(path);
-    char own[600]; snprintf(own, sizeof(own), "%s/" NEON_MUSIC_FILE, MP::DataDir());
-    if(!strcmp(path, own))
-    {
-        char bad[620]; snprintf(bad, sizeof(bad), "%s.bad", own); rename(own, bad);
-        char ok[620]; snprintf(ok, sizeof(ok), "%s.ok", own); remove(ok);
-        s_NeonMusBad.erase(path);
-        if(s_nNeonMusDl.load() != 1) s_nNeonMusDl = 0;   // download it again
-    }
-    logger->Info("Neon menu: menu music %s is cut short - put aside", path);
-}
-static void NeonMusicDownload()
-{   // once: the track into files/TYFMC/MP so the next start plays it from the disk (no streaming)
-    int z = 0; if(!s_nNeonMusDl.compare_exchange_strong(z, 1)) { z = 3; if(!s_nNeonMusDl.compare_exchange_strong(z, 1)) return; }
-    std::string dir = MP::DataDir();
-    std::thread([dir]() {
-        static const char* const kUrls[] = { NEON_MUSIC_URL1, NEON_MUSIC_URL2 };
-        for(const char* u : kUrls)
-        {
-            std::string body, why;
-            const bool ok = Online::HttpsFetch(u, body, 600000, why, 40u << 20);
-            const bool cut = Online::HttpsLastShort();
-            if(ok && !cut && body.size() >= (1u << 20))
-            {
-                const std::string dst = dir + "/" NEON_MUSIC_FILE, tmp = dst + ".part";
-                bool w = false;
-                if(FILE* f = fopen(tmp.c_str(), "wb")) { w = fwrite(body.data(), 1, body.size(), f) == body.size(); w = (fclose(f) == 0) && w; }
-                if(w && rename(tmp.c_str(), dst.c_str()) == 0)
-                {
-                    if(FILE* f = fopen((dst + ".ok").c_str(), "w")) { fprintf(f, "%ld\n", (long)body.size()); fclose(f); }
-                    logger->Info("Neon menu: menu music cached (%u bytes from %s)", (unsigned)body.size(), u);
-                    s_nNeonMusDl = 2; return;
-                }
-                remove(tmp.c_str());
-                why = "could not write the file (storage full?)";
-            }
-            else if(ok) why = cut ? "the download was cut off" : "too small";
-            logger->Info("Neon menu: menu music download from %s failed (%s, %u bytes)", u, why.c_str(), (unsigned)body.size());
-        }
-        s_nNeonMusDl = 3;
-    }).detach();
 }
 static uint64_t s_nNeonMusHoldUntil = 0;   // 5.02.06: no restart right after Resume / New game / a join
 static bool s_bNeonMusOn = false;          // 5.02.06: the title menu music was started (until a stop)
@@ -1258,23 +1201,20 @@ static void NeonMusicStop()
     if(s_nNeonMus == 1) { Sound::StreamStop(); logger->Info("Neon menu: menu music stopped"); s_nNeonMusHoldUntil = MP_NowMs() + 10000; }
     s_nNeonMus = 0;
 }
-static void NeonMusicInGame() { if(s_nNeonMus == 1 && Game::LocalPed() > 0) NeonMusicStop(); }   // MP::Process
-static bool s_bNeonMusUrl = false, s_bNeonMusLoop = false;   // 5.01.14: streaming from the URL / a loop restart (no fade)
-static float s_fNeonMusMax = 0.0f;   // 5.01.15: the furthest position heard (a track that "ends" early is resumed, not looped)
-static float s_fNeonMusResume = 0.0f;   // 5.02.06: where a cut-off track carries on
-static uint64_t s_nNeonMusLastPos = 0;
-static char s_szNeonMusPath[600] = "";   // 5.01.16: the file playing ("" = the URL stream)
+static void NeonMusicInGame()   // MP::Process (every game tick)
+{
+    if(s_nNeonMus != 1) return;
+    if(Game::LocalPed() > 0) { NeonMusicStop(); return; }
+    Sound::StreamUpdate();   // 5.02.44: the player starts / ends even on a frame the menu does not tick
+}
+static bool s_bNeonMusLoop = false;   // a loop restart (no fade)
+static float s_fNeonMusMax = 0.0f;    // the furthest position heard (a track that "ends" early is resumed, not looped)
+static float s_fNeonMusResume = 0.0f; // where a cut-off stream carries on
+static float s_fNeonMusDur = 0.0f;   // the track length the player reported
+static int s_nNeonMusUrl = 0;         // 0 = raw.githubusercontent, 1 = github.io (the fallback)
 static void NeonMusicTick(bool want)   // game thread
 {
-    // 5.01.15: the track (5:46) was cut after a few seconds and started again: the 5.01.14 "silent" check restarted it
-    // whenever the position did not move for 4 s (the Android decoder / URL player reports 0 for a while), and a URL
-    // player that stalls while buffering reports "end of track", which looped it from 0:00. Now a running track is
-    // never restarted because of its position; an early "end" (before the real length) is a stall - the downloaded
-    // copy (or the URL again) takes over; only a real end of the track loops it; a failed start is tried again.
-    if(settings.neonMusic && s_nNeonMusDl.load() == 0)   // 5.02.06: every menu mode (it was the neon menu only)
-    {   // once: a copy on the disk already, or download it now (before the first start needs it)
-        if(NeonMusicVerified()) s_nNeonMusDl = 2; else NeonMusicDownload();   // 5.01.16: an unverified copy is downloaded again
-    }
+    NeonMusicCleanMpFolder();
     want = want && settings.neonMusic && settings.neonMusicVol > 0;
     if(!want) { NeonMusicStop(); s_bNeonMusLoop = false; s_fNeonMusMax = 0.0f; s_fNeonMusResume = 0.0f; return; }
     const uint64_t now = MP_NowMs();
@@ -1282,45 +1222,37 @@ static void NeonMusicTick(bool want)   // game thread
     if(s_nNeonMus == 1)
     {
         Sound::StreamUpdate();
-        const bool active = Sound::StreamActive(), ended = Sound::StreamEnded();
-        const float pos = Sound::StreamPosition(), dur = Sound::StreamDuration();
-        if(pos > s_fNeonMusMax) { s_fNeonMusMax = pos; s_nNeonMusLastPos = now; }
-        char p[600];
-        if(ended || (!active && now - s_nNeonMusAt > 3000))
-        {
-            const bool full = ended && s_fNeonMusMax > 30.0f && (dur <= 0.0f || s_fNeonMusMax >= dur - 10.0f) && !s_bNeonMusUrl;
-            if(ended && !s_bNeonMusUrl && s_fNeonMusMax < 30.0f && s_szNeonMusPath[0]) NeonMusicPutAside(s_szNeonMusPath);   // 5.01.16
-            logger->Info("Neon menu: menu music %s at %.1f / %.1f s (%s)", full ? "reached the end - looping" : "stopped early - starting again",
+        const bool active = Sound::StreamActive(), ended = Sound::StreamEnded(), failed = !active && !ended;
+        const float pos = Sound::StreamPosition(), d = Sound::StreamDuration();
+        if(pos > s_fNeonMusMax) s_fNeonMusMax = pos;
+        if(d > 0.0f) s_fNeonMusDur = d;   // (0 once the player is closed at the end)
+        const float dur = s_fNeonMusDur;
+        if(failed && s_fNeonMusMax < 1.0f)
+        {   // could not open the URL: the other host next time
+            logger->Info("Neon menu: menu music could not start from %s (%s)", s_nNeonMusUrl ? NEON_MUSIC_URL2 : NEON_MUSIC_URL1, Sound::StreamInfo());
+            Sound::StreamStop(); s_nNeonMus = -1; s_nNeonMusAt = now; s_nNeonMusUrl ^= 1; return;
+        }
+        if(ended || failed)
+        {   // a real end loops from 0:00; an early "end" (the URL player stalled while buffering) carries on there
+            const bool full = ended && s_fNeonMusMax > 30.0f && (dur <= 0.0f ? s_fNeonMusMax > 330.0f : s_fNeonMusMax >= dur - 10.0f);
+            logger->Info("Neon menu: menu music %s at %.1f / %.1f s (%s)", full ? "reached the end - looping" : "stopped early - carrying on",
                          s_fNeonMusMax, dur, Sound::StreamInfo());
             Sound::StreamStop(); s_nNeonMus = 0;
             s_bNeonMusLoop = full;
-            // 5.02.06: an early stop (the Host/Media stream cut off) carries on from where it was, not from 0:00
-            s_fNeonMusResume = full ? 0.0f : (s_fNeonMusMax > 2.0f ? s_fNeonMusMax : 0.0f);
+            s_fNeonMusResume = full ? 0.0f : (s_fNeonMusMax > 2.0f ? s_fNeonMusMax - 1.0f : 0.0f);
             if(full) s_fNeonMusMax = 0.0f;
-            if(!full && !ended) { s_nNeonMus = -1; s_nNeonMusAt = now; return; }   // a failed start: wait 3 s
-        }
-        else if(s_bNeonMusUrl && s_nNeonMusDl.load() == 2 && (pos < 1.0f || now - s_nNeonMusLastPos > 3000) && NeonMusicLocal(p, sizeof(p)))
-        {   // still connecting to the URL (or it stalled), and the downloaded copy is here: play that
-            logger->Info("Neon menu: menu music -> the downloaded copy");
-            Sound::StreamStop(); s_nNeonMus = 0; s_bNeonMusLoop = false; s_fNeonMusMax = 0.0f;
         }
     }
     if(s_nNeonMus != 1)
     {
-        char p[600]; bool ok = false; const bool local = NeonMusicLocal(p, sizeof(p));
-        // 5.02.06: the stream stopped part way and the full copy is still downloading: wait for it (silent) instead of
-        // starting the stream again at 0:00 - then the copy on the disk carries on from the same second
-        if(!local && s_fNeonMusResume > 0.0f && s_nNeonMusDl.load() == 1) return;
-        const float from = local ? s_fNeonMusResume : 0.0f;
-        if(local) ok = Sound::StreamPlay(p, s_bNeonMusLoop ? settings.neonMusicVol / 100.0f : 0.0f, from);
-        if(ok && from > 0.0f) logger->Info("Neon menu: menu music carries on at %.1f s (%s)", from, p);
+        const char* url = s_nNeonMusUrl ? NEON_MUSIC_URL2 : NEON_MUSIC_URL1;
+        const float from = s_fNeonMusResume;
+        const bool ok = Sound::StreamPlayUrl(url, s_bNeonMusLoop || from > 0.0f ? settings.neonMusicVol / 100.0f : 0.0f, from);
         s_fNeonMusResume = 0.0f;
-        if(local && !ok) s_NeonMusBad.insert(p);   // 5.01.16: unreadable: the next start takes another copy / the URL
-        MP_CopyStr(s_szNeonMusPath, ok && local ? p : "", sizeof(s_szNeonMusPath));
-        s_bNeonMusUrl = false;
-        if(!ok) { ok = Sound::StreamPlayUrl(NEON_MUSIC_URL1, 0.0f); s_bNeonMusUrl = ok; NeonMusicDownload(); }
-        s_nNeonMus = ok ? 1 : -1; s_nNeonMusAt = now; s_nNeonMusLastPos = now;
-        if(!s_bNeonMusLoop || !ok) logger->Info("Neon menu: menu music %s (%s)", ok ? "playing" : "could not start", local ? p : NEON_MUSIC_URL1);
+        s_nNeonMus = ok ? 1 : -1; s_nNeonMusAt = now;
+        if(!ok) s_nNeonMusUrl ^= 1;
+        if(!s_bNeonMusLoop || !ok) logger->Info("Neon menu: menu music %s (%s%s)", ok ? "playing" : "could not start", url,
+                                                from > 0.0f ? ", carrying on" : "");
         if(!ok) return;
         Sound::StreamUpdate();
     }

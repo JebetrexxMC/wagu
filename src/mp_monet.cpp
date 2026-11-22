@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <string>
+#include <stdint.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <vector>
@@ -205,6 +207,12 @@ static void InstallCore()
     }
 }
 
+static void MonetLogLine(int level, const char* text)   // 5.02.44: called by MonetLoader's logger (any thread)
+{
+    if(!text) return;
+    if(level >= 4) logger->Error("[ML] %s", text); else logger->Info("[ML] %s", text);
+}
+
 void Start()
 {
     if(s_hLib) return;
@@ -235,6 +243,20 @@ void Start()
     {
         if(!WriteFile(path.c_str(), mp_monetloader_blob, n)) return;
         logger->Info("MonetLoader: built-in copy written to %s (%u KB)", path.c_str(), (unsigned)(n / 1024));
+    }
+    {   // 5.02.44: MonetLoader uses MP's data folder (moonloader.log + scripts in the same MP/moonloader MP reads)
+        std::string root = MP::DataDir() ? MP::DataDir() : "";
+        const size_t k = root.rfind("/TYFMC/MP");
+        if(k != std::string::npos)
+        {
+            root.resize(k);
+            while(!root.empty() && root.back() == '/') root.pop_back();
+            if(root.size() > 6 && root.compare(root.size() - 6, 6, "/files") == 0) root.resize(root.size() - 6);
+            setenv("MP_DATA_ROOT", root.c_str(), 1);
+            char fn[32]; snprintf(fn, sizeof(fn), "%llx", (unsigned long long)(uintptr_t)&MonetLogLine);
+            setenv("MP_LOG_FN", fn, 1);   // MonetLoader mirrors its errors / [LuaScripts] lines into this log
+            logger->Info("MonetLoader: data root %s (moonloader.log -> %s/moonloader/moonloader.log)", root.c_str(), MP::DataDir());
+        }
     }
     s_hLib = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
     if(!s_hLib) { const char* er = dlerror(); logger->Error("MonetLoader: can't load the built-in copy: %s", er ? er : "?"); return; }
