@@ -11,8 +11,8 @@ Windows launcher for SA-MP / open.mp servers and MP Crossplay, built with [Tauri
 
 ```
 cd launcher/src-tauri
-cargo build --release              # target/release/mp-launcher(.exe)
-cargo install tauri-cli --version ^2 && cargo tauri build   # NSIS installer
+cargo build --release --target i686-pc-windows-msvc   # 32-bit, like gta_sa.exe
+cargo install tauri-cli --version ^2 && cargo tauri build --target i686-pc-windows-msvc   # NSIS installer
 ```
 
 CI: `.github/workflows/launcher.yml` builds the Windows exe and installer on every change in `launcher/`.
@@ -20,5 +20,5 @@ CI: `.github/workflows/launcher.yml` builds the Windows exe and installer on eve
 ## Notes
 
 - The join flow follows [openmultiplayer/launcher](https://github.com/openmultiplayer/launcher) (MPL-2.0). This launcher is its own code and is not affiliated with or endorsed by open.mp; it does not use the open.mp name or logos as branding.
-- DLL injection is Windows only; on Linux / macOS the launcher shows the list and ping but cannot start the game.
+- Join starts gta_sa.exe suspended, loads samp.dll (then omp-client.dll) with LoadLibraryW in a remote thread, then resumes it. The launcher is 32-bit for that reason. Windows only; on Linux / macOS the launcher shows the list and ping but cannot start the game.
 - Not tested on a real Windows PC yet. Please report problems with a screenshot of the error message.

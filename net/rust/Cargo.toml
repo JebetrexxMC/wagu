@@ -17,6 +17,8 @@ anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 futures = "0.3"
 mio = { version = "1", features = ["os-poll", "net"] }
+# smol (fork github.com/JebetrexxMC/smol): small runtime for `ping`, so a phone / Pi client needs no tokio threads
+smol = { git = "https://github.com/JebetrexxMC/smol" }
 
 # tokio comes from the wagu fork (github.com/JebetrexxMC/tokio) for this crate and for bore
 [patch.crates-io]

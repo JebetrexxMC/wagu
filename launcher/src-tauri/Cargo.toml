@@ -18,7 +18,9 @@ serde_json = "1"
 ureq = { version = "2", default-features = false, features = ["tls", "json"] }
 
 [target.'cfg(windows)'.dependencies]
-dll-syringe = { version = "0.15", default-features = false, features = ["syringe", "into-x86-from-x64"] }
+# plain Win32 injection (CreateProcessW suspended + LoadLibraryW in a remote thread); dll-syringe needed nightly Rust.
+# The launcher is built as 32-bit (i686-pc-windows-msvc) like gta_sa.exe, so kernel32!LoadLibraryW has the same address in both.
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_Threading", "Win32_System_Memory", "Win32_System_Diagnostics_Debug", "Win32_System_LibraryLoader", "Win32_Security"] }
 winreg = "0.52"
 
 [profile.release]

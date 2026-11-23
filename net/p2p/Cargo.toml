@@ -1,0 +1,22 @@
+[package]
+name = "mpnet-p2p"
+version = "1.0.0"
+edition = "2021"
+description = "MP NetWire p2p: find MP LAN servers and players on the same network without a broker (rust-libp2p: mDNS + identify + ping)"
+license = "MIT"
+publish = false
+
+[dependencies]
+# rust-libp2p from the fork github.com/JebetrexxMC/rust-libp2p
+libp2p = { git = "https://github.com/JebetrexxMC/rust-libp2p", features = ["tokio", "tcp", "noise", "yamux", "mdns", "ping", "identify", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+futures = "0.3"
+clap = { version = "4", features = ["derive"] }
+
+[patch.crates-io]
+tokio = { git = "https://github.com/JebetrexxMC/tokio" }
+
+[profile.release]
+opt-level = "s"
+strip = true
+lto = "thin"

@@ -53,3 +53,6 @@ launcher/src-tauri/gen/
 net/build/
 net/go/mpedge/mpedge
 net/go/bin/
+net/p2p/target/
+net/dotnet/bin/
+net/dotnet/obj/

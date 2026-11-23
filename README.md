@@ -501,7 +501,7 @@ Every repository under [JebetrexxMC](https://github.com/JebetrexxMC) (307) and [
 </details>
 
 <details>
-<summary><b>Networking (net/) and the PC launcher</b> (26)</summary>
+<summary><b>Networking (net/) and the PC launcher</b> (45)</summary>
 
 | # | Repository | Forked from | About | Language | In wagu | Last commit |
 |---|---|---|---|---|---|---|
@@ -531,6 +531,25 @@ Every repository under [JebetrexxMC](https://github.com/JebetrexxMC) (307) and [
 | 24 | [JebetrexxMC/RustScan](https://github.com/JebetrexxMC/RustScan) | [bee-san/RustScan](https://github.com/bee-san/RustScan) | 🤖 The Modern Port Scanner 🤖 |  | net/rustscan | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/RustScan?style=flat-square&label=&cacheSeconds=86400) |
 | 25 | [JebetrexxMC/ZeroTierOne](https://github.com/JebetrexxMC/ZeroTierOne) | [zerotier/ZeroTierOne](https://github.com/zerotier/ZeroTierOne) | A Smart Ethernet Switch for Earth |  | net/zerotier | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/ZeroTierOne?style=flat-square&label=&cacheSeconds=86400) |
 | 26 | [JebetrexxMC/xpipe](https://github.com/JebetrexxMC/xpipe) | [xpipe-io/xpipe](https://github.com/xpipe-io/xpipe) | Access your entire server infrastructure from your local desktop |  | net/xpipe | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/xpipe?style=flat-square&label=&cacheSeconds=86400) |
+| 27 | [JebetrexxMC/samp-udp-proxy](https://github.com/JebetrexxMC/samp-udp-proxy) | [ADRFranklin/samp-udp-proxy](https://github.com/ADRFranklin/samp-udp-proxy) | A udp application that acts like a proxy for multiple SA-MP servers, written in rust |  | net/query-shield (relay reference, CI build) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/samp-udp-proxy?style=flat-square&label=&cacheSeconds=86400) |
+| 28 | [JebetrexxMC/samp-packet-proxy](https://github.com/JebetrexxMC/samp-packet-proxy) | [dennorske/samp-packet-proxy](https://github.com/dennorske/samp-packet-proxy) | A python script that helps UDP-spammed servers on SA-MP to appear online normally |  | net/query-shield pack_scan | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/samp-packet-proxy?style=flat-square&label=&cacheSeconds=86400) |
+| 29 | [JebetrexxMC/smol](https://github.com/JebetrexxMC/smol) | [smol-rs/smol](https://github.com/smol-rs/smol) | A small and fast async runtime for Rust |  | net/rust mpnet-agent ping | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/smol?style=flat-square&label=&cacheSeconds=86400) |
+| 30 | [JebetrexxMC/rust-libp2p](https://github.com/JebetrexxMC/rust-libp2p) | [libp2p/rust-libp2p](https://github.com/libp2p/rust-libp2p) | The Rust Implementation of the libp2p networking stack. |  | net/p2p mpnet-p2p | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/rust-libp2p?style=flat-square&label=&cacheSeconds=86400) |
+| 31 | [JebetrexxMC/beast](https://github.com/JebetrexxMC/beast) | [boostorg/beast](https://github.com/boostorg/beast) | HTTP and WebSocket built on Boost.Asio in C++11 |  | net/server/mpnet-beast.cpp | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/beast?style=flat-square&label=&cacheSeconds=86400) |
+| 32 | [JebetrexxMC/handy](https://github.com/JebetrexxMC/handy) | [yedf2/handy](https://github.com/yedf2/handy) | C++11 /  / a simple C++11 network server framework |  | net/handy mpnet-handy | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/handy?style=flat-square&label=&cacheSeconds=86400) |
+| 33 | [JebetrexxMC/DotNetty](https://github.com/JebetrexxMC/DotNetty) | [Azure/DotNetty](https://github.com/Azure/DotNetty) | DotNetty project  a port of netty, event-driven asynchronous network application framework |  | net/dotnet mpnet-dotnetty | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/DotNetty?style=flat-square&label=&cacheSeconds=86400) |
+| 34 | [JebetrexxMC/fuel](https://github.com/JebetrexxMC/fuel) | [kittinunf/fuel](https://github.com/kittinunf/fuel) | The easiest HTTP networking library for Kotlin/Android |  | net/android NetWireFuel.kt | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/fuel?style=flat-square&label=&cacheSeconds=86400) |
+| 35 | [JebetrexxMC/Fast-Android-Networking](https://github.com/JebetrexxMC/Fast-Android-Networking) | [amitshekhariitbhu/Fast-Android-Networking](https://github.com/amitshekhariitbhu/Fast-Android-Networking) | A Complete Fast Android Networking Library that also supports HTTP/2 |  | net/android NetWireFan.kt | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/Fast-Android-Networking?style=flat-square&label=&cacheSeconds=86400) |
+| 36 | [JebetrexxMC/serving](https://github.com/JebetrexxMC/serving) | [knative/serving](https://github.com/knative/serving) | Kubernetes-based, scale-to-zero, request-driven compute |  | net/k8s/knative-service.yaml | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/serving?style=flat-square&label=&cacheSeconds=86400) |
+| 37 | [JebetrexxMC/kubefwd](https://github.com/JebetrexxMC/kubefwd) | [txn2/kubefwd](https://github.com/txn2/kubefwd) | Bulk port forwarding Kubernetes services for local development. |  | net/k8s (how-to) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/kubefwd?style=flat-square&label=&cacheSeconds=86400) |
+| 38 | [JebetrexxMC/hubble](https://github.com/JebetrexxMC/hubble) | [cilium/hubble](https://github.com/cilium/hubble) | Hubble - Network, Service & Security Observability for Kubernetes using eBPF |  | net/k8s (how-to) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/hubble?style=flat-square&label=&cacheSeconds=86400) |
+| 39 | [JebetrexxMC/cjdns](https://github.com/JebetrexxMC/cjdns) | [cjdelisle/cjdns](https://github.com/cjdelisle/cjdns) | An encrypted IPv6 network using public-key cryptography for address allocation and a distributed hash table for routing. |  | net/cjdns | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/cjdns?style=flat-square&label=&cacheSeconds=86400) |
+| 40 | [JebetrexxMC/wireguard-docs](https://github.com/JebetrexxMC/wireguard-docs) | [pirate/wireguard-docs](https://github.com/pirate/wireguard-docs) | Unofficial WireGuard Documentation: Setup, Usage, Configuration, and full example setups for VPNs supporting both servers & roaming clients |  | net/wireguard (reference) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/wireguard-docs?style=flat-square&label=&cacheSeconds=86400) |
+| 41 | [JebetrexxMC/ziti](https://github.com/JebetrexxMC/ziti) | [openziti/ziti](https://github.com/openziti/ziti) | The parent project for OpenZiti. Here you will find the executables for a fully zero-trust, programmable network @OpenZiti |  | net/ziti | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/ziti?style=flat-square&label=&cacheSeconds=86400) |
+| 42 | [JebetrexxMC/scanopy](https://github.com/JebetrexxMC/scanopy) | [scanopy/scanopy](https://github.com/scanopy/scanopy) | Network diagrams that update themselves |  | net/scanopy | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/scanopy?style=flat-square&label=&cacheSeconds=86400) |
+| 43 | [JebetrexxMC/raspap-webgui](https://github.com/JebetrexxMC/raspap-webgui) | [RaspAP/raspap-webgui](https://github.com/RaspAP/raspap-webgui) | The easiest, full-featured wireless router setup for Debian-based devices. Period. |  | net/raspap | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/raspap-webgui?style=flat-square&label=&cacheSeconds=86400) |
+| 44 | [JebetrexxMC/plugins](https://github.com/JebetrexxMC/plugins) | [RaspAP/plugins](https://github.com/RaspAP/plugins) | RaspAP official plugin repository |  | net/raspap MPNetWire plugin | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/plugins?style=flat-square&label=&cacheSeconds=86400) |
+| 45 | [JebetrexxMC/HP-Socket](https://github.com/JebetrexxMC/HP-Socket) | [ldcsaa/HP-Socket](https://github.com/ldcsaa/HP-Socket) | High Performance TCP/UDP/HTTP Communication Component |  | net/hpsocket (reference) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/HP-Socket?style=flat-square&label=&cacheSeconds=86400) |
 
 </details>
 
@@ -795,6 +814,25 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 - Test: `test/sampgate_test.cpp` (against a real omp-server 1.6.7), Docker: [docker/README.md](docker/README.md).
 
 ## Changelog
+
+### NetWire 1.3 (game build stays 5.02.64)
+- 19 more forks used in net/ (net/REFERENCES.md, and the networking table above):
+  - samp-packet-proxy: net/query-shield, an iptables redirect plus a query cache so query floods don't make a server show offline.
+  - samp-udp-proxy: design reference for the mpnetd relay. It's an unfinished upstream proxy; CI only checks that it builds.
+  - smol: `mpnet-agent ping`.
+  - rust-libp2p: net/p2p, finds LAN servers without a broker. Tested with mDNS and with a direct dial.
+  - Boost.Beast: mpnet-beast, an HTTP-to-SA-MP query bridge for web pages. Tested against MP Crossplay.
+  - handy: mpnet-handy, a ping reflector with /stats.
+  - DotNetty: a .NET query and ping client (CI build).
+  - Fuel and Fast Android Networking: Kotlin wires.json readers (not compiled).
+  - Knative Serving, kubefwd, Hubble: in net/k8s.
+  - cjdns, WireGuard (wireguard-docs), OpenZiti: tunnels and admin lanes.
+  - Scanopy: a network map.
+  - RaspAP and its plugin format: a Pi hotspot plugin (php -l checked).
+  - HP-Socket: reference only.
+- MP Launcher: the Windows build failed because dll-syringe needs nightly Rust. Join now uses plain Win32 calls: gta_sa.exe is started suspended, samp.dll and omp-client.dll are loaded with LoadLibraryW, and then the game resumes (the way samp.exe does it). The launcher is built as 32-bit (i686) to match gta_sa.exe.
+- Fixed the pulse CI job: the folder is now net/swift-pulse. The old name gave the root package the same identity as the Pulse fork, which SwiftPM reported as a "cyclic dependency".
+- mpnetd, wires.json and regions.txt are open source in this repository (net/, the netwire-status branch, docs/regions.txt).
 
 ### 5.02.64
 - Loading screen fix (neon main menu): Browse servers -> Join showed the neon loading screen first and then switched to the other Multiplayer-button loading screen (the ImGui one with the countdown). Both came from the same join: the neon join hands over to the Multiplayer button's load (mp_log: "Neon menu: Browse servers -> join MP LAN Server" then "Main menu: Multiplayer -> load slot 8"), and that load drew its own screen on top. With neon_mode.txt on, the neon "CONNECTING TO MULTIPLAYER" screen now stays for the whole join: on the menus, the game's loading screen and the countdown. Without neon mode the Multiplayer loading screen is unchanged.

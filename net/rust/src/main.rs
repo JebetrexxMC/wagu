@@ -61,6 +61,15 @@ enum Cmd {
         #[arg(long, default_value_t = 800)]
         timeout: u64,
     },
+    /// UDP ping on smol: MPNETPNG to an mpnetd relay / mpedge / reflect, or SA-MP 'p' with --samp
+    Ping {
+        /// host:port
+        target: String,
+        #[arg(short = 'c', long, default_value_t = 5)]
+        count: u32,
+        #[arg(long)]
+        samp: bool,
+    },
     /// UDP ping reflector on mio (no async runtime): answers "MPNETPNG" and SA-MP 'p' pings
     Reflect {
         #[arg(long, default_value = "0.0.0.0:7790")]
@@ -344,6 +353,41 @@ fn fastrand_u32() -> u32 {
     (x >> 16) as u32
 }
 
+// smol (fork github.com/JebetrexxMC/smol): one small executor, async-io UdpSocket.
+async fn smol_ping(target: &str, count: u32, samp: bool) -> Result<u32> {
+    use smol::net::{resolve, UdpSocket};
+    let addr = *resolve(target).await?.first().ok_or_else(|| anyhow::anyhow!("no address for {target}"))?;
+    let sock = UdpSocket::bind("0.0.0.0:0").await?;
+    let mut ok = 0u32;
+    let mut rtts = Vec::new();
+    let mut buf = [0u8; 2048];
+    for _ in 0..count {
+        let tok = fastrand_u32().to_le_bytes();
+        let pkt: Vec<u8> = if samp {
+            let ip = match addr.ip() { std::net::IpAddr::V4(v) => v.octets(), _ => [0; 4] };
+            let mut q = b"SAMP".to_vec(); q.extend_from_slice(&ip); q.extend_from_slice(&addr.port().to_le_bytes()); q.push(b'p'); q.extend_from_slice(&tok); q
+        } else {
+            let mut q = b"MPNETPNG".to_vec(); q.extend_from_slice(&tok); q.extend_from_slice(&[0; 4]); q
+        };
+        let t = std::time::Instant::now();
+        sock.send_to(&pkt, addr).await?;
+        let got = smol::future::or(async {
+            loop {
+                let (n, from) = sock.recv_from(&mut buf).await.ok()?;
+                if from == addr && n >= pkt.len() && buf[..pkt.len()] == pkt[..] { return Some(()) }
+            }
+        }, async { smol::Timer::after(Duration::from_secs(1)).await; None }).await;
+        match got {
+            Some(()) => { let ms = t.elapsed().as_secs_f64() * 1000.0; rtts.push(ms); ok += 1; println!("reply from {addr}: {ms:.2} ms") }
+            None => println!("timeout"),
+        }
+        smol::Timer::after(Duration::from_millis(200)).await;
+    }
+    let avg = if rtts.is_empty() { 0.0 } else { rtts.iter().sum::<f64>() / rtts.len() as f64 };
+    println!("{ok}/{count} replies, avg {avg:.2} ms");
+    Ok(ok)
+}
+
 // mio (fork github.com/JebetrexxMC/mio): one thread, edge-triggered epoll / kqueue, no runtime.
 // Small enough for a 1-core VPS or a Termux phone that should only answer pings 24/7.
 fn reflect(bind: &str) -> Result<()> {
@@ -411,6 +455,10 @@ async fn main() -> Result<()> {
             for h in hosts {
                 if let Err(e) = scan(&h, MP_TCP_PORTS, MP_UDP_PORTS, 200, Duration::from_millis(t)).await { println!("{h}: {e}") }
             }
+        }
+        Cmd::Ping { target, count, samp } => {
+            let ok = tokio::task::spawn_blocking(move || smol::block_on(smol_ping(&target, count, samp))).await??;
+            if ok == 0 { std::process::exit(1) }
         }
         Cmd::Reflect { bind } => {
             tokio::task::spawn_blocking(move || reflect(&bind)).await??;

@@ -1,0 +1,25 @@
+{
+  "name": "MP NetWire",
+  "version": "v1.0.0",
+  "description": "MP LAN-party hotspot: mpnetd status and relay control for SA-MP / open.mp / MP servers",
+  "author": "JebetrexxMC",
+  "author_uri": "https://github.com/JebetrexxMC",
+  "plugin_uri": "https://github.com/JebetrexxMC/wagu/tree/main/net/raspap",
+  "plugin_docs": "https://github.com/JebetrexxMC/wagu/tree/main/net/raspap",
+  "license": "MIT",
+  "namespace": "RaspAP\\Plugins\\MPNetWire",
+  "configuration": [],
+  "default_locale": "en_US",
+  "dependencies": {},
+  "icon": "fas fa-gamepad",
+  "install_path": "plugins",
+  "manifest_version": "1.0",
+  "sudoers": [
+    "www-data ALL=(ALL) NOPASSWD:/bin/systemctl start mpnet-watch.service",
+    "www-data ALL=(ALL) NOPASSWD:/bin/systemctl stop mpnet-watch.service",
+    "www-data ALL=(ALL) NOPASSWD:/bin/systemctl restart mpnet-watch.service",
+    "www-data ALL=(ALL) NOPASSWD:/bin/systemctl start mpnet-relay.service",
+    "www-data ALL=(ALL) NOPASSWD:/bin/systemctl stop mpnet-relay.service",
+    "www-data ALL=(ALL) NOPASSWD:/bin/systemctl restart mpnet-relay.service"
+  ]
+}

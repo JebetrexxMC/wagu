@@ -40,6 +40,15 @@ net/
   gns/                     GameNetworkingSockets reliable / unreliable lane test
   mirror/                  Unity Mirror NetworkManager that joins the best wire
   firezone/, netalertx/    docker compose: private admin lanes, LAN watch
+  p2p/                     mpnet-p2p: LAN server discovery without a broker (rust-libp2p: mDNS, identify, ping)
+  server/mpnet-beast.cpp   Boost.Beast HTTP -> SA-MP query bridge for the website (make beast)
+  handy/                   mpnet-handy: ping reflector + /stats (handy, epoll)
+  dotnet/                  mpnet-dotnetty: SA-MP query + NetWire ping for .NET (DotNetty)
+  android/                 NetWire for Kotlin apps (Fuel, Fast Android Networking)
+  query-shield/            iptables + query cache (pack_scan.py or mpedge) so query floods don't show "offline"
+  wireguard/, cjdns/, ziti/  relay <-> server tunnel, IPv6 mesh admin lanes, zero-trust admin services
+  raspap/                  RaspAP plugin: a Raspberry Pi LAN-party hotspot with mpnetd
+  scanopy/, hpsocket/      network map of a box; HP-Socket (reference)
   k8s/                     Dockerfile, Deployment / Service, NetworkPolicy, Calico policy, CNI conflist
   REFERENCES.md            the repos this was checked against
 ```
@@ -94,6 +103,18 @@ make -C net ws && net/build/mpnet-ws -f wires.json -p 9090           # ws://host
 cmake -S net/gns -B /tmp/gns -G Ninja && cmake --build /tmp/gns && /tmp/gns/mpgns
 ```
 
+## NetWire 1.3 tools
+
+```
+net/rust/target/release/mpnet-agent ping wap-fresh.tun.ply.gg:56616 --samp   # smol ping
+cd net/p2p && cargo run --release -- --server 192.168.1.10:7777 --name "LAN"  # host box
+cd net/p2p && cargo run --release                                             # player box: lists servers found
+make -C net beast && net/build/mpnet-beast -p 8092                            # /query?host=&port=
+cmake -S net/handy -B /tmp/hb -G Ninja && cmake --build /tmp/hb && /tmp/hb/mpnet-handy
+cd net/dotnet && dotnet run -- wap-fresh.tun.ply.gg 56616
+sudo bash net/query-shield/setup.sh --ip <public ip> --port 7777
+```
+
 ## 24/7 on GitHub
 
 `.github/workflows/netwire-247.yml` builds and tests on every change here (Linux, Android NDK, and the Swift package on macOS). It then probes every 5 minutes in ~6 h shifts that chain themselves. Results go to the `netwire-status` branch, the badges in the main README and [mpsamp-open.github.io/network.html](https://mpsamp-open.github.io/network.html). `wires.txt` is re-read from main every round, so a new line shows up within 5 minutes. Turn it off with the repository variable `NETWIRE = off`.
@@ -103,4 +124,5 @@ cmake -S net/gns -B /tmp/gns -G Ninja && cmake --build /tmp/gns && /tmp/gns/mpgn
 - It **measures** every path and **picks** the best one, both for the status page and for the relay. It can't make a far server closer. A relay only helps when it runs on a box near the players and has a better route to the server than the player's ISP.
 - GitHub probes run from GitHub's data centres, so the page shows what is up and which path is fastest from there, not a player's own ping.
 - The relay keeps a player on one upstream for the whole session, because switching mid-game would drop the MP / RakNet session. The server sees the relay's IP for every player behind it, the same as any UDP proxy (see ADRFranklin/samp-udp-proxy).
-- The phone game doesn't use mpnetd yet. It already pings the 4 regions and picks the fastest (docs/regions.txt). Reading `wires.json` in the launcher is the next step.
+- The phone game doesn't use mpnetd yet. It already pings the 4 regions and picks the fastest (docs/regions.txt). The PC launcher (`launcher/`) reads `wires.json` for the crossplay path, and Kotlin apps can do the same (`android/`).
+- Everything here is open source in this repository: mpnetd (`server/mpnetd.cpp`), the wire list (`wires.txt`), and the status files on the `netwire-status` branch.

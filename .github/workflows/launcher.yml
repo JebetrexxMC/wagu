@@ -21,15 +21,17 @@ jobs:
             ~/.cargo/git
             launcher/src-tauri/target
           key: launcher-win-${{ hashFiles('launcher/src-tauri/Cargo.lock') }}
+      - name: 32-bit target (gta_sa.exe is 32-bit, the injection needs the same architecture)
+        run: rustup target add i686-pc-windows-msvc
       - name: tauri-cli
         run: cargo install tauri-cli --version "^2" --locked
       - name: build
         working-directory: launcher/src-tauri
-        run: cargo tauri build
+        run: cargo tauri build --target i686-pc-windows-msvc
       - uses: actions/upload-artifact@v4
         with:
           name: mp-launcher-windows
           path: |
-            launcher/src-tauri/target/release/*.exe
-            launcher/src-tauri/target/release/bundle/nsis/*.exe
+            launcher/src-tauri/target/i686-pc-windows-msvc/release/*.exe
+            launcher/src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/*.exe
           retention-days: 30

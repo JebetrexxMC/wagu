@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- MP NetWire query / ping client on DotNetty (source: github.com/JebetrexxMC/DotNetty, packages from NuGet) -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>mpnet-dotnetty</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="DotNetty.Transport" Version="0.7.6" />
+    <PackageReference Include="DotNetty.Buffers" Version="0.7.6" />
+  </ItemGroup>
+</Project>

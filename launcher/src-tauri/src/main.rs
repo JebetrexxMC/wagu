@@ -216,29 +216,98 @@ async fn play(host: String, port: u16, name: String, password: String, gta_dir: 
 }
 
 #[cfg(windows)]
+mod win {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, HANDLE, WAIT_OBJECT_0};
+    use windows_sys::Win32::System::Diagnostics::Debug::WriteProcessMemory;
+    use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
+    use windows_sys::Win32::System::Memory::{VirtualAllocEx, VirtualFreeEx, MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE};
+    use windows_sys::Win32::System::Threading::{
+        CreateProcessW, CreateRemoteThread, GetExitCodeThread, ResumeThread, TerminateProcess, WaitForSingleObject,
+        CREATE_SUSPENDED, PROCESS_INFORMATION, STARTUPINFOW,
+    };
+
+    pub fn wide(s: &std::ffi::OsStr) -> Vec<u16> { s.encode_wide().chain(Some(0)).collect() }
+
+    pub struct Game { pub pi: PROCESS_INFORMATION }
+
+    impl Game {
+        /// gta_sa.exe started suspended, so samp.dll is in before the game's first frame (like samp.exe)
+        pub fn start(exe: &std::path::Path, dir: &std::path::Path, args: &str) -> Result<Game, String> {
+            let mut cmdline = wide(std::ffi::OsStr::new(&format!("\"{}\" {}", exe.display(), args)));
+            let exe_w = wide(exe.as_os_str());
+            let dir_w = wide(dir.as_os_str());
+            let mut si: STARTUPINFOW = unsafe { std::mem::zeroed() };
+            si.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
+            let mut pi: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
+            let ok = unsafe {
+                CreateProcessW(exe_w.as_ptr(), cmdline.as_mut_ptr(), std::ptr::null(), std::ptr::null(), 0,
+                               CREATE_SUSPENDED, std::ptr::null(), dir_w.as_ptr(), &si, &mut pi)
+            };
+            if ok == 0 { return Err(format!("could not start gta_sa.exe (error {}); try running as administrator", unsafe { GetLastError() })) }
+            Ok(Game { pi })
+        }
+
+        /// LoadLibraryW(path) inside the game; Ok when the DLL loaded
+        pub fn inject(&self, dll: &std::path::Path) -> Result<(), String> {
+            let h: HANDLE = self.pi.hProcess;
+            let path = wide(dll.as_os_str());
+            let bytes = path.len() * 2;
+            unsafe {
+                let k32 = GetModuleHandleW(wide(std::ffi::OsStr::new("kernel32.dll")).as_ptr());
+                let ll = GetProcAddress(k32, b"LoadLibraryW\0".as_ptr()).ok_or("LoadLibraryW not found")?;
+                let mem = VirtualAllocEx(h, std::ptr::null(), bytes, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+                if mem.is_null() { return Err(format!("VirtualAllocEx failed ({})", GetLastError())) }
+                let mut written = 0usize;
+                if WriteProcessMemory(h, mem, path.as_ptr() as _, bytes, &mut written) == 0 {
+                    VirtualFreeEx(h, mem, 0, MEM_RELEASE);
+                    return Err(format!("WriteProcessMemory failed ({})", GetLastError()));
+                }
+                let th = CreateRemoteThread(h, std::ptr::null(), 0, Some(std::mem::transmute(ll)), mem, 0, std::ptr::null_mut());
+                if th.is_null() { VirtualFreeEx(h, mem, 0, MEM_RELEASE); return Err(format!("CreateRemoteThread failed ({})", GetLastError())) }
+                let waited = WaitForSingleObject(th, 15000);
+                let mut code = 0u32;
+                GetExitCodeThread(th, &mut code);
+                CloseHandle(th);
+                VirtualFreeEx(h, mem, 0, MEM_RELEASE);
+                if waited != WAIT_OBJECT_0 { return Err("LoadLibrary timed out".into()) }
+                if code == 0 { return Err("LoadLibrary returned NULL (missing dependency or wrong architecture)".into()) }
+            }
+            Ok(())
+        }
+
+        pub fn resume(&self) { unsafe { ResumeThread(self.pi.hThread); } }
+        pub fn kill(&self) { unsafe { TerminateProcess(self.pi.hProcess, 1); } }
+    }
+
+    impl Drop for Game {
+        fn drop(&mut self) { unsafe { CloseHandle(self.pi.hThread); CloseHandle(self.pi.hProcess); } }
+    }
+}
+
+#[cfg(windows)]
 fn launch(ip: &str, port: u16, name: &str, password: &str, gta_dir: &str) -> Result<String, String> {
-    use dll_syringe::{process::OwnedProcess, Syringe};
-    use std::process::{Command, Stdio};
+    if cfg!(target_pointer_width = "64") {
+        return Err("This is a 64-bit build; gta_sa.exe is 32-bit. Use the 32-bit MP Launcher (i686) to join.".into());
+    }
     let d = std::path::Path::new(gta_dir);
     let exe = d.join("gta_sa.exe");
     let samp = d.join("samp.dll");
     if !exe.is_file() { return Err(format!("gta_sa.exe not found in {gta_dir}")); }
     if !samp.is_file() { return Err("samp.dll not found: install SA-MP 0.3.7 into the GTA San Andreas folder".into()); }
-    let mut cmd = Command::new(&exe);
-    cmd.current_dir(d).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
-        .args(["-c", "-n", name, "-h", ip, "-p", &port.to_string()]);
-    if !password.is_empty() { cmd.args(["-z", password]); }
-    let child = cmd.spawn().map_err(|e| format!("could not start gta_sa.exe: {e} (try running as administrator)"))?;
-    let proc = OwnedProcess::from_pid(child.id()).map_err(|e| e.to_string())?;
-    let syringe = Syringe::for_process(proc);
-    syringe.inject(&samp).map_err(|e| format!("samp.dll: {e}"))?;
+    let q = |s: &str| if s.contains(' ') { format!("\"{s}\"") } else { s.to_string() };
+    let mut args = format!("-c -n {} -h {} -p {}", q(name), ip, port);
+    if !password.is_empty() { args.push_str(&format!(" -z {}", q(password))); }
+    let game = win::Game::start(&exe, d, &args)?;
+    if let Err(e) = game.inject(&samp) { game.kill(); return Err(format!("samp.dll: {e}")); }
     let mut msg = format!("Joining {ip}:{port} as {name} (SA-MP)");
     if let Some(o) = omp_dll(d) {
-        match syringe.inject(&o) {
-            Ok(_) => msg = format!("Joining {ip}:{port} as {name} (SA-MP + open.mp client)"),
+        match game.inject(&o) {
+            Ok(()) => msg = format!("Joining {ip}:{port} as {name} (SA-MP + open.mp client)"),
             Err(e) => msg.push_str(&format!(" - open.mp client DLL not loaded: {e}")),
         }
     }
+    game.resume();
     Ok(msg)
 }
 

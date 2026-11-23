@@ -25,10 +25,15 @@ dns: server/mpnet-dns.c
 	@mkdir -p build
 	$(CC) -O2 -Wall -o build/mpnet-dns server/mpnet-dns.c -levent
 
+# Boost.Beast is header-only: BEAST=/path/to/JebetrexxMC/beast/include uses the fork over the system copy
+beast: server/mpnet-beast.cpp
+	@mkdir -p build
+	$(CXX) -O2 -std=c++17 $(if $(BEAST),-I$(BEAST)) -o build/mpnet-beast server/mpnet-beast.cpp -lpthread
+
 ws: server/mpnet-ws.cpp
 	@mkdir -p build
 	$(CXX) -O2 -std=c++17 -o build/mpnet-ws server/mpnet-ws.cpp -lPocoNet -lPocoUtil -lPocoJSON -lPocoFoundation -lpthread
 
 clean:
 	rm -rf build
-.PHONY: android test clean dns ws
+.PHONY: android test clean dns ws beast handy
