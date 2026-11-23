@@ -21,6 +21,8 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <memory>
+#include <chrono>
 #define MINIMP3_IMPLEMENTATION
 #define MINIMP3_NO_STDIO
 #include "../../third_party/minimp3/minimp3_ex.h"
@@ -69,11 +71,17 @@ float Sound::FileVolume(const char* name) { return VolOf(name); }
 
 // 5.02.47: 0..1.5 -> millibel. Above 100 % uses the player's own headroom (GetMaxVolumeLevel, 0 on most
 // phones, so there it stays at 100 %); 0 = muted.
+// 5.02.58: the slider is a loudness curve now (cubic, like PulseAudio / most players). 5.02.47 mapped it straight to
+// the amplitude (20 dB per decade): 50 % was only -6 dB and 30 % -10 dB, so moving the Solo / Host Media / menu music
+// slider down while it played sounded like nothing changed until the very bottom. Now 50 % = -18 dB, 25 % = -36 dB.
+// The master volume (Settings > Sound > MP volume, every MP sound) is multiplied in here as well.
+static std::atomic<float> s_fMaster{1.0f};
 static SLmillibel SlLevel(SLVolumeItf vol, float volume)
 {
+    volume *= s_fMaster.load();
     if(volume <= 0.01f) return SL_MILLIBEL_MIN;
     SLmillibel mx = 0; if(vol) (*vol)->GetMaxVolumeLevel(vol, &mx);
-    float mb = 2000.0f * log10f(volume > 1.5f ? 1.5f : volume);
+    float mb = 6000.0f * log10f(volume > 1.5f ? 1.5f : volume);
     if(mb > (float)mx) mb = (float)mx;
     if(mb < (float)SL_MILLIBEL_MIN) mb = (float)SL_MILLIBEL_MIN;
     return (SLmillibel)mb;
@@ -454,21 +462,75 @@ namespace
 namespace
 {
     struct FdPlayer { SLObjectItf obj = nullptr; SLPlayItf play = nullptr; SLVolumeItf vol = nullptr; SLSeekItf seek = nullptr; int fd = -1; };
-    FdPlayer s_Fd;
+    // 5.02.58: the freeze with Wi-Fi / mobile data off (neon main menu). A URL player (the menu music, Solo, Day Z
+    // ambience, server audio) whose network went away blocks inside Android's media player: Destroy() waits for the
+    // stuck HTTP read / DNS lookup, and GetPosition() can wait on the same player. Both ran on the game thread every
+    // tick, so the game froze until the network timed out. Now the player lives in a shared handle: a small thread reads
+    // its position / length (the game thread only reads the numbers), and it is stopped and destroyed on its own thread.
+    struct FdHandle
+    {
+        FdPlayer p;
+        std::atomic<uint32_t> posMs{0}, durMs{0};
+        std::atomic<bool> dead{false}, end{false};
+        ~FdHandle() { if(p.obj) (*p.obj)->Destroy(p.obj); if(p.fd >= 0) close(p.fd); }
+    };
+    std::shared_ptr<FdHandle> s_FdH;
     bool s_FdMode = false, s_FdTried = false;
-    std::atomic<bool> s_FdEnd{false};
     std::string s_StPath;
     char s_StInfo[160] = "";
-    void FdCb(SLPlayItf, void*, SLuint32 ev) { if(ev & SL_PLAYEVENT_HEADATEND) s_FdEnd = true; }
+    void FdCb(SLPlayItf, void* ctx, SLuint32 ev) { if((ev & SL_PLAYEVENT_HEADATEND) && ctx) ((FdHandle*)ctx)->end = true; }
+    bool FdEnded() { return s_FdH && s_FdH->end.load(); }
+    // drops the player off the game thread (its last reference goes away there)
+    void FdRelease(std::shared_ptr<FdHandle> h)
+    {
+        if(!h) return;
+        h->dead = true;
+        try
+        {
+            std::thread([h]() mutable {
+                if(h->p.play) (*h->p.play)->SetPlayState(h->p.play, SL_PLAYSTATE_STOPPED);
+                h.reset();   // Destroy (may wait for a dead network - fine here)
+            }).detach();
+        }
+        catch(...) { h.reset(); }   // no thread left (32-bit, many mods): do it here
+    }
+    void FdRelease(FdPlayer& p)   // a bare player (not started yet)
+    {
+        if(!p.obj) { if(p.fd >= 0) close(p.fd); p = FdPlayer(); return; }
+        auto h = std::make_shared<FdHandle>(); h->p = p; p = FdPlayer();
+        FdRelease(h);
+    }
     void FdStop()
     {
-        if(s_Fd.obj) (*s_Fd.obj)->Destroy(s_Fd.obj);
-        if(s_Fd.fd >= 0) close(s_Fd.fd);
-        s_Fd = FdPlayer(); s_FdMode = false; s_FdEnd = false;
+        std::shared_ptr<FdHandle> h; h.swap(s_FdH);
+        s_FdMode = false;
+        FdRelease(h);
+    }
+    // the player becomes the current one: callbacks, the position thread
+    void FdAdopt(const FdPlayer& p)
+    {
+        auto h = std::make_shared<FdHandle>(); h->p = p;
+        (*p.play)->RegisterCallback(p.play, FdCb, h.get());
+        (*p.play)->SetCallbackEventsMask(p.play, SL_PLAYEVENT_HEADATEND);
+        s_FdH = h; s_FdMode = true;
+        try
+        {
+            std::thread([h]() {
+                while(!h->dead.load())
+                {
+                    SLmillisecond ms = 0;
+                    if(h->p.play && (*h->p.play)->GetPosition(h->p.play, &ms) == SL_RESULT_SUCCESS) h->posMs = ms;
+                    ms = 0;
+                    if(h->p.play && (*h->p.play)->GetDuration(h->p.play, &ms) == SL_RESULT_SUCCESS) h->durMs = ms == SL_TIME_UNKNOWN ? 0 : ms;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                }
+            }).detach();
+        }
+        catch(...) {}
     }
     void FdVolume(float volume)
     {
-        SL_SET_VOL(s_Fd.vol, volume);
+        if(s_FdH) SL_SET_VOL(s_FdH->p.vol, volume);
     }
     bool FdStart(const std::string& path, float volume)
     {
@@ -488,9 +550,7 @@ namespace
         if((*p.obj)->Realize(p.obj, SL_BOOLEAN_FALSE) != SL_RESULT_SUCCESS || (*p.obj)->GetInterface(p.obj, SL_IID_PLAY, &p.play) != SL_RESULT_SUCCESS)
         { (*p.obj)->Destroy(p.obj); close(fd); snprintf(s_StInfo, sizeof(s_StInfo), "Android decoder: the file can't be decoded (not audio / damaged)"); return false; }
         if((*p.obj)->GetInterface(p.obj, SL_IID_VOLUME, &p.vol) != SL_RESULT_SUCCESS) p.vol = nullptr;
-        s_Fd = p; s_FdMode = true; s_FdEnd = false;
-        (*p.play)->RegisterCallback(p.play, FdCb, nullptr);
-        (*p.play)->SetCallbackEventsMask(p.play, SL_PLAYEVENT_HEADATEND);
+        FdAdopt(p);   // 5.02.58
         FdVolume(volume);
         if((*p.play)->SetPlayState(p.play, SL_PLAYSTATE_PLAYING) != SL_RESULT_SUCCESS)
         { FdStop(); snprintf(s_StInfo, sizeof(s_StInfo), "Android decoder: could not start"); return false; }
@@ -527,7 +587,7 @@ namespace
         if(err) { s_UrlErr = err; return; }
         s_UrlReady = p; s_UrlHave = true;
     }
-    void UrlCancel() { std::lock_guard<std::mutex> lk(s_UrlMx); ++s_UrlGen; s_UrlPending = false; if(s_UrlHave && s_UrlReady.obj) (*s_UrlReady.obj)->Destroy(s_UrlReady.obj); s_UrlHave = false; s_UrlReady = FdPlayer(); }
+    void UrlCancel() { std::lock_guard<std::mutex> lk(s_UrlMx); ++s_UrlGen; s_UrlPending = false; if(s_UrlHave) FdRelease(s_UrlReady); s_UrlHave = false; s_UrlReady = FdPlayer(); }   // 5.02.58: off the game thread
     // what is in the file? 1 = mp3, 2 = something else (m4a / ogg / webm / wav ...), 0 = unreadable / empty
     int Sniff(const char* path, char* what, size_t n)
     {
@@ -601,9 +661,7 @@ void Sound::StreamUpdate()
         {
             FdPlayer p = s_UrlReady; s_UrlHave = false; s_UrlReady = FdPlayer(); float vol = s_UrlVol, from = s_UrlStart; s_UrlStart = 0.0f; lk.unlock();
             FdStop();
-            s_Fd = p; s_FdMode = true; s_FdEnd = false;
-            (*p.play)->RegisterCallback(p.play, FdCb, nullptr);
-            (*p.play)->SetCallbackEventsMask(p.play, SL_PLAYEVENT_HEADATEND);
+            FdAdopt(p);   // 5.02.58
             FdVolume(vol);
             if(from > 0.0f && p.seek) (*p.seek)->SetPosition(p.seek, (SLmillisecond)(from * 1000.0f), SL_SEEKMODE_FAST);   // 5.02.44
             if((*p.play)->SetPlayState(p.play, SL_PLAYSTATE_PLAYING) != SL_RESULT_SUCCESS) { FdStop(); snprintf(s_StInfo, sizeof(s_StInfo), "media player: could not start"); s_St.failed = true; }
@@ -612,7 +670,7 @@ void Sound::StreamUpdate()
         }
         if(!s_UrlPending && !s_UrlErr.empty()) { snprintf(s_StInfo, sizeof(s_StInfo), "%s", s_UrlErr.c_str()); s_UrlErr.clear(); }
     }
-    if(s_FdMode) { if(s_FdEnd) { FdStop(); s_St.eof = true; s_St.failed = false; s_St.active = false; } return; }
+    if(s_FdMode) { if(FdEnded()) { FdStop(); s_St.eof = true; s_St.failed = false; s_St.active = false; } return; }
     if(!s_St.active) return;
     std::unique_lock<std::mutex> lk(s_St.mx);
     if(s_St.failed)
@@ -675,14 +733,28 @@ bool  Sound::StreamActive() { { std::lock_guard<std::mutex> lk(s_UrlMx); if(s_Ur
 bool  Sound::StreamEnded() { { std::lock_guard<std::mutex> lk(s_UrlMx); if(s_UrlPending || s_UrlHave) return false; } return !s_FdMode && !s_St.active && s_St.eof && !s_St.failed; }
 float Sound::StreamPosition()
 {
-    if(s_FdMode) { SLmillisecond ms = 0; if(s_Fd.play && (*s_Fd.play)->GetPosition(s_Fd.play, &ms) == SL_RESULT_SUCCESS) return ms / 1000.0f; return 0.0f; }
+    if(s_FdMode) return s_FdH ? s_FdH->posMs.load() / 1000.0f : 0.0f;   // 5.02.58: read by the player's own thread
     return s_St.hz > 0 ? (float)((double)s_St.played / s_St.hz) + s_St.startSec : 0.0f;
 }
 float Sound::StreamDuration()
 {
-    if(s_FdMode) { SLmillisecond ms = 0; if(s_Fd.play && (*s_Fd.play)->GetDuration(s_Fd.play, &ms) == SL_RESULT_SUCCESS && ms != SL_TIME_UNKNOWN) return ms / 1000.0f; return 0.0f; }
+    if(s_FdMode) return s_FdH ? s_FdH->durMs.load() / 1000.0f : 0.0f;
     return s_St.dur;
 }
+
+// 5.02.58: what the volume of the stream is listed under (server audio streams have any URL: one row for all of them)
+void Sound::StreamSetVolumeKey(const char* key)
+{
+    s_StreamKey = VolKey(key);
+    Sound::StreamSetVolume(s_fStreamBase);
+}
+void  Sound::SetMasterVolume(float v)
+{
+    if(v < 0) v = 0; if(v > 1.0f) v = 1.0f;
+    s_fMaster = v;
+    ReapplyStreamVolume(); ReapplyMusicVolume();
+}
+float Sound::MasterVolume() { return s_fMaster.load(); }
 
 void* Sound::EngineItf() { return EnsureEngine() ? (void*)g_EngineItf : nullptr; }   // 3.11
 void* Sound::OutputMix() { return EnsureEngine() ? (void*)g_Mix : nullptr; }

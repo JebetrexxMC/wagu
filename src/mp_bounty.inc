@@ -312,8 +312,7 @@ static void DefaultRestrictTick(int ped, uint64_t now)
 // ---- tick / commands --------------------------------------------------------------------------------------------
 static void BountyTick(int ped, uint64_t now)
 {
-    DefaultRestrictTick(ped, now);
-    SoloTick();
+    DefaultRestrictTick(ped, now);   // (5.02.58: SoloTick runs in MP::Process now)
     if(s_Bh.welcomePending && client.GetState() == NET_CONNECTED)
     {
         if(BountyActive() && !JoinFlowActive() && !AuthScreenUp() && now - s_Bh.welcomeAt > 2500) BountyWelcome();

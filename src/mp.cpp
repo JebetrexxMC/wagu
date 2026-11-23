@@ -499,6 +499,7 @@ static uint64_t s_nFeedNext = 0;
 
 static char s_szCurServer[32] = "";   // name of the server we are connected to
 static void SoloPlay(); static bool SoloIsOn(); static void SoloStop(); static void SoloTick(); static void SoundVolLoad();   // 5.02.31 (Settings > Sound)
+#define MP_SERVER_AUDIO_KEY "server_audio"   // 5.02.58: every PlayAudioStreamForPlayer URL of a server (one row in Settings > Sound)
 static void BountyOnJoined(); static void RegOnJoined();                                           // 5.02.31 (mp_bounty.inc / mp_register.inc)
 static char s_szCustomWelcome[MP_CHAT_LEN] = "";   // 5.00.08: the server's own welcome message (MP_SRVF_WELCOME)
 static char s_szSrvJoinFmt[MP_CHAT_LEN] = "", s_szSrvLeaveFmt[MP_CHAT_LEN] = "";   // 5.02.41: the custom server's own join / leave lines
@@ -4706,6 +4707,7 @@ void MP::Process()
     LangReqTick();   // 5.02.36
     NeonFileTick(now);
     NeonMusicInGame();   // 5.01.11
+    SoloTick();          // 5.02.58: Solo keeps going (and its fallback URL) wherever it was started, not only on Broker MQQ
     {   // 2.18.3: remember where the MP MENU | CHAT buttons were dropped
         float bx, by;
         if(FloatMenu::GetBarPos(&bx, &by))
@@ -7863,7 +7865,9 @@ static void SoundVolSave()
     fprintf(f, "# MP sound volumes (percent), Settings > Sound > Host Media sounds\n");
     std::vector<std::string> all(kHostMedia, kHostMedia + sizeof(kHostMedia) / sizeof(kHostMedia[0]));
     for(auto& n : s_SndLocal) { bool d = false; for(auto& a : all) if(!strcasecmp(a.c_str(), n.c_str())) d = true; if(!d) all.push_back(n); }
+    all.push_back(MP_SERVER_AUDIO_KEY);   // 5.02.58
     for(auto& n : all) { int v = (int)(Sound::FileVolume(n.c_str()) * 100 + 0.5f); if(v != 100) fprintf(f, "%s=%d\n", n.c_str(), v); }
+    { int m = (int)(Sound::MasterVolume() * 100 + 0.5f); if(m != 100) fprintf(f, "master=%d\n", m); }   // 5.02.58
     fclose(f);
 }
 static void SoundVolLoad()
@@ -7878,6 +7882,7 @@ static void SoundVolLoad()
         if(ln[0] == '#') continue;
         char* eq = strrchr(ln, '='); if(!eq) continue; *eq = 0;
         int v = atoi(eq + 1); if(v < 0) v = 0; if(v > 150) v = 150;
+        if(!strcmp(ln, "master")) { Sound::SetMasterVolume(v / 100.0f); continue; }   // 5.02.58
         Sound::SetFileVolume(ln, v / 100.0f);
     }
     fclose(f);
@@ -7947,6 +7952,14 @@ static void SoundsVolumeSection()
     Sound::StreamUpdate();   // 5.02.36: the Play / Test buttons start here too (in the menu, not only in game)
     bool changed = false;
     ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+    {   // 5.02.58: one volume for every MP sound (music, Solo, menu clicks, notify, server audio ...), live
+        ImGui::TextUnformatted("MP volume");
+        ImGui::TextDisabled("Every MP sound at once. Changes right away, also while something plays.");
+        int m = (int)(Sound::MasterVolume() * 100 + 0.5f);
+        ImGui::SetNextItemWidth(-1);
+        if(ImGui::SliderInt("##mpmaster", &m, 0, 100, m == 0 ? "muted" : "%d %%")) { Sound::SetMasterVolume(m / 100.0f); changed = true; }
+    }
+    ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
     // the Solo media player
     ImGui::TextUnformatted("Host media player");
     ImGui::TextDisabled("Solo (Host/Media/solo.m4a, 1:01:40) - streamed from the media host, played to the end.");
@@ -7979,6 +7992,14 @@ static void SoundsVolumeSection()
     ImGui::TextUnformatted("Host Media sounds");
     ImGui::TextDisabled("Every sound from the media host (Host/Media). 100 %% = normal, 0 = muted, up to 150 %%.");
     for(const char* n : kHostMedia) if(strcasecmp(n, MP_SOLO_FILE)) changed |= SoundVolRow(n, nullptr);
+    {   // 5.02.58: the audio streams servers play (PlayAudioStreamForPlayer / radio), any URL
+        ImGui::PushID(MP_SERVER_AUDIO_KEY);
+        int v = (int)(Sound::FileVolume(MP_SERVER_AUDIO_KEY) * 100 + 0.5f);
+        ImGui::TextUnformatted("Server audio streams"); ImGui::SameLine(); ImGui::TextDisabled("(SA-MP / open.mp / MP servers)");
+        ImGui::SetNextItemWidth(-1);
+        if(ImGui::SliderInt("##v", &v, 0, 150, v == 0 ? "muted" : "%d %%")) { Sound::SetFileVolume(MP_SERVER_AUDIO_KEY, v / 100.0f); changed = true; }
+        ImGui::PopID();
+    }
     ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
     ImGui::TextUnformatted("MP folder sounds (files/TYFMC/MP)");
     int shown = 0;
@@ -7995,6 +8016,7 @@ static void SoundsVolumeSection()
         {
             for(const char* n : kHostMedia) Sound::SetFileVolume(n, 1.0f);
             for(auto& n : s_SndLocal) Sound::SetFileVolume(n.c_str(), 1.0f);
+            Sound::SetFileVolume(MP_SERVER_AUDIO_KEY, 1.0f); Sound::SetMasterVolume(1.0f);   // 5.02.58
             changed = true;
         }
     }

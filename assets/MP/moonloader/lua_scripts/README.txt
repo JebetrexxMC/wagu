@@ -53,6 +53,7 @@ Inside:
   AdvancedTacticalCompass.lua  MW3-style compass, a new Lua version of zConnor.i22's PC mod
                         (https://libertycity.net/files/gta-san-andreas/239690-advanced-tactical-compass.html):
                         /compass settings, /compass mode, /compass top|bottom, /compass hide.
-  fpp_realistic.lua     first person camera at the head bone: /fpp on / off, /fppcfg settings. Drag on the right
-                        half of the screen to look around.
+  fpp_realistic.lua     first person camera at the head (1.2-mp): /fpp on / off, /fppcfg settings. Drag on the
+                        right part of the screen to look around. Your head stays out of view (you see chest, arms
+                        and hands), with a smooth step bob / sway while walking.
   mod_commands.lua      /mods: every mod command with a button.

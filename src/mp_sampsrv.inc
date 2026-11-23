@@ -193,6 +193,7 @@ static void SampSrvOnPacket(const uint8_t* d, int len)
             {
                 s_SS.audioPos = p.b != 0; s_SS.audioAt = f; s_SS.audioDist = p.f[3] > 1.0f ? p.f[3] : 50.0f;
                 s_SS.audio = Sound::StreamPlayUrl(p.text, s_SS.audioPos ? 0.0f : 1.0f);
+                if(s_SS.audio) Sound::StreamSetVolumeKey(MP_SERVER_AUDIO_KEY);   // 5.02.58: Settings > Sound > Server audio streams
                 if(!s_SS.audio) SysMsg(COL_SYSTEM, "Could not play the server's audio stream.");
             }
             break;

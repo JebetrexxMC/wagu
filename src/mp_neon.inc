@@ -1212,12 +1212,32 @@ static float s_fNeonMusMax = 0.0f;    // the furthest position heard (a track th
 static float s_fNeonMusResume = 0.0f; // where a cut-off stream carries on
 static float s_fNeonMusDur = 0.0f;   // the track length the player reported
 static int s_nNeonMusUrl = 0;         // 0 = raw.githubusercontent, 1 = github.io (the fallback)
+static uint64_t s_nNeonNetAt = 0; static bool s_bNeonNet = true;   // 5.02.58
 static void NeonMusicTick(bool want)   // game thread
 {
     NeonMusicCleanMpFolder();
     want = want && settings.neonMusic && settings.neonMusicVol > 0;
+    // 5.02.58: Solo (Settings > Sound > Play Solo) uses the same stream: the menu music waits, it no longer stops Solo
+    // or turns it to the menu music volume
+    if(want && SoloIsOn()) { if(s_nNeonMus == 1) { s_nNeonMus = 0; s_fNeonMusResume = 0.0f; } SoloTick(); return; }
     if(!want) { NeonMusicStop(); s_bNeonMusLoop = false; s_fNeonMusMax = 0.0f; s_fNeonMusResume = 0.0f; return; }
     const uint64_t now = MP_NowMs();
+    // 5.02.58: Wi-Fi and mobile data off: the menu music streams from Host/Media, so it waits (the menu stays smooth)
+    // and carries on where it was when a network is back. Before, the player kept asking the dead network.
+    if(now - s_nNeonNetAt > 1000) { s_nNeonNetAt = now; s_bNeonNet = LAN::HasNetwork(); }
+    if(!s_bNeonNet)
+    {
+        if(s_nNeonMus == 1)
+        {
+            const float pos = Sound::StreamPosition();
+            if(pos > s_fNeonMusMax) s_fNeonMusMax = pos;
+            s_fNeonMusResume = s_fNeonMusMax > 2.0f ? s_fNeonMusMax - 1.0f : 0.0f;
+            Sound::StreamStop();   // (the player is let go on its own thread)
+            logger->Info("Neon menu: no Wi-Fi / mobile data - menu music waits (at %.1f s)", s_fNeonMusResume);
+        }
+        s_nNeonMus = -1; s_nNeonMusAt = now;
+        return;
+    }
     if(s_nNeonMus == -1 && now - s_nNeonMusAt < 3000) return;
     if(s_nNeonMus == 1)
     {

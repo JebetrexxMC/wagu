@@ -103,37 +103,66 @@ static bool  s_bWidgetChecked = false, s_bWidgetPlaced = false;
 static int   s_nWidgetGuards = 0;
 alignas(8) static uintptr_t s_DummyWidgetVtbl[256];
 alignas(8) static uintptr_t s_DummyWidget[256];
-static const int kJPatchIdleWidget = 0x2BC / sizeof(uint32_t);   // 175 (32-bit)
+static const int kJPatchIdleWidget = 175;   // 0x2BC (32-bit) / 0x578 (64-bit)
+
+// 5.02.58: the same JPatch crash on 64-bit (libJPatch64.so + 0x2C654, X0 = 0, LR in CCamera::Process, X1 = the zeroed
+// CVector2D on the stack) - the guard was 32-bit only. And SAUtils (1.4+) moves the touch widget list to a bigger
+// array of its own and points the game's GOT slot at it; JPatch reads the list through that slot, so the 4.13.7
+// placeholder in the game's own CTouchInterface::m_pWidgets array was in the wrong list whenever SAUtils is installed.
+// Now the placeholder goes into the list the game's code really uses (the GOT slot, checked: it must point at the
+// game's array or into SAUtils) and into the game's array, for 32-bit and 64-bit.
+#include <dlfcn.h>
+static void** s_ppWidgetsLive = nullptr;   // the list behind the GOT slot (SAUtils' array), if it is not the game's
+static bool   s_bLivePlaced = false;
+static void** LiveWidgetList(void** gameArr)
+{
+    if(!pGameLib || !gameArr) return nullptr;
+#ifdef AML32
+    static const uintptr_t kGot[] = { 0x67947C, 0x679474 };   // libGTASA 2.00 / 2.10 (32-bit): SAUtils' widget GOT slot
+#else
+    static const uintptr_t kGot[] = { 0x850910 };             // libGTASA 2.10 (64-bit)
+#endif
+    Dl_info gi; memset(&gi, 0, sizeof(gi));
+    if(!dladdr((void*)gameArr, &gi) || !gi.dli_fbase) return nullptr;
+    for(uintptr_t off : kGot)
+    {
+        Dl_info si; memset(&si, 0, sizeof(si));
+        if(!dladdr((void*)(pGameLib + off), &si) || si.dli_fbase != gi.dli_fbase) continue;   // not inside libGTASA
+        const uintptr_t v = *(const uintptr_t*)(pGameLib + off);
+        if(v == (uintptr_t)gameArr) return nullptr;                                         // the game's own list
+        if(!v || (v & (sizeof(void*) - 1))) continue;
+        Dl_info vi; memset(&vi, 0, sizeof(vi));
+        if(dladdr((void*)v, &vi) && vi.dli_fname && strstr(vi.dli_fname, "SAUtils")) return (void**)v;   // SAUtils' list
+    }
+    return nullptr;
+}
 
 void Game::IdleCamGuard(bool enter)
 {
-#ifdef AML32
     if(!s_bWidgetChecked)
     {
         s_bWidgetChecked = true;
         s_ppWidgets = (void**)aml->GetSym(aml->GetLibHandle("libGTASA.so"), "_ZN15CTouchInterface10m_pWidgetsE");
+        s_ppWidgetsLive = LiveWidgetList(s_ppWidgets);
         for(auto& v : s_DummyWidgetVtbl) v = (uintptr_t)&MP_DummyWidgetFn;
         s_DummyWidget[0] = (uintptr_t)s_DummyWidgetVtbl;
-        logger->Info("Idle camera guard: CTouchInterface::m_pWidgets %s (JPatch idle camera widget #%d)",
-            s_ppWidgets ? "found" : "NOT found - off", kJPatchIdleWidget);
+        logger->Info("Idle camera guard: CTouchInterface::m_pWidgets %s, SAUtils widget list %s (JPatch idle camera widget #%d, %d-bit)",
+            s_ppWidgets ? "found" : "NOT found - off", s_ppWidgetsLive ? "found" : "not used", kJPatchIdleWidget, (int)sizeof(void*) * 8);
     }
     if(!s_ppWidgets) return;
     void*& slot = s_ppWidgets[kJPatchIdleWidget];
     if(enter)
     {
-        if(slot) return;
-        slot = (void*)s_DummyWidget;
-        s_bWidgetPlaced = true;
-        if(s_nWidgetGuards++ < 3) logger->Info("Idle camera guard: touch widget #%d is empty - placeholder for CCamera::Process", kJPatchIdleWidget);
+        if(!slot) { slot = (void*)s_DummyWidget; s_bWidgetPlaced = true; }
+        if(s_ppWidgetsLive && !s_ppWidgetsLive[kJPatchIdleWidget]) { s_ppWidgetsLive[kJPatchIdleWidget] = (void*)s_DummyWidget; s_bLivePlaced = true; }
+        if((s_bWidgetPlaced || s_bLivePlaced) && s_nWidgetGuards++ < 3)
+            logger->Info("Idle camera guard: touch widget #%d is empty - placeholder for CCamera::Process", kJPatchIdleWidget);
     }
-    else if(s_bWidgetPlaced)
+    else
     {
-        if(slot == (void*)s_DummyWidget) slot = nullptr;   // the game made its own meanwhile: leave that one
-        s_bWidgetPlaced = false;
+        if(s_bWidgetPlaced) { if(slot == (void*)s_DummyWidget) slot = nullptr; s_bWidgetPlaced = false; }   // the game made its own meanwhile: leave that one
+        if(s_bLivePlaced) { void*& l = s_ppWidgetsLive[kJPatchIdleWidget]; if(l == (void*)s_DummyWidget) l = nullptr; s_bLivePlaced = false; }
     }
-#else
-    (void)enter;
-#endif
 }
 
 bool Game::AddMainMenuTile(const char* name, const char* pngRel, const char* pngFull, void (*onTap)(void*))

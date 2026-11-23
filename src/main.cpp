@@ -37,7 +37,7 @@
 #include "net/server.h"
 
 // 4.12.7: the config is files/TYFMC/TYFMC.MP.ini (the old configs/net.thirtyfox.mp.ini is moved there)
-TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.47, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
+TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.58, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
 // 4.13.36: no NEEDGAME(com.rockstargames.gtasa) - AML would refuse libMP in GTA Vice City. OnModLoad starts the
 // San Andreas code only when libGTASA.so is there, and the Vice City layer (src/vc/) when libGTAVC.so is.
 
@@ -1114,7 +1114,13 @@ static void MP_QuickExit()
 }
 static void MP_Terminate()   // an uncaught C++ exception in MP: say so in the log before aborting
 {
-    if(logger) logger->Error("MP: std::terminate (uncaught exception) - please send this log");
+    // 5.02.58: name the exception (std::system_error "Resource temporarily unavailable" = no thread could be made:
+    // the 32-bit game ran out of address space with many mods)
+    const char* what = "unknown";
+    try { if(auto e = std::current_exception()) std::rethrow_exception(e); else what = "none (std::terminate called directly)"; }
+    catch(const std::exception& ex) { static char b[200]; snprintf(b, sizeof(b), "%s", ex.what()); what = b; }
+    catch(...) {}
+    if(logger) logger->Error("MP: std::terminate (uncaught exception: %s) - please send this log", what);
     fflush(nullptr);
     abort();
 }
@@ -1190,9 +1196,7 @@ extern "C" void OnModLoad()
     ScriptGuard::InitFaultGuard(pGameHandle);   // 3.21.3: any script opcode that crashes stops that script, not the game
 
     HOOKSYM(CGame_Process, pGameHandle, "_ZN5CGame7ProcessEv");
-#ifdef AML32
-    HOOKSYM(CCamera_Process, pGameHandle, "_ZN7CCamera7ProcessEv");   // 4.13.7
-#endif
+    HOOKSYM(CCamera_Process, pGameHandle, "_ZN7CCamera7ProcessEv");   // 4.13.7 (5.02.58: 64-bit too - libJPatch64.so + 0x2C654)
     HOOKSYM(Render2dStuff, pGameHandle, "_Z13Render2dStuffv");
     HookTouchInterface();   // 2.19.5
     // 4.05.8: back on. 4.05.5 switched it off, and phones that still have a texdb pack in the game

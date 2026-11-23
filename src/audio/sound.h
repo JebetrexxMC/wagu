@@ -32,6 +32,11 @@ namespace Sound
     // 5.02.31: Settings > Sound: a volume per sound file name ("notify.mp3", "solo.m4a" ...), 0..1.5, default 1
     void  SetFileVolume(const char* name, float volume);
     float FileVolume(const char* name);
+    // 5.02.58: the stream's volume row by another name (server audio: "server_audio"), and one master volume 0..1 for
+    // every MP sound (Settings > Sound > MP volume)
+    void  StreamSetVolumeKey(const char* key);
+    void  SetMasterVolume(float volume);
+    float MasterVolume();
     void* EngineItf();   // 3.11: the shared OpenSL engine (SLEngineItf) for voice chat
     void* OutputMix();   // 3.11: SLObjectItf output mix
 }
