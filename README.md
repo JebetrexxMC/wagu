@@ -841,6 +841,9 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 ### 5.02.71
 - net/global-satellite-vps-network: a global center + continental VPS (NA, EU, ASIA, SA, OC) on FastAPI, and an edge client (Python standard library, runs in Termux) that picks the fastest VPS by measured round-trip time and fails over when it stops answering, even when the center is down. It spots satellite / high-latency links (Starlink LEO, GEO) and writes the pick as NetWire lines. docker-compose for a one-box test, PgDog config for one shared account database.
 - net/xdp-firewall: MP rules for xdp-firewall (drops bad-size UDP to the game ports 1922-1932, per-IP floods with a CGNAT-safe limit, DNS / NTP / SSDP / memcached reflection, SYN floods to MQTT / web ports) and a VPS installer. The config is checked with the firewall's own loader.
+- mpadmin (tools/termux_admin): admin console for Termux using the Termux add-ons - firewall install / status / off on the VPS through HiveMQ + omp_autobot (no SSH), fastest VPS in the background (termux-services) with notifications (Termux:API), start at boot, home-screen buttons, SSH key setup, a Debian lab (proot-distro), and `mpadmin log` to copy mp_log.txt + aml_crashlog.txt to Downloads.
+- omp_autobot / omp247: new `xdpfw install|status|off|conf` command (`omp247 xdpfw ...`, menu x / X, `omp247 botupdate`). HiveMQ web console: menu x / X / f.
+- xdp-firewall installer fixed for newer gcc / glibc (bundled libbpf -Werror); tested for real on loopback (bad packets and floods dropped, normal MP packets pass).
 - MP itself (libMP32.so / libMP64.so) is unchanged from 5.02.70.
 
 ### 5.02.70

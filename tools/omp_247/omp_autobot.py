@@ -16,6 +16,7 @@ From anywhere (Termux, Termius, a PC, another server) - same file, Python 3 only
 Commands (plain text; with BOT_TOKEN set, the first word must be the token):
     help | install (finds every server folder by itself) | find | list | install <name> <port> <server_dir> | status <name> | start|stop|restart <name>
     backup <name> | logs <name> [lines] | update | ping
+    xdpfw [install|status|off|conf]   5.02.71: xdp-firewall with the MP rules (net/xdp-firewall of the wagu repo)
 Only these run - never a shell line. Names: letters, digits, _ and -. The broker login decides who may
 publish commands (the MP HiveMQ kit: only "admin" and "bridge" may use thirtyfox/mp4/omp/#).
 """
@@ -153,13 +154,36 @@ def fetch_latest():
     return True, "updated " + ", ".join(got)
 
 HELP = ("commands: install (finds every server) | find | list | install <name> <port> <server_dir> | status <name> | start|stop|restart <name> | "
-        "backup <name> | logs <name> [lines] | update | ping")
+        "backup <name> | logs <name> [lines] | update | ping | xdpfw [install|status|off|conf]")
+
+WAGU = os.environ.get("WAGU_DIR", "/opt/wagu")
+WAGU_GIT = "https://github.com/JebetrexxMC/wagu"
+XDPFW_SUB = ("install", "status", "off", "conf")
+
+def xdpfw(sub):
+    """5.02.71: xdp-firewall (JebetrexxMC/xdp-firewall) with the MP rules on this server.
+    Gets / updates only net/ of the wagu repo into /opt/wagu, then runs net/xdp-firewall/install-vps.sh <sub>."""
+    if sub not in XDPFW_SUB: return False, "xdpfw install | status | off | conf"
+    if not os.path.isdir(os.path.join(WAGU, ".git")):
+        if subprocess.run(["sh", "-c", "command -v git"], stdout=subprocess.DEVNULL).returncode != 0:
+            ok, out = run(["bash", "-c", "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git"], timeout=300)
+            if not ok: return False, "git install failed: " + out
+        ok, out = run(["git", "clone", "-q", "--depth", "1", "--filter=blob:none", "--sparse", WAGU_GIT, WAGU], timeout=300)
+        if not ok: return False, "clone failed: " + out
+        ok, out = run(["git", "-C", WAGU, "sparse-checkout", "set", "net"], timeout=300)
+        if not ok: return False, out
+    elif sub in ("install", "conf"):
+        run(["git", "-C", WAGU, "pull", "-q", "--ff-only"], timeout=300)
+    script = os.path.join(WAGU, "net", "xdp-firewall", "install-vps.sh")
+    if not os.path.exists(script): return False, "missing " + script
+    return run(["bash", script, sub], timeout=1800 if sub == "install" else 120)
 
 def do(words):
     if not words: return False, HELP
     c, a = words[0].lower(), words[1:]
     if c in ("help", "?"): return True, HELP
     if c == "ping": return True, "pong from %s" % socket.gethostname()
+    if c == "xdpfw": return xdpfw(a[0].lower() if a else "status")
     if c == "list":
         ok, out = run(["systemctl", "list-units", "omp-247-*", "--all", "--no-legend", "--plain"])
         return ok, out or "no open.mp 24/7 servers on this machine yet (install <name> <port> <server_dir>)"
@@ -270,7 +294,7 @@ def send(argv):
     port = o.port or (8883 if o.tls else 1883)
     rid = "%x" % int(time.time() * 1000)
     words = ([o.token] if o.token else []) + ["id=" + rid] + o.command
-    wait = o.wait or (900 if o.command[0] == "install" else 90)
+    wait = o.wait or (1800 if o.command[:2] == ["xdpfw", "install"] else 900 if o.command[0] == "install" else 90)
     try: m = Mqtt(o.host, port, o.user, o.password, "omp-send-%s" % rid, tls=o.tls)
     except OSError as e: print("cannot reach %s:%d - %s" % (o.host, port, e)); return 3
     m.subscribe("%s/+/reply" % BASE)

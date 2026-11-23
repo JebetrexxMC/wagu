@@ -17,6 +17,8 @@
 #   omp247 boot         phone notifications when a server goes offline, started by Termux:Boot
 #                       (https://github.com/termux/termux-boot + https://github.com/termux/termux-api)
 #   omp247 config       change the saved settings
+#   omp247 xdpfw [install|status|off]   5.02.71: xdp-firewall with the MP rules on the server (through the bot)
+#   omp247 botupdate    the newest omp_autobot on the server (needed once for xdpfw)
 set -u
 RAW=https://raw.githubusercontent.com/JebetrexxMC/wagu/main/tools/omp_247
 REL=https://github.com/JebetrexxMC/wagu/releases/latest/download
@@ -84,7 +86,7 @@ mqargs() { A=(-H "$MQTT_HOST" -p "$MQTT_PORT"); [ -n "$MQTT_USER" ] && A+=(-u "$
 
 cmd() {   # send one command to the bot(s) and print the answer
   need && getbot && load || return 1; mqargs
-  local w=30; case "$1" in install|update) w=900;; find) w=150;; backup|logs) w=90;; esac
+  local w=30; case "$1" in install|update) w=900;; find) w=150;; backup|logs) w=90;; xdpfw) w=150; [ "${2:-}" = install ] && w=1800;; esac
   BOT_TOKEN="${BOT_TOKEN:-}" PY "$BOT" send "${A[@]}" -b "${BOT_NAME:-all}" -w "$w" "$@"
 }
 watch() { need && getbot && load || return 1; mqargs; PY "$BOT" watch "${A[@]}" "$@"; }
@@ -144,11 +146,13 @@ menu() {
     echo " 1) server setup (here, or over SSH)  2) install every server (auto)"
     echo " 3) servers found on the machine      4) list installed"
     echo " 5) status   6) logs   7) restart    8) backup   9) live status"
+    echo " x) xdp-firewall on the server: install   X) its status   b) update the bot on the server"
     echo " w) home-screen buttons   n) offline notifications   u) update   c) settings   0) exit"
     local k; read -r -p "> " k </dev/tty || return 0
     case "$k" in
       1) setup;; 2) cmd install;; 3) cmd find;; 4) cmd list;; 5) cmd status;; 6) cmd logs;;
       7) cmd restart;; 8) cmd backup;; 9) watch;; w) widget;; n) boot;; u) update; exec "$SELF";;
+      x) cmd xdpfw install;; X) cmd xdpfw status;; b) cmd update;;
       c) config; . "$CONF";; 0|q) return 0;; *) echo "?";;
     esac
   done
@@ -156,6 +160,7 @@ menu() {
 
 case "${1:-menu}" in
   menu) menu;; config) config;; setup) setup;; watch) shift; watch "$@";; widget) widget;; boot) boot;; notify) notify;; update) update;;
-  install|find|list|status|logs|restart|start|stop|backup|ping|help) cmd "$@";;
+  install|find|list|status|logs|restart|start|stop|backup|ping|help|xdpfw) cmd "$@";;
+  botupdate) cmd update;;
   *) sed -n '2,20p' "$0";;
 esac

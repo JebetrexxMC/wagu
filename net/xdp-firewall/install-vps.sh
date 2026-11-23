@@ -42,7 +42,7 @@ esac
 export DEBIAN_FRONTEND=noninteractive
 log "dependencies"
 apt-get update -qq
-apt-get install -y -qq git python3 libconfig-dev llvm clang libelf-dev build-essential libpcap-dev m4 gcc-multilib >/dev/null
+apt-get install -y -qq git sudo pkg-config python3 libconfig-dev llvm clang libelf-dev build-essential libpcap-dev m4 gcc-multilib >/dev/null
 apt-get install -y -qq "linux-tools-$(uname -r)" >/dev/null 2>&1 || apt-get install -y -qq bpftool >/dev/null 2>&1 || true
 
 if [ -d "$SRC/.git" ]; then git -C "$SRC" pull -q --ff-only; git -C "$SRC" submodule update --init -q
@@ -51,6 +51,9 @@ else git clone -q --recursive "$REPO" "$SRC"; fi
 # per source IP limits (ip_pps rules) are off by default in the build-time config
 sed -i 's|^//#define ENABLE_RL_IP$|#define ENABLE_RL_IP|' "$SRC/src/common/config.h"
 grep -q '^#define ENABLE_RL_IP$' "$SRC/src/common/config.h" || { log "could not enable ENABLE_RL_IP in config.h"; exit 1; }
+
+# newer gcc / glibc (C23 const strstr, e.g. Ubuntu 25.10+) break the bundled libbpf's -Werror build; warnings stay warnings
+sed -i 's/^CFLAGS ?= -g -O2 -Werror -Wall/CFLAGS ?= -g -O2 -Wall/' "$SRC/modules/xdp-tools/lib/libbpf/src/Makefile"
 
 log "build (LibXDP + firewall)"
 (cd "$SRC" && ./install.sh --libxdp)

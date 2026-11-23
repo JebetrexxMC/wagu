@@ -10,6 +10,20 @@ never reaches mp_server, Mosquitto/HiveMQ or the global VPS network. This folder
 | `install-vps.sh` | `sudo bash install-vps.sh`: clones + builds the fork with `ENABLE_RL_IP` (per-IP limits), writes the config, starts `xdpfw.service`. Also `conf`, `status`, `off`, `--keep-mp-xdp`. |
 | `cfgcheck.c` | checks a config with the firewall's own loader code (no root, no network card), see below. |
 
+## From the phone (no SSH)
+
+- Termux: `mpadmin fw install` (tools/termux_admin) or `omp247 xdpfw install` - both send the command through
+  HiveMQ to `omp_autobot` on the VPS, which gets net/ of this repo into /opt/wagu and runs `install-vps.sh`.
+  An older bot answers "unknown command": update it first with `mpadmin bot botupdate` (or `omp247 botupdate`).
+- HiveMQ web console on the VPS (`mp-console.sh`): `x` install, `X` status, `f` off.
+
+## Tested
+
+Built and run here with `install-vps.sh --iface lo` (Ubuntu, gcc 15, glibc 2.43; generic / SKB mode):
+normal MP packets pass, empty and 1100 byte packets to UDP 1922 are dropped, a flood with `--pps 300`
+let 167 of 508824 packets through and the source stayed blocked afterwards. Newer gcc / glibc broke the bundled
+libbpf (`-Werror`); `install-vps.sh` turns that off.
+
 ## Rules (first match wins, no match = pass)
 
 1. other MP VPS / brokers (net/wires.txt groups `region`, `vps`, `xdp`, `relay`) and `--allow`: always pass;

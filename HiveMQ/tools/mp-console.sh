@@ -145,6 +145,7 @@ while true; do
     echo "  r) MP Railway: Discord bot 24/7 (/gen /stats /help /streaming)"
     echo "  p) open.mp 24/7 servers + autobot (install / log / restart / backup)"
     echo "  a) AUTO open.mp 24/7: find + install every server + autobot    t) omp247 console"
+    echo "  x) xdp-firewall (DDoS drop, MP rules): install    X) its status    f) turn it off"
     line
     read -r -p "  choose: " k || exit 0
     case "$k" in
@@ -163,6 +164,10 @@ while true; do
         a|A) omp_auto ;;
         t|T) omp_con ;;
         s|S) servers_menu ;;
+        x|X|f|F) xs=install; [ "$k" = X ] && xs=status; [ "$k" = f ] || [ "$k" = F ] && xs=off
+           { [ -d /opt/wagu/.git ] || { command -v git >/dev/null || apt-get install -y -qq git; git clone -q --depth 1 --filter=blob:none --sparse https://github.com/JebetrexxMC/wagu /opt/wagu && git -C /opt/wagu sparse-checkout set net; }; } \
+             && { [ "$xs" != install ] || git -C /opt/wagu pull -q --ff-only; } && bash /opt/wagu/net/xdp-firewall/install-vps.sh "$xs"
+           read -r -p "  enter to continue" _ ;;
         0|q|exit) exit 0 ;;
     esac
 done
