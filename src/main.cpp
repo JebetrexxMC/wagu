@@ -25,6 +25,7 @@
 #include "mp.h"
 #include "game/game.h"
 #include "game/scriptguard.h"
+#include "game/surfaceguard.h"
 #include "game/modscan.h"
 #include "game/screenguard.h"   // 4.12.2
 #include "tyfmc.h"               // 4.12.7: files/TYFMC/MP + files/TYFMC/TYFMC.MP.ini
@@ -37,7 +38,7 @@
 #include "net/server.h"
 
 // 4.12.7: the config is files/TYFMC/TYFMC.MP.ini (the old configs/net.thirtyfox.mp.ini is moved there)
-TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.65, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
+TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.66, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
 // 4.13.36: no NEEDGAME(com.rockstargames.gtasa) - AML would refuse libMP in GTA Vice City. OnModLoad starts the
 // San Andreas code only when libGTASA.so is there, and the Vice City layer (src/vc/) when libGTAVC.so is.
 
@@ -112,6 +113,7 @@ DECL_HOOKv(CGame_Process)
     { static int n = 0; if(n < 120 && ++n == 120) ScriptGuard::InitKeyGuard(pGameHandle); }   // 5.02.15: 2 s in, every mod has hooked
     CGame_Process();
     ScriptGuard::Tick();   // 3.21.3
+    SurfaceGuard::Tick();   // 5.02.66
     MP::Process();
 }
 
@@ -1378,6 +1380,7 @@ extern "C" void MP_InstallTitleHook()
 ON_ALL_MODS_LOAD()
 {
     ModScan::Scan();
+    SurfaceGuard::Check("all mods loaded");   // 5.02.66: a mod's hook patch may have damaged a surface getter
     JPatchGuardSetup();   // 4.13.8: on top of JPatch's CCam::Process hook
     if(s_bMpLoaded) MP::InitMainMenu();   // 4.13.4: [Multiplayer] on the game's main menu (SAUtils tile)
     // 4.13.30: ServerBrowserMode = default: MP does not touch the game's title menu at all (no MobileMenu::Render hook)

@@ -22,6 +22,7 @@
 #include "scriptguard.h"
 #include "scriptguard_core.h"
 #include "scriptfault_core.h"
+#include "surfaceguard.h"
 #include "scripting.h"
 
 // CRunningScript::m_szName (char[8], not always 0-terminated): after the two list pointers
@@ -314,48 +315,13 @@ static void InitSetColGuard(void* h)
     logger->Info("ColGuard: SetColModel guard %s", ok ? "on" : "off");
 }
 
-// ---- 5.02.65: surface spark guard --------------------------------------------------------------
-// Crash log (realme RE6054, Android 16, 32-bit, 70 AML mods, MP 5.02.64): SIGSEGV SEGV_MAPERR, fault address 0x6C,
-// libGTASA.so + 0x41DFB8 (SurfaceInfos_c::CreatesSparks(unsigned int)), R1 = 6, called from the collision /
-// vehicle code (LR libGTASA + 0x539C9B). 0x6C = 6 * 0x12: the surface table the function reads was not there
-// (NULL) for surface 6. mp_log of the same run: the game failed to open a data file while the save loaded
-// ("OS_FileRead on a bad file handle 0x0"). Sparks are only a visual effect, so:
-//   * a surface id past the game's 179 surface types -> "no sparks" (never read the table);
-//   * the game's own function runs inside a fault guard: a fault there = "no sparks" for that hit, logged,
-//     the game keeps running.
-typedef bool (*SparksFn)(void*, unsigned int);
-static SparksFn s_SparksOrig = nullptr;
-static int s_nSparkFaults = 0, s_nSparkBadId = 0;
-struct SparkCall { void* self; unsigned int id; bool res; };
-static void SparkThunk(SparkCall* c) { c->res = s_SparksOrig(c->self, c->id); }
-static bool HookOf_CreatesSparks(void* self, unsigned int id)
-{
-    if(id >= 179 || !self || (uintptr_t)self < 0x10000)
-    {
-        if(++s_nSparkBadId <= 5) logger->Info("SparkGuard: CreatesSparks(surface %u) on %p skipped - not a surface of this game (#%d)", id, self, s_nSparkBadId);
-        return false;
-    }
-    SparkCall c = { self, id, false };
-    if(ScriptFault::CallAny<SparkCall*>(SparkThunk, &c)) return c.res;
-    if(++s_nSparkFaults <= 10 || s_nSparkFaults % 500 == 0)
-        logger->Error("SparkGuard: SurfaceInfos_c::CreatesSparks(surface %u) crashed - no sparks for that hit, the game keeps running (#%d). "
-                      "The game's surface data (data/surfinfo.dat) is missing or was replaced by a mod.", id, s_nSparkFaults);
-    return false;
-}
-static void InitSparkGuard(void* h)
-{
-    void* fn = (void*)aml->GetSym(h, "_ZN14SurfaceInfos_c13CreatesSparksEj");
-    if(!fn) { logger->Info("SparkGuard: off (SurfaceInfos_c::CreatesSparks not found)"); return; }
-    ScriptFault::Install();
-    (void)ScriptFault::TlJmp();
-    const bool ok = aml->Hook(fn, (void*)&HookOf_CreatesSparks, (void**)&s_SparksOrig) && s_SparksOrig;
-    if(!ok) s_SparksOrig = nullptr;
-    logger->Info("SparkGuard: %s - a broken surface table no longer crashes the game in CreatesSparks", ok ? "on" : "off (hook failed)");
-}
+// ---- 5.02.65 SparkGuard removed in 5.02.66 ---------------------------------------------------------------
+// The 0x6C crash is in SurfaceInfos_c::CantSprintOn, not CreatesSparks (CreatesSparks has no GOT slot, the game never
+// calls it through one). An inline hook there only adds a patch next to the damaged function. See surfaceguard.cpp.
 
 bool ScriptGuard::Init(void* h)
 {
-    InitSparkGuard(h);   // 5.02.65: SurfaceInfos_c::CreatesSparks SIGSEGV (fault address 0x6C)
+    SurfaceGuard::Init(h);   // 5.02.66: SurfaceInfos_c getters checked (CantSprintOn crash, fault address 0x6C)
     InitAddGuard(h);   // 2.37: independent of the opcode guard below
     InitColGuard(h);   // 3.10: CColTrianglePlane::Set crash (aml_crashlog: bike vs. a model with no vertices)
     InitSetColGuard(h);   // 3.21: CBaseModelInfo::SetColModel with no model info

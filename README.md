@@ -823,6 +823,12 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.66
+- Crash fix: SIGSEGV at fault address 0x6C, PC libGTASA+0x41DFB8, during loading / fade-in (32-bit, still there in 5.02.65). Checked again against the GTA SA 2.00 code: 0x41DFB8 is the start of `SurfaceInfos_c::CantSprintOn`, not `CreatesSparks` (that one starts at 0x41DFA6), and the bytes there do not match the original game code, so another mod's patch most likely damaged that function. That is also why 5.02.65's SparkGuard never fired.
+- New SurfaceGuard (`src/game/surfaceguard.cpp`) replaces SparkGuard. It checks the start bytes of 42 `SurfaceInfos_c` getters after all mods load and every few seconds in game. In mp_log.txt it lists any getter that was hooked or damaged, and which library the jump points to. If a getter is damaged, the game's GOT slot for it is pointed at MP's own safe copy (it reads the surface table and checks the id), so callers never run the broken code. MP does not write into game code and does not install a signal handler.
+- FileGuard log from 5.02.65 showed `data\maps\custom.ipl` missing (bad file handle 0x0) and some missing `.idx` / texdb files: check the mod that added custom.ipl to gta.dat.
+- NetWire: `net/wires.txt` now includes commented templates for an infinite-streaming test stream and a local open.mp server running RakNet2 / Pawn.RakNet. The README live latency card is filled in by the 24/7 status job.
+
 ### 5.02.65
 - Crash fix: SIGSEGV SEGV_MAPERR at fault address 0x6C in `SurfaceInfos_c::CreatesSparks` (libGTASA+0x41DFB8, 32-bit). The surface table was empty because the game could not load one of its data files; new SparkGuard checks the surface id and table and skips the spark instead of crashing.
 - Crash fix (mitigation): SIGABRT "Binder thread started or Java binder used, but env null. Attach JVM?". MP's music, radio (URL), file and voice helper threads now attach to the Java VM while they run (`src/game/jvmthread.h`, `MPJvm::ThreadScope`). With 70 mods installed the thread that aborted may belong to another mod; send mp_log.txt and aml_crashlog.txt if it happens again.
