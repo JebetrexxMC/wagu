@@ -51,6 +51,10 @@ net/
   wireguard/, cjdns/, ziti/  relay <-> server tunnel, IPv6 mesh admin lanes, zero-trust admin services
   raspap/                  RaspAP plugin: a Raspberry Pi LAN-party hotspot with mpnetd
   scanopy/, hpsocket/      network map of a box; HP-Socket (reference)
+  skydive/, opensnitch/    live flows of UDP 7777; per-program outgoing firewall rule
+  containerlab/            phone - relay - server lab, netem lag / loss on demand
+  pjon/                    mp-pjon-beacon: MP LAN servers announced over PJON LocalUDP (boards + boxes)
+  kuma/                    service mesh for the mpnet HTTP side (UDP 7777 excluded)
   k8s/                     Dockerfile, Deployment / Service, NetworkPolicy, Calico policy, CNI conflist
   REFERENCES.md            the repos this was checked against
 ```

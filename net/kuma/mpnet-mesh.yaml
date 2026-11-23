@@ -1,0 +1,33 @@
+# MP 5.02.70: the mpnet HTTP side (mpnet-beast :8090, mpnet-ws :8091) inside a Kuma mesh (https://github.com/JebetrexxMC/kuma).
+# The game port (UDP 7777, RakNet) is NOT sent through Envoy - Kuma's transparent proxy is for TCP; it is excluded below.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mpnet
+  labels:
+    kuma.io/sidecar-injection: enabled
+---
+# in the game server's pod template (net/k8s): keep UDP 7777 and the SA-MP query out of the sidecar
+#   metadata:
+#     annotations:
+#       traffic.kuma.io/exclude-inbound-ports: "7777"
+#       traffic.kuma.io/exclude-outbound-ports: "7777"
+---
+apiVersion: kuma.io/v1alpha1
+kind: MeshTrafficPermission
+metadata:
+  name: mpnet-website-only
+  namespace: kuma-system
+  labels:
+    kuma.io/mesh: default
+spec:
+  targetRef:
+    kind: Dataplane
+    labels:
+      app: mpnet-beast
+  rules:
+    - default:
+        allow:
+          - spiffeID:
+              type: Prefix
+              value: "spiffe://default/ns/mpnet/"

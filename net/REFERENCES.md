@@ -68,6 +68,17 @@ Repos checked for MP NetWire (NetWire 1.0) and what came out of each.
 | [JebetrexxMC/raspap-webgui](https://github.com/JebetrexxMC/raspap-webgui) + [JebetrexxMC/plugins](https://github.com/JebetrexxMC/plugins) | Raspberry Pi router / hotspot + its plugin format | `raspap/MPNetWire`: RaspAP plugin (mpnetd status + service buttons) for a LAN-party hotspot |
 | [JebetrexxMC/HP-Socket](https://github.com/JebetrexxMC/HP-Socket) | C/C++ TCP / UDP / HTTP component | Reference only (`hpsocket/README.md`): its reliable UDP can't talk RakNet |
 
+## 5.02.70
+
+| Repo | What it is | Used for MP |
+|---|---|---|
+| [JebetrexxMC/kuma](https://github.com/JebetrexxMC/kuma) | Envoy service mesh (CNCF) | `kuma/mpnet-mesh.yaml`: sidecars + MeshTrafficPermission for mpnet-beast / mpnet-ws; UDP 7777 excluded (`traffic.kuma.io/exclude-inbound-ports`) |
+| [JebetrexxMC/PJON](https://github.com/JebetrexxMC/PJON) | multi-master protocol for Arduino / ESP32 / Linux | `pjon/mp-pjon-beacon.cpp`: LAN server beacon over LocalUDP (UDP 7100), built with `-DLINUX -std=c++14` |
+| [JebetrexxMC/skydive](https://github.com/JebetrexxMC/skydive) | live topology + flow analyzer | `skydive/README.md`: compose file from contrib/docker, capture `--bpf "udp port 7777"` |
+| [JebetrexxMC/containerlab](https://github.com/JebetrexxMC/containerlab) | container network labs | `containerlab/mp-lab.clab.yml` + `tools netem set` for 4G-like lag and loss |
+| [JebetrexxMC/opensnitch](https://github.com/JebetrexxMC/opensnitch) | Linux application firewall | `opensnitch/mp-allow-game.json`: rule (list operator: process.path + protocol udp) |
+| [JebetrexxMC/Computer-Science-Resources](https://github.com/JebetrexxMC/Computer-Science-Resources) | CS reading list | Reading list only (networks, distributed systems); nothing vendored |
+
 ## 5.02.65
 
 | Repo | What it is | Used for MP |

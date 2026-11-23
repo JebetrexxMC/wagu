@@ -1,0 +1,19 @@
+{
+  "created": "2026-11-23T00:00:00.000000000+08:00",
+  "updated": "2026-11-23T00:00:00.000000000+08:00",
+  "name": "000-mp-allow-mpnetd",
+  "enabled": true,
+  "precedence": true,
+  "action": "allow",
+  "duration": "always",
+  "operator": {
+    "type": "list",
+    "operand": "list",
+    "sensitive": false,
+    "data": "[{\"type\": \"simple\", \"operand\": \"process.path\", \"sensitive\": false, \"data\": \"/usr/local/bin/mpnetd\"}, {\"type\": \"simple\", \"operand\": \"protocol\", \"sensitive\": false, \"data\": \"udp\"}]",
+    "list": [
+      { "type": "simple", "operand": "process.path", "sensitive": false, "data": "/usr/local/bin/mpnetd", "list": null },
+      { "type": "simple", "operand": "protocol", "sensitive": false, "data": "udp", "list": null }
+    ]
+  }
+}

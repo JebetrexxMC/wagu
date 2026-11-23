@@ -509,7 +509,7 @@ Every repository under [JebetrexxMC](https://github.com/JebetrexxMC) (307) and [
 </details>
 
 <details>
-<summary><b>Networking (net/) and the PC launcher</b> (45)</summary>
+<summary><b>Networking (net/) and the PC launcher</b> (51)</summary>
 
 | # | Repository | Forked from | About | Language | In wagu | Last commit |
 |---|---|---|---|---|---|---|
@@ -558,6 +558,12 @@ Every repository under [JebetrexxMC](https://github.com/JebetrexxMC) (307) and [
 | 43 | [JebetrexxMC/raspap-webgui](https://github.com/JebetrexxMC/raspap-webgui) | [RaspAP/raspap-webgui](https://github.com/RaspAP/raspap-webgui) | The easiest, full-featured wireless router setup for Debian-based devices. Period. |  | net/raspap | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/raspap-webgui?style=flat-square&label=&cacheSeconds=86400) |
 | 44 | [JebetrexxMC/plugins](https://github.com/JebetrexxMC/plugins) | [RaspAP/plugins](https://github.com/RaspAP/plugins) | RaspAP official plugin repository |  | net/raspap MPNetWire plugin | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/plugins?style=flat-square&label=&cacheSeconds=86400) |
 | 45 | [JebetrexxMC/HP-Socket](https://github.com/JebetrexxMC/HP-Socket) | [ldcsaa/HP-Socket](https://github.com/ldcsaa/HP-Socket) | High Performance TCP/UDP/HTTP Communication Component |  | net/hpsocket (reference) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/HP-Socket?style=flat-square&label=&cacheSeconds=86400) |
+| 46 | [JebetrexxMC/kuma](https://github.com/JebetrexxMC/kuma) | [kumahq/kuma](https://github.com/kumahq/kuma) | The multi-zone service mesh for containers, Kubernetes and VMs (Envoy) | Go | net/kuma mpnet-mesh.yaml | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/kuma?style=flat-square&label=&cacheSeconds=86400) |
+| 47 | [JebetrexxMC/PJON](https://github.com/JebetrexxMC/PJON) | [gioblu/PJON](https://github.com/gioblu/PJON) | Arduino-compatible, multi-master, multi-media network protocol | C++ | net/pjon mp-pjon-beacon | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/PJON?style=flat-square&label=&cacheSeconds=86400) |
+| 48 | [JebetrexxMC/skydive](https://github.com/JebetrexxMC/skydive) | [skydive-project/skydive](https://github.com/skydive-project/skydive) | Real-time network topology and protocols analyzer | Go | net/skydive (how-to) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/skydive?style=flat-square&label=&cacheSeconds=86400) |
+| 49 | [JebetrexxMC/containerlab](https://github.com/JebetrexxMC/containerlab) | [srl-labs/containerlab](https://github.com/srl-labs/containerlab) | Container-based networking labs | Go | net/containerlab mp-lab.clab.yml | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/containerlab?style=flat-square&label=&cacheSeconds=86400) |
+| 50 | [JebetrexxMC/Computer-Science-Resources](https://github.com/JebetrexxMC/Computer-Science-Resources) | [the-akira/Computer-Science-Resources](https://github.com/the-akira/Computer-Science-Resources) | Collection of resources spanning key areas of Computer Science |  | net/REFERENCES.md (reading list) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/Computer-Science-Resources?style=flat-square&label=&cacheSeconds=86400) |
+| 51 | [JebetrexxMC/opensnitch](https://github.com/JebetrexxMC/opensnitch) | [evilsocket/opensnitch](https://github.com/evilsocket/opensnitch) | GNU/Linux interactive application firewall | Python | net/opensnitch mp-allow-game.json | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/opensnitch?style=flat-square&label=&cacheSeconds=86400) |
 
 </details>
 
@@ -822,6 +828,11 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 - Test: `test/sampgate_test.cpp` (against a real omp-server 1.6.7), Docker: [docker/README.md](docker/README.md).
 
 ## Changelog
+
+### 5.02.70
+- Fix: SIGBUS / SIGSEGV in SurfaceInfos_c::CantSprintOn as soon as you walk after loading (also the 5.02.64/65 crash, fault 0x6C). AbsoluteFix.lua ("improvedrun") writes PC x86 code `66 33 C0 C2` ("xor ax, ax; ret 4") to 0x55E870. MP's PC address layer mapped that to the ARM CantSprintOn, where JPatch's hook had left the page writable, so 4 x86 bytes landed on ARM code. MonetLoader for MP now refuses any write to a PC function's code ("pccompat: ... is the code of ... - write skipped"). Calls to PC functions still work.
+- SurfaceGuard checks twice a second (was every 10 s) and, when a getter gets damaged, puts its last good bytes back (the game's code or the other mod's hook) instead of only moving the GOT slot.
+- net/: kuma (mesh for mpnet-beast / mpnet-ws, UDP 7777 kept out of Envoy), pjon (MP LAN server beacon over PJON LocalUDP, tested), skydive (live flows on UDP 7777), containerlab (phone-relay-server lab + netem lag / loss), opensnitch (allow rule for mpnetd), Computer-Science-Resources (reading list).
 
 ### 5.02.69
 - Fix: the freeze right after < Spawn > (Grove Street, grey untextured ground). After a teleport the whole area sits in the streaming queue; your skin and the weapons given at spawn were loaded with LOAD_ALL_MODELS_NOW, which loads that whole queue inside one frame. For 8 s after any spawn / teleport they now wait for the normal streamer (weapons are queued and given when their model is in).

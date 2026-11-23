@@ -31,6 +31,7 @@ struct result {
   bool ok = false; // false: PC address without a mobile counterpart
   bool widen = false; // PC 4-byte pointer that is 8 bytes on arm64 - read/write sizeof(void*)
   bool pc = false; // the input was a PC address
+  bool code = false; // MP 5.02.70: a read/write of a PC function's machine code (x86) - refused
   const entry* e = nullptr;
 };
 

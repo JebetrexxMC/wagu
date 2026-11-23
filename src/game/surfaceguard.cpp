@@ -92,6 +92,9 @@ namespace
         uint8_t   len[N] = {};
         bool      moved[N] = {};
         char      status[N] = {};   // 'o' original, 'h' hooked, 'r' return patch, 'd' damaged
+        uint8_t   good[N][20] = {};  // 5.02.70: the last good bytes (original or a clean hook) - put back when they get damaged
+        bool      haveGood[N] = {};
+        int       restored = 0;
         int       checks = 0, movedCount = 0;
         bool      ready = false;
     } s;
@@ -180,6 +183,21 @@ namespace
         return ok;
     }
 
+    // 5.02.70: put the last good bytes back (the game calls these getters with a direct BL, so moving the GOT slot
+    // alone doesn't help). Crash 5.02.69: AbsoluteFix.lua wrote PC x86 code over JPatch's hook in CantSprintOn.
+    bool Restore(int i)
+    {
+        if(!s.haveGood[i]) return false;
+        const long page = sysconf(_SC_PAGESIZE);
+        uintptr_t a = (uintptr_t)s.code[i], pg = a & ~(uintptr_t)(page - 1);
+        size_t span = (a + s.len[i] - pg + page - 1) & ~(size_t)(page - 1);
+        if(mprotect((void*)pg, span, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) return false;
+        memcpy(s.code[i], s.good[i], s.len[i]);
+        __builtin___clear_cache((char*)s.code[i], (char*)s.code[i] + s.len[i]);
+        mprotect((void*)pg, span, PROT_READ | PROT_EXEC);
+        return !memcmp(s.code[i], s.good[i], s.len[i]);
+    }
+
     void Short(const char* mangled, char* out, size_t n)   // _ZN14SurfaceInfos_c12CantSprintOnEj -> CantSprintOn
     {
         const char* p = mangled + strlen("_ZN14SurfaceInfos_c");
@@ -226,6 +244,7 @@ void SurfaceGuard::Check(const char* when)
         if(!s.code[i]) continue;
         ++present;
         st[i] = Classify(i, &tg[i]);
+        if(st[i] == 'o' || st[i] == 'h') { memcpy(s.good[i], s.code[i], s.len[i]); s.haveGood[i] = true; }
         cnt[st[i] == 'o' ? 0 : st[i] == 'h' ? 1 : st[i] == 'r' ? 2 : 3]++;
     }
     // the table is the 2.00 code only if most getters are byte-for-byte the same
@@ -250,6 +269,14 @@ void SurfaceGuard::Check(const char* when)
             logger->Error("SurfaceGuard: SurfaceInfos_c::%s at libGTASA+0x%X is damaged (%02X %02X %02X %02X %02X %02X %02X %02X, "
                           "pointer inside: %s) - this crashed the game (fault address 0x6C)", nm, (unsigned)((uintptr_t)c - s.base),
                           c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], spill);
+            if(s.haveGood[i] && Restore(i))
+            {
+                ++s.restored;
+                logger->Info("SurfaceGuard: %s repaired - its last good bytes (%s) are back", nm, s.status[i] == 'h' ? "the other mod's hook" : "the game's code");
+                st[i] = s.status[i] ? s.status[i] : 'o';
+                cnt[3]--;
+                continue;
+            }
             if(!trusted) logger->Info("SurfaceGuard: not repaired - only %d/%d getters match the 2.00 code, so the table is not trusted on this game", cnt[0], present);
             else if(!s.moved[i])
             {
@@ -271,7 +298,7 @@ void SurfaceGuard::Tick()
     static unsigned n = 0;
     ++n;
     if(n == 1) Check("first game frame");
-    else if(n % 600 == 0) Check("periodic");
+    else if(n % 30 == 0) Check("periodic");   // 5.02.70: twice a second (was every 600 frames) - 42 x 18-byte compares
 }
 #else
 void SurfaceGuard::Init(void*) { logger->Info("SurfaceGuard: off (64-bit build - the table is the 32-bit code)"); }

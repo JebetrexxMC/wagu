@@ -38,7 +38,7 @@
 #include "net/server.h"
 
 // 4.12.7: the config is files/TYFMC/TYFMC.MP.ini (the old configs/net.thirtyfox.mp.ini is moved there)
-TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.69, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
+TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.70, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
 // 4.13.36: no NEEDGAME(com.rockstargames.gtasa) - AML would refuse libMP in GTA Vice City. OnModLoad starts the
 // San Andreas code only when libGTASA.so is there, and the Vice City layer (src/vc/) when libGTAVC.so is.
 

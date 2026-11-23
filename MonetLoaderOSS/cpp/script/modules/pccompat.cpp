@@ -249,6 +249,19 @@ bool mapped_low(std::uintptr_t a)
   return false;
 }
 
+void log_code_once(std::uintptr_t a)
+{
+  {
+    std::lock_guard lk { g_lock };
+    if (!g_logged.insert(static_cast<std::uint32_t>(a)).second || g_logged.size() > 4096) {
+      return;
+    }
+  }
+  const entry* e = find_entry(a);
+  logger::log<logger::LV_WARN>(nullptr, "pccompat: PC address 0x{:X} is the code of {} - a PC (x86) code patch can't run on ARM, write skipped (read returns 0)", a,
+      e ? e->name : "a game function");
+}
+
 void log_once(std::uintptr_t a, const char* what)
 {
   {
@@ -533,6 +546,14 @@ result translate(std::uintptr_t a, std::size_t access_size)
   }
   r.e = &e;
   if (off == 0 && e.type == 'F') {
+    // MP 5.02.70: a read / write of the function's BYTES (access_size > 0) is a PC x86 code patch, e.g. AbsoluteFix.lua
+    // "improvedrun": memory.write(0x55E870, 0xC2C03366, 4) = "xor ax, ax; ret 4" into SurfaceInfos_c::CantSprintOn.
+    // Here that function is ARM code (with JPatch's hook in it, so the page is writable): 4 x86 bytes over it crashed the
+    // game (SIGBUS / SIGSEGV in CantSprintOn when the player walks). Only calls (access_size 0) get the mobile address.
+    if (access_size > 0) {
+      r.code = true;
+      return r;
+    }
     r.address = mob;
     r.ok = true;
     return r;
@@ -559,6 +580,7 @@ bool fix(std::uintptr_t& address, std::size_t size, bool* widen)
 {
   auto r = translate(address, size);
   if (!r.ok) {
+    if (r.code) log_code_once(address); else
     log_once(address, "read returns 0, write skipped");
     return false;
   }
@@ -766,6 +788,7 @@ int luaopen_pccompat(lua_State* L)
   t["translate"] = [](sol::this_state ts, std::uintptr_t a, std::optional<std::size_t> size) -> std::tuple<sol::object, bool> {
     auto r = translate(a, size.value_or(4));
     if (!r.ok) {
+      if (r.code) log_code_once(a); else
       log_once(a, size.value_or(4) ? "read returns 0, write skipped" : "call refused");
       return { sol::make_object(ts, sol::lua_nil), false };
     }
