@@ -1,0 +1,44 @@
+# MP servers for XPipe (https://github.com/JebetrexxMC/xpipe) - XPipe imports ~/.ssh/config automatically.
+# Copy the blocks you need into ~/.ssh/config and set User / IdentityFile to yours.
+# Then in XPipe every box has a shell, file browser, tunnels, and the scripts below.
+
+Host mp-asia
+    HostName mpsamp.duckdns.org
+    User ubuntu
+    IdentityFile ~/.ssh/mp_vps
+    ServerAliveInterval 30
+
+Host mp-eu
+    HostName eusamp.duckdns.org
+    User ubuntu
+    IdentityFile ~/.ssh/mp_vps
+
+Host mp-na
+    HostName nasamp.duckdns.org
+    User ubuntu
+    IdentityFile ~/.ssh/mp_vps
+
+Host mp-oce
+    HostName ocsamp.duckdns.org
+    User ubuntu
+    IdentityFile ~/.ssh/mp_vps
+
+# Oracle Always Free box (HiveMQ/oracle): put the public IP here
+Host mp-oracle
+    HostName 0.0.0.0
+    User ubuntu
+    IdentityFile ~/.ssh/oracle_mp
+
+# Same box over ZeroTier (networking/zerotier), works even with SSH closed to the internet
+Host mp-oracle-zt
+    HostName 10.147.17.5
+    User ubuntu
+    IdentityFile ~/.ssh/oracle_mp
+
+# MP status pages as local ports: http://localhost:8090/wires.json and :8091/traffic.json
+Host mp-asia-status
+    HostName mpsamp.duckdns.org
+    User ubuntu
+    IdentityFile ~/.ssh/mp_vps
+    LocalForward 8090 127.0.0.1:8090
+    LocalForward 8091 127.0.0.1:8091

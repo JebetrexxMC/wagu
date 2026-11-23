@@ -1,0 +1,27 @@
+[package]
+name = "mpnet-agent"
+version = "1.0.0"
+edition = "2021"
+description = "MP NetWire agent: async wire probes, RustScan-style port scan of your own servers, bore TCP tunnels (tokio)"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "mpnet-agent"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "io-util", "sync"] }
+bore-cli = { git = "https://github.com/JebetrexxMC/bore" }
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+futures = "0.3"
+
+# tokio comes from the wagu fork (github.com/JebetrexxMC/tokio) for this crate and for bore
+[patch.crates-io]
+tokio = { git = "https://github.com/JebetrexxMC/tokio" }
+
+[profile.release]
+opt-level = 3
+strip = true
+lto = "thin"

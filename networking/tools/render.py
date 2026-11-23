@@ -10,7 +10,7 @@ writes OUT_DIR/
 """
 import json, os, sys, time
 
-GROUPS = ["default", "featured", "crossplay", "region", "vps", "lobby", "emqx", "oracle", "xdp", "relay", "custom", "omp", "web"]
+GROUPS = ["default", "featured", "crossplay", "region", "vps", "lobby", "emqx", "oracle", "xdp", "relay", "zerotier", "custom", "omp", "web"]
 LETTER = {"green": "g", "yellow": "y", "red": "r", "down": "d", "skip": "s"}
 COLOR = {"g": "#3fb950", "y": "#d29922", "r": "#f85149", "d": "#6e7681", "s": "#6e7681"}
 KEEP = 288

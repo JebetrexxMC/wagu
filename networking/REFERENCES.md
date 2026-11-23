@@ -9,6 +9,11 @@ Repos checked for MP NetWire (NetWire 1.0) and what came out of each.
 | [topics/networking](https://github.com/topics/networking) | GitHub topic | Survey of probe and relay designs. |
 | [JebetrexxMC/sniffnet](https://github.com/JebetrexxMC/sniffnet) | desktop traffic monitor (Rust, iced, pcap) | `sniffnet/`: download/start script + MP port filters. The relay's `/traffic.json` is the headless / phone version of the same view. |
 | [JebetrexxMC/Moya](https://github.com/JebetrexxMC/Moya) | Swift network abstraction layer (Alamofire) | `swift/`: MPNet package, `MPNetAPI` is a Moya `TargetType` for the status files. |
+| [JebetrexxMC/tokio](https://github.com/JebetrexxMC/tokio) | Rust async runtime (1.54.1) | `rust/`: mpnet-agent runs on it, pulled from the fork via `[patch.crates-io]`. All probes of a round run at the same time. |
+| [JebetrexxMC/bore](https://github.com/JebetrexxMC/bore) | TCP tunnel (bore-cli 0.6.0, control port 7835) | `rust/`: used as a library for `mpnet-agent tunnel` / `bore-server`, plus the `bore-pub` web wire. TCP only, so not for the UDP game ports. |
+| [JebetrexxMC/RustScan](https://github.com/JebetrexxMC/RustScan) | fast port scanner (Rust) | `rustscan/`: download script (upstream 2.4.1 binaries, the fork has no releases) + own-server scan; its batched connect scan is copied in `mpnet-agent scan`. |
+| [JebetrexxMC/ZeroTierOne](https://github.com/JebetrexxMC/ZeroTierOne) | virtual LAN / SD-WAN (1.16.2) | `zerotier/`: join script, `zerotier` wire group, `zerotier-api` web wire. Not built from source (official installer and apps). |
+| [JebetrexxMC/xpipe](https://github.com/JebetrexxMC/xpipe) | desktop connection hub (24.13) | `xpipe/` SSH hosts + `manage/mpctl.sh` script. |
 | [JebetrexxMC/RuView](https://github.com/JebetrexxMC/RuView) | WiFi CSI sensing (presence, vital signs; Rust) | Not related to game networking (it reads WiFi channel state for sensing, not traffic); nothing used. |
 | [JebetrexxMC/dotnetcore-microservices-poc](https://github.com/JebetrexxMC/dotnetcore-microservices-poc) | .NET insurance sales microservices demo | Health-check / service-registry pattern only; no code used (different stack, not networking). |
 | [JebetrexxMC/open_insure](https://github.com/JebetrexxMC/open_insure) | insurance policy software (TypeScript) | Not related to networking; nothing used. |

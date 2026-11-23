@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   var SRC = "https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/wires.json";
-  var ORDER = ["all", "default", "featured", "crossplay", "region", "vps", "lobby", "emqx", "oracle", "xdp", "relay", "custom", "omp", "web"];
+  var ORDER = ["all", "default", "featured", "crossplay", "region", "vps", "lobby", "emqx", "oracle", "xdp", "relay", "zerotier", "custom", "omp", "web"];
   var GAME = { mqtt: 1, mp: 1, samp: 1, udp: 1 };
   var $ = function (id) { return document.getElementById(id); };
   var data = null, group = "all";

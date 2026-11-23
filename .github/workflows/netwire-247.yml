@@ -72,6 +72,41 @@ jobs:
         working-directory: networking/swift
         run: swift build && swift test
 
+  rust:
+    # mpnet-agent (Rust: tokio + bore from the JebetrexxMC forks) + shell scripts, only when the code changes
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: networking
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            networking/rust/target
+          key: rust-${{ hashFiles('networking/rust/Cargo.lock') }}
+      - name: cargo build
+        working-directory: networking/rust
+        run: cargo build --release --locked
+      - name: scripts (bash -n)
+        run: for f in networking/manage/*.sh networking/rustscan/*.sh networking/zerotier/*.sh networking/sniffnet/*.sh; do bash -n "$f"; done
+      - name: probe + scan + bore tunnel
+        working-directory: networking
+        run: |
+          A=rust/target/release/mpnet-agent
+          timeout 60 $A probe -w wires.txt | tail -20
+          python3 -m http.server 19050 --bind 127.0.0.1 >/dev/null 2>&1 &
+          sleep 1
+          $A scan 127.0.0.1 -p 19000-19100
+          $A bore-server --min-port 20000 --max-port 20010 >/tmp/bs.log 2>&1 &
+          sleep 1
+          timeout 20 $A tunnel --local-port 19050 --to 127.0.0.1 >/tmp/bt.log 2>&1 &
+          sleep 3; cat /tmp/bt.log
+          P=$(grep -o '127.0.0.1:[0-9]*' /tmp/bt.log | head -1)
+          curl -fsS -o /dev/null -w "through bore: %{http_code}\n" "http://$P/"
+
   status:
     needs: build
     if: vars.NETWIRE != 'off' && github.event_name != 'push' && (github.event_name != 'workflow_dispatch' || inputs.shift != 'off')

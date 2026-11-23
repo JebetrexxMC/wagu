@@ -50,6 +50,8 @@ hivemq-wss  | emqx | tls | broker.hivemq.com:8884 | HiveMQ public secure WebSock
 web-site    | web | http | mpsamp-open.github.io:80 | MP website (mpsamp-open.github.io)
 web-raw     | web | tls  | raw.githubusercontent.com:443 | GitHub raw (live status files)
 omp-api     | web | tls  | api.open.mp:443 | open.mp server list API
+zerotier-api | web | tls  | api.zerotier.com:443 | ZeroTier controller API (zerotier networks)
+bore-pub     | web | tcp  | bore.pub:7835 | bore.pub public tunnel server (TCP tunnels)
 
 # ---- templates: copy a line, remove '#', fill in your host ----
 # oracle-asia  | oracle | mp   | 1.2.3.4:1922        | Oracle Always Free (Asia)  | region=Asia
@@ -58,3 +60,4 @@ omp-api     | web | tls  | api.open.mp:443 | open.mp server list API
 # relay-sg     | relay  | udp  | 9.9.9.9:7777        | mpnetd relay (Singapore)
 # my-omp       | custom | samp | play.example.com:7777 | My open.mp server
 # my-mp        | custom | mp   | my.host.example:1930  | My MP server
+# zt-home      | zerotier | mp | 10.147.17.5:1922 | MP LAN over ZeroTier (networking/zerotier)

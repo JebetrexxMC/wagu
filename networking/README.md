@@ -11,6 +11,7 @@ Networking library and server for wagu. A **wire** is any network path MP, the w
 | `vps` | MP game ports on the region VPS | MP PKT_QUERY |
 | `lobby` | free public lobby: Mosquitto, HiveMQ, EMQX | MQTT login + ping |
 | `emqx` | EMQX / HiveMQ WebSocket and TLS ports | TLS hello / TCP |
+| `zerotier` | MP servers on your ZeroTier network (virtual LAN) | MP query, from a box on the same network |
 | `oracle`, `xdp`, `relay` | Oracle Always Free boxes, XDP fast-path boxes (`HiveMQ/xdp`), mpnetd relays | MP query / UDP ping |
 | `custom` | every other server in the MP lobby, plus your own lines | lobby / any |
 | `omp` | top open.mp / SA-MP servers from api.open.mp | SA-MP query |
@@ -24,6 +25,11 @@ networking/
   tools/sources.py         wires that change by themselves (crossplay address, lobby servers, open.mp top list)
   tools/render.py          badges, 24 h history, README card for the netwire-status branch
   tests/run.sh             local test: parser, probes, relay best-pick, relay ping, traffic counters
+  rust/                    mpnet-agent: Rust + tokio probe, RustScan-style scan, bore tunnel client/server
+  rustscan/                RustScan download + scan of your own servers
+  zerotier/                ZeroTier join script + MP LAN over ZeroTier
+  xpipe/                   XPipe SSH hosts for the MP boxes
+  manage/mpctl.sh          server management: status, restart, logs, update, netwire services, zerotier, tunnel
   sniffnet/                Sniffnet (traffic monitor) download + MP filters
   swift/                   MPNet Swift package (Moya) for iOS / macOS
   REFERENCES.md            the repos this was checked against
@@ -52,6 +58,21 @@ mpnetd relay -l 7778 -u wap-fresh.tun.ply.gg:56616 --kind samp            # open
 ```
 
 Grades: **green** under 120 ms median, jitter at most 30 ms, at most 20 % loss. **yellow** under 250 ms, at most 50 % loss. **red** is anything slower or lossier. **down** means no reply. Score = ping + 2 × jitter + 500 × loss (lower is better). The best wire of a group is the one with the lowest score.
+
+## Server management
+
+| tool | for |
+|---|---|
+| [`rust/`](rust) mpnet-agent | `probe` all wires concurrently (tokio), `scan` / `own` ports, `tunnel` + `bore-server` (bore) |
+| [`rustscan/`](rustscan) | RustScan 2.4.1: fast check of which MP ports are open on your own boxes |
+| [`zerotier/`](zerotier) | virtual LAN, so MP LAN Server and UDP game ports work between PCs and phones without port forwarding |
+| [`xpipe/`](xpipe) + [`manage/mpctl.sh`](manage/mpctl.sh) | every MP box in one XPipe window, with status / restart / logs / update / install-netwire buttons |
+
+```
+ssh mp-asia 'bash -s' < networking/manage/mpctl.sh status
+mpctl netwire                  # mpnetd watch :8090 + relay :7777 as systemd services
+mpctl tunnel 1883 bore.pub     # share MQTT through bore (TCP only)
+```
 
 ## 24/7 on GitHub
 

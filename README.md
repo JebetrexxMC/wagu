@@ -762,6 +762,15 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### NetWire 1.1 (game build stays 5.02.62)
+
+- **mpnet-agent** (`networking/rust`): NetWire agent in Rust on **tokio** (from the JebetrexxMC/tokio fork). `probe` checks every wire of `wires.txt` at the same time (mqtt, mp, samp, udp, tcp/tls/http), `scan` is a RustScan-style TCP scan plus MP / SA-MP query on UDP ports, `own` scans only your own servers.
+- **bore** tunnels: `mpnet-agent tunnel` / `bore-server` use bore (JebetrexxMC/bore) as a library to share a local TCP port (MQTT, status page, SSH). TCP only; UDP game ports go over ZeroTier or playit.
+- **RustScan** (`networking/rustscan`): download script for RustScan 2.4.1 and a scan of the MP ports on your own boxes.
+- **ZeroTier** (`networking/zerotier`): join script and guide for playing MP LAN Server over a ZeroTier virtual LAN, new `zerotier` wire group, `zerotier-api` and `bore-pub` web wires.
+- **XPipe + mpctl** (`networking/xpipe`, `networking/manage/mpctl.sh`): SSH hosts for the region and Oracle boxes, and one script for status, start/stop/restart, logs, update, installing mpnetd watch + relay as services, ZeroTier join and bore tunnels.
+- CI: new `rust` job (cargo build, probe, scan, bore tunnel end to end) and syntax check of all scripts. Network page lists the new tools.
+
 ### NetWire 1.0 (game build stays 5.02.62)
 - New `networking/` folder: MP NetWire, a networking library plus server that check every MP network path ("wire") around the clock. See `networking/README.md`.
   - `lib/mpnet.*` (C++17, plain POSIX sockets) has real protocol probes:
