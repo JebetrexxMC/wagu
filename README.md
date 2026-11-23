@@ -764,15 +764,16 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ### NetWire 1.1 (game build stays 5.02.62)
 
-- **mpnet-agent** (`networking/rust`): NetWire agent in Rust on **tokio** (from the JebetrexxMC/tokio fork). `probe` checks every wire of `wires.txt` at the same time (mqtt, mp, samp, udp, tcp/tls/http), `scan` is a RustScan-style TCP scan plus MP / SA-MP query on UDP ports, `own` scans only your own servers.
+- **mpnet-agent** (`net/rust`): NetWire agent in Rust on **tokio** (from the JebetrexxMC/tokio fork). `probe` checks every wire of `wires.txt` at the same time (mqtt, mp, samp, udp, tcp/tls/http), `scan` is a RustScan-style TCP scan plus MP / SA-MP query on UDP ports, `own` scans only your own servers.
 - **bore** tunnels: `mpnet-agent tunnel` / `bore-server` use bore (JebetrexxMC/bore) as a library to share a local TCP port (MQTT, status page, SSH). TCP only; UDP game ports go over ZeroTier or playit.
-- **RustScan** (`networking/rustscan`): download script for RustScan 2.4.1 and a scan of the MP ports on your own boxes.
-- **ZeroTier** (`networking/zerotier`): join script and guide for playing MP LAN Server over a ZeroTier virtual LAN, new `zerotier` wire group, `zerotier-api` and `bore-pub` web wires.
-- **XPipe + mpctl** (`networking/xpipe`, `networking/manage/mpctl.sh`): SSH hosts for the region and Oracle boxes, and one script for status, start/stop/restart, logs, update, installing mpnetd watch + relay as services, ZeroTier join and bore tunnels.
+- **RustScan** (`net/rustscan`): download script for RustScan 2.4.1 and a scan of the MP ports on your own boxes.
+- **ZeroTier** (`net/zerotier`): join script and guide for playing MP LAN Server over a ZeroTier virtual LAN, new `zerotier` wire group, `zerotier-api` and `bore-pub` web wires.
+- **XPipe + mpctl** (`net/xpipe`, `net/manage/mpctl.sh`): SSH hosts for the region and Oracle boxes, and one script for status, start/stop/restart, logs, update, installing mpnetd watch + relay as services, ZeroTier join and bore tunnels.
+- The `networking/` folder is now **`net/`** (all paths, workflow, website links and scripts updated).
 - CI: new `rust` job (cargo build, probe, scan, bore tunnel end to end) and syntax check of all scripts. Network page lists the new tools.
 
 ### NetWire 1.0 (game build stays 5.02.62)
-- New `networking/` folder: MP NetWire, a networking library plus server that check every MP network path ("wire") around the clock. See `networking/README.md`.
+- New `net/` folder: MP NetWire, a networking library plus server that check every MP network path ("wire") around the clock. See `net/README.md`.
   - `lib/mpnet.*` (C++17, plain POSIX sockets) has real protocol probes:
     - MQTT: login plus PINGREQ.
     - MP: the PKT_QUERY server-list query, using the same `protocol.h`.
@@ -788,8 +789,8 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
   - `wires.txt` is the list of wires. One line is one new wire, with no restart: the region brokers, the public lobby (Mosquitto, HiveMQ, EMQX), EMQX ports, the region VPS game ports, the website and APIs, plus templates for Oracle, XDP, relay and custom boxes. `tools/sources.py` adds the wires that change on their own: MP Crossplay 24/7, the default, featured and custom servers from the MP lobby, and the top open.mp / SA-MP servers from api.open.mp.
 - `.github/workflows/netwire-247.yml` builds and tests on every change. It then probes every 5 minutes, all day, using the same long-shift pattern as live-status. Results go to the `netwire-status` branch: `wires.json`, 24 h history, `netwire.svg` and the new live badges at the top of this README.
 - Website: new [Network page](https://mpsamp-open.github.io/network.html) (link in the top bar), with every wire, its grade, ping, jitter, loss, 24 h uptime and the last 4 h.
-- Sniffnet support (`networking/sniffnet/`): a download/start script and MP port filters, including one BPF filter for all MP traffic. On phones and headless servers, `mpnetd`'s `/traffic.json` gives the same kind of live view without root.
-- Moya support (`networking/swift/`): the MPNet Swift package (iOS/macOS) reads the NetWire status through Moya. It is built and tested on a macOS runner.
+- Sniffnet support (`net/sniffnet/`): a download/start script and MP port filters, including one BPF filter for all MP traffic. On phones and headless servers, `mpnetd`'s `/traffic.json` gives the same kind of live view without root.
+- Moya support (`net/swift/`): the MPNet Swift package (iOS/macOS) reads the NetWire status through Moya. It is built and tested on a macOS runner.
 - Pings come from GitHub's data centre, not from a phone. The relay can only make the game smoother when it runs on a box near the players (a region VPS or Oracle). It doesn't make a far server closer.
 
 ### 5.02.62

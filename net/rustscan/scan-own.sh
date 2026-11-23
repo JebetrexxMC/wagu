@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Scan the MP ports of YOUR OWN servers (region / vps / oracle / xdp / relay / custom groups in wires.txt).
-# Uses rustscan when installed, else the built-in scanner of mpnet-agent (networking/rust).
+# Uses rustscan when installed, else the built-in scanner of mpnet-agent (net/rust).
 # Only scan hosts you own or are allowed to test.
 set -euo pipefail
 cd "$(dirname "$0")/.."

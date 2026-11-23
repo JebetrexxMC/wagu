@@ -29,7 +29,7 @@ Host mp-oracle
     User ubuntu
     IdentityFile ~/.ssh/oracle_mp
 
-# Same box over ZeroTier (networking/zerotier), works even with SSH closed to the internet
+# Same box over ZeroTier (net/zerotier), works even with SSH closed to the internet
 Host mp-oracle-zt
     HostName 10.147.17.5
     User ubuntu

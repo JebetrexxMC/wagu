@@ -18,7 +18,7 @@ Networking library and server for wagu. A **wire** is any network path MP, the w
 | `web` | website, GitHub raw, open.mp API | HTTP / TLS |
 
 ```
-networking/
+net/
   lib/mpnet.h, mpnet.cpp   library: probes, grades, best-of-group, JSON (C++17, POSIX sockets, no Boost/OpenSSL)
   server/mpnetd.cpp        probe / watch / relay
   wires.txt                the wire list - one line = one wire
@@ -38,19 +38,19 @@ networking/
 ## Build
 
 ```
-make -C networking            # build/mpnetd
-make -C networking test
-make -C networking android NDK=/path/to/android-ndk   # build/android/{arm64-v8a,armeabi-v7a}/mpnetd (Termux, adb shell)
+make -C net            # build/mpnetd
+make -C net test
+make -C net android NDK=/path/to/android-ndk   # build/android/{arm64-v8a,armeabi-v7a}/mpnetd (Termux, adb shell)
 ```
 
 ## Run
 
 ```
 # one round, JSON to stdout
-mpnetd probe -w networking/wires.txt
+mpnetd probe -w net/wires.txt
 
 # 24/7 on a VPS / Oracle box, status on :8090 (/wires.json, /traffic.json, /health)
-mpnetd watch -w networking/wires.txt -o /var/lib/mpnet -i 60 --http 8090
+mpnetd watch -w net/wires.txt -o /var/lib/mpnet -i 60 --http 8090
 
 # UDP relay near the players: new players go over the fastest upstream, :8091/traffic.json = live traffic
 mpnetd relay -l 7777 -u eusamp.duckdns.org:1922 -u mpsamp.duckdns.org:1922 --kind mp --http 8091
@@ -69,7 +69,7 @@ Grades: **green** under 120 ms median, jitter at most 30 ms, at most 20 % loss. 
 | [`xpipe/`](xpipe) + [`manage/mpctl.sh`](manage/mpctl.sh) | every MP box in one XPipe window, with status / restart / logs / update / install-netwire buttons |
 
 ```
-ssh mp-asia 'bash -s' < networking/manage/mpctl.sh status
+ssh mp-asia 'bash -s' < net/manage/mpctl.sh status
 mpctl netwire                  # mpnetd watch :8090 + relay :7777 as systemd services
 mpctl tunnel 1883 bore.pub     # share MQTT through bore (TCP only)
 ```

@@ -16,4 +16,4 @@
 | `mpctl zerotier ID` | join a ZeroTier network |
 | `mpctl tunnel PORT` | share a TCP port through bore |
 
-Without XPipe the same works over plain SSH: `ssh mp-asia 'bash -s' < networking/manage/mpctl.sh status`.
+Without XPipe the same works over plain SSH: `ssh mp-asia 'bash -s' < net/manage/mpctl.sh status`.

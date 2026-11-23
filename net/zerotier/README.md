@@ -9,10 +9,10 @@
 ## Set up
 
 1. Create a free network at [my.zerotier.com](https://my.zerotier.com) and copy the 16-character Network ID.
-2. Server (VPS / Oracle / Linux PC): `sudo bash networking/zerotier/zerotier-join.sh <NETWORK_ID>`, then approve it under **Members**.
+2. Server (VPS / Oracle / Linux PC): `sudo bash net/zerotier/zerotier-join.sh <NETWORK_ID>`, then approve it under **Members**.
 3. Windows / macOS PC: install ZeroTier One from [zerotier.com/download](https://www.zerotier.com/download/) and join the ID.
 4. Phone: install **ZeroTier One** from Google Play / App Store and join the same ID (it runs as a VPN, so Termux does not need root).
-5. Add the server to `networking/wires.txt` so it shows on the Network page:
+5. Add the server to `net/wires.txt` so it shows on the Network page:
    ```
    zt-home | zerotier | mp | 10.147.17.5:1922 | MP LAN over ZeroTier
    ```

@@ -60,4 +60,4 @@ bore-pub     | web | tcp  | bore.pub:7835 | bore.pub public tunnel server (TCP t
 # relay-sg     | relay  | udp  | 9.9.9.9:7777        | mpnetd relay (Singapore)
 # my-omp       | custom | samp | play.example.com:7777 | My open.mp server
 # my-mp        | custom | mp   | my.host.example:1930  | My MP server
-# zt-home      | zerotier | mp | 10.147.17.5:1922 | MP LAN over ZeroTier (networking/zerotier)
+# zt-home      | zerotier | mp | 10.147.17.5:1922 | MP LAN over ZeroTier (net/zerotier)

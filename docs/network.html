@@ -55,7 +55,7 @@
 
   <section class="card" id="add" aria-labelledby="add-h">
     <h2 id="add-h">Add a wire</h2>
-    <p class="note">Add one line to <a href="https://github.com/JebetrexxMC/wagu/edit/main/networking/wires.txt" target="_blank" rel="noopener">networking/wires.txt</a>. The next round (within 5 minutes) probes it and it shows up here and on the badges.</p>
+    <p class="note">Add one line to <a href="https://github.com/JebetrexxMC/wagu/edit/main/net/wires.txt" target="_blank" rel="noopener">net/wires.txt</a>. The next round (within 5 minutes) probes it and it shows up here and on the badges.</p>
     <pre class="code">id | group | kind | host:port | name | options
 my-vps | vps | mp | 1.2.3.4:1922 | My VPS server | region=Asia
 my-omp | custom | samp | play.example.com:7777 | My open.mp server</pre>
@@ -65,14 +65,14 @@ my-omp | custom | samp | play.example.com:7777 | My open.mp server</pre>
   <section class="card" id="tools" aria-labelledby="tools-h">
     <h2 id="tools-h">Tools</h2>
     <ul class="dl-list">
-      <li><div><b>mpnetd</b><span class="m">Probe, 24/7 watch and the UDP relay that sends every new player over the fastest upstream. Linux, VPS, Oracle and Termux builds.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/networking" target="_blank" rel="noopener">Source + how to run</a></li>
-      <li><div><b>Sniffnet</b><span class="m">Watch your traffic on a PC: which hosts, bytes, packets, countries. MP port filters included.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/networking/sniffnet" target="_blank" rel="noopener">MP filters + download</a></li>
-      <li><div><b>mpnet-agent</b><span class="m">Rust + tokio: probes every wire at once, RustScan-style port scan of your own servers, and bore TCP tunnels.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/networking/rust" target="_blank" rel="noopener">Rust agent</a></li>
-      <li><div><b>RustScan</b><span class="m">Very fast port scanner: which MP ports are open on your own boxes.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/networking/rustscan" target="_blank" rel="noopener">Download + scan script</a></li>
-      <li><div><b>ZeroTier</b><span class="m">Private virtual LAN: play MP LAN Server with friends over the internet, UDP included, no port forwarding.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/networking/zerotier" target="_blank" rel="noopener">Join script + guide</a></li>
-      <li><div><b>XPipe + mpctl</b><span class="m">One window for all MP servers: shells, files, tunnels, and status / restart / logs / update buttons.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/networking/xpipe" target="_blank" rel="noopener">SSH hosts + mpctl</a></li>
-      <li><div><b>bore</b><span class="m">Share a local TCP port (MQTT, status page, SSH) through a bore server. TCP only.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/networking/rust#mpnet-agent-rust-tokio--bore" target="_blank" rel="noopener">How to tunnel</a></li>
-      <li><div><b>MPNet for Swift</b><span class="m">This status in iOS / macOS apps, through Moya.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/networking/swift" target="_blank" rel="noopener">Swift package</a></li>
+      <li><div><b>mpnetd</b><span class="m">Probe, 24/7 watch and the UDP relay that sends every new player over the fastest upstream. Linux, VPS, Oracle and Termux builds.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/net" target="_blank" rel="noopener">Source + how to run</a></li>
+      <li><div><b>Sniffnet</b><span class="m">Watch your traffic on a PC: which hosts, bytes, packets, countries. MP port filters included.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/net/sniffnet" target="_blank" rel="noopener">MP filters + download</a></li>
+      <li><div><b>mpnet-agent</b><span class="m">Rust + tokio: probes every wire at once, RustScan-style port scan of your own servers, and bore TCP tunnels.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/net/rust" target="_blank" rel="noopener">Rust agent</a></li>
+      <li><div><b>RustScan</b><span class="m">Very fast port scanner: which MP ports are open on your own boxes.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/net/rustscan" target="_blank" rel="noopener">Download + scan script</a></li>
+      <li><div><b>ZeroTier</b><span class="m">Private virtual LAN: play MP LAN Server with friends over the internet, UDP included, no port forwarding.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/net/zerotier" target="_blank" rel="noopener">Join script + guide</a></li>
+      <li><div><b>XPipe + mpctl</b><span class="m">One window for all MP servers: shells, files, tunnels, and status / restart / logs / update buttons.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/net/xpipe" target="_blank" rel="noopener">SSH hosts + mpctl</a></li>
+      <li><div><b>bore</b><span class="m">Share a local TCP port (MQTT, status page, SSH) through a bore server. TCP only.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/net/rust#mpnet-agent-rust-tokio--bore" target="_blank" rel="noopener">How to tunnel</a></li>
+      <li><div><b>MPNet for Swift</b><span class="m">This status in iOS / macOS apps, through Moya.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/net/swift" target="_blank" rel="noopener">Swift package</a></li>
     </ul>
   </section>
 </main>

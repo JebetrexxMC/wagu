@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # mpctl - manage an MP server box (region VPS, Oracle Always Free, home Linux PC).
-# Works from XPipe (networking/xpipe), plain SSH (ssh box 'bash -s' < mpctl.sh status) or locally.
+# Works from XPipe (net/xpipe), plain SSH (ssh box 'bash -s' < mpctl.sh status) or locally.
 set -uo pipefail
 BASE="${MP_BASE:-/opt/mp}"
 SRC="${MP_SRC:-$HOME/wagu}"
@@ -37,9 +37,9 @@ cmd_logs()    { journalctl -u "${1:-mp-server}" -n "${2:-100}" --no-pager; }
 cmd_update() {
   if [ ! -d "$SRC/.git" ]; then
     git clone --depth 1 --filter=blob:none --sparse https://github.com/JebetrexxMC/wagu "$SRC" &&
-      git -C "$SRC" sparse-checkout set networking src/net
+      git -C "$SRC" sparse-checkout set net src/net
   else git -C "$SRC" pull --ff-only; fi
-  make -C "$SRC/networking" host && $SUDO install -m 755 "$SRC/networking/build/host/mpnetd" "$NET/mpnetd" &&
+  make -C "$SRC/net" host && $SUDO install -m 755 "$SRC/net/build/host/mpnetd" "$NET/mpnetd" &&
     echo "mpnetd updated: $NET/mpnetd"
   systemctl is-active -q mpnet-watch 2>/dev/null && $SUDO systemctl restart mpnet-watch
   systemctl is-active -q mpnet-relay 2>/dev/null && $SUDO systemctl restart mpnet-relay
@@ -58,7 +58,7 @@ Description=MP NetWire watch (status on :8090)
 After=network-online.target
 Wants=network-online.target
 [Service]
-ExecStart=$NET/mpnetd watch -w $SRC/networking/wires.txt -o /var/lib/mpnet -i 60 --http 8090
+ExecStart=$NET/mpnetd watch -w $SRC/net/wires.txt -o /var/lib/mpnet -i 60 --http 8090
 Restart=always
 RestartSec=5
 DynamicUser=yes
@@ -83,15 +83,15 @@ UNIT
   systemctl --no-pager is-active mpnet-watch mpnet-relay
 }
 
-cmd_zerotier() { $SUDO bash "$SRC/networking/zerotier/zerotier-join.sh" "${1:-}"; }
+cmd_zerotier() { $SUDO bash "$SRC/net/zerotier/zerotier-join.sh" "${1:-}"; }
 
 cmd_tunnel() {
   # share a local TCP port (MQTT 1883, status 8090, SSH 22...) via bore; UDP game ports need ZeroTier / playit
   port="${1:?usage: mpctl tunnel LOCAL_PORT [bore-server]}"; to="${2:-${BORE_SERVER:-bore.pub}}"
-  if [ -x "$SRC/networking/rust/target/release/mpnet-agent" ]; then
-    exec "$SRC/networking/rust/target/release/mpnet-agent" tunnel --local-port "$port" --to "$to"
+  if [ -x "$SRC/net/rust/target/release/mpnet-agent" ]; then
+    exec "$SRC/net/rust/target/release/mpnet-agent" tunnel --local-port "$port" --to "$to"
   elif command -v bore >/dev/null; then exec bore local "$port" --to "$to"
-  else echo "need bore (cargo install bore-cli) or mpnet-agent (cd networking/rust && cargo build --release)"; exit 1; fi
+  else echo "need bore (cargo install bore-cli) or mpnet-agent (cd net/rust && cargo build --release)"; exit 1; fi
 }
 
 usage() {

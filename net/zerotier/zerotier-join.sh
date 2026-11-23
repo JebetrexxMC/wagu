@@ -13,7 +13,7 @@ zerotier-cli join "$NET"
 echo "joined $NET - approve this device in my.zerotier.com (Members), then:"
 for i in $(seq 1 30); do
   ip=$(zerotier-cli get "$NET" ip 2>/dev/null || true)
-  [ -n "$ip" ] && [ "$ip" != "-" ] && { echo "ZeroTier IP: $ip"; echo "add to networking/wires.txt:"; echo "zt-$(hostname -s) | zerotier | mp | $ip:1922 | MP over ZeroTier"; exit 0; }
+  [ -n "$ip" ] && [ "$ip" != "-" ] && { echo "ZeroTier IP: $ip"; echo "add to net/wires.txt:"; echo "zt-$(hostname -s) | zerotier | mp | $ip:1922 | MP over ZeroTier"; exit 0; }
   sleep 2
 done
 echo "no IP yet (not approved?) - check: zerotier-cli listnetworks"

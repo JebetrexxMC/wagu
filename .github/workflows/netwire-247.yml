@@ -1,4 +1,4 @@
-# MP NetWire 24/7 (networking/): probes every wire - region brokers (HiveMQ), public lobby (Mosquitto /
+# MP NetWire 24/7 (net/): probes every wire - region brokers (HiveMQ), public lobby (Mosquitto /
 # HiveMQ / EMQX), EMQX ports, region VPS game ports, Oracle / XDP / relay boxes, MP Crossplay (open.mp),
 # the default + featured + custom servers in the MP lobby and the top open.mp / SA-MP servers - every
 # 5 minutes and force-pushes the result to the `netwire-status` branch (one commit, main stays clean):
@@ -6,7 +6,7 @@
 # The page mpsamp-open.github.io/network.html reads the same files.
 # Same long-shift pattern as live-status.yml: one run stays up ~5h50m and loops itself; the cron only
 # starts the next shift (queued, never cancelling the running one), so the status never stops.
-# A new wire = a new line in networking/wires.txt; the next round picks it up (the file is re-read).
+# A new wire = a new line in net/wires.txt; the next round picks it up (the file is re-read).
 # Pings are measured from the GitHub runner (US / EU data centres), not from a phone: use them to see
 # what is up and which path is fastest, not as the ping a player in the Philippines gets.
 # Turn it off: repository variable NETWIRE = off.
@@ -15,7 +15,7 @@ name: MP NetWire 24/7
 on:
   push:
     branches: [main]
-    paths: ['networking/**', '.github/workflows/netwire-247.yml']
+    paths: ['net/**', '.github/workflows/netwire-247.yml']
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch:
@@ -35,19 +35,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
-            networking
-            src/net
+            /net/
+            /src/net/
           sparse-checkout-cone-mode: false
       - name: Build (host)
-        run: make -C networking
+        run: make -C net
       - name: Test (parser, probes, relay)
-        run: make -C networking test
+        run: make -C net test
       - name: Build for Android (Termux / adb shell)
-        run: make -C networking android NDK=$ANDROID_NDK_LATEST_HOME && ls -la networking/build/android/*/mpnetd
+        run: make -C net android NDK=$ANDROID_NDK_LATEST_HOME && ls -la net/build/android/*/mpnetd
       - name: One probe round
         run: |
-          python3 networking/tools/sources.py 10 > dyn.txt || true
-          networking/build/mpnetd probe -w networking/wires.txt -w dyn.txt --from "GitHub Actions (build check)" -o wires.json || true
+          python3 net/tools/sources.py 10 > dyn.txt || true
+          net/build/mpnetd probe -w net/wires.txt -w dyn.txt --from "GitHub Actions (build check)" -o wires.json || true
           python3 - <<'PY'
           import json; d = json.load(open("wires.json"))
           print("%d wires, %d probed, %d up, %d green" % (d["total"], d["probed"], d["up"], d["green"]))
@@ -56,8 +56,8 @@ jobs:
         with:
           name: mpnetd
           path: |
-            networking/build/mpnetd
-            networking/build/android
+            net/build/mpnetd
+            net/build/android
           retention-days: 14
 
   swift:
@@ -67,9 +67,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: networking/swift
+          sparse-checkout: net/swift
       - name: swift build + test
-        working-directory: networking/swift
+        working-directory: net/swift
         run: swift build && swift test
 
   rust:
@@ -79,21 +79,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: networking
+          sparse-checkout: net
       - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            networking/rust/target
-          key: rust-${{ hashFiles('networking/rust/Cargo.lock') }}
+            net/rust/target
+          key: rust-${{ hashFiles('net/rust/Cargo.lock') }}
       - name: cargo build
-        working-directory: networking/rust
+        working-directory: net/rust
         run: cargo build --release --locked
       - name: scripts (bash -n)
-        run: for f in networking/manage/*.sh networking/rustscan/*.sh networking/zerotier/*.sh networking/sniffnet/*.sh; do bash -n "$f"; done
+        run: for f in net/manage/*.sh net/rustscan/*.sh net/zerotier/*.sh net/sniffnet/*.sh; do bash -n "$f"; done
       - name: probe + scan + bore tunnel
-        working-directory: networking
+        working-directory: net
         run: |
           A=rust/target/release/mpnet-agent
           timeout 60 $A probe -w wires.txt | tail -20
@@ -122,22 +122,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
-            networking
-            src/net
+            /net/
+            /src/net/
           sparse-checkout-cone-mode: false
-      - run: make -C networking
+      - run: make -C net
       - name: Probe every 5 minutes (~5h50m)
         run: |
           end=$(( $(date +%s) + 350*60 ))
           while :; do
             # re-read main's wires.txt every round: a wire added while the shift runs is probed too
-            curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/networking/wires.txt" -o wires.txt 2>/dev/null || cp networking/wires.txt wires.txt
-            python3 networking/tools/sources.py 20 > dyn.txt || true
+            curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/net/wires.txt" -o wires.txt 2>/dev/null || cp net/wires.txt wires.txt
+            python3 net/tools/sources.py 20 > dyn.txt || true
             rm -rf out; mkdir -p out
             curl -fsSL "https://raw.githubusercontent.com/${REPO}/netwire-status/history.json" -o prev.json 2>/dev/null || echo '{}' > prev.json
-            networking/build/mpnetd probe -w wires.txt -w dyn.txt --samples 5 --from "GitHub Actions" -o out/wires.json 2> probe.log || true
+            net/build/mpnetd probe -w wires.txt -w dyn.txt --samples 5 --from "GitHub Actions" -o out/wires.json 2> probe.log || true
             tail -n +1 probe.log | head -80
-            if [ -s out/wires.json ] && python3 networking/tools/render.py out prev.json; then
+            if [ -s out/wires.json ] && python3 net/tools/render.py out prev.json; then
               ( cd out
                 git init -q -b netwire-status
                 git config user.name "github-actions[bot]"

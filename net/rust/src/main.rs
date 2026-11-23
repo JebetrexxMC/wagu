@@ -35,7 +35,7 @@ struct Cli {
 enum Cmd {
     /// Probe every wire of wires.txt (async, all at once)
     Probe {
-        #[arg(short, long = "wires", default_value = "networking/wires.txt")]
+        #[arg(short, long = "wires", default_value = "net/wires.txt")]
         w: Vec<String>,
         #[arg(long, default_value_t = 4)]
         samples: usize,
@@ -56,7 +56,7 @@ enum Cmd {
     },
     /// Scan the MP ports of every own server in wires.txt
     Own {
-        #[arg(short, long = "wires", default_value = "networking/wires.txt")]
+        #[arg(short, long = "wires", default_value = "net/wires.txt")]
         w: Vec<String>,
         #[arg(long, default_value_t = 800)]
         timeout: u64,
