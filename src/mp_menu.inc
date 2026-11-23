@@ -369,6 +369,15 @@ static void MenuMpRelease(int ped)
     s_bMenuMpBlack = false; s_nMenuMpPct = -1; s_bMenuMpCard = false;
 }
 
+// 5.02.71: a network to join over (checked at most once a second - LAN::HasNetwork reads the interfaces)
+static bool MenuMpOnline()
+{
+    static uint64_t s_nAt = 0; static bool s_bOn = true;
+    const uint64_t now = MP_NowMs();
+    if(!s_nAt || now - s_nAt > 1000) { s_nAt = now; s_bOn = LAN::HasNetwork() || s_bLocalhostMode || MP::IsHosting() || Online::IsConnected(); }
+    return s_bOn;
+}
+
 // game thread, every frame (before the join flow, so the join screen's own HUD / camera calls win)
 static void MenuMpProcess(int ped, uint64_t now)
 {
@@ -438,9 +447,23 @@ static void MenuMpProcess(int ped, uint64_t now)
         s_bMenuMpLaunched = true;
         if(st == NET_DISCONNECTED)
         {   // 4.13.22: a server picked on the neon title menu is joined now; the neon menu is the server select
-            if(NeonPendingJoin()) {}
+            if(!MenuMpOnline()) {}   // 5.02.71: no network: single player below (the join would only fail)
+            else if(NeonPendingJoin()) {}
             else if(!NeonOn()) FloatMenu::OpenPage(FloatMenu::PAGE_SERVER);
         }
+    }
+    // 5.02.71: Wi-Fi and mobile data off: a Multiplayer load (neon Browse servers / a server picked on the title) stayed
+    //  on the black screen / "SEARCHING FOR SERVERS..." forever - the join failed with a chat line nobody could see
+    //  there. Now, with no network (and no localhost / own server), the game goes on as single player right where the
+    //  save put you, with a notice; Multiplayer works again from the menu once a network is back.
+    if(s_bMenuMpLaunched && st == NET_DISCONNECTED && !MenuMpOnline())
+    {
+        s_bNeonPendingJoin = false;
+        if(FloatMenu::IsPageOpen(FloatMenu::PAGE_SERVER)) FloatMenu::ClosePage(FloatMenu::PAGE_SERVER);
+        MenuMpRelease(ped); s_bMenuMp = false; s_nMenuMpUiMs = 0; s_bMenuMpLaunched = false;
+        logger->Info("Main menu: Multiplayer -> no Wi-Fi / mobile data: single player (offline)");
+        SysMsg(COL_YELLOW, "No Wi-Fi / mobile data - playing offline (single player). Turn a network on and open the MP menu to join a server.");
+        return;
     }
     s_bMenuMpCard = !NeonOn() && st == NET_DISCONNECTED && !FloatMenu::IsPageOpen(FloatMenu::PAGE_SERVER);
 }

@@ -1636,25 +1636,12 @@ static std::string LuaModRunner(const std::string& src)
         end
       end
     end
-    pcall(function()
-      local w, h = getScreenResolution()
-      if not w or w < 200 or not h or h < 200 then return end
-      local f = io.open(__mp_pkg .. '/config/HassleHUD.json', 'rb'); local d = f:read('*a'); f:close()
-      local mx, my = 140, 110
-      local moved = false
-      local out = d:gsub('"(st[12]_[xy])"%s*:%s*(%-?[%d%.]+)', function(k, v)
-        local n = tonumber(v) or 0
-        local lim = k:sub(-1) == 'x' and w or h
-        local m = k:sub(-1) == 'x' and mx or my
-        local c = math.floor(math.max(m, math.min(lim - m, n)))
-        if c ~= n then moved = true end
-        return ('"%s":%d'):format(k, c)
-      end)
-      if moved then
-        local o = io.open(__mp_pkg .. '/config/HassleHUD.json', 'wb'); o:write(out); o:close()
-        print(('[LuaScripts] HassleHUD: the saved HUD position was off this %dx%d screen - moved back inside'):format(w, h))
-      end
-    end)
+    -- 5.02.71: the saved HUD position is no longer rewritten when the script starts. That pulled the HUD into the
+    --  screen size the game had at that moment (portrait / not final yet after the phone was locked or the app
+    --  re-opened) and wrote it back - a right-corner HUD came back on the left and the spot you dragged it to was
+    --  lost. Now the HUD is only kept on screen while it is drawn (__mp_hhfit, in memory, landscape sizes only) and
+    --  config/HassleHUD.json keeps exactly what you saved; the save itself is written to a temp file and renamed
+    --  so closing the game while it saves can't leave a broken file (that reset the HUD to its default spot).
     -- 5.02.44: the HP / armour / stamina bars did not show (the fist GIF did): any error in the HUD frame after the
     --  fist threw the rest of the frame away and only went to moonloader.log. HassleHUD's source is patched as it loads
     --  (it is loadstring()ed by "HassleHUD Android.luac"): the stamina code, the circle, the weapon and the bars each run
@@ -1820,8 +1807,24 @@ static std::string LuaModRunner(const std::string& src)
         end
         if ch then saveLay() end
       end
+      __mp_hhfit = function(px, py)
+        local ok, w, h = pcall(getScreenResolution)
+        if not ok or not w or not h or w < 800 or h < 300 or w <= h then return end
+        local x, y = px[0], py[0]
+        local cx = math.floor(math.max(140, math.min(w - 140, x)))
+        local cy = math.floor(math.max(110, math.min(h - 110, y)))
+        if cx ~= x then px[0] = cx end
+        if cy ~= y then py[0] = cy end
+        if (cx ~= x or cy ~= y) and not __mp_hhfitlog then
+          __mp_hhfitlog = true
+          print(('[LuaScripts] HassleHUD: HUD %d,%d is off this %dx%d screen - shown at %d,%d (saved file unchanged)'):format(x, y, w, h, cx, cy))
+        end
+      end
       local BARS = 'local function bars(DL,x,y,r,sM)'
       local reps = {
+        { '    local x,y = posX[0],posY[0]\n    local sM', '    if __mp_hhfit then __mp_hhfit(posX, posY) end\n    local x,y = posX[0],posY[0]\n    local sM' },
+        { '    local f = io.open(CFG, "w")\n    if f then f:write(json.encode(data)); f:close() end\n',
+          '    local __t = CFG .. ".tmp"\n    local f = io.open(__t, "w")\n    if f then f:write(json.encode(data)); f:close(); if not os.rename(__t, CFG) then os.remove(CFG); os.rename(__t, CFG) end end\n' },
         { '    staminaped()\n    if savePend', "    __mp_hhcall('stamina', staminaped)\n    if savePend" },
         { "    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n    return mx >= x",
           "    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n    if __mp_hhmouse then mx, my = __mp_hhmouse(mx, my) end\n    return mx >= x" },
