@@ -193,11 +193,15 @@ jobs:
             CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w" -o /tmp/mpl/mplatency-$os-$arch$ext ./mplatency
           done
           ls -la /tmp/mpl
-          timeout 60 /tmp/mpl/mplatency-linux-amd64 -once -wires ../wires.txt -groups region,web || true
+          timeout 90 /tmp/mpl/mplatency-linux-amd64 -once -rounds 3 -every 2s -wires ../wires.txt -json /tmp/lat.json || true
+          python3 ../tools/render_latency.py /tmp/lat.json /tmp/mpl-card
+          python3 -c "import json;d=json.load(open('/tmp/mpl-card/mplatency.json'));assert d['targets'] and d['round']==3"
       - uses: actions/upload-artifact@v4
         with:
           name: mplatency
-          path: /tmp/mpl/*
+          path: |
+            /tmp/mpl/*
+            /tmp/mpl-card/*
 
   native:
     # mpnet-dns (libevent), mpnet-ws (POCO), mpprobe.py (asyncio / uvloop / trio)
@@ -320,6 +324,13 @@ jobs:
             /src/net/
           sparse-checkout-cone-mode: false
       - run: make -C net
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+      - name: build mplatency
+        working-directory: net/go
+        run: CGO_ENABLED=0 go build -trimpath -o "$RUNNER_TEMP/mplatency" ./mplatency
       - name: Probe every 5 minutes (~5h50m)
         run: |
           end=$(( $(date +%s) + 350*60 ))
@@ -332,6 +343,9 @@ jobs:
             net/build/mpnetd probe -w wires.txt -w dyn.txt --samples 5 --from "GitHub Actions" -o out/wires.json 2> probe.log || true
             tail -n +1 probe.log | head -80
             if [ -s out/wires.json ] && python3 net/tools/render.py out prev.json; then
+              # mplatency: 5 samples per wire (avg / min / max / jitter / loss + location) -> README card
+              timeout 120 "$RUNNER_TEMP/mplatency" -once -rounds 5 -every 2s -wires wires.txt -json lat.json -quiet > lat.log 2>&1 || true
+              [ -s lat.json ] && python3 net/tools/render_latency.py lat.json out || tail -5 lat.log
               ( cd out
                 git init -q -b netwire-status
                 git config user.name "github-actions[bot]"

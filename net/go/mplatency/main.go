@@ -2,20 +2,28 @@
 //
 // Built on the "Server Latency & Location Monitor" idea (TCP connect time, goroutine per server,
 // geolocation cached once) and fixed / extended for MP:
+//
 //   - the ip-api URL was "http://ip-api.com" + ip (no "/json/"): every lookup failed. Lookups now
 //     go through ip-api's batch endpoint (100 IPs per request, once at start + every 6 h), so the
 //     24/7 loop never hits the 45 requests/minute limit;
+//
 //   - the AWS hosts were "://amazonaws.com" (not a host name): now real EC2 endpoints;
+//
 //   - game servers are UDP: TCP to 7777 always said OFFLINE. "samp" wires use the SA-MP query 'p'
 //     (open.mp / SA-MP), "mp" wires the MP PKT_QUERY (the in-game server list), "udp" the MPNETPNG
 //     echo of mpnetd / mpedge. tcp / tls / http / mqtt wires use the TCP handshake time;
+//
 //   - reads net/wires.txt (the same list the NetWire workflow probes), -t adds more targets;
+//
 //   - keeps per-target stats (last, avg, min, max, jitter, loss, uptime) over a sliding window;
+//
 //   - HTTP: / (text table), /status.json, /metrics (Prometheus), /healthz;
+//
 //   - optional Discord webhook / Telegram alert when a target goes down or comes back;
+//
 //   - stops cleanly on SIGINT / SIGTERM (systemd, nohup, Termux).
 //
-//	go run ./mplatency -wires ../wires.txt -every 5s -http :8099
+//     go run ./mplatency -wires ../wires.txt -every 5s -http :8099
 package main
 
 import (
@@ -544,6 +552,30 @@ func (m *Monitor) Rows() []Row {
 	return rows
 }
 
+// Status is the /status.json document (also written by -json).
+func (m *Monitor) Status() map[string]any {
+	m.mu.RLock()
+	round, last := m.round, m.last
+	m.mu.RUnlock()
+	return map[string]any{"round": round, "time": last.UTC().Format(time.RFC3339), "targets": m.Rows()}
+}
+
+// WriteJSON writes Status to path (temp file + rename, so readers never see half a file).
+func (m *Monitor) WriteJSON(path string) error {
+	if path == "" {
+		return nil
+	}
+	b, err := json.MarshalIndent(m.Status(), "", " ")
+	if err != nil {
+		return err
+	}
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, b, 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
+}
+
 func fmtMs(v float64) string {
 	if v < 0 || math.IsNaN(v) {
 		return "N/A"
@@ -646,6 +678,8 @@ func main() {
 	discord := flag.String("discord", os.Getenv("MP_DISCORD_WEBHOOK"), "Discord webhook for down / up alerts")
 	tgToken := flag.String("telegram-token", os.Getenv("MP_TELEGRAM_TOKEN"), "Telegram bot token for alerts")
 	tgChat := flag.String("telegram-chat", os.Getenv("MP_TELEGRAM_CHAT"), "Telegram chat id for alerts")
+	rounds := flag.Int("rounds", 1, "with -once: rounds to run (one every -every) before printing")
+	jsonOut := flag.String("json", "", "write /status.json to this file (after -once, or every round)")
 	flag.Var(&extra, "t", "extra target: [name=][kind://]host:port (repeat)")
 	flag.Parse()
 
@@ -697,8 +731,19 @@ func main() {
 	m.geo.Refresh(targets)
 
 	if *once {
-		m.Round(ctx)
+		for i := 0; i < *rounds && ctx.Err() == nil; i++ {
+			if i > 0 {
+				select {
+				case <-ctx.Done():
+				case <-time.After(*every):
+				}
+			}
+			m.Round(ctx)
+		}
 		m.WriteTable(os.Stdout)
+		if err := m.WriteJSON(*jsonOut); err != nil {
+			log.Printf("json: %v", err)
+		}
 		for _, r := range m.Rows() {
 			if r.Status != "ONLINE" {
 				os.Exit(1)
@@ -726,6 +771,9 @@ func main() {
 		m.Round(ctx)
 		if !*quiet {
 			m.WriteTable(os.Stdout)
+		}
+		if err := m.WriteJSON(*jsonOut); err != nil {
+			log.Printf("json: %v", err)
 		}
 		select {
 		case <-ctx.Done():

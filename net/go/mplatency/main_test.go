@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"math"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -92,5 +95,23 @@ func TestProbes(t *testing.T) {
 	ln.Close()
 	if _, err := Probe(context.Background(), Target{Kind: "tcp", Host: "127.0.0.1", Port: tport}, 300*time.Millisecond); err == nil {
 		t.Fatal("closed port must fail")
+	}
+}
+
+func TestWriteJSON(t *testing.T) {
+	down := Target{ID: "x", Group: "vps", Kind: "tcp", Host: "127.0.0.1", Port: "1", Name: "down"}
+	m := &Monitor{targets: []Target{down}, timeout: 200 * time.Millisecond, workers: 2, geo: NewGeoCache(""), stats: map[string]*Stats{"x": NewStats(8)}}
+	m.Round(context.Background())
+	p := filepath.Join(t.TempDir(), "s.json")
+	if err := m.WriteJSON(p); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(p)
+	var doc struct {
+		Round   int   `json:"round"`
+		Targets []Row `json:"targets"`
+	}
+	if err := json.Unmarshal(b, &doc); err != nil || doc.Round != 1 || len(doc.Targets) != 1 || doc.Targets[0].Status != "OFFLINE" || doc.Targets[0].Stats.LastMs != -1 {
+		t.Fatalf("bad json %v: %s", err, b)
 	}
 }

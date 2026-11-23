@@ -50,6 +50,8 @@
   <a href="https://mpsamp-open.github.io/network.html"><img alt="Featured servers" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-featured.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
   <a href="https://mpsamp-open.github.io/network.html"><img alt="Default server" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-default.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
   <a href="https://mpsamp-open.github.io/network.html"><img alt="open.mp servers" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-omp.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="#netwire-live-latency"><img alt="mplatency" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-latency.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="#netwire-live-latency"><img alt="mplatency jitter" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-latency-jitter.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
   <br>
   <a href="https://github.com/JebetrexxMC/wagu/actions/workflows/viceloader.yml"><img alt="VICE Loader build" src="https://img.shields.io/github/actions/workflow/status/JebetrexxMC/wagu/viceloader.yml?branch=main&style=for-the-badge&labelColor=3a3a3a&label=VICE%20Loader&logo=githubactions&logoColor=white"></a>
   <a href="https://github.com/JebetrexxMC/wagu/actions/workflows/moquil.yml"><img alt="Moquil build" src="https://img.shields.io/github/actions/workflow/status/JebetrexxMC/wagu/moquil.yml?branch=main&style=for-the-badge&labelColor=3a3a3a&label=Moquil&logo=githubactions&logoColor=white"></a>
@@ -112,6 +114,12 @@ Prebuilt binaries:
 |---|---|---|
 | `bin/libMP32.so` | armeabi-v7a | GTA SA 2.00 (32-bit), AML 1.4.0, works alongside FLA 7.6 - and GTA Vice City (32-bit libGTAVC.so) |
 | `bin/libMP64.so` | arm64-v8a | 64-bit GTA SA builds (2.10+) - and GTA Vice City (64-bit libGTAVC.so) |
+
+## NetWire live latency
+
+Every 5 minutes the [NetWire 24/7 workflow](https://github.com/JebetrexxMC/wagu/actions/workflows/netwire-247.yml) runs `net/go/mplatency` against every wire in `net/wires.txt` (5 samples each) and publishes the result to the `netwire-status` branch: [mplatency.json](https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/mplatency.json) (avg / min / max / jitter / loss / location per wire) and the card below. Pings are measured from GitHub's US / EU runners, so they show what is up and which path is fastest, not the ping a player in the Philippines gets. Run it yourself for your own numbers: `net/go/mplatency/README.md`.
+
+<p align="center"><a href="https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/mplatency.json"><img alt="MP NetWire latency (mplatency)" src="https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/mplatency.svg"></a></p>
 
 ## Downloads and packages
 
@@ -819,7 +827,7 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 - Crash fix: SIGSEGV SEGV_MAPERR at fault address 0x6C in `SurfaceInfos_c::CreatesSparks` (libGTASA+0x41DFB8, 32-bit). The surface table was empty because the game could not load one of its data files; new SparkGuard checks the surface id and table and skips the spark instead of crashing.
 - Crash fix (mitigation): SIGABRT "Binder thread started or Java binder used, but env null. Attach JVM?". MP's music, radio (URL), file and voice helper threads now attach to the Java VM while they run (`src/game/jvmthread.h`, `MPJvm::ThreadScope`). With 70 mods installed the thread that aborted may belong to another mod; send mp_log.txt and aml_crashlog.txt if it happens again.
 - FileGuard hooks `OS_FileOpen` and now names the last game file that could not be opened when it blocks a bad file handle (mp_log.txt).
-- NetWire: `net/go/mplatency`, a 24/7 latency + location monitor (5 s probes with goroutines, cached ip-api locations, dashboard on :8099, /status.json, /metrics, Discord / Telegram alerts, systemd unit). Built with Go 1.27.4 from the source tarball in release v5.02.64 (new `mplatency` CI job); binaries for Linux, Termux / Android, Windows and macOS are in the release.
+- NetWire: `net/go/mplatency`, a 24/7 latency + location monitor (5 s probes with goroutines, cached ip-api locations, dashboard on :8099, /status.json, /metrics, Discord / Telegram alerts, systemd unit). Built with Go 1.27.4 from the source tarball in release v5.02.64 (new `mplatency` CI job); binaries for Linux, Termux / Android, Windows and macOS are in the release. Its results (5 samples per wire, every 5 minutes) are on the README in "NetWire live latency" (`mplatency.svg`, `badge-latency.json`, `badge-latency-jitter.json` on the netwire-status branch).
 - New net references (net/REFERENCES.md): RakNet (SA-MP client), RakNet2 (open.mp), RakNet3 (original), Pawn.RakNet, RakLua, moxygen, infinite-streaming (`net/streaming/` radio test stream), Wired, and the motion-planning forks pRRTC, curobo, ompl, mpt (notes only, not networking).
 
 ### NetWire 1.3 (game build stays 5.02.64)
