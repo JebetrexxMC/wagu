@@ -9,7 +9,7 @@ let package = Package(
     platforms: [.iOS(.v15), .macOS(.v13)],
     products: [.library(name: "MPNetPulse", targets: ["MPNetPulse"])],
     dependencies: [
-        .package(path: "../swift"),
+        .package(path: "../swift")   // folder is swift-pulse, not pulse: the root package name must differ from the Pulse fork (identity clash = "cyclic dependency"),
         .package(url: "https://github.com/JebetrexxMC/Pulse.git", branch: "main"),
         .package(url: "https://github.com/JebetrexxMC/Moya.git", branch: "master"),
     ],

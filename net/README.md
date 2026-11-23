@@ -32,7 +32,7 @@ net/
   manage/mpctl.sh          server management: status, restart, logs, update, netwire services, zerotier, tunnel
   sniffnet/                Sniffnet (traffic monitor) download + MP filters
   swift/                   MPNet Swift package (Moya) + MPNetNIO (SwiftNIO SA-MP query) for iOS / macOS
-  pulse/                   MPNetPulse: Moya -> Pulse logger plugin (iOS 15 / macOS 13)
+  swift-pulse/             MPNetPulse: Moya -> Pulse logger plugin (iOS 15 / macOS 13)
   py/mpprobe.py            async probe with asyncio, uvloop or trio
   go/mpedge                gnet UDP edge: MPNETPNG pings + SA-MP / MP query cache in front of a server
   server/mpnet-dns.c       libevent evdns: every wire host resolved at once (make dns)

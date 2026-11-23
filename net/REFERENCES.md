@@ -33,7 +33,7 @@ Repos checked for MP NetWire (NetWire 1.0) and what came out of each.
 | [JebetrexxMC/poco](https://github.com/JebetrexxMC/poco) | C++ libraries (Net, JSON, Util) | `server/mpnet-ws.cpp`: wires.json pushed over WebSocket on change |
 | [JebetrexxMC/GameNetworkingSockets](https://github.com/JebetrexxMC/GameNetworkingSockets) | Valve's reliable/unreliable UDP messages with encryption | `gns/mpgns`: lane test (reliable + unreliable burst, RTT, quality). Not in the game: SA-MP / open.mp servers speak RakNet. |
 | [JebetrexxMC/swift-nio](https://github.com/JebetrexxMC/swift-nio) | Apple's event-driven networking for Swift | `swift/` target `MPNetNIO`: SA-MP query over UDP |
-| [JebetrexxMC/Pulse](https://github.com/JebetrexxMC/Pulse) | network logger for Apple platforms | `pulse/` MPNetPulse: Moya plugin storing every MPNet call in LoggerStore |
+| [JebetrexxMC/Pulse](https://github.com/JebetrexxMC/Pulse) | network logger for Apple platforms | `swift-pulse/` MPNetPulse: Moya plugin storing every MPNet call in LoggerStore |
 | [JebetrexxMC/Mirror](https://github.com/JebetrexxMC/Mirror) | Unity networking | `mirror/MPNetWireManager.cs`: join the best wire (not compiled in CI) |
 | [JebetrexxMC/firezone](https://github.com/JebetrexxMC/firezone) | zero-trust access on WireGuard | `firezone/`: gateway compose for private admin lanes |
 | [JebetrexxMC/NetAlertX](https://github.com/JebetrexxMC/NetAlertX) | LAN device scanner + alerts | `netalertx/`: compose for home / LAN-party MP servers |
