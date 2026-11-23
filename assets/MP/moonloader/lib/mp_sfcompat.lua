@@ -1,4 +1,4 @@
--- mp_sfcompat 1.1 (MP 5.02.59): SAMPFUNCS functions PC scripts call that MonetLoader does not have.
+-- mp_sfcompat 1.2 (MP 5.02.60): SAMPFUNCS functions PC scripts call that MonetLoader does not have.
 --
 -- A PC MoonLoader script died at the first call of a missing SAMPFUNCS function:
 --   AbsoluteFix.lua:182: attempt to call global 'sampTextdrawDelete' (a nil value)
@@ -13,11 +13,13 @@
 --    0 on MP: base + PC offset is a low address pccompat blocks), isKeyJustPressed (= MonetLoader's wasKeyPressed),
 --    isSampfuncsConsoleActive / sampIsChatInputActive / sampIsCursorActive / sampIsScoreboardOpen (false),
 --    sampGetChatString (''), getFolderPath (the game folder, with GTA San Andreas User Files/SAMP made).
+--  * 1.2: the AL Loader (ReSA 1.1.8) globals its scripts use without require 'alloader': AL_DPI_SCALE
+--    (= MONET_DPI_SCALE) and localClock() (wall-clock seconds since the script started; os.clock is CPU time).
 -- Loaded once per script state.
 
 if rawget(_G, '__mp_sfcompat') then return _G.__mp_sfcompat end
 
-local M = { VERSION = '1.1' }
+local M = { VERSION = '1.2' }
 _G.__mp_sfcompat = M
 
 local RPC_SETSTRING, RPC_SHOW, RPC_HIDE = 105, 134, 135
@@ -185,6 +187,22 @@ mt.__index = function(g, k)
     stubs[k] = f
   end
   return f
+end
+
+-- ---------------------------------------------------------------- AL Loader (ReSA) globals (1.2)
+if rawget(_G, 'AL_DPI_SCALE') == nil then rawset(_G, 'AL_DPI_SCALE', rawget(_G, 'MONET_DPI_SCALE') or 1.0) end
+if rawget(_G, 'localClock') == nil then
+  local now = os.clock
+  local okf, ffi = pcall(require, 'ffi')
+  if okf then
+    pcall(ffi.cdef, 'struct mp_timespec { long tv_sec; long tv_nsec; }; int clock_gettime(int, struct mp_timespec*);')
+    local okt, ts = pcall(ffi.new, 'struct mp_timespec')
+    if okt and pcall(ffi.C.clock_gettime, 1, ts) then   -- CLOCK_MONOTONIC
+      now = function() ffi.C.clock_gettime(1, ts) return tonumber(ts.tv_sec) + tonumber(ts.tv_nsec) * 1e-9 end
+    end
+  end
+  local t0 = now()
+  rawset(_G, 'localClock', function() return now() - t0 end)
 end
 
 return M

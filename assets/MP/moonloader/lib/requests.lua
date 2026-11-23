@@ -105,7 +105,10 @@ function _requests.make_request(request)
 
   local response = {}
   local ok
-  local socket = string.find(full_request.url, '^https:') and not request.proxy and requests.http_socket or requests.https_socket
+  -- MP 5.02.60: upstream picked socket.http for https:// URLs (and https for http://), sending the request
+  -- in clear text; same fix as ReSA's AL Loader 1.1.8 requests.lua. MP has luasec, so https works.
+  local want_https = string.find(full_request.url, '^https:') ~= nil
+  local socket = (want_https and not request.proxy) and requests.https_socket or requests.http_socket
 
   ok, response.status_code, response.headers, response.status = socket.request(full_request)
 

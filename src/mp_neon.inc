@@ -17,7 +17,7 @@ static bool s_bNeonHidden = false;                   // "Game settings": the gam
 static LRow s_NeonPending;
 static char s_szNeonSearch[64] = "";
 static bool s_bNeonQuickAfterLoad = false;   // 4.13.28: Quick connect tapped on the title
-static int  s_nNeonList = 0;                         // 0 all, 1 featured, 2 favourites, 3 Wi-Fi
+static int  s_nNeonList = 0;                         // 0 all, 1 featured, 2 favourites, 3 Wi-Fi, 4 ReSA (5.02.60)
 static bool s_bNeonListOpen = false, s_bNeonFilterOpen = false;
 static bool s_bNeonHideFull = false, s_bNeonHideEmpty = false, s_bNeonHideLocked = false;
 static char s_szNeonSelKey[64] = "";
@@ -142,6 +142,7 @@ static void NeonBuild(std::vector<LRow>& out)
     if(s_nNeonList == 0) { s_nInetSub = 0; LBuildRows(LT_INTERNET, nearby, tmp); for(auto& r : tmp) add(r); }
     if(s_nNeonList == 0 || s_nNeonList == 3) { LBuildRows(LT_LAN, nearby, tmp); for(auto& r : tmp) add(r); }
     if(s_nNeonList == 2) { LBuildRows(LT_FAVORITES, nearby, tmp); for(auto& r : tmp) add(r); }
+    if(s_nNeonList == 4) { s_nInetSub = 3; LBuildRows(LT_INTERNET, nearby, tmp); for(auto& r : tmp) add(r); }   // 5.02.60: ReSA list
     s_nInetSub = sub; s_nSortCol = sc; MP_CopyStr(s_szSearch, keep, sizeof(s_szSearch));
     const bool addr = NeonIsAddress(s_szNeonSearch);
     std::vector<LRow> f;
@@ -241,7 +242,7 @@ static void NeonBrowser(ImDrawList* dl, ImVec2 ds)
     dl->AddRectFilled(ta, tb, IM_COL32(13, 14, 17, 240), 5 * u);
     dl->AddRect(ta, tb, kNLine, 5 * u, 0, 1.2f * u);
     const float tcy = (ta.y + tb.y) * 0.5f;
-    static const char* const kLists[4] = { "NEON SERVERS", "FEATURED", "FAVORITES", "WI-FI / LAN" };
+    static const char* const kLists[5] = { "NEON SERVERS", "FEATURED", "FAVORITES", "WI-FI / LAN", "RESA SERVERS" };   // 5.02.60: + ReSA
     {
         NeonText(dl, uf, 11 * u, ImVec2(X(78), tcy - 7 * u), IM_COL32(180, 182, 188, 255), kLists[s_nNeonList], 3.2f * u);
         const float w = NeonTextW(uf, 11 * u, kLists[s_nNeonList], 3.2f * u);
@@ -480,9 +481,9 @@ static void NeonBrowser(ImDrawList* dl, ImVec2 ds)
     // dropdowns (on top)
     if(s_bNeonListOpen)
     {
-        const ImVec2 a(X(66), tb.y + 4 * u), b(X(300), tb.y + 4 * u + 4 * 40 * u);
+        const ImVec2 a(X(66), tb.y + 4 * u), b(X(300), tb.y + 4 * u + 5 * 40 * u);
         dl->AddRectFilled(a, b, IM_COL32(12, 13, 16, 252), 5 * u); dl->AddRect(a, b, kNLine, 5 * u, 0, 1.1f * u);
-        for(int k = 0; k < 4; ++k)
+        for(int k = 0; k < 5; ++k)
         {
             const ImVec2 ia(a.x, a.y + k * 40 * u), ib(b.x, ia.y + 40 * u);
             if(k == s_nNeonList) dl->AddRectFilled(ImVec2(ia.x + 2 * u, ia.y + 2 * u), ImVec2(ib.x - 2 * u, ib.y - 2 * u), IM_COL32(40, 36, 26, 255), 4 * u);
@@ -1484,14 +1485,14 @@ static void NeonPBrowse(float W, float H)
         NeonPText(F_CAPS, a, x, 54 * u, fs, NC(200, 202, 208), 1.6f * u, true);
     }
     // ---- the tools: list / refresh / search (paste) / CONNECT / FILTERS
-    static const char* const kTabs[] = { "ALL SERVERS", "FEATURED", "FAVOURITES", "WI-FI" };
+    static const char* const kTabs[] = { "ALL SERVERS", "FEATURED", "FAVOURITES", "WI-FI", "RESA" };   // 5.02.60: + RESA
     static const char* const kFilt[] = { "FILTERS", "WITH PLAYERS", "NOT FULL", "LOW PING" };
-    if(K & NK_LB) { s_nNeonList = (s_nNeonList + 3) % 4; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
-    if(K & NK_RB) { s_nNeonList = (s_nNeonList + 1) % 4; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
+    if(K & NK_LB) { s_nNeonList = (s_nNeonList + 4) % 5; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
+    if(K & NK_RB) { s_nNeonList = (s_nNeonList + 1) % 5; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
     const float ty0 = 116 * u, ty1 = 152 * u, lx0 = L - 14 * u, lx1 = fmaxf(W * 0.635f, lx0 + 560 * u), rx0 = lx1 + 18 * u, rx1 = W - L + 14 * u;
     {
         char lab[40]; snprintf(lab, sizeof(lab), "%s  v", kTabs[s_nNeonList]);
-        if(NeonPChip(lab, lx0, ty0, lx0 + 190 * u, ty1, u, false, false)) { s_nNeonList = (s_nNeonList + 1) % 4; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
+        if(NeonPChip(lab, lx0, ty0, lx0 + 190 * u, ty1, u, false, false)) { s_nNeonList = (s_nNeonList + 1) % 5; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
         if(NeonPChip("REFRESH", lx0 + 200 * u, ty0, lx0 + 310 * u, ty1, u, false, s_nNTFocus == 2 && NeonPadUI())) doRefresh = true;
         const float sx0 = lx0 + 320 * u, sx1 = lx1 - 8 * u;
         Quad(sx0, ty0, sx1, ty1, TM_GLASS(130)); NeonPFrame(sx0, ty0, sx1, ty1, 1.1f * u, s_bNTPasteWait ? NB_BLUE() : TM_EDGE(48));

@@ -28,14 +28,19 @@ Notifications = {
   }
 }
 
+-- MP 5.02.60 (from ReSA AL Loader 1.1.8): a call without a type picked type 2 but looked its colours up
+-- under nil and errored; localClock (AL Loader's wall clock) when a loader has it, else os.clock.
+local clock = localClock or os.clock
+
 Notifications.Show = function(text, type, time, colors)
+  type = type or 2
   table.insert(Notifications._list, {
     text = text,
     type = type or 2,
     time = time or 4,
-    start = os.clock(),
+    start = clock(),
     alpha = 0,
-    colors = colors or Notifications._COLORS[type]
+    colors = colors or Notifications._COLORS[type] or Notifications._COLORS[2]
   })
 end
 
@@ -44,7 +49,7 @@ Notifications._TableToImVec = function(tbl)
 end
 
 Notifications._BringFloatTo = function(from, to, start_time, duration)
-  local timer = os.clock() - start_time
+  local timer = clock() - start_time
   if timer >= 0.00 and timer <= duration then
       local count = timer / (duration / 100)
       return from + (count * (to - from) / 100), true
@@ -60,14 +65,14 @@ imgui.OnFrame(
     for k, data in ipairs(Notifications._list) do
       --==[ UPDATE ALPHA ]==--
       if data.alpha == nil then Notifications._list[k].alpha = 0 end
-      if os.clock() - data.start < 0.5 then
+      if clock() - data.start < 0.5 then
         Notifications._list[k].alpha = Notifications._BringFloatTo(0, 1, data.start, 0.5)
-      elseif data.time - 0.5 < os.clock() - data.start then
+      elseif data.time - 0.5 < clock() - data.start then
         Notifications._list[k].alpha = Notifications._BringFloatTo(1, 0, data.start + data.time - 0.5, 0.5)
       end
 
       --==[ REMOVE ]==--
-      if os.clock() - data.start > data.time then
+      if clock() - data.start > data.time then
         table.remove(Notifications._list, k)
       end
     end
