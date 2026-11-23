@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MP Launcher</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot"></span>MP Launcher</div>
+  <nav>
+    <button data-tab="crossplay" class="on">MP Crossplay</button>
+    <button data-tab="internet">Internet</button>
+    <button data-tab="favorites">Favorites</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+  <div class="who"><label>Nickname <input id="nick" maxlength="24" spellcheck="false"></label></div>
+</header>
+
+<main>
+  <section id="crossplay" class="tab on">
+    <p class="lead">Play with MP for Android from your PC. These servers are watched 24/7 by NetWire.</p>
+    <div id="feat" class="cards"></div>
+  </section>
+
+  <section id="internet" class="tab">
+    <div class="bar">
+      <input id="q" placeholder="Search name, gamemode, language or ip:port" spellcheck="false">
+      <label><input type="checkbox" id="fOmp"> open.mp only</label>
+      <label><input type="checkbox" id="fFull"> hide full</label>
+      <label><input type="checkbox" id="fPass"> hide locked</label>
+      <button id="reload">Refresh</button>
+      <span id="count" class="muted"></span>
+    </div>
+    <div class="list"><table><thead><tr>
+      <th></th><th data-k="hn">Server</th><th data-k="pc">Players</th><th data-k="ping">Ping</th><th data-k="gm">Mode</th><th data-k="la">Language</th>
+    </tr></thead><tbody id="rows"></tbody></table></div>
+  </section>
+
+  <section id="favorites" class="tab">
+    <div class="bar">
+      <input id="addr" placeholder="host:port  (example: wap-fresh.tun.ply.gg:56616)" spellcheck="false">
+      <button id="addFav">Add</button>
+    </div>
+    <div class="list"><table><thead><tr><th></th><th>Server</th><th>Players</th><th>Ping</th><th>Mode</th><th></th></tr></thead><tbody id="favRows"></tbody></table></div>
+  </section>
+
+  <section id="settings" class="tab">
+    <div class="form">
+      <label>GTA San Andreas folder<input id="gta" placeholder="C:\Program Files (x86)\Rockstar Games\GTA San Andreas" spellcheck="false"></label>
+      <div id="gameCheck" class="muted"></div>
+      <button id="fromSamp">Use SA-MP settings from this PC</button>
+      <p class="muted">Joining starts gta_sa.exe and loads samp.dll (SA-MP 0.3.7). If the open.mp client DLL is in the game folder it is loaded too.
+        Android players use MP for Android. This launcher is not made by or linked to the open.mp team.</p>
+    </div>
+  </section>
+</main>
+
+<aside id="side" class="hidden">
+  <button class="x" id="closeSide">x</button>
+  <h2 id="sName"></h2>
+  <div id="sAddr" class="muted"></div>
+  <dl id="sInfo"></dl>
+  <input id="sPass" type="password" placeholder="Server password" class="hidden">
+  <div class="row"><button id="sPlay" class="go">Play</button><button id="sFav">Favorite</button></div>
+  <div id="sMsg" class="muted"></div>
+</aside>
+
+<footer id="status" class="muted">Ready</footer>
+<script src="app.js"></script>
+</body>
+</html>

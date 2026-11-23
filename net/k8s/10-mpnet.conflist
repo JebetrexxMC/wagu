@@ -1,0 +1,21 @@
+{
+  "cniVersion": "1.0.0",
+  "name": "mpnet",
+  "plugins": [
+    {
+      "type": "bridge",
+      "bridge": "mpnet0",
+      "isGateway": true,
+      "ipMasq": true,
+      "hairpinMode": true,
+      "ipam": {
+        "type": "host-local",
+        "ranges": [[{ "subnet": "10.77.0.0/24", "gateway": "10.77.0.1" }]],
+        "routes": [{ "dst": "0.0.0.0/0" }]
+      }
+    },
+    { "type": "portmap", "capabilities": { "portMappings": true }, "snat": true },
+    { "type": "bandwidth", "capabilities": { "bandwidth": true } },
+    { "type": "firewall" }
+  ]
+}

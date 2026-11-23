@@ -41,6 +41,12 @@ static std::atomic<int>  s_nMenuMpFade{0};            // 0..255 black over the l
 // 5.02.32: the rescue card on a black screen with nothing on it (MenuMpRescueCard)
 static std::atomic<uint64_t> s_nMenuMpUiMs{0};    // last HUD frame something of MP was drawn over the black
 static std::atomic<int>      s_nMenuMpRescue{0};  // 1 = Servers, 2 = Single player (HUD -> game thread)
+// 5.02.64: one loading screen for the whole Multiplayer load. A join from the neon Browse servers page showed the neon
+// "CONNECTING TO MULTIPLAYER" cover (native, mp_neon.inc) on the game's menus and MP's Multiplayer loading screen
+// (ImGui, DrawMenuLoading) on the game's loading screen, back and forth. Now MP's loading screen also covers the game's
+// menus before and after the load (DrawMenuMpFront); the neon cover only eats taps then (and is the fallback).
+static std::atomic<uint64_t> s_nMenuMpCoverMs{0};  // last HUD frame the loading screen covered the game's menus
+static bool s_bMenuMpCoverPass = false;             // DrawMenuLoading is drawing that cover (no splash time, no jump)
 
 static bool s_bMenuMpViaApi = false;   // 4.13.11: started by another mod (PCMenu), works even with MainMenuMultiplayer = 0
 // 4.13.22: ServerBrowserMode = neon / mp / default (mp_neon.inc)
@@ -465,6 +471,24 @@ void MP::MenuMpMenuTick()
     const bool ok = Game::ExitFrontendMenu();
     logger->Info("Main menu: Multiplayer load done -> game menu closed (%s%s)", ok ? "ok" : "no MobileMenu::Exit", viaPed ? ", another mod drew the loading screen" : "");
 }
+// 5.02.64: a Multiplayer load runs and the game shows its menus (before the loading screen / the pause menu after it)
+static bool MenuMpCoverWanted()
+{
+    if(!s_bMenuMp.load() || s_bMenuMpLoaded.load() || s_bMenuMpBlack.load() || !s_bMenuMpViaLoad.load()) return false;
+    if(!s_nMenuMpTapAt || MP_NowMs() - s_nMenuMpTapAt > 30000) return false;
+    if(MP::PCMenuLoadingActive()) return false;   // PCMenu draws its own loading screen
+    if(NeonOn() && NeonPaint::Ready() && !HUD::TitleMenuBroken()) return false;   // neon mode: the neon loading screen (native)
+    return Game::IsFrontendMenu();
+}
+// 5.02.64: neon mode keeps the neon "CONNECTING TO MULTIPLAYER" screen for the whole Multiplayer load: the game's menus,
+// the game's loading screen (instead of MP's ImGui loading screen) and the black-screen countdown after it
+bool MP::NeonLoadingWanted()
+{
+    if(!NeonOn() || !NeonPaint::Ready() || HUD::TitleMenuBroken() || !s_bMenuMp.load()) return false;
+    if(!s_bMenuMpLoaded.load()) return s_nMenuMpTapAt && MP_NowMs() - s_nMenuMpTapAt < 120000;   // the load
+    return s_bMenuMpBlack.load() && s_nMenuMpPct.load() >= 0;                                     // the countdown
+}
+int MP::NeonLoadingFade() { return s_bMenuMpBlack.load() ? s_nMenuMpFade.load() : 0; }
 bool MP::MenuMpBlack() { return s_bMenuMp.load() && s_bMenuMpBlack.load(); }
 bool MP::MenuMpLoading() { return (s_bMenuMpOn || s_bMenuMpViaApi) && s_bMenuMp.load() && !s_bMenuMpLoaded.load(); }
 
@@ -493,8 +517,8 @@ void MP::DrawMenuLoading(ImDrawList* dl, float pct, bool loadingScreen)
     if(pct < 0) pct = 0; else if(pct > 100) pct = 100;
     const uint64_t nowMs = MP_NowMs();
     {   // 4.13.9: one percent for the whole load, only going up
-        float v = loadingScreen ? pct * 0.9f : (s_bMenuMpViaLoad.load() ? 90.0f + pct * 0.1f : pct);
-        if(loadingScreen) s_nMenuMpSplashMs = nowMs;
+        float v = s_bMenuMpCoverPass ? s_fMenuMpShown.load() : loadingScreen ? pct * 0.9f : (s_bMenuMpViaLoad.load() ? 90.0f + pct * 0.1f : pct);
+        if(loadingScreen && !s_bMenuMpCoverPass) s_nMenuMpSplashMs = nowMs;
         if(v < s_fMenuMpShown.load()) v = s_fMenuMpShown.load();
         s_fMenuMpShown = v;
         pct = v;
@@ -616,6 +640,7 @@ void MP::DrawMenuMpFront()
         if(pct >= 0)
         {
             s_nMenuMpUiMs = MP_NowMs();
+            if(MP::NeonLoadingWanted()) return;   // 5.02.64: neon mode: the neon loading screen stays (painted after the HUD)
             ImDrawList* fg = ImGui::GetForegroundDrawList();
             DrawMenuLoading(fg, (float)pct, false);
             const int a = s_nMenuMpFade.load();   // 4.13.10: the fade to black after a save load
@@ -648,6 +673,14 @@ void MP::DrawMenuMpFront()
             ImGui::PopStyleVar(); ImGui::PopStyleColor();
         }
         MenuMpRescueCard(ds);   // 5.02.32: nothing on the black screen for 5 s = a way out
+        return;
+    }
+    if(MenuMpCoverWanted())
+    {   // 5.02.64: the game's menus before / after the Multiplayer load: MP's loading screen, not the menu, not the neon cover
+        s_nMenuMpCoverMs = MP_NowMs();
+        s_bMenuMpCoverPass = true;
+        DrawMenuLoading(ImGui::GetForegroundDrawList(), s_fMenuMpShown.load(), false);
+        s_bMenuMpCoverPass = false;
         return;
     }
     if(NeonDraw()) return;   // 4.13.22: the neon title menu (ServerBrowserMode = neon)

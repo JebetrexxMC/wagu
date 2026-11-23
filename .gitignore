@@ -48,3 +48,8 @@ crossplay/open.mp-sdk/
 server/playit.enc
 server/playit.json
 server/playit.port
+launcher/src-tauri/target/
+launcher/src-tauri/gen/
+net/build/
+net/go/mpedge/mpedge
+net/go/bin/

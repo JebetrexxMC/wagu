@@ -1,0 +1,19 @@
+# NetAlertX (fork: github.com/JebetrexxMC/NetAlertX): watches the LAN of a home / LAN-party MP server.
+# New phones on the Wi-Fi, a server box that drops off, a port that closes -> alert (web UI, Discord, ntfy, MQTT ...).
+# Web UI: http://<host>:20211
+services:
+  netalertx:
+    image: ghcr.io/netalertx/netalertx:latest
+    container_name: netalertx
+    network_mode: host          # ARP scan needs the real LAN
+    restart: unless-stopped
+    cap_add: [NET_RAW, NET_ADMIN, NET_BIND_SERVICE]
+    environment:
+      TZ: ${TZ:-Asia/Manila}
+      PORT: ${PORT:-20211}
+    volumes:
+      - ./data/config:/data/config
+      - ./data/db:/data/db
+      - /etc/localtime:/etc/localtime:ro
+    tmpfs:
+      - /tmp:mode=1777

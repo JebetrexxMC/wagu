@@ -1,0 +1,27 @@
+# Firezone Gateway (fork: github.com/JebetrexxMC/firezone) next to an MP / open.mp server box.
+# Players or admins on the Firezone client reach the private MP ports (relay, rcon, MQTT admin, VPS panel)
+# through WireGuard, without opening them to the internet.
+# 1. app.firezone.dev -> Sites -> Add site -> Deploy gateway -> copy the token
+# 2. FIREZONE_TOKEN=... docker compose up -d
+# 3. add Resources: this box's LAN IP with tcp/udp 7777, 1883, 8883, 7790 (mpedge / reflect) etc.
+services:
+  firezone-gateway:
+    image: ghcr.io/firezone/gateway:1
+    restart: unless-stopped
+    environment:
+      FIREZONE_TOKEN: ${FIREZONE_TOKEN:?set FIREZONE_TOKEN}
+      FIREZONE_ID: ${FIREZONE_ID:-mp-gateway-1}
+      FIREZONE_NAME: ${FIREZONE_NAME:-MP server box}
+      RUST_LOG: ${RUST_LOG:-info}
+    cap_add: [NET_ADMIN]
+    devices: [/dev/net/tun]
+    sysctls:
+      net.ipv4.ip_forward: 1
+      net.ipv4.conf.all.src_valid_mark: 1
+      net.ipv6.conf.all.disable_ipv6: 0
+      net.ipv6.conf.all.forwarding: 1
+      net.ipv6.conf.default.forwarding: 1
+    healthcheck:
+      test: ["CMD-SHELL", "ip link | grep -q tun-firezone"]
+      interval: 10s
+      retries: 3

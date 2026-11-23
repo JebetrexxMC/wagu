@@ -1,0 +1,27 @@
+# Calico (fork: github.com/JebetrexxMC/calico) GlobalNetworkPolicy: rate-limit-free but strict UDP edge for the relay.
+# Only on clusters running Calico:  calicoctl apply -f net/k8s/calico-policy.yaml   (or kubectl with the Calico API server)
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: mpnet-relay-edge
+spec:
+  order: 100
+  selector: app == 'mpnet' && role == 'relay'
+  types: [Ingress, Egress]
+  ingress:
+    - action: Deny                       # SA-MP / open.mp query floods often come from a few spoofing ranges: list them here
+      protocol: UDP
+      source: { nets: [] }
+    - action: Allow
+      protocol: UDP
+      destination: { ports: [7777] }
+    - action: Allow
+      protocol: TCP
+      source: { namespaceSelector: projectcalico.org/name == 'mpnet' }
+      destination: { ports: [8091] }
+  egress:
+    - action: Allow
+      protocol: UDP                      # upstream game servers + DNS
+    - action: Allow
+      protocol: TCP
+      destination: { ports: [53] }

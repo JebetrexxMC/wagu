@@ -61,6 +61,11 @@ enum Cmd {
         #[arg(long, default_value_t = 800)]
         timeout: u64,
     },
+    /// UDP ping reflector on mio (no async runtime): answers "MPNETPNG" and SA-MP 'p' pings
+    Reflect {
+        #[arg(long, default_value = "0.0.0.0:7790")]
+        bind: String,
+    },
     /// bore client: expose a local TCP port
     Tunnel {
         #[arg(long)]
@@ -339,6 +344,39 @@ fn fastrand_u32() -> u32 {
     (x >> 16) as u32
 }
 
+// mio (fork github.com/JebetrexxMC/mio): one thread, edge-triggered epoll / kqueue, no runtime.
+// Small enough for a 1-core VPS or a Termux phone that should only answer pings 24/7.
+fn reflect(bind: &str) -> Result<()> {
+    use mio::{net::UdpSocket, Events, Interest, Poll, Token};
+    let mut poll = Poll::new()?;
+    let mut sock = UdpSocket::bind(bind.parse()?)?;
+    poll.registry().register(&mut sock, Token(0), Interest::READABLE)?;
+    println!("reflect: udp {} (MPNETPNG + SA-MP p)", sock.local_addr()?);
+    let mut events = Events::with_capacity(256);
+    let mut buf = [0u8; 2048];
+    let mut n_ok: u64 = 0;
+    loop {
+        poll.poll(&mut events, None)?;
+        for _ in events.iter() {
+            loop {
+                match sock.recv_from(&mut buf) {
+                    Ok((n, from)) => {
+                        let b = &buf[..n];
+                        let reply = (n == 16 && &b[..8] == b"MPNETPNG") || (n == 15 && &b[..4] == b"SAMP" && b[10] == b'p');
+                        if reply {
+                            let _ = sock.send_to(b, from);
+                            n_ok += 1;
+                            if n_ok % 10000 == 0 { println!("reflect: {n_ok} pings"); }
+                        }
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
+                    Err(e) => return Err(e.into()),
+                }
+            }
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     match Cli::parse().cmd {
@@ -373,6 +411,9 @@ async fn main() -> Result<()> {
             for h in hosts {
                 if let Err(e) = scan(&h, MP_TCP_PORTS, MP_UDP_PORTS, 200, Duration::from_millis(t)).await { println!("{h}: {e}") }
             }
+        }
+        Cmd::Reflect { bind } => {
+            tokio::task::spawn_blocking(move || reflect(&bind)).await??;
         }
         Cmd::Tunnel { local_port, local_host, to, port, secret } => {
             let c = bore_cli::client::Client::new(&local_host, local_port, &to, port, secret.as_deref()).await?;

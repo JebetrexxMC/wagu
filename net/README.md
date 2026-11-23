@@ -31,7 +31,16 @@ net/
   xpipe/                   XPipe SSH hosts for the MP boxes
   manage/mpctl.sh          server management: status, restart, logs, update, netwire services, zerotier, tunnel
   sniffnet/                Sniffnet (traffic monitor) download + MP filters
-  swift/                   MPNet Swift package (Moya) for iOS / macOS
+  swift/                   MPNet Swift package (Moya) + MPNetNIO (SwiftNIO SA-MP query) for iOS / macOS
+  pulse/                   MPNetPulse: Moya -> Pulse logger plugin (iOS 15 / macOS 13)
+  py/mpprobe.py            async probe with asyncio, uvloop or trio
+  go/mpedge                gnet UDP edge: MPNETPNG pings + SA-MP / MP query cache in front of a server
+  server/mpnet-dns.c       libevent evdns: every wire host resolved at once (make dns)
+  server/mpnet-ws.cpp      POCO WebSocket: wires.json pushed live on change (make ws)
+  gns/                     GameNetworkingSockets reliable / unreliable lane test
+  mirror/                  Unity Mirror NetworkManager that joins the best wire
+  firezone/, netalertx/    docker compose: private admin lanes, LAN watch
+  k8s/                     Dockerfile, Deployment / Service, NetworkPolicy, Calico policy, CNI conflist
   REFERENCES.md            the repos this was checked against
 ```
 
@@ -72,6 +81,17 @@ Grades: **green** under 120 ms median, jitter at most 30 ms, at most 20 % loss. 
 ssh mp-asia 'bash -s' < net/manage/mpctl.sh status
 mpctl netwire                  # mpnetd watch :8090 + relay :7777 as systemd services
 mpctl tunnel 1883 bore.pub     # share MQTT through bore (TCP only)
+```
+
+## NetWire 1.2 tools
+
+```
+python3 net/py/mpprobe.py --loop uvloop          # or asyncio / trio
+cd net/go && go run ./mpedge -listen :7777 -backend 127.0.0.1:7778   # query shield for an open.mp / SA-MP server
+net/rust/target/release/mpnet-agent reflect --bind 0.0.0.0:7790      # mio ping reflector
+make -C net dns && net/build/mpnet-dns net/wires.txt                 # DNS check of every wire host
+make -C net ws && net/build/mpnet-ws -f wires.json -p 9090           # ws://host:9090/live
+cmake -S net/gns -B /tmp/gns -G Ninja && cmake --build /tmp/gns && /tmp/gns/mpgns
 ```
 
 ## 24/7 on GitHub

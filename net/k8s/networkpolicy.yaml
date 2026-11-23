@@ -1,0 +1,32 @@
+# NetworkPolicies after ahmetb/kubernetes-network-policy-recipes (fork: github.com/JebetrexxMC/kubernetes-network-policy-recipes)
+# 01 deny all to the namespace, then open only what MP needs.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny-all, namespace: mpnet }
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+# relay: UDP 7777 from anywhere (players), HTTP 8091 only from inside the namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: relay-game-in, namespace: mpnet }
+spec:
+  podSelector: { matchLabels: { app: mpnet, role: relay } }
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{ port: 7777, protocol: UDP }]
+    - from: [{ podSelector: {} }]
+      ports: [{ port: 8091, protocol: TCP }]
+---
+# watcher: HTTP 8090 from the ingress controller namespace only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: watch-http-from-ingress, namespace: mpnet }
+spec:
+  podSelector: { matchLabels: { app: mpnet, role: watch } }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: ingress-nginx } }
+      ports: [{ port: 8090, protocol: TCP }]

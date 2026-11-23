@@ -37,7 +37,7 @@
 #include "net/server.h"
 
 // 4.12.7: the config is files/TYFMC/TYFMC.MP.ini (the old configs/net.thirtyfox.mp.ini is moved there)
-TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.63, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
+TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.64, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
 // 4.13.36: no NEEDGAME(com.rockstargames.gtasa) - AML would refuse libMP in GTA Vice City. OnModLoad starts the
 // San Andreas code only when libGTASA.so is there, and the Vice City layer (src/vc/) when libGTAVC.so is.
 
@@ -166,6 +166,7 @@ DECL_HOOKv(CCam_Process, void* self)
 #endif
 
 // ---- 2D render: our whole HUD + floating menu ------------------------------------------
+static void NeonLoadingFn(void*) { MP::NeonPaintLoading(); }   // 5.02.64
 static uint64_t s_nNeonMenuPassMs = 0;   // 4.13.23: the last MobileMenu::Render that drew MP's frame
 // 4.13.25: the touch (Java) thread only reads this flag. 4.13.23 called MP::NeonCoversGameMenu() there, which reads the
 // game's menu stack and the player ped from the wrong thread.
@@ -182,6 +183,7 @@ DECL_HOOKv(Render2dStuff)
     s_nR2dMs = MP_NowMs();   // 4.13.51
     if(HUD::IsInitialised()) { PollTouches(); PadTick(); DrainIO(); }   // 3.39.2: + controller
     HUD::Render();
+    if(MP::MenuMpBlack() && MP::NeonLoadingWanted()) HUD::GuardedNative("neon loading", NeonLoadingFn, nullptr);   // 5.02.64: the countdown
     int cm = s_nClearMouse.load();
     if(cm > 0 && s_nClearMouse.compare_exchange_strong(cm, cm - 1) && cm == 1) QueueIO(TQ_CLEAR);
 }
@@ -199,6 +201,9 @@ DECL_HOOKv(LS_RenderSplash)
         if(!s_bRWReady) { InitRenderWareFunctions(); s_bRWReady = true; }
         float pct = s_pPercentLoaded ? *s_pPercentLoaded : 0.0f;
         if(!(pct >= 0.0f && pct <= 100.0f)) pct = 0.0f;
+        // 5.02.64: a join from the neon menu keeps the neon loading screen (it was the neon cover, then MP's ImGui
+        // loading screen here, then the neon cover again after the load)
+        if(MP::NeonLoadingWanted() && HUD::GuardedNative("neon loading", NeonLoadingFn, nullptr)) { s_bMpSplashDrawn = true; return; }
         if(HUD::RenderLoading(pct)) { s_bMpSplashDrawn = true; return; }
     }
     LS_RenderSplash();

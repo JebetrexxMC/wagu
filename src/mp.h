@@ -357,6 +357,9 @@ namespace MP
     int  NeonPaintWanted();        // 4.13.28: 0 nothing / 1 neon title / 2 mp tile / 3 pill - painted after MobileMenu::Render
     bool NeonNativeTitle();        // 4.13.28: the title is painted natively (no ImGui on the title)
     void NeonPaintMenu(int what);
+    bool NeonLoadingWanted();      // 5.02.64: neon mode: the neon loading screen for the whole Multiplayer load
+    int  NeonLoadingFade();        // 5.02.64: 0..255 black over it (the end of the countdown)
+    void NeonPaintLoading();       // 5.02.64: paints it (loading screen / after the HUD on the black screen)
     void NeonPad(int keys);        // 5.01.11: controller keys for the neon title menu (main.cpp, MobileMenu::Update)
     void NeonTouch(int kind, int finger, float x, float y);
     void NeonMenuTick();           // 4.13.28: game thread, runs the tapped title action    // 4.13.23: the neon title menu is up -> the game's own title menu is not drawn / touched

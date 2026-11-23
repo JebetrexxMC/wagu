@@ -1,6 +1,8 @@
 # MP NetWire: make          -> build/mpnetd (host)
 #             make android  -> build/android/<abi>/mpnetd (Termux / adb shell), needs NDK=/path/to/ndk
 #             make test
+#             make dns      -> build/mpnet-dns (libevent evdns bulk DNS check, needs libevent-dev)
+#             make ws       -> build/mpnet-ws  (POCO WebSocket live status push, needs libpoco-dev)
 CXX ?= g++
 CXXFLAGS ?= -O2 -std=c++17 -Wall -Wextra -Wno-unused-parameter
 SRC = lib/mpnet.cpp server/mpnetd.cpp
@@ -19,6 +21,14 @@ android: $(SRC)
 test: build/mpnetd
 	bash tests/run.sh
 
+dns: server/mpnet-dns.c
+	@mkdir -p build
+	$(CC) -O2 -Wall -o build/mpnet-dns server/mpnet-dns.c -levent
+
+ws: server/mpnet-ws.cpp
+	@mkdir -p build
+	$(CXX) -O2 -std=c++17 -o build/mpnet-ws server/mpnet-ws.cpp -lPocoNet -lPocoUtil -lPocoJSON -lPocoFoundation -lpthread
+
 clean:
 	rm -rf build
-.PHONY: android test clean
+.PHONY: android test clean dns ws

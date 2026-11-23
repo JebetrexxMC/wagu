@@ -960,7 +960,7 @@ int MP::NeonPaintWanted()
     // 5.01.14: a server was joined (Browse servers / Quick connect / the API): the game's own title menu showed for a
     // few seconds before the loading screen (and its pause menu after the load) because the neon menu stood aside as
     // soon as the Multiplayer load began. Now a neon loading cover stays over the game's menus until the black screen.
-    if(s_bMenuMp.load() && NeonOn() && !s_bMenuMpLoaded.load() && s_nMenuMpTapAt && MP_NowMs() - s_nMenuMpTapAt < 30000 && Game::IsFrontendMenu())
+    if(s_bMenuMp.load() && NeonOn() && !s_bMenuMpLoaded.load() && s_nMenuMpTapAt && MP_NowMs() - s_nMenuMpTapAt < 120000 && Game::IsFrontendMenu())
     {
         if(NeonPaint::Inited() && NeonPaintLoad()) { s_szNeonWhy = "painted (the Multiplayer loading cover)"; return 4; }
     }
@@ -2424,11 +2424,30 @@ void MP::NeonPaintMenu(int what)
         NeonPToast(W, H, H / 804.0f);
     }
     else if(what == 2) NeonPTile(W, H);
-    else if(what == 4) { s_nNeonTint = 110; NeonPLoading(W, H); }
+    else if(what == 4)
+    {   // 5.02.64: MP's loading screen (HUD) covers the menus now: only keep taps off the game's menu under it
+        if(MP_NowMs() - s_nMenuMpCoverMs.load() < 300) NeonPaint::EatTap();
+        else { s_nNeonTint = 110; NeonPLoading(W, H); }   // fallback: the HUD did not draw (first frames)
+    }
     else { if(s_nNK & (NK_A | NK_START)) s_bNeonHidden = false; NeonPPill(W, H); }
     s_nNK = 0;
     NeonPaint::End();
     if(s_nNeonPaintFrames < 3 && ++s_nNeonPaintFrames == 3) logger->Info("Neon menu: native frames ok");
+}
+// 5.02.64: the same neon loading screen on the game's loading screen (CLoadingScreen::RenderSplash) and over the
+// black-screen countdown (after the HUD), so a join from the neon menu never switches to MP's other loading screen
+void MP::NeonPaintLoading()
+{
+    if(!NeonPaint::Ready()) return;
+    const float W = NeonPaint::W(), H = NeonPaint::H();
+    static int s_n = 0;
+    if(s_n++ == 0) logger->Info("Neon menu: neon loading screen on the game's loading screen / countdown (%.0fx%.0f)", W, H);
+    NeonPaint::Begin();
+    s_nNeonTint = 110;
+    NeonPLoading(W, H);
+    const int a = MP::NeonLoadingFade();
+    if(a > 0) NeonPaint::Quad(0, 0, W, H, NC(0, 0, 0, a > 255 ? 255 : a));
+    NeonPaint::End();
 }
 void MP::NeonTouch(int kind, int finger, float x, float y)   // 4.13.30
 {

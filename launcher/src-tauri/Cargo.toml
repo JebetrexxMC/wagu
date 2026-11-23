@@ -1,0 +1,28 @@
+[package]
+name = "mp-launcher"
+version = "1.0.0"
+description = "MP Launcher for PC - SA-MP / open.mp server browser and MP Crossplay 24/7"
+authors = ["JebetrexxMC"]
+license = "MIT"
+repository = "https://github.com/JebetrexxMC/wagu"
+edition = "2021"
+
+[build-dependencies]
+# Tauri from the JebetrexxMC fork (tauri-apps/tauri, dev branch, Tauri 2)
+tauri-build = { git = "https://github.com/JebetrexxMC/tauri", branch = "dev", features = [] }
+
+[dependencies]
+tauri = { git = "https://github.com/JebetrexxMC/tauri", branch = "dev", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ureq = { version = "2", default-features = false, features = ["tls", "json"] }
+
+[target.'cfg(windows)'.dependencies]
+dll-syringe = { version = "0.15", default-features = false, features = ["syringe", "into-x86-from-x64"] }
+winreg = "0.52"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
