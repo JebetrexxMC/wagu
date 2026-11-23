@@ -404,13 +404,31 @@ int Game::ModelStatus(int model)
     return 0;
 }
 bool Game::LoadModel(int model) { return ModelStatus(model) == 1; }
+static uint64_t s_nStreamBusyUntil = 0;
+static char     s_szStreamBusyWhy[24] = "";
+void Game::MarkStreamBusy(const char* why, int ms)
+{
+    const uint64_t until = MP_NowMs() + (uint64_t)ms;
+    if(until > s_nStreamBusyUntil) { s_nStreamBusyUntil = until; snprintf(s_szStreamBusyWhy, sizeof(s_szStreamBusyWhy), "%s", why ? why : ""); }
+}
+bool Game::StreamBusy() { return MP_NowMs() < s_nStreamBusyUntil; }
 bool Game::LoadModelNow(int model)
 {
     if(!IsKnownModel(model)) return false;   // 2.24
     if(!CALLSCM(HAS_MODEL_LOADED, model))
     {
+        if(StreamBusy())
+        {   // 5.02.69: right after a spawn / teleport: only this model is asked for; the caller tries again
+            static int s_nLogs = 0;
+            if(s_nLogs < 8) { ++s_nLogs; logger->Info("Streaming: model %d waits for the normal streamer (%s, no LOAD_ALL_MODELS_NOW - freeze)", model, s_szStreamBusyWhy); }
+            return ModelStatus(model) == 1;
+        }
         CALLSCM(REQUEST_MODEL, model);
+        const uint64_t t0 = MP_NowMs();
         CALLSCM(LOAD_ALL_MODELS_NOW);
+        const uint64_t dt = MP_NowMs() - t0;
+        static int s_nSlow = 0;
+        if(dt > 250 && s_nSlow < 10) { ++s_nSlow; logger->Info("Streaming: LOAD_ALL_MODELS_NOW for model %d took %u ms (the game stood still)", model, (unsigned)dt); }
     }
     return CALLSCM(HAS_MODEL_LOADED, model) != 0;
 }
@@ -548,6 +566,27 @@ void Game::SetInterior(int ped, int area)
     CALLSCM(SET_AREA_VISIBLE, area);
     if(ped > 0 && PedPtr(ped)) CALLSCM(SET_CHAR_AREA_VISIBLE, ped, area);
 }
+static struct { int ped, weapon; uint64_t until; } s_WepQ[16];
+static void QueueLocalWeapon(int ped, int weapon)
+{
+    for(auto& q : s_WepQ) if(q.until && q.ped == ped && q.weapon == weapon) return;
+    for(auto& q : s_WepQ) if(!q.until) { q.ped = ped; q.weapon = weapon; q.until = MP_NowMs() + 15000; return; }
+}
+void Game::StreamTick()
+{
+    const uint64_t now = MP_NowMs();
+    for(auto& q : s_WepQ)
+    {
+        if(!q.until) continue;
+        if(now > q.until || !PedPtr(q.ped)) { q.until = 0; continue; }
+        uint32_t model = 0;
+        CALLSCM(GET_WEAPONTYPE_MODEL, q.weapon, &model);
+        const int st = (int)model > 0 ? ModelStatus((int)model) : -1;
+        if(st == 0) continue;
+        q.until = 0;
+        if(st > 0) { CALLSCM(GIVE_WEAPON_TO_CHAR, q.ped, q.weapon, 9999); CALLSCM(SET_CURRENT_CHAR_WEAPON, q.ped, q.weapon); }
+    }
+}
 bool Game::GiveAndSelectWeapon(int ped, int weapon)
 {
     if(ped <= 0 || !PedPtr(ped)) return true;   // 2.19.1: never on a ped that is gone (crash in CPed::GiveWeapon)
@@ -568,6 +607,11 @@ bool Game::GiveAndSelectWeapon(int ped, int weapon)
             uint32_t model = 0;
             CALLSCM(GET_WEAPONTYPE_MODEL, weapon, &model);
             if((int)model <= 0) { ++s_BadWeapon[weapon]; return true; }
+            if(local && StreamBusy() && !CALLSCM(HAS_MODEL_LOADED, (int)model))
+            {   // 5.02.69: after a spawn: the weapon comes when its model is in (StreamTick), no blocking load
+                QueueLocalWeapon(ped, weapon);
+                return true;
+            }
             if(local) { if(!LoadModelNow((int)model) || !PedPtr(ped)) { ++s_BadWeapon[weapon]; return true; } }
             else
             {   // 3.32: another player's weapon streams in the background (no LOAD_ALL_MODELS_NOW mid-frame)
@@ -663,6 +707,7 @@ bool Game::SceneLoadAllowed(int ped, const Vec3& to)
 void Game::Teleport(int ped, const Vec3& foot, float heading)
 {
     if(ped <= 0) return;
+    if(ped == LocalPed()) MarkStreamBusy("after a teleport");   // 5.02.69
     CALLSCM(SET_AREA_VISIBLE, 0);
     CALLSCM(SET_CHAR_AREA_VISIBLE, ped, 0);
     CALLSCM(REQUEST_COLLISION, foot.x, foot.y);
@@ -678,6 +723,7 @@ void Game::Teleport(int ped, const Vec3& foot, float heading)
 void Game::TeleportLight(int ped, const Vec3& foot, float heading)
 {
     if(ped <= 0) return;
+    if(ped == LocalPed()) MarkStreamBusy("after a spawn");   // 5.02.69
     CALLSCM(SET_AREA_VISIBLE, 0);
     CALLSCM(SET_CHAR_AREA_VISIBLE, ped, 0);
     CALLSCM(REQUEST_COLLISION, foot.x, foot.y);

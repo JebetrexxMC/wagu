@@ -4704,6 +4704,7 @@ void MP::Process()
 {
     uint64_t now = MP_NowMs();
     PhoneLabTick(now);
+    Game::StreamTick();   // 5.02.69: weapons that waited for their model after a spawn
     EnforceServerModes();   // 3.35
     LuaCmdTick(now);
     LangReqTick();   // 5.02.36

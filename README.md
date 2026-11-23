@@ -823,6 +823,11 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.69
+- Fix: the freeze right after < Spawn > (Grove Street, grey untextured ground). After a teleport the whole area sits in the streaming queue; your skin and the weapons given at spawn were loaded with LOAD_ALL_MODELS_NOW, which loads that whole queue inside one frame. For 8 s after any spawn / teleport they now wait for the normal streamer (weapons are queued and given when their model is in).
+- mp_log: "Streaming: LOAD_ALL_MODELS_NOW for model N took X ms" when a blocking load still stops the game, and "Streaming: model N waits for the normal streamer" during the spawn window.
+- PhoneLab: scenario 05 (Solo volume + Grove Street spawn) and a job queue (`python3 -m phonelab worker`) in mp-phonelab.
+
 ### 5.02.68
 - Crash fix: SIGABRT "Binder thread started or Java binder used, but env null. Attach JVM?" on the loading screen after Browse servers -> Join (the log stopped at "menu music stopped"). Stopping the menu music destroyed its URL player on MP's position thread after that thread had left the JVM, and Android's media server then calls the game's Java HTTP connection back on it (frameworks/base android_util_Binder.cpp). The player is now always destroyed with the thread attached, and the position thread only keeps a weak reference.
 - 64-bit: libMP64.so is aligned for 16 KB memory pages (Android 15+ phones with 16 KB pages); nothing changes on other phones.

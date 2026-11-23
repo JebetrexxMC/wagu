@@ -102,6 +102,11 @@ namespace Game
     bool  SceneLoadSlot();   // 5.02.15: LOAD_SCENE only for your own big jumps, max 1 / 4 s   // 4.12.9: no LOAD_SCENE
     bool  LoadModel(int model);               // 3.32: NON-blocking (REQUEST_MODEL, the game streams it in); true = loaded now
     bool  LoadModelNow(int model);            // 3.32: blocking (LOAD_ALL_MODELS_NOW) - only for your own one-off actions
+    // 5.02.69: for 8 s after a spawn / teleport the area around you is still in the streaming queue, and
+    // LOAD_ALL_MODELS_NOW would load ALL of it inside one frame (the freeze after < Spawn > at Grove Street).
+    void  MarkStreamBusy(const char* why, int ms = 8000);
+    bool  StreamBusy();
+    void  StreamTick();                       // game tick: weapons that waited for their model
     int   ModelStatus(int model);             // 3.32: 1 loaded, 0 streaming in, -1 unknown / gave up (10 s)
     bool  IsKnownModel(int model);            // 2.24: exists in this game (safe to REQUEST_MODEL)
     bool  IsKnownCarModel(int model);         // 2.24: 400-611 and exists
