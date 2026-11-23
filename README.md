@@ -749,6 +749,14 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.62
+- SAMPGate: filled the gaps against the open.mp docs (93 callbacks, 1019 functions) and open.mp `Shared/NetCode`.
+  - New server→client handlers: name tags (`ShowPlayerNameTagForPlayer`, RPC 80), gravity (`SetGravity`/`SetPlayerGravity`, 146, applied on top of the cheat gravity), `AttachCameraToObject` (81, camera follows moved objects), `AttachObjectToPlayer` (75, own player uses a free attachment slot), actor health (`SetActorHealth`, 178, plus health on actor create), `EnablePlayerCameraTarget` (170), player death of remote players (166), number plate (123) and trailer attach/detach (148/149) state.
+  - New client→server RPCs: `OnPlayerGiveDamageActor` (177, sent when you damage a vulnerable actor) and `OnPlayerCameraTarget` (168, ray test every 250 ms against vehicles, players and actors, sent only on change).
+  - Read and logged only (no phone-side feature yet): 26, 33, 60, 84, 112, 154, 167, 183, 185.
+  - Still unsupported: custom number plate textures, object materials/material text, crime reports, remote-player collisions toggle and DL custom model downloads.
+- Host build of the server and the sampgate test client passes. Not tested on a phone or against a live open.mp server yet.
+
 ### 5.02.61
 - ReSA tab and ReSA crossplay removed again (added back in 5.02.60). No ReSA list, no "Open in ReSA" / resa:// hand-off, no RESA list in the neon server browsers, and Favorites no longer collects ReSA servers. `crossplay/RESA_WINDOWS_1.1.8.md` deleted. PC open.mp / SA-MP servers are still joined from the open.mp tab, and the open.mp crossplay component is unchanged.
 - Kept from 5.02.60: the `requests` https fix, the `Notifications.Show` fix, `sandbox.lua`, and mp_sfcompat 1.2 (`AL_DPI_SCALE` / `localClock()` for AL Loader scripts).

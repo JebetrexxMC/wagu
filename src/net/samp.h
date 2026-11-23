@@ -59,5 +59,10 @@ enum eSampOp : uint8_t
                       // C->S  a = button: 1..6 x- x+ y- y+ z- z+, 7..10 rx+ ry+ rz- rz+, 11 step, 20 save, 21 cancel, 30 pick nearest
     SPO_MARKER,       // S->C  5.02.27: radar marker of a far PC player (ShowPlayerMarkers): val = PC player id, a = 1 show (f = x y z,
                       //       b unused, text = colour "RRGGBBAA" hex) / 0 hide, a = 2 hide all
+    // 5.02.62: the open.mp functions / callbacks that were still missing on the client side (open.mp docs, NetCode)
+    SPO_GRAVITY,      // S->C  SetGravity / SetPlayerGravity: f[0] = gravity / 0.008 (1 = normal)
+    SPO_ACTORDMG,     // C->S  OnPlayerGiveDamageActor: val = actor id, a = weapon, b = body part, f[0] = damage
+    SPO_CAMTARGET,    // S->C  EnablePlayerCameraTarget: a = 1 on / 0 off
+                      // C->S  what the camera looks at (OnPlayerCameraTarget): f = server vehicle id, MP player slot, actor id (-1 = none)
 };
 struct PktSamp { uint8_t type, op, a, b; int32_t val; float f[4]; char text[200]; };

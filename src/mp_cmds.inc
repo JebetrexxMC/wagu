@@ -320,6 +320,10 @@ static bool HandleCommand(const char* text)
     return true;
 }
 
+// 5.02.62: SetGravity / SetPlayerGravity of a PC server (crossplay, SPO_GRAVITY): 1 = normal. Kept apart from the
+// /gravity cheat so the bounty / cheat checks do not see a server's gravity as a cheat
+static float s_fSampGravity = 1.0f;
+
 // ---- cheats, every game tick --------------------------------------------------------------
 static void ProcessCheats(int ped, uint64_t now)
 {
@@ -407,9 +411,10 @@ static void ProcessCheats(int ped, uint64_t now)
         float hs = sqrtf(v.x * v.x + v.y * v.y);
         if(hs > 1.5f && hs < 30.0f) { float k = 26.0f / hs; v.x *= k; v.y *= k; changed = true; }
     }
-    if(s_Cheat.gravity != 1.0f)
+    const float grav = s_Cheat.gravity * s_fSampGravity;   // 5.02.62: x the PC server's SetGravity
+    if(grav != 1.0f)
     {
-        v.z += (1.0f - s_Cheat.gravity) * 20.0f * dt;   // game gravity ~ 20 m/s^2 (0.008 per step)
+        v.z += (1.0f - grav) * 20.0f * dt;   // game gravity ~ 20 m/s^2 (0.008 per step)
         changed = true;
     }
     if(s_Cheat.nofall && v.z < -14.0f) { v.z = -14.0f; changed = true; }   // soft landing

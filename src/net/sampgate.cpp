@@ -289,8 +289,16 @@ struct SampGate::Impl
     uint64_t hitAt = 0; int lastHp = -1, lastAr = -1;       // last PC bullet that hit me / health seen (OnPlayerTakeDamage)
     struct Menu { std::string title; bool two = false; std::vector<std::string> c1, c2; std::string h1, h2; };
     std::map<int, Menu> menus; int menuOpen = -1;           // GTA menus (CreateMenu / ShowMenuForPlayer) as a list window
-    struct Act { uint32_t skin = 0; float p[3] = { 0, 0, 0 }; float a = 0; bool invul = true; };
+    struct Act { uint32_t skin = 0; float p[3] = { 0, 0, 0 }; float a = 0; bool invul = true; float hp = 100.0f; };   // 5.02.62: + health
     std::map<int, Act> actors;                              // CreateActor (shown with the phone's actor peds)
+    // 5.02.62: the rest of the open.mp client RPCs
+    std::map<int, bool> tagOff;                             // ShowPlayerNameTagForPlayer: PC id -> hidden (applied when his ghost appears)
+    std::map<int, std::string> vehPlate;                    // SetVehicleNumberPlate (kept; the phone has no custom plates)
+    std::map<int, int> trailer;                             // AttachTrailerToVehicle: vehicle -> trailer
+    std::map<int, int> objAtt;                              // AttachObjectToPlayer on me: object id -> attachment slot
+    int camObj = -1;                                        // AttachCameraToObject
+    bool camTarget = false; int camLast[4] = { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };   // EnablePlayerCameraTarget / last OnPlayerCameraTarget
+    float gravity = 0.008f;                                 // SetGravity / SetPlayerGravity
     // 5.02.26: SetPlayerAttachedObject kept (EditAttachedObject answers with it), EditObject / SelectObject state
     struct Att { bool on = false; uint32_t model = 0, bone = 0, c1 = 0, c2 = 0; float off[3] = { 0, 0, 0 }, rot[3] = { 0, 0, 0 }, sc[3] = { 1, 1, 1 }; };
     Att att[10];
@@ -949,6 +957,11 @@ static void RemReset(Impl& I, MPServer* srv)
     I.objs.clear();
     if(I.edit.mode && I.phoneSlot >= 0) srv->GateOp(I.phoneSlot, SPO_EDIT, 0, 0, 0);   // 5.02.26
     I.edit = Impl::Edit(); for(auto& a : I.att) a = Impl::Att();
+    // 5.02.62
+    I.tagOff.clear(); I.vehPlate.clear(); I.trailer.clear(); I.objAtt.clear(); I.camObj = -1;
+    I.camTarget = false; for(int& c : I.camLast) c = 0xFFFF;
+    if(I.phoneSlot >= 0) { if(I.gravity != 0.008f) { float g[4] = { 1, 0, 0, 0 }; srv->GateOp(I.phoneSlot, SPO_GRAVITY, 0, 0, 0, g); } srv->GateOp(I.phoneSlot, SPO_CAMTARGET, 0, 0, 0); }
+    I.gravity = 0.008f;
     if(I.phoneSlot >= 0) { srv->GateOp(I.phoneSlot, SPO_HUD, 0, 0, 0); srv->GateOp(I.phoneSlot, SPO_HUD, 1, 0, 0); srv->GateOp(I.phoneSlot, SPO_HUD, 2, 0, 0); }
     for(auto& kv : I.picks) { float z[3] = { 0, 0, 0 }; srv->GateObject(kv.second.o.row, kv.second.o.model, z, z, false); }
     I.picks.clear();
@@ -1066,7 +1079,12 @@ static Impl::Rp* RemPlayer(Impl& I, int id) { auto it = I.rp.find(id); return it
 static void RemGhostIn(Impl& I, MPServer* srv, int id, const float* pos, float ang)
 {
     Impl::Rp* p = RemPlayer(I, id); if(!p) return;
-    if(p->slot < 0) p->slot = srv->BridgeAdd(p->name.c_str(), p->color, p->skin);
+    if(p->slot < 0)
+    {
+        p->slot = srv->BridgeAdd(p->name.c_str(), p->color, p->skin);
+        // 5.02.62: ShowPlayerNameTagForPlayer - the phone keeps tags per MP slot, so a reused slot gets its state again
+        if(p->slot >= 0 && I.phoneSlot >= 0) { auto t = I.tagOff.find(id); srv->GateOp(I.phoneSlot, SPO_TAGS, 1, (t != I.tagOff.end() && t->second) ? 0 : 1, p->slot); }
+    }
     if(p->slot < 0) return;
     if(pos) { SyncData d; memset(&d, 0, sizeof(d)); memcpy(d.pos, pos, sizeof(d.pos)); d.heading = ang; d.health = 100; d.skin = p->skin; memcpy(d.aim, pos, sizeof(d.aim)); p->last = d; p->hasPos = true; srv->BridgeSync(p->slot, d); }
 }
@@ -1363,8 +1381,10 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         case 171:
         {   // ShowActorForPlayer (0.3.DL: + custom skin)
             Impl::Act a; bs.Read(u16a); bs.Read(a.skin); if(I.cliVer == kSampVersionDL) bs.Read(u32a);
-            if(!RdVec(bs, a.p)) break; bs.Read(a.a); bs.Read(fa); bs.Read(u8a); a.invul = u8a != 0;
-            I.actors[u16a] = a; RemActorShow(I, srv, u16a); break;
+            if(!RdVec(bs, a.p)) break; bs.Read(a.a); bs.Read(fa); bs.Read(u8a); a.invul = u8a != 0; a.hp = fa;
+            I.actors[u16a] = a; RemActorShow(I, srv, u16a);
+            { float h[4] = { fa, 0, 0, 0 }; srv->GateOp(s, SPO_ACTOR, 4, 0, u16a, h); }   // 5.02.62: its health (CreateActor / SetActorHealth)
+            break;
         }
         case 172: bs.Read(u16a); I.actors.erase(u16a); srv->GateOp(s, SPO_ACTOR, 0, 0, u16a); break;
         case 173:
@@ -1583,12 +1603,16 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             I.objs[id] = o; srv->GateObject(o.row, o.model, o.p, o.r, true);
             break;
         }
-        case 47: { bs.Read(u16a); auto it = I.objs.find(u16a); if(it == I.objs.end()) break; srv->GateObject(it->second.row, it->second.model, it->second.p, it->second.r, false); I.objs.erase(it); break; }
+        case 47: { bs.Read(u16a);
+                   { auto at = I.objAtt.find(u16a); if(at != I.objAtt.end()) { I.att[at->second].on = false; srv->GateOp(s, SPO_ATTACH, (uint8_t)at->second, 0, -1); I.objAtt.erase(at); } }   // 5.02.62
+                   if(I.camObj == (int)u16a) I.camObj = -1;
+                   auto it = I.objs.find(u16a); if(it == I.objs.end()) break; srv->GateObject(it->second.row, it->second.model, it->second.p, it->second.r, false); I.objs.erase(it); break; }
         case 45: case 99:
         {
             bs.Read(u16a); RdVec(bs, v); auto it = I.objs.find(u16a); if(it == I.objs.end()) break;
             if(r.id == 99) { float to[3], sp, tr[3]; RdVec(bs, to); bs.Read(sp); if(RdVec(bs, tr) && tr[0] > -999.0f) memcpy(it->second.r, tr, sizeof(tr)); memcpy(v, to, sizeof(v)); }
             memcpy(it->second.p, v, sizeof(v)); srv->GateObject(it->second.row, it->second.model, it->second.p, it->second.r, true);
+            if(I.camObj == (int)u16a) srv->GateOp(s, SPO_CAMERA, 1, 0, 0, v);   // 5.02.62: AttachCameraToObject on a moving object
             break;
         }
         case 36:   // 3D text label
@@ -1605,10 +1629,10 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
             break;
         }
         case 58: bs.Read(u16a); I.alabels.erase(u16a); srv->GateLabel(s, u16a, false, nullptr, 0, 0, ""); break;
-        case 157: RdVec(bs, v); srv->GateOp(s, SPO_CAMERA, 1, 0, 0, v); break;
+        case 157: I.camObj = -1; RdVec(bs, v); srv->GateOp(s, SPO_CAMERA, 1, 0, 0, v); break;
         case 158: RdVec(bs, v); srv->GateOp(s, SPO_CAMERA, 2, 0, 0, v); break;
-        case 162: srv->GateOp(s, SPO_CAMERA, 0, 0, 0); break;
-        case 82: { bool pos = false; bs.Read(pos); RdVec(bs, v); RdVec(bs, w3); srv->GateOp(s, SPO_CAMERA, pos ? 1 : 2, 0, 0, w3); break; }
+        case 162: I.camObj = -1; srv->GateOp(s, SPO_CAMERA, 0, 0, 0); break;
+        case 82: { I.camObj = -1; bool pos = false; bs.Read(pos); RdVec(bs, v); RdVec(bs, w3); srv->GateOp(s, SPO_CAMERA, pos ? 1 : 2, 0, 0, w3); break; }
         case 16: bs.Read(u32a); RdVec(bs, v); srv->GateOp(s, SPO_SOUND, 0, 0, (int32_t)u32a, v); break;
         case 41: { std::string url = RdStr8(bs); RdVec(bs, v); bs.Read(fa); bs.Read(u8a); float f[4] = { v[0], v[1], v[2], fa }; srv->GateOp(s, SPO_AUDIO, 1, u8a ? 1 : 0, 0, f, url.c_str()); break; }
         case 42: srv->GateOp(s, SPO_AUDIO, 0, 0, 0); break;
@@ -1715,6 +1739,71 @@ static void RemHandleRpc(SampGate* g, Impl& I, MPServer* srv, RpcIn& r)
         }
         case 27: I.edit = Impl::Edit(); I.edit.mode = 3; srv->GateOp(s, SPO_EDIT, 3, 0, 0, nullptr, "Select object"); break;   // SelectObject
         case 28: if(I.edit.mode) { I.edit = Impl::Edit(); srv->GateOp(s, SPO_EDIT, 0, 0, 0); } break;                      // CancelEdit
+        // ---- 5.02.62: the open.mp client RPCs that were still missing (open.mp docs + Shared/NetCode) ----
+        case 80:   // ShowPlayerNameTagForPlayer (playerid, show)
+        {
+            bs.Read(u16a); bs.Read(u8a); I.tagOff[u16a] = u8a == 0;
+            if(Impl::Rp* p = RemPlayer(I, u16a)) if(p->slot >= 0) srv->GateOp(s, SPO_TAGS, 1, u8a ? 1 : 0, p->slot);
+            break;
+        }
+        case 146:  // SetGravity / SetPlayerGravity (0.008 = normal): the phone scales its fall speed like /gravity
+        {
+            if(!bs.Read(fa) || !std::isfinite(fa)) break;
+            I.gravity = fa; float g[4] = { std::max(-5.0f, std::min(5.0f, fa / 0.008f)), 0, 0, 0 };
+            srv->GateOp(s, SPO_GRAVITY, 0, 0, 0, g); printf("[crossplay] gravity %.4f (x%.2f)\n", fa, g[0]); break;
+        }
+        case 81:   // AttachCameraToObject: the camera sits on the object (and follows MoveObject / SetObjectPos)
+        {
+            bs.Read(u16a); auto it = I.objs.find(u16a); if(it == I.objs.end()) break;
+            I.camObj = u16a; srv->GateOp(s, SPO_CAMERA, 1, 0, 0, it->second.p); break;
+        }
+        case 75:   // AttachObjectToPlayer: a server object on me = a free attachment slot (spine), the world copy goes
+        {
+            uint16_t pid = kInvalid; float off[3] = { 0, 0, 0 }, rot[3] = { 0, 0, 0 };
+            bs.Read(u16a); bs.Read(pid); RdVec(bs, off); RdVec(bs, rot);
+            auto it = I.objs.find(u16a); if(it == I.objs.end() || (int)pid != I.myId) break;   // on a PC player: his own client shows it
+            int slot = -1; { auto at = I.objAtt.find(u16a); if(at != I.objAtt.end()) slot = at->second; }
+            for(int k = 9; k >= 0 && slot < 0; --k) if(!I.att[k].on) slot = k;
+            if(slot < 0) break;
+            Impl::Att& at = I.att[slot]; at.on = true; at.model = it->second.model; at.bone = 1; memcpy(at.off, off, sizeof(off)); memcpy(at.rot, rot, sizeof(rot)); at.sc[0] = at.sc[1] = at.sc[2] = 1;
+            I.objAtt[u16a] = slot;
+            srv->GateObject(it->second.row, it->second.model, it->second.p, it->second.r, false);
+            char t[96]; snprintf(t, sizeof(t), "%.3f %.3f %.3f 1 1 1", rot[0], rot[1], rot[2]); float f4[4] = { off[0], off[1], off[2], 0 };
+            srv->GateOp(s, SPO_ATTACH, (uint8_t)slot, 1, (int32_t)it->second.model, f4, t); break;
+        }
+        case 178:  // SetActorHealth
+        {
+            bs.Read(u16a); bs.Read(fa); auto it = I.actors.find(u16a); if(it == I.actors.end()) break;
+            it->second.hp = fa; float h[4] = { fa, 0, 0, 0 }; srv->GateOp(s, SPO_ACTOR, 4, 0, u16a, h); break;
+        }
+        case 170:  // EnablePlayerCameraTarget: the phone reports what its camera looks at (OnPlayerCameraTarget, RPC 168)
+        {
+            bool on = false; bs.Read(on); I.camTarget = on; for(int& c : I.camLast) c = 0xFFFF;
+            srv->GateOp(s, SPO_CAMTARGET, on ? 1 : 0, 0, 0); break;
+        }
+        case 166:  // PlayerDeath (a PC player died): his ghost falls (the dead flag until his next movement after respawn)
+        {
+            bs.Read(u16a); Impl::Rp* p = RemPlayer(I, u16a); if(!p || p->slot < 0 || !p->hasPos) break;
+            SyncData d = p->last; d.health = 0; d.armour = 0; d.flags |= SYNC_DEAD; p->last = d; srv->BridgeSync(p->slot, d); break;
+        }
+        case 123:  // SetVehicleNumberPlate: kept for the log (stock GTA plates on the phone)
+        {
+            bs.Read(u16a); std::string pl = RdStr8(bs); I.vehPlate[u16a] = pl;
+            if(dbg) printf("[crossplay] vehicle %d plate \"%s\"\n", (int)u16a, pl.c_str()); break;
+        }
+        case 148: { uint16_t tr = 0; bs.Read(tr); bs.Read(u16a); I.trailer[u16a] = tr; break; }   // AttachTrailerToVehicle (the trailer sync moves it)
+        case 149: bs.Read(u16a); I.trailer.erase(u16a); break;                                    // DetachTrailerFromVehicle
+        // Read and left to the sync / not shown on the phone (named here so MP_GATE_DEBUG logs say why):
+        case 26:   // EnterVehicle (a PC player gets in): his vehicle sync puts the ghost in the car
+        case 154:  // ExitVehicle (a PC player gets out): his foot sync takes the ghost out
+        case 33:   // SetPlayerShopName (interior shop scripts of the PC game)
+        case 60:   // SendGameTimeUpdate (server uptime for the PC client's timers, not the world clock)
+        case 84:   // SetObjectMaterial / SetObjectMaterialText (objects are shown with their stock textures)
+        case 112:  // PlayCrimeReport (police scanner voice)
+        case 167:  // DisableRemoteVehicleCollisions
+        case 183: case 185:   // 0.3.DL ModelUrl / DownloadCompleted: custom models are shown as their base model (RPC 179)
+            if(dbg) printf("[crossplay] RPC %d read, nothing to show on the phone\n", r.id);
+            break;
         case 59:   // chat bubble
         {
             bs.Read(u16a); bs.Read(u32a); bs.Read(fa); bs.Read(u32b); std::string t = RdStr8(bs);
@@ -2497,6 +2586,22 @@ static void RemTick(SampGate* g, Impl& I, MPServer* srv)
             I.interior = e.a; BitStream o; o.Write((uint8_t)e.a); CliRpc(I, 118, o);
         }
         else if(e.kind == HK_SAMP && e.op == SPO_EDIT) RemEdit(I, srv, e.a);   // 5.02.26
+        else if(e.kind == HK_SAMP && e.op == SPO_ACTORDMG && I.phase == 4 && I.actors.count(e.val))
+        {   // 5.02.62: OnPlayerGiveDamageActor (only vulnerable actors take damage, as on PC)
+            BitStream o; o.Write(false); o.Write((uint16_t)e.val); o.Write(e.f[0]); o.Write((uint32_t)e.a); o.Write((uint32_t)(e.b ? e.b : 3)); CliRpc(I, 177, o);
+        }
+        else if(e.kind == HK_SAMP && e.op == SPO_CAMTARGET && I.phase == 4 && I.camTarget)
+        {   // 5.02.62: OnPlayerCameraTarget - object, vehicle, player, actor (65535 = none); sent when it changes
+            int t[4] = { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
+            if(e.f[0] >= 0 && I.vehs.count((int)e.f[0])) t[1] = (int)e.f[0];
+            if(e.f[1] >= 0) for(auto& kv : I.rp) if(kv.second.slot == (int)e.f[1]) { t[2] = kv.first; break; }
+            if(e.f[2] >= 0 && I.actors.count((int)e.f[2])) t[3] = (int)e.f[2];
+            if(memcmp(t, I.camLast, sizeof(t)))
+            {
+                memcpy(I.camLast, t, sizeof(t));
+                BitStream o; for(int k = 0; k < 4; ++k) o.Write((uint16_t)t[k]); CliRpc(I, 168, o);
+            }
+        }
         else if(e.kind == HK_RAW && e.op == PKT_VOICE) { if(I.phase >= 3) SvPhoneVoice(I, srv, (const uint8_t*)e.text.data(), (int)e.text.size(), now); }   // 5.02.29: SampVoice
         else if(e.kind == HK_RAW && I.phase == 4) RemPhonePkt(I, srv, e, now);
         else if(e.kind == HK_DIALOG)

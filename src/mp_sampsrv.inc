@@ -11,7 +11,8 @@ struct SsZone { float r[4] = { 0, 0, 0, 0 }; uint32_t col = 0, flash = 0; };   /
 struct SsVeh { int model = 0, c1 = -1, c2 = -1; Vec3 p{ 0, 0, 0 }; float h = 0; int car = 0; uint64_t tryAt = 0; bool taken = false, locked = false, deadSent = false;   // 5.02.25
                // 5.02.26: interior, paintjob, parts, damage (fitted once the car is made; parts stream in first)
                int area = 0, pj = -1; std::vector<int> mods; bool modDirty = false; int modTries = 0; uint64_t modAt = 0; std::string dmg; };
-struct SsActor { int model = 0; Vec3 p{ 0, 0, 0 }; float h = 0; bool invul = true; int ped = 0; std::string anim; bool animDone = false; uint64_t tryAt = 0; };
+struct SsActor { int model = 0; Vec3 p{ 0, 0, 0 }; float h = 0; bool invul = true; int ped = 0; std::string anim; bool animDone = false; uint64_t tryAt = 0;
+                 float hp = 100.0f; int lastHp = -1; };   // 5.02.62: SetActorHealth + OnPlayerGiveDamageActor
 static struct SampSrvState
 {
     bool on = false, pawnCmd = false;
@@ -40,6 +41,8 @@ static struct SampSrvState
     bool wide = false, clock = false, bounds = false; float bnd[4] = { 0, 0, 0, 0 };
     int special = 0; std::string actAnim, actFile; uint64_t actTry = 0; bool actPlayed = false;
     int edit = 0; std::string editTitle;
+    // 5.02.62: EnablePlayerCameraTarget (OnPlayerCameraTarget)
+    bool camTarget = false; uint64_t camTargetAt = 0;
 } s_SS;
 static bool SampSrvPcSpawned() { return s_SS.pcSpawned; }
 
@@ -66,6 +69,7 @@ static void SampSrvReset()
     if(s_SS.audio) Sound::StreamStop();
     if(s_SS.wide) Game::SetWidescreen(false);   // 5.02.26
     s_SS = SampSrvState();
+    s_fSampGravity = 1.0f;   // 5.02.62
     s_PcList.clear();
 }
 
@@ -161,6 +165,7 @@ static void SampSrvOnPacket(const uint8_t* d, int len)
                 if(a.ped > 0) { Game::SetCharPos(a.ped, a.p, 0.0f); Game::SetCharHeading(a.ped, a.h); Game::SetCharProofs(a.ped, a.invul, a.invul, a.invul, a.invul, a.invul); }
             }
             else if(p.a == 2) { a.anim = p.text; a.animDone = false; }
+            else if(p.a == 4) { a.hp = p.f[0]; if(a.ped > 0) { const int h = (int)std::max(0.0f, a.hp); Game::SetCharHealth(a.ped, h); a.lastHp = h; } }   // 5.02.62: SetActorHealth
             else { a.anim.clear(); a.animDone = true; if(a.ped > 0) Game::ClearTasksNow(a.ped); }
             break;
         }
@@ -302,6 +307,8 @@ static void SampSrvOnPacket(const uint8_t* d, int len)
             break;
         }
         case SPO_EDIT: s_SS.edit = p.a; s_SS.editTitle = p.text; break;
+        case SPO_GRAVITY: s_fSampGravity = (p.f[0] > -5.0f && p.f[0] < 5.0f) ? p.f[0] : 1.0f; break;   // 5.02.62: SetGravity
+        case SPO_CAMTARGET: s_SS.camTarget = p.a != 0; s_SS.camTargetAt = 0; break;                     // 5.02.62
         case SPO_MARKER:
         {   // 5.02.27: a far PC player's radar square (ShowPlayerMarkers)
             if(p.a == 2) { for(auto& kv : s_SS.markers) if(kv.second) Game::RemoveBlip(kv.second); s_SS.markers.clear(); break; }
@@ -364,7 +371,24 @@ static void SampSrvActorsAudio(const Vec3& me, uint64_t now)
             if(a.ped <= 0) { a.ped = 0; continue; }
             Game::SetCharProofs(a.ped, a.invul, a.invul, a.invul, a.invul, a.invul);
             Game::FreezeChar(a.ped, true);
+            a.lastHp = (int)std::max(1.0f, a.hp); Game::SetCharHealth(a.ped, a.lastHp);   // 5.02.62
             a.animDone = a.anim.empty();
+        }
+        if(!a.invul && a.lastHp >= 0)
+        {   // 5.02.62: OnPlayerGiveDamageActor - my hit on a vulnerable actor (PC: invulnerable actors never call it)
+            const int hp = Game::GetCharHealth(a.ped);
+            if(hp < a.lastHp)
+            {
+                const int me = Game::LocalPed();
+                if(me > 0 && Game::HasCharBeenDamagedByChar(a.ped, me))
+                {
+                    PktSamp q; memset(&q, 0, sizeof(q)); q.type = PKT_SAMP; q.op = SPO_ACTORDMG; q.val = kv.first;
+                    q.a = (uint8_t)Game::GetCharWeapon(me); q.b = 3; q.f[0] = (float)(a.lastHp - hp);
+                    client.Send(&q, sizeof(q));
+                }
+                Game::ClearCharLastDamageEntity(a.ped);
+            }
+            a.lastHp = hp;
         }
         if(!a.animDone && now >= a.tryAt)
         {
@@ -508,6 +532,34 @@ static void SampSrvProcess(int ped, uint64_t now)
     {   // 5.02.26: SetPlayerSpecialAction animations (the file streams in first)
         s_SS.actTry = now + 300;
         if(!Game::IsCharInAnyCar(ped)) s_SS.actPlayed = Game::PlayAnimLoop(ped, s_SS.actAnim.c_str(), s_SS.actFile.c_str());
+    }
+    if(s_SS.camTarget && now >= s_SS.camTargetAt)
+    {   // 5.02.62: EnablePlayerCameraTarget - the nearest server car / player / actor on the camera's line (as on PC: what
+        // the crosshair / camera centre points at), 4 times a second; the gate sends OnPlayerCameraTarget when it changes
+        s_SS.camTargetAt = now + 250;
+        Vec3 cp, cl;
+        if(Game::GetCameraPos(cp, cl))
+        {
+            float dx = cl.x - cp.x, dy = cl.y - cp.y, dz = cl.z - cp.z; const float l = sqrtf(dx * dx + dy * dy + dz * dz);
+            if(l > 0.001f)
+            {
+                dx /= l; dy /= l; dz /= l;
+                auto hit = [&](const Vec3& at, float radius, float& best) -> bool
+                {   // distance along the line, then how far the point is off it
+                    const float ox = at.x - cp.x, oy = at.y - cp.y, oz = at.z - cp.z, t = ox * dx + oy * dy + oz * dz;
+                    if(t < 0.5f || t > 60.0f || t >= best) return false;
+                    const float px = ox - dx * t, py = oy - dy * t, pz = oz - dz * t;
+                    if(px * px + py * py + pz * pz > radius * radius) return false;
+                    best = t; return true;
+                };
+                float bv = 1e9f, bp = 1e9f, ba = 1e9f; int veh = -1, pl = -1, act = -1;
+                for(auto& kv : s_SS.vehs) { Vec3 at; if(kv.second.car > 0 && Game::GetCarPos(kv.second.car, at) && hit(at, 2.2f, bv)) veh = kv.first; }
+                for(int i = 0; i < MP_MAX_PLAYERS; ++i) { if(i == myId || !players[i].active || players[i].ped <= 0) continue; Vec3 at; if(Game::GetCharPos(players[i].ped, at) && hit(at, 0.8f, bp)) pl = i; }
+                for(auto& kv : s_SS.actors) { Vec3 at; if(kv.second.ped > 0 && Game::GetCharPos(kv.second.ped, at) && hit(at, 0.8f, ba)) act = kv.first; }
+                PktSamp q; memset(&q, 0, sizeof(q)); q.type = PKT_SAMP; q.op = SPO_CAMTARGET; q.f[0] = (float)veh; q.f[1] = (float)pl; q.f[2] = (float)act;
+                client.Send(&q, sizeof(q));
+            }
+        }
     }
     SampSrvActorsAudio(me, now);   // 4.13.53
     SampSrvVehicles(ped, me, now);   // 5.02.25
