@@ -7,7 +7,7 @@ SRC = lib/mpnet.cpp server/mpnetd.cpp
 NDK ?= $(ANDROID_NDK_LATEST_HOME)
 TC = $(NDK)/toolchains/llvm/prebuilt/linux-x86_64/bin
 
-build/mpnetd: $(SRC) lib/mpnet.h ../src/net/protocol.h
+build/mpnetd: $(SRC) lib/mpnet.h ../src/net/protocol.h ../src/net/dz_build.h ../src/net/cgrp.h
 	@mkdir -p build
 	$(CXX) $(CXXFLAGS) -o $@ $(SRC) -lpthread
 

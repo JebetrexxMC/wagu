@@ -36,7 +36,7 @@ jobs:
         with:
           sparse-checkout: |
             networking
-            src/net/protocol.h
+            src/net
           sparse-checkout-cone-mode: false
       - name: Build (host)
         run: make -C networking
@@ -88,7 +88,7 @@ jobs:
         with:
           sparse-checkout: |
             networking
-            src/net/protocol.h
+            src/net
           sparse-checkout-cone-mode: false
       - run: make -C networking
       - name: Probe every 5 minutes (~5h50m)
