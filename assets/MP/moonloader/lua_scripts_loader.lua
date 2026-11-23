@@ -1,6 +1,6 @@
 script_name('MP Lua Scripts Loader')
 script_author('JebetrexxMC')
-script_version('1.9-mp')
+script_version('1.10-mp')
 script_description('Starts every .lua / .luac script in moonloader/lua_scripts/, loose or inside .zip files')
 
 -- Entry point of moonloader/lua_scripts/. MonetLoader only starts the scripts right in moonloader/; this one starts:
@@ -343,6 +343,8 @@ local function runnerFor(item)
   local path = dir .. '/' .. id .. '.lua'
   local body = ('-- made by lua_scripts_loader.lua (MP): runs lua_scripts/%s. Do not edit.\nlocal __mp_src = %q\n'):format(item.rel, item.src)
   if item.backslash then body = body .. "pcall(require, 'mp_pcpaths')\n" end
+  -- 5.02.59: PC SAMPFUNCS functions MonetLoader lacks (sampTextdrawDelete killed AbsoluteFix at line 182)
+  body = body .. "pcall(require, 'mp_sfcompat')\n"
   if item.pkg then
     body = body .. ('local __mp_pkg = %q\n'):format(item.pkg) .. [=[
 do

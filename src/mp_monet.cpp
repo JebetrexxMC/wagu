@@ -25,7 +25,7 @@ extern "C" const unsigned char mp_monetloader_blob[];
 extern "C" const unsigned char mp_monetloader_blob_end[];
 // 5.01.06: MP's own moonloader entry scripts (src/embed/moonloader_core_blob.S)
 extern "C" const unsigned char mp_core_lsl[], mp_core_lsl_end[], mp_core_mods[], mp_core_mods_end[];
-extern "C" const unsigned char mp_core_zip[], mp_core_zip_end[], mp_core_pcp[], mp_core_pcp_end[], mp_core_mimgui[], mp_core_mimgui_end[], mp_core_mlib[], mp_core_mlib_end[];
+extern "C" const unsigned char mp_core_zip[], mp_core_zip_end[], mp_core_pcp[], mp_core_pcp_end[], mp_core_sfc[], mp_core_sfc_end[], mp_core_mimgui[], mp_core_mimgui_end[], mp_core_mlib[], mp_core_mlib_end[];
 namespace MP { const char* DataDir(); }
 
 namespace MonetEmbed
@@ -182,6 +182,8 @@ static void InstallCore()
         { "mods_loader.lua",        mp_core_mods, mp_core_mods_end, "script_name('MP Mods Loader')" },
         { "lib/mp_zip.lua",         mp_core_zip, mp_core_zip_end, "-- mp_zip " },
         { "lib/mp_pcpaths.lua",     mp_core_pcp, mp_core_pcp_end, "-- mp_pcpaths " },
+        // 5.02.59: sampTextdraw* + stubs for other missing SAMPFUNCS functions (AbsoluteFix died on sampTextdrawDelete)
+        { "lib/mp_sfcompat.lua",    mp_core_sfc, mp_core_sfc_end, "-- mp_sfcompat " },
         // 5.02.20: mimgui's frame guard (HassleHUD). Only replaces an existing mimgui/init.lua - the rest of mimgui comes from assets/MP
         { "lib/mimgui/init.lua",    mp_core_mimgui, mp_core_mimgui_end, "-- mp_mimgui ", "mimgui._VERSION = '2.0.1'" },
         // 5.02.46: VK_* globals after require 'lib.moonloader' (DriftCameraLock died on isKeyDown(nil)). Replaces the stock file
