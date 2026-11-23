@@ -2461,6 +2461,7 @@ void MP::NeonMenuTick()
     NeonFileTick(MP_NowMs());   // 5.01.07: neon_mode.txt added / removed while the title menu is up
     NeonCloseTick(MP_NowMs());  // 5.02.01: Resume / New game / a slot: no pause menu after the load
     const uint64_t now = MP_NowMs();
+    PhoneLabTick(now);   // 5.02.68
     NeonMusicMenuTick(now);   // 5.02.06: every menu mode, 4 s + 20 ticks after the title menu first shows
     if(s_nNeonMode == NEON_MODE_DEFAULT) return;   // 4.13.30
     const bool titleUp = s_nNeonTitleMs && now - s_nNeonTitleMs < 600 && NeonTitleCtx();

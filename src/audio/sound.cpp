@@ -475,7 +475,12 @@ namespace
         FdPlayer p;
         std::atomic<uint32_t> posMs{0}, durMs{0};
         std::atomic<bool> dead{false}, end{false};
-        ~FdHandle() { if(p.obj) (*p.obj)->Destroy(p.obj); if(p.fd >= 0) close(p.fd); }
+        // 5.02.68: the SIGABRT "Binder thread started or Java binder used, but env null" when the menu music stops
+        // at a join. Destroying a URL player makes Android's media server call back into the game's Java HTTP
+        // connection (MediaHTTPConnection.disconnect) on the thread that destroys it. The last reference used to
+        // go away in the position thread *after* it had left the JVM - no JNIEnv, Android aborts the game.
+        // The player is now always destroyed with the thread attached, whichever thread lets it go.
+        ~FdHandle() { MPJvm::ThreadScope jvm("MP audio destroy"); if(p.obj) (*p.obj)->Destroy(p.obj); if(p.fd >= 0) close(p.fd); }
     };
     std::shared_ptr<FdHandle> s_FdH;
     bool s_FdMode = false, s_FdTried = false;
@@ -519,14 +524,19 @@ namespace
         s_FdH = h; s_FdMode = true;
         try
         {
-            std::thread([h]() {
+            std::weak_ptr<FdHandle> wh = h;   // 5.02.68: a weak reference - the player is never let go after the JVM detach
+            std::thread([wh]() {
                 MPJvm::ThreadScope jvm("MP audio pos");
-                while(!h->dead.load())
+                for(;;)
                 {
-                    SLmillisecond ms = 0;
-                    if(h->p.play && (*h->p.play)->GetPosition(h->p.play, &ms) == SL_RESULT_SUCCESS) h->posMs = ms;
-                    ms = 0;
-                    if(h->p.play && (*h->p.play)->GetDuration(h->p.play, &ms) == SL_RESULT_SUCCESS) h->durMs = ms == SL_TIME_UNKNOWN ? 0 : ms;
+                    {
+                        std::shared_ptr<FdHandle> h = wh.lock();
+                        if(!h || h->dead.load()) break;
+                        SLmillisecond ms = 0;
+                        if(h->p.play && (*h->p.play)->GetPosition(h->p.play, &ms) == SL_RESULT_SUCCESS) h->posMs = ms;
+                        ms = 0;
+                        if(h->p.play && (*h->p.play)->GetDuration(h->p.play, &ms) == SL_RESULT_SUCCESS) h->durMs = ms == SL_TIME_UNKNOWN ? 0 : ms;
+                    }   // (if this was the last reference, the player is destroyed here, still attached)
                     std::this_thread::sleep_for(std::chrono::milliseconds(200));
                 }
             }).detach();

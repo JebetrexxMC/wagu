@@ -97,4 +97,7 @@ LOCAL_CFLAGS   += -O2 -DNDEBUG -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS -DHAVE_STDINT_
 LOCAL_CPPFLAGS += -std=c++17 -fexceptions -frtti
 LOCAL_LDLIBS   += -llog -lOpenSLES -landroid -lz
 LOCAL_LDFLAGS  += -Wl,--gc-sections -s
+ifeq ($(TARGET_ARCH_ABI), arm64-v8a)
+LOCAL_LDFLAGS  += -Wl,-z,max-page-size=16384   # 5.02.68: 16 KB page phones (Android 15+); fine on 4 KB pages
+endif
 include $(BUILD_SHARED_LIBRARY)

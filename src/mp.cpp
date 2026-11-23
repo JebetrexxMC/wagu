@@ -4699,9 +4699,11 @@ static void EnforceServerModes()
 
 static void LuaCmdTick(uint64_t now);   // 5.01.07 mp_cmds.inc: /hasslehud retry
 static void NeonFileTick(uint64_t now);   // 5.01.07 mp_menu.inc: neon_mode.txt
+static void PhoneLabTick(uint64_t now);   // 5.02.68 mp_phonelab.inc
 void MP::Process()
 {
     uint64_t now = MP_NowMs();
+    PhoneLabTick(now);
     EnforceServerModes();   // 3.35
     LuaCmdTick(now);
     LangReqTick();   // 5.02.36
@@ -8789,6 +8791,7 @@ void MPKit::AboutPage(float W) { LPageAbout(W); }
 #include "mp_psettings.inc"  // 3.35: player list > Settings (SA-MP style dialog)
 #include "mp_menu.inc"       // 4.13.4: main menu [Multiplayer], MP loading screen, black server select
 #include "mp_neon.inc"       // 4.13.22: neon title menu + server browser (ServerBrowserMode)
+#include "mp_phonelab.inc"   // 5.02.68: PhoneLab test commands (phonelab_cmd.txt)
 
 // 4.07.1: the short sounds (button click, hit, "connected") come from the media host too, like the
 // music: a sound missing from files/TYFMC/MP is downloaded once from Host/Media into files/TYFMC/MP (cache), so

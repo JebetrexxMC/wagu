@@ -823,6 +823,11 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.68
+- Crash fix: SIGABRT "Binder thread started or Java binder used, but env null. Attach JVM?" on the loading screen after Browse servers -> Join (the log stopped at "menu music stopped"). Stopping the menu music destroyed its URL player on MP's position thread after that thread had left the JVM, and Android's media server then calls the game's Java HTTP connection back on it (frameworks/base android_util_Binder.cpp). The player is now always destroyed with the thread attached, and the position thread only keeps a weak reference.
+- 64-bit: libMP64.so is aligned for 16 KB memory pages (Android 15+ phones with 16 KB pages); nothing changes on other phones.
+- PhoneLab test commands for [mp-phonelab](https://github.com/JebetrexxMC/mp-phonelab): a test writes files/TYFMC/MP/phonelab_cmd.txt (state, neon_join, connect, spawn, ...) and MP answers in mp_log.txt. Off unless that file exists.
+
 ### 5.02.67
 - Register / login dialog after joining from the neon main menu (Browse servers / server list): it now opens on the connection view right after "Connected successfully!", the same as Resume + manual join. The class picker waits up to 45 s for it (was 20 s) and comes back after you log in. mp_log.txt lists each "Register: waiting (...)" reason and when the dialog opened.
 - solo.m4a getting quieter at < Spawn >: while Solo plays, its volume goes back to 100% every second (your Settings > Sound levels still apply). mp_log.txt records it when something else had turned it down.
