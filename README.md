@@ -38,6 +38,19 @@
   <a href="https://github.com/JebetrexxMC/wagu/actions/workflows/mp-discord-bot.yml"><img alt="MP Discord bot 24/7" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/bot-status/bot.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
   <a href="https://github.com/mpsamp-open/mpsamp-open.github.io/actions/workflows/deploy.yml"><img alt="mpsamp-open website" src="https://img.shields.io/github/actions/workflow/status/mpsamp-open/mpsamp-open.github.io/deploy.yml?branch=main&style=for-the-badge&labelColor=3a3a3a&label=mpsamp--open%20site&logo=githubactions&logoColor=white"></a>
   <br>
+  <a href="https://github.com/JebetrexxMC/wagu/actions/workflows/netwire-247.yml"><img alt="MP NetWire 24/7" src="https://img.shields.io/github/actions/workflow/status/JebetrexxMC/wagu/netwire-247.yml?branch=main&style=for-the-badge&labelColor=3a3a3a&label=NetWire%2024%2F7&logo=githubactions&logoColor=white"></a>
+  <a href="https://mpsamp-open.github.io/network.html"><img alt="NetWire wires up" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-wires.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="https://mpsamp-open.github.io/network.html"><img alt="NetWire uptime 24h" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-uptime.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="https://mpsamp-open.github.io/network.html"><img alt="Best wire" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-best.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="https://mpsamp-open.github.io/network.html"><img alt="Region wires" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-region.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="https://mpsamp-open.github.io/network.html"><img alt="VPS game ports" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-vps.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="https://mpsamp-open.github.io/network.html"><img alt="Public lobby" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-lobby.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="https://mpsamp-open.github.io/network.html"><img alt="EMQX" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-emqx.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="https://mpsamp-open.github.io/network.html"><img alt="Crossplay" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-crossplay.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="https://mpsamp-open.github.io/network.html"><img alt="Featured servers" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-featured.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="https://mpsamp-open.github.io/network.html"><img alt="Default server" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-default.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <a href="https://mpsamp-open.github.io/network.html"><img alt="open.mp servers" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/badge-omp.json&style=for-the-badge&labelColor=3a3a3a&cacheSeconds=300"></a>
+  <br>
   <a href="https://github.com/JebetrexxMC/wagu/actions/workflows/viceloader.yml"><img alt="VICE Loader build" src="https://img.shields.io/github/actions/workflow/status/JebetrexxMC/wagu/viceloader.yml?branch=main&style=for-the-badge&labelColor=3a3a3a&label=VICE%20Loader&logo=githubactions&logoColor=white"></a>
   <a href="https://github.com/JebetrexxMC/wagu/actions/workflows/moquil.yml"><img alt="Moquil build" src="https://img.shields.io/github/actions/workflow/status/JebetrexxMC/wagu/moquil.yml?branch=main&style=for-the-badge&labelColor=3a3a3a&label=Moquil&logo=githubactions&logoColor=white"></a>
   <a href="https://github.com/JebetrexxMC/wagu/actions/workflows/mp-voice.yml"><img alt="MP Voice build" src="https://img.shields.io/github/actions/workflow/status/JebetrexxMC/wagu/mp-voice.yml?branch=main&style=for-the-badge&labelColor=3a3a3a&label=MP%20Voice&logo=githubactions&logoColor=white"></a>
@@ -748,6 +761,27 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 - Test: `test/sampgate_test.cpp` (against a real omp-server 1.6.7), Docker: [docker/README.md](docker/README.md).
 
 ## Changelog
+
+### NetWire 1.0 (game build stays 5.02.62)
+- New `networking/` folder: MP NetWire, a networking library plus server that check every MP network path ("wire") around the clock. See `networking/README.md`.
+  - `lib/mpnet.*` (C++17, plain POSIX sockets) has real protocol probes:
+    - MQTT: login plus PINGREQ.
+    - MP: the PKT_QUERY server-list query, using the same `protocol.h`.
+    - open.mp / SA-MP: query `p` and `i`.
+    - TLS: ClientHello → server hello.
+    - TCP, HTTP, and UDP echo.
+  - Each wire gets a grade from ping, jitter and loss (green < 120 ms, yellow < 250 ms, red, down), and the best wire of each group is picked.
+  - `server/mpnetd` has three modes:
+    - `probe`: one round.
+    - `watch`: 24/7 loop plus an HTTP status page.
+    - `relay`: a UDP relay for a VPS or Oracle box near the players. Every new player goes over the fastest upstream right now, and a player stays on that upstream while connected. Live per-player traffic is on `/traffic.json`.
+  - Builds for Linux, Termux, arm64-v8a and armeabi-v7a.
+  - `wires.txt` is the list of wires. One line is one new wire, with no restart: the region brokers, the public lobby (Mosquitto, HiveMQ, EMQX), EMQX ports, the region VPS game ports, the website and APIs, plus templates for Oracle, XDP, relay and custom boxes. `tools/sources.py` adds the wires that change on their own: MP Crossplay 24/7, the default, featured and custom servers from the MP lobby, and the top open.mp / SA-MP servers from api.open.mp.
+- `.github/workflows/netwire-247.yml` builds and tests on every change. It then probes every 5 minutes, all day, using the same long-shift pattern as live-status. Results go to the `netwire-status` branch: `wires.json`, 24 h history, `netwire.svg` and the new live badges at the top of this README.
+- Website: new [Network page](https://mpsamp-open.github.io/network.html) (link in the top bar), with every wire, its grade, ping, jitter, loss, 24 h uptime and the last 4 h.
+- Sniffnet support (`networking/sniffnet/`): a download/start script and MP port filters, including one BPF filter for all MP traffic. On phones and headless servers, `mpnetd`'s `/traffic.json` gives the same kind of live view without root.
+- Moya support (`networking/swift/`): the MPNet Swift package (iOS/macOS) reads the NetWire status through Moya. It is built and tested on a macOS runner.
+- Pings come from GitHub's data centre, not from a phone. The relay can only make the game smoother when it runs on a box near the players (a region VPS or Oracle). It doesn't make a far server closer.
 
 ### 5.02.62
 - SAMPGate: filled the gaps against the open.mp docs (93 callbacks, 1019 functions) and open.mp `Shared/NetCode`.

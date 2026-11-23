@@ -1,0 +1,18 @@
+# Sniffnet filters for MP / open.mp / SA-MP traffic.
+# In Sniffnet: pick the network adapter -> "Filters" -> paste one line into "Port" / "IP address",
+# or start capture and open the "Inspect" page, then type the port in the search box.
+#
+# what                                  protocol  port(s)
+MP game servers (default, featured)     UDP       1922 1930-1940
+MP Crossplay 24/7 (PC side)             UDP       7778   (or the playit.gg port shown on mpsamp-open.github.io/pc.html)
+MP Crossplay 24/7 (phone side)          UDP       7780
+open.mp / SA-MP servers                 UDP       7777 (most servers; the server list shows the real port)
+MP lobby / region brokers (MQTT)        TCP       1883
+MP lobby over TLS                       TCP       8883
+website lobby (secure WebSocket)        TCP       8884
+EMQX WebSocket                          TCP       8083 8084
+MP voice chat                           UDP       same port as the game server (voice rides the game socket)
+mpnetd relay (if you run one)           UDP       the -l port, status on the --http port (TCP)
+#
+# BPF filter (Sniffnet 1.4.1+: on the start page open "Filters" and paste it into the BPF filter box), everything MP at once:
+udp portrange 1922-1940 or udp port 7777 or udp port 7778 or udp port 7780 or tcp port 1883 or tcp port 8883 or tcp port 8884

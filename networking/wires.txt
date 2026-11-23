@@ -1,0 +1,60 @@
+# MP NetWire - every wire (network path) MP, the website and the servers use.
+# Add a line = a new wire: the 24/7 workflow (.github/workflows/netwire-247.yml) probes it on the next round
+# (every 5 minutes), the status page (mpsamp-open.github.io/network.html) and the badges show it.
+#
+#   id | group | kind | host:port | name | options
+#
+# kind:  mqtt  MQTT 3.1.1 CONNECT/CONNACK + PINGREQ samples (options user= pass=)
+#        mp    MP server, UDP PKT_QUERY -> PKT_INFO (same as the in-game server list)
+#        samp  open.mp / SA-MP server, UDP SA-MP query 'p' + 'i'
+#        tcp   TCP connect time (plain WebSocket, SSH, playit / frp tunnels)
+#        tls   TLS ClientHello -> server hello / alert (MQTT 8883, WSS 8884, HTTPS 443; option sni=)
+#        http  TCP + HEAD request (option path=/x)
+#        udp   UDP echo: mpnetd relay ping, sockperf
+#        lobby listed through the MQTT lobby only (no public address); filled in by tools/sources.py
+# group: default featured crossplay region vps lobby emqx oracle xdp relay custom omp web
+# The 'mp' login of the region brokers is public on purpose (docs/regions.txt): topic rules limit it.
+
+# ---- region brokers (HiveMQ CE on the region VPS, docs/regions.txt) ----
+asia-mqtt   | region | mqtt | mpsamp.duckdns.org:1883 | Asia broker (MQTT)      | user=mp pass=M6oehkIzqcJKSTalT8nL region=Asia
+eu-mqtt     | region | mqtt | eusamp.duckdns.org:1883 | Europe broker (MQTT)    | user=mp pass=M6oehkIzqcJKSTalT8nL region=Europe
+na-mqtt     | region | mqtt | nasamp.duckdns.org:1883 | NA broker (MQTT)        | user=mp pass=M6oehkIzqcJKSTalT8nL region=NA
+oc-mqtt     | region | mqtt | ocsamp.duckdns.org:1883 | Oceania broker (MQTT)   | user=mp pass=M6oehkIzqcJKSTalT8nL region=Oceania
+asia-tls    | region | tls  | mpsamp.duckdns.org:8883 | Asia broker (TLS 8883)    | region=Asia
+eu-tls      | region | tls  | eusamp.duckdns.org:8883 | Europe broker (TLS 8883)  | region=Europe
+na-tls      | region | tls  | nasamp.duckdns.org:8883 | NA broker (TLS 8883)      | region=NA
+oc-tls      | region | tls  | ocsamp.duckdns.org:8883 | Oceania broker (TLS 8883) | region=Oceania
+asia-wss    | region | tls  | mpsamp.duckdns.org:8884 | Asia website lobby (WSS)    | region=Asia
+eu-wss      | region | tls  | eusamp.duckdns.org:8884 | Europe website lobby (WSS)  | region=Europe
+na-wss      | region | tls  | nasamp.duckdns.org:8884 | NA website lobby (WSS)      | region=NA
+oc-wss      | region | tls  | ocsamp.duckdns.org:8884 | Oceania website lobby (WSS) | region=Oceania
+
+# ---- MP servers on the region VPS (UDP, XDP fast path when HiveMQ/xdp is loaded) ----
+asia-srv    | vps    | mp   | mpsamp.duckdns.org:1922 | Asia VPS - MP LAN Server    | region=Asia
+eu-srv      | vps    | mp   | eusamp.duckdns.org:1922 | Europe VPS - MP LAN Server  | region=Europe
+na-srv      | vps    | mp   | nasamp.duckdns.org:1922 | NA VPS - MP LAN Server      | region=NA
+oc-srv      | vps    | mp   | ocsamp.duckdns.org:1922 | Oceania VPS - MP LAN Server | region=Oceania
+
+# ---- free public lobby (used when every region broker is down) ----
+lobby-mosquitto | lobby | mqtt | test.mosquitto.org:1883 | Mosquitto public lobby
+lobby-hivemq    | lobby | mqtt | broker.hivemq.com:1883  | HiveMQ public lobby
+lobby-emqx      | lobby | mqtt | broker.emqx.io:1883     | EMQX public lobby
+
+# ---- EMQX extra ports ----
+emqx-tls    | emqx | tls | broker.emqx.io:8883 | EMQX MQTT over TLS
+emqx-ws     | emqx | tcp | broker.emqx.io:8083 | EMQX WebSocket
+emqx-wss    | emqx | tls | broker.emqx.io:8084 | EMQX secure WebSocket
+hivemq-wss  | emqx | tls | broker.hivemq.com:8884 | HiveMQ public secure WebSocket
+
+# ---- website / APIs the game and the page read ----
+web-site    | web | http | mpsamp-open.github.io:80 | MP website (mpsamp-open.github.io)
+web-raw     | web | tls  | raw.githubusercontent.com:443 | GitHub raw (live status files)
+omp-api     | web | tls  | api.open.mp:443 | open.mp server list API
+
+# ---- templates: copy a line, remove '#', fill in your host ----
+# oracle-asia  | oracle | mp   | 1.2.3.4:1922        | Oracle Always Free (Asia)  | region=Asia
+# my-vps-mqtt  | vps    | mqtt | my.host.example:1883 | My VPS broker             | user=mp pass=...
+# xdp-sg       | xdp    | mp   | 5.6.7.8:1922        | XDP fast path box (HiveMQ/xdp/mp_xdp.c)
+# relay-sg     | relay  | udp  | 9.9.9.9:7777        | mpnetd relay (Singapore)
+# my-omp       | custom | samp | play.example.com:7777 | My open.mp server
+# my-mp        | custom | mp   | my.host.example:1930  | My MP server

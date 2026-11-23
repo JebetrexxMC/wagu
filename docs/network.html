@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script>/* the old wagu address forwards to mpsamp-open.github.io (same as the other pages) */if(location.hostname==="jebetrexxmc.github.io"){location.replace("https://mpsamp-open.github.io"+location.pathname.replace(/^\/wagu/,"")+location.search+location.hash);}</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MP NetWire - live network status</title>
+<meta name="description" content="MP NetWire: live status of every MP network path - region brokers, public MQTT lobby (Mosquitto, HiveMQ, EMQX), VPS game servers, MP Crossplay, featured, default and custom servers, and the top open.mp / SA-MP servers. Probed every 5 minutes.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://raw.githubusercontent.com https://api.github.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#06100b">
+<link rel="stylesheet" href="termux.css">
+<link rel="stylesheet" href="network.css?v=1">
+<link rel="icon" href="favicon.ico?v=savc2" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=savc2">
+<link rel="manifest" href="site.webmanifest?v=savc2">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="MP Multiplayer">
+<meta property="og:title" content="MP NetWire - live network status">
+<meta property="og:description" content="Live status of every MP network path, probed every 5 minutes.">
+<meta property="og:url" content="https://mpsamp-open.github.io/network.html">
+<meta property="og:image" content="https://mpsamp-open.github.io/social-preview.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=savc2">
+</head>
+<body class="nw">
+<header class="bar">
+  <a class="brand" href="./">MP <span>NetWire</span></a>
+  <span id="live" class="live"><span class="dot"></span><span id="live-t">loading the wires…</span></span>
+  <nav class="nw-nav" aria-label="Pages"><a href="./">Home</a><a href="pc.html">PC</a><a href="#add">Add a wire</a><a href="#tools">Tools</a></nav>
+</header>
+
+<main class="nw-main">
+  <section class="card" aria-labelledby="sum-h">
+    <h1 id="sum-h">Every MP network path, live</h1>
+    <p class="note m">Region brokers, the public MQTT lobby (Mosquitto, HiveMQ, EMQX), VPS game ports, MP Crossplay, the default, featured and custom servers and the top open.mp / SA-MP servers. GitHub probes them every 5 minutes. Pings are measured from GitHub's data centre, not from your phone, so they show what is up and which path is fastest. They are not your in-game ping.</p>
+    <dl class="kv" id="sum">
+      <div><dt>Wires up</dt><dd id="s-up">-</dd></div>
+      <div><dt>Green</dt><dd id="s-green">-</dd></div>
+      <div><dt>Best game path</dt><dd id="s-best">-</dd></div>
+      <div><dt>Last check</dt><dd id="s-at">-</dd></div>
+    </dl>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Groups"></div>
+  </section>
+
+  <section class="card" aria-label="Wires">
+    <div class="tbl-wrap">
+      <table class="wt" id="wt">
+        <thead><tr><th scope="col">Wire</th><th scope="col">Kind</th><th scope="col" class="n">Ping</th><th scope="col" class="n">Jitter</th><th scope="col" class="n">Loss</th><th scope="col" class="n">24 h</th><th scope="col">Last 4 h</th></tr></thead>
+        <tbody id="wb"><tr><td colspan="7" class="m">Loading…</td></tr></tbody>
+      </table>
+    </div>
+    <p class="note m">Grades: <span class="g-green">green</span> under 120 ms with low jitter and loss, <span class="g-yellow">yellow</span> under 250 ms, <span class="g-red">red</span> slower or lossy, <span class="g-down">down</span> no answer. Lobby rows are servers seen in the MP lobby (they have no public address to ping).</p>
+  </section>
+
+  <section class="card" id="add" aria-labelledby="add-h">
+    <h2 id="add-h">Add a wire</h2>
+    <p class="note">Add one line to <a href="https://github.com/JebetrexxMC/wagu/edit/main/networking/wires.txt" target="_blank" rel="noopener">networking/wires.txt</a>. The next round (within 5 minutes) probes it and it shows up here and on the badges.</p>
+    <pre class="code">id | group | kind | host:port | name | options
+my-vps | vps | mp | 1.2.3.4:1922 | My VPS server | region=Asia
+my-omp | custom | samp | play.example.com:7777 | My open.mp server</pre>
+    <p class="note m">Kinds: <code>mqtt</code> (login + ping), <code>mp</code> (MP server list query), <code>samp</code> (open.mp / SA-MP query), <code>tls</code>, <code>tcp</code>, <code>http</code>, <code>udp</code> (mpnetd relay ping).</p>
+  </section>
+
+  <section class="card" id="tools" aria-labelledby="tools-h">
+    <h2 id="tools-h">Tools</h2>
+    <ul class="dl-list">
+      <li><div><b>mpnetd</b><span class="m">Probe, 24/7 watch and the UDP relay that sends every new player over the fastest upstream. Linux, VPS, Oracle and Termux builds.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/networking" target="_blank" rel="noopener">Source + how to run</a></li>
+      <li><div><b>Sniffnet</b><span class="m">Watch your traffic on a PC: which hosts, bytes, packets, countries. MP port filters included.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/networking/sniffnet" target="_blank" rel="noopener">MP filters + download</a></li>
+      <li><div><b>MPNet for Swift</b><span class="m">This status in iOS / macOS apps, through Moya.</span></div><a class="btn" href="https://github.com/JebetrexxMC/wagu/tree/main/networking/swift" target="_blank" rel="noopener">Swift package</a></li>
+    </ul>
+  </section>
+</main>
+<footer class="foot">Data: <a href="https://github.com/JebetrexxMC/wagu/tree/netwire-status" target="_blank" rel="noopener">netwire-status branch</a>, made by <code>netwire-247.yml</code>.</footer>
+<script src="network.js?v=1"></script>
+</body>
+</html>
