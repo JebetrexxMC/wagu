@@ -1,4 +1,4 @@
--- mp_sfcompat 1.0 (MP 5.02.59): SAMPFUNCS functions PC scripts call that MonetLoader does not have.
+-- mp_sfcompat 1.1 (MP 5.02.59): SAMPFUNCS functions PC scripts call that MonetLoader does not have.
 --
 -- A PC MoonLoader script died at the first call of a missing SAMPFUNCS function:
 --   AbsoluteFix.lua:182: attempt to call global 'sampTextdrawDelete' (a nil value)
@@ -7,12 +7,17 @@
 --    134/105/135) are recorded, sampTextdrawDelete hides one (emulated RPC 135) and forgets it, Create/Set*/Get*
 --    work on the table, so a script that edits or reads its own textdraws keeps its state;
 --  * any other missing samp* / sampfuncs* global: a stub that logs its name once and returns nil, so the rest of
---    the script keeps running instead of dying. Real functions are never replaced.
+--    the script keeps running instead of dying (a callable table: indexing it, like sampObjectModelNames[id], gives
+--    nil too). Real functions are never replaced;
+--  * 1.1: SAMPFUNCS helpers AbsoluteFix calls right after the textdraws: sampGetBase (= getModuleHandle('samp.dll'),
+--    0 on MP: base + PC offset is a low address pccompat blocks), isKeyJustPressed (= MonetLoader's wasKeyPressed),
+--    isSampfuncsConsoleActive / sampIsChatInputActive / sampIsCursorActive / sampIsScoreboardOpen (false),
+--    sampGetChatString (''), getFolderPath (the game folder, with GTA San Andreas User Files/SAMP made).
 -- Loaded once per script state.
 
 if rawget(_G, '__mp_sfcompat') then return _G.__mp_sfcompat end
 
-local M = { VERSION = '1.0' }
+local M = { VERSION = '1.1' }
 _G.__mp_sfcompat = M
 
 local RPC_SETSTRING, RPC_SHOW, RPC_HIDE = 105, 134, 135
@@ -129,6 +134,30 @@ if have('addEventHandler') then
   end)
 end
 
+-- ---------------------------------------------------------------- SAMPFUNCS / PC helpers (1.1)
+def('sampGetBase', function()
+  if have('getModuleHandle') then local ok, b = pcall(getModuleHandle, 'samp.dll') if ok and tonumber(b) then return tonumber(b) end end
+  return 0
+end)
+def('isKeyJustPressed', function(vk)
+  if have('wasKeyPressed') then local ok, r = pcall(wasKeyPressed, vk) return ok and r == true end
+  return false
+end)
+def('isSampfuncsConsoleActive', function() return false end)
+def('sampIsChatInputActive', function() return false end)
+def('sampIsCursorActive', function() return false end)
+def('sampIsScoreboardOpen', function() return false end)
+def('sampGetChatString', function() return '', '', 0, 0 end)
+def('getFolderPath', function()
+  local d = have('getGameDirectory') and getGameDirectory() or '.'
+  pcall(function()
+    local lfs = require 'lfs'
+    lfs.mkdir(d .. '/GTA San Andreas User Files')
+    lfs.mkdir(d .. '/GTA San Andreas User Files/SAMP')
+  end)
+  return d
+end)
+
 -- ---------------------------------------------------------------- other missing SAMPFUNCS functions
 -- A missing samp* / sampfuncs* global becomes a stub (logged once). Only these prefixes: everything else stays nil,
 -- so `if someLibFunc then` checks of other libraries are not fooled.
@@ -146,13 +175,13 @@ mt.__index = function(g, k)
   if not (k:match('^samp%u') or k:match('^sampfuncs%u')) then return nil end
   local f = stubs[k]
   if not f then
-    f = function()
+    f = setmetatable({}, { __call = function()
       if not said[k] then
         said[k] = true
         print(('[MP] %s: %s() is a PC SAMPFUNCS function MP does not have - skipped'):format(sname(), k))
       end
       return nil
-    end
+    end, __index = function() return nil end, __newindex = function() end })
     stubs[k] = f
   end
   return f
