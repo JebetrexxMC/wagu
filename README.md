@@ -823,6 +823,12 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.67
+- Register / login dialog after joining from the neon main menu (Browse servers / server list): it now opens on the connection view right after "Connected successfully!", the same as Resume + manual join. The class picker waits up to 45 s for it (was 20 s) and comes back after you log in. mp_log.txt lists each "Register: waiting (...)" reason and when the dialog opened.
+- solo.m4a getting quieter at < Spawn >: while Solo plays, its volume goes back to 100% every second (your Settings > Sound levels still apply). mp_log.txt records it when something else had turned it down.
+- Freeze at < Spawn > ("Get : Teleport"): a new "Freeze: the game stopped for N ms (...)" line in mp_log.txt shows how long the game thread stopped and what was on screen, so the cause can be pinned down.
+- Your 5.02.66 log: SurfaceGuard found CantSprintOn hooked by libJPatch.so+0x1026F. MP leaves it alone (it is not damaged); if the 0x6C SIGSEGV comes back, try once without JPatch. custom.ipl is still missing from the game files (bad handle).
+
 ### 5.02.66
 - Crash fix: SIGSEGV at fault address 0x6C, PC libGTASA+0x41DFB8, during loading / fade-in (32-bit, still there in 5.02.65). Checked again against the GTA SA 2.00 code: 0x41DFB8 is the start of `SurfaceInfos_c::CantSprintOn`, not `CreatesSparks` (that one starts at 0x41DFA6), and the bytes there do not match the original game code, so another mod's patch most likely damaged that function. That is also why 5.02.65's SparkGuard never fired.
 - New SurfaceGuard (`src/game/surfaceguard.cpp`) replaces SparkGuard. It checks the start bytes of 42 `SurfaceInfos_c` getters after all mods load and every few seconds in game. In mp_log.txt it lists any getter that was hooked or damaged, and which library the jump points to. If a getter is damaged, the game's GOT slot for it is pointed at MP's own safe copy (it reads the surface table and checks the id), so callers never run the broken code. MP does not write into game code and does not install a signal handler.

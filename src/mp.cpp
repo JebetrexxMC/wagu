@@ -7915,6 +7915,21 @@ static void SoloTick()   // the 2nd URL (the release asset) when the media host 
     // 5.02.36: Solo was silent - the media player connected to the URL but nothing on Broker MQQ called
     // StreamUpdate (only Day Z / the neon menu / SA-MP audio did), so the ready player was never started.
     Sound::StreamUpdate();
+    {   // 5.02.67: Solo got quieter at < Spawn >. Its own volume is put back every second (Settings > Sound > solo.m4a
+        // and master stay as you set them); mp_log.txt says when something else had changed it.
+        static uint64_t s_nSoloVolAt = 0; const uint64_t now = MP_NowMs();
+        if(now - s_nSoloVolAt >= 1000 && Sound::StreamActive())
+        {
+            s_nSoloVolAt = now;
+            const float b = Sound::StreamBaseVolume();
+            if(b < 0.999f || b > 1.001f)
+            {
+                static int s_nSoloVolLogs = 0;
+                if(s_nSoloVolLogs < 6) { ++s_nSoloVolLogs; logger->Info("Solo: stream volume was %.0f%% - set back to 100%% (at %.0f s)", b * 100.0f, Sound::StreamPosition()); }
+                Sound::StreamSetVolume(1.0f);
+            }
+        }
+    }
     if(!Sound::StreamActive())
     {
         const bool failed = !Sound::StreamEnded();

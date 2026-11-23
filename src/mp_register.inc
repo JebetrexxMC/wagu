@@ -197,27 +197,53 @@ static void RegReset()
 }
 static bool RegScreenUp() { return s_Reg.active && SampDialogOpen() && s_Dlg.fn == RegDialogFn; }
 // 5.02.35: the < Spawn > picker on the default server waits for the register / login (AuthHoldsJoin)
+// 5.02.67: the 20 s cap counted from "Connected successfully!". A join from the neon title menu (Browse servers /
+// the server list) runs right after the Multiplayer save load, so the connection view was often not ready inside
+// those 20 s: the picker opened first, the dialog then waited for the world and popped up at < Spawn > (with the
+// keyboard, on the same frame as the spawn). The wait now counts from the moment the connection view is ready.
+static uint64_t s_nRegViewAt = 0;   // the connection view became ready for the dialog (0 = not yet)
 static bool RegHoldsJoin(uint64_t now)
 {
     if(!MP::IsOnDefault()) return false;
     if(RegScreenUp()) return true;   // also "Registered" / "Logged in" until you close it
     if(s_Reg.loggedIn) return false;
-    return s_Reg.pending && now - s_Reg.joinedAt < 20000;   // not shown yet: a short wait, never stuck
+    if(!s_Reg.pending) return false;
+    if(now - s_Reg.joinedAt < 45000) return true;                 // never stuck: 45 s at most
+    return s_nRegViewAt && now - s_nRegViewAt < 8000;
 }
 static void RegTick(uint64_t now)
 {
     RegBackupTick(now);
-    if(!s_Reg.pending || client.GetState() != NET_CONNECTED) return;
+    if(!s_Reg.pending || client.GetState() != NET_CONNECTED) { s_nRegViewAt = 0; return; }
     if(!MP::IsOnDefault()) { s_Reg.pending = false; return; }
     // 5.02.35: on the connection screen (the Santa Maria Beach camera, after "Connected successfully!"), like SA-MP:
     // the dialog no longer waits until you picked a spawn place and are standing in the world. The < Spawn >
     // picker waits for it instead (RegHoldsJoin). Without the join screen (quiet rejoin) it still opens in the world.
-    const bool joinView = JoinFlowActive() && s_nJoinPhase == JP_WAIT && s_nFeedStep < 0 && s_nFeedRes < 0;
-    if((JoinFlowActive() && !joinView) || AuthScreenUp() || SampDialogOpen() || Game::LocalPed() <= 0) return;
-    if(!joinView && now - s_Reg.joinedAt < 3000) return;
+    // 5.02.67: the picker already open (JP_PICK) counts as the connection view too: it goes back to the camera view
+    // and the dialog opens there, before you spawn.
+    const bool feedDone = s_nFeedStep < 0 && s_nFeedRes < 0;
+    const bool joinView = JoinFlowActive() && feedDone && (s_nJoinPhase == JP_WAIT || s_nJoinPhase == JP_PICK);
+    const bool otherDlg = SampDialogOpen() && s_Dlg.fn != RegDialogFn;
+    const char* why = nullptr;
+    if(JoinFlowActive() && !joinView) why = !feedDone ? "loading feed" : "join screen";
+    else if(AuthScreenUp()) why = "MP login screen";
+    else if(otherDlg) why = "another dialog is open";
+    else if(Game::LocalPed() <= 0) why = "no player yet";
+    else if(!joinView && now - s_Reg.joinedAt < 3000) why = "3 s in the world";
+    if(why)
+    {   // 5.02.67: mp_log.txt says what the dialog waits for (every 2 s, at most 12 lines a join)
+        static uint64_t s_nWhyAt = 0; static int s_nWhyN = 0;
+        if(now - s_Reg.joinedAt < 1000) s_nWhyN = 0;
+        if(s_nWhyN < 12 && now - s_nWhyAt > 2000)
+        { s_nWhyAt = now; ++s_nWhyN; logger->Info("Register: waiting (%s; join phase %d, %u ms after Connected successfully)", why, s_nJoinPhase, (unsigned)(now - s_Reg.joinedAt)); }
+        return;
+    }
+    if(!s_nRegViewAt) s_nRegViewAt = now;
+    if(joinView && s_nJoinPhase == JP_PICK) { s_nJoinPhase = JP_WAIT; s_nJoinT0 = now; }   // the picker comes back after the login
     s_Reg.pending = false;
     const bool have = RegLoad(s_Reg.acc);
-    logger->Info("Register: %s dialog on the %s", have ? "login" : "register", joinView ? "connection screen" : "game screen");
+    logger->Info("Register: %s dialog on the %s (%u ms after Connected successfully)", have ? "login" : "register",
+                 joinView ? "connection screen" : "game screen", (unsigned)(now - s_Reg.joinedAt));
     if(have) RegShow(LOG_PASS); else RegShow(REG_PASS);
 }
 static void RegRender()

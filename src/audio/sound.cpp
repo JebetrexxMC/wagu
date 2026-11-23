@@ -742,6 +742,7 @@ float Sound::StreamPosition()
     if(s_FdMode) return s_FdH ? s_FdH->posMs.load() / 1000.0f : 0.0f;   // 5.02.58: read by the player's own thread
     return s_St.hz > 0 ? (float)((double)s_St.played / s_St.hz) + s_St.startSec : 0.0f;
 }
+float Sound::StreamBaseVolume() { return s_fStreamBase; }
 float Sound::StreamDuration()
 {
     if(s_FdMode) return s_FdH ? s_FdH->durMs.load() / 1000.0f : 0.0f;

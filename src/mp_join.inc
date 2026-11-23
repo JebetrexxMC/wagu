@@ -328,6 +328,17 @@ static void SpawnLight(int ped, const Vec3& at, float heading, bool findGround)
 // game tick
 static void JoinFlowProcess(int ped, uint64_t now)
 {
+    {   // 5.02.67: the freeze at < Spawn > - mp_log.txt says how long the game thread stalled and what was on screen
+        static uint64_t s_nPrevTick = 0, s_nSpawnAt = 0; static int s_nStallLogs = 0;
+        if(s_nPrevTick && now - s_nPrevTick > 700 && client.GetState() == NET_CONNECTED && s_nStallLogs < 10)
+        {
+            ++s_nStallLogs;
+            logger->Info("Freeze: the game stopped for %u ms (join phase %d, %s, keyboard %d, Solo %d)", (unsigned)(now - s_nPrevTick), s_nJoinPhase,
+                         s_nSpawnAt && now - s_nSpawnAt < 10000 ? "right after < Spawn >" : "not near a spawn", (int)VKeyboard::IsOpen(), (int)SoloIsOn());
+        }
+        if(s_nJoinPhase == JP_PICK && s_bSpawnNow) s_nSpawnAt = now;
+        s_nPrevTick = now;
+    }
     SpawnSettleTick(ped, now);
     if(s_nJoinPhase == JP_NONE) return;
     if(s_nJoinPhase == JP_PENDING)

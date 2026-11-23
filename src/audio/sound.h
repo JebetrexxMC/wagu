@@ -23,6 +23,7 @@ namespace Sound
     bool  StreamEnded();                 // the file played to its end
     float StreamPosition();              // seconds played
     float StreamDuration();              // seconds (estimated from the bitrate), 0 = unknown
+    float StreamBaseVolume();   // 5.02.67: the volume the caller set (before the file / master volume)
     const char* StreamInfo();            // 4.00.1: what the file is / which decoder plays it / why it failed
     // 5.00.07: a short sound downloaded into memory (never saved in files/TYFMC/MP): DecodeMem on any
     // thread (once per slot), PlayMem on the game thread. slot 0 = notify.mp3 (notification system)
