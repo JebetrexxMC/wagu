@@ -762,6 +762,10 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.63
+- Crash fix (64-bit, with another menu mod): the game closed before the title menu, and mp_log.txt ended right after "Neon menu: MobileMenu::Render slot hook on (after another mod, chained)". Another mod had already hooked the game's menu (a PCMenu-type mod under a different file name), but MP only checked for a file called *PCMenu*.so, so it put a second inline patch on CLoadingScreen::RenderSplash / RenderLoadingBar (the 4.13.25 crash). MP now goes through the game's own call slots (chained with the other mod) whenever PCMenu is loaded, the menu slot already belongs to another mod, or the loading screen code is already patched (arm64 LDR/ADRP + BR X16/X17, thumb LDR.W PC). The log says which one: "Loading screen: another menu mod is installed - 2 slot hooks ...".
+- The log you sent was from 5.02.46. 5.02.58 also fixed the neon menu freezing with Wi-Fi and mobile data off, so update both libMP and assets.
+
 ### NetWire 1.1 (game build stays 5.02.62)
 
 - **mpnet-agent** (`net/rust`): NetWire agent in Rust on **tokio** (from the JebetrexxMC/tokio fork). `probe` checks every wire of `wires.txt` at the same time (mqtt, mp, samp, udp, tcp/tls/http), `scan` is a RustScan-style TCP scan plus MP / SA-MP query on UDP ports, `own` scans only your own servers.

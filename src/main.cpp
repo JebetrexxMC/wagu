@@ -37,7 +37,7 @@
 #include "net/server.h"
 
 // 4.12.7: the config is files/TYFMC/TYFMC.MP.ini (the old configs/net.thirtyfox.mp.ini is moved there)
-TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.62, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
+TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.63, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
 // 4.13.36: no NEEDGAME(com.rockstargames.gtasa) - AML would refuse libMP in GTA Vice City. OnModLoad starts the
 // San Andreas code only when libGTASA.so is there, and the Vice City layer (src/vc/) when libGTAVC.so is.
 
@@ -1244,6 +1244,15 @@ static const uintptr_t kGotMenuRender = 0x674254, kFpMenuRender = 0x299B65;   //
 #else
 static const uintptr_t kGotMenuRender = 0x846FE8, kFpMenuRender = 0x355DFC;   // GTA SA 2.10 arm64-v8a (from PCMenu)
 #endif
+// 5.02.63: another mod already moved libGTASA's MobileMenu::Render slot (PCMenu under any name, other menu mods)
+static bool MP_MenuSlotTaken()
+{
+    if(!pGameLib || !pGameHandle) return false;
+    const uintptr_t sym = aml->GetSym(pGameHandle, "_ZN10MobileMenu6RenderEv");
+    if(!sym || ((sym - pGameLib) | 1) != (kFpMenuRender | 1)) return false;
+    const uintptr_t cur = *(volatile uintptr_t*)(pGameLib + kGotMenuRender);
+    return cur && cur != sym;
+}
 static bool PCMenuLoaded()   // any loaded .so with "PCMenu" in its file name (PCMenu64.so, libPCMenuT32.so, ...)
 {
     FILE* m = fopen("/proc/self/maps", "r");
@@ -1257,31 +1266,61 @@ static bool PCMenuLoaded()   // any loaded .so with "PCMenu" in its file name (P
     fclose(m);
     return r;
 }
+// 5.02.63: is this game function already inline-hooked by another mod? AML / Dobby / And64InlineHook / Substrate
+// start a patched function with an absolute jump: arm64 LDR X16/X17, #8 ; BR X16/X17 (or ADRP+BR), thumb LDR.W PC, [PC, #x]
+static bool MP_CodeIsHooked(void* fn)
+{
+    if(!fn) return false;
+#if defined(__aarch64__)
+    const uint32_t* p = (const uint32_t*)((uintptr_t)fn & ~(uintptr_t)3);
+    auto isBrX16X17 = [](uint32_t i) { return (i & 0xFFFFFC1Fu) == 0xD61F0000u && (((i >> 5) & 0x1F) == 16 || ((i >> 5) & 0x1F) == 17); };
+    if((p[0] & 0xFF00001Eu) == 0x58000010u && isBrX16X17(p[1])) return true;                  // LDR X16/X17, =target ; BR
+    if((p[0] & 0x9F00001Eu) == 0x90000010u && (isBrX16X17(p[1]) || isBrX16X17(p[2]))) return true;   // ADRP X16/X17 [; ADD] ; BR
+    return false;
+#else
+    const uintptr_t a = (uintptr_t)fn;
+    if(a & 1)
+    {   // thumb: LDR.W PC, [PC, #imm]  = F8DF F0xx
+        const uint16_t* t = (const uint16_t*)(a & ~(uintptr_t)1);
+        return t[0] == 0xF8DF && (t[1] & 0xF000) == 0xF000;
+    }
+    const uint32_t* p = (const uint32_t*)a;
+    return p[0] == 0xE51FF004u;                                   // ARM: LDR PC, [PC, #-4]
+#endif
+}
+static bool MP_MenuSlotTaken();
 extern "C" void MP_InstallTitleHook();
 static void InstallMenuHooks(bool titleMenu)
 {
     static bool done = false;
     if(done || !pGameLib || !pGameHandle) return;
     done = true;
+    // 5.02.63: the loading screen is hooked through libGTASA's .got.plt slots (chained) whenever another mod got there
+    // first - not only when a file named *PCMenu*.so is loaded. A menu mod under another name (64-bit, MobileMenu slot
+    // already changed: "after another mod, chained") made 5.02.46 patch CLoadingScreen::RenderSplash a second time
+    // with an inline hook and the game closed before the first title frame (mp_log.txt ended right after
+    // "MobileMenu::Render slot hook on (after another mod, chained)"), the 4.13.25 crash again.
     const bool pcmenu = PCMenuLoaded();
+    void* lsSplash = (void*)aml->GetSym(pGameHandle, "_ZN14CLoadingScreen12RenderSplashEv");
+    void* lsBar    = (void*)aml->GetSym(pGameHandle, "_ZN14CLoadingScreen16RenderLoadingBarEv");
+    const bool patched = MP_CodeIsHooked(lsSplash) || MP_CodeIsHooked(lsBar);
+    const bool menuMod = MP_MenuSlotTaken();
     int hooked = 0;
-    if(!pcmenu)
+    if(!pcmenu && !patched && !menuMod)
     {
-        HOOK_IF(LS_RenderSplash, "_ZN14CLoadingScreen12RenderSplashEv");
-        HOOK_IF(LS_RenderLoadingBar, "_ZN14CLoadingScreen16RenderLoadingBarEv");
+        if(lsSplash) { HOOK(LS_RenderSplash, lsSplash); ++hooked; }
+        if(lsBar)    { HOOK(LS_RenderLoadingBar, lsBar); ++hooked; }
         logger->Info("Loading screen: %d hooks", hooked);
     }
     else
-    {   // 4.13.50: with PCMenu the loading screen is hooked through libGTASA's own .got.plt slots (chained with PCMenu's
-        // hook, no second patch of the same code - the 4.13.25 crash). 4.13.25 - 4.13.49 did not hook it at all, so a
-        // [MultiPlayer] tap showed the game's splash instead of MP's loading screen (4.13.20 had it). PCMenu's PC
-        // loading screen still wins while it is on (MP::PCMenuLoadingActive in LS_RenderSplash).
-        void* any = (void*)aml->GetSym(pGameHandle, "_ZN14CLoadingScreen12RenderSplashEv");
-        void** s1 = Game::FindPltSlot(any, "_ZN14CLoadingScreen12RenderSplashEv");
-        void** s2 = Game::FindPltSlot(any, "_ZN14CLoadingScreen16RenderLoadingBarEv");
+    {   // 4.13.50: through libGTASA's own .got.plt slots (chained with the other mod's hook, no second patch of the
+        // same code). PCMenu's PC loading screen still wins while it is on (MP::PCMenuLoadingActive in LS_RenderSplash).
+        void** s1 = lsSplash ? Game::FindPltSlot(lsSplash, "_ZN14CLoadingScreen12RenderSplashEv") : nullptr;
+        void** s2 = lsSplash ? Game::FindPltSlot(lsSplash, "_ZN14CLoadingScreen16RenderLoadingBarEv") : nullptr;
         if(s1 && *s1 && aml->HookPLT((void*)s1, (void*)&HookOf_LS_RenderSplash, (void**)&LS_RenderSplash)) ++hooked;
         if(s2 && *s2 && aml->HookPLT((void*)s2, (void*)&HookOf_LS_RenderLoadingBar, (void**)&LS_RenderLoadingBar)) ++hooked;
-        logger->Info("Loading screen: PCMenu is installed - %d slot hooks (RenderSplash %s, RenderLoadingBar %s); PCMenu's loading screen wins while it is on",
+        logger->Info("Loading screen: %s - %d slot hooks (RenderSplash %s, RenderLoadingBar %s), no second patch of the game's code",
+            pcmenu ? "PCMenu is installed" : patched ? "another mod already hooked it" : "another menu mod is installed",
             hooked, s1 ? "slot" : "no slot", s2 ? "slot" : "no slot");
     }
     // 4.13.51: MobileMenu::Render is hooked in every mode now (slot hook, chained): the [MultiPlayer] button is drawn
