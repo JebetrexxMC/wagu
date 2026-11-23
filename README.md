@@ -815,6 +815,13 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.65
+- Crash fix: SIGSEGV SEGV_MAPERR at fault address 0x6C in `SurfaceInfos_c::CreatesSparks` (libGTASA+0x41DFB8, 32-bit). The surface table was empty because the game could not load one of its data files; new SparkGuard checks the surface id and table and skips the spark instead of crashing.
+- Crash fix (mitigation): SIGABRT "Binder thread started or Java binder used, but env null. Attach JVM?". MP's music, radio (URL), file and voice helper threads now attach to the Java VM while they run (`src/game/jvmthread.h`, `MPJvm::ThreadScope`). With 70 mods installed the thread that aborted may belong to another mod; send mp_log.txt and aml_crashlog.txt if it happens again.
+- FileGuard hooks `OS_FileOpen` and now names the last game file that could not be opened when it blocks a bad file handle (mp_log.txt).
+- NetWire: `net/go/mplatency`, a 24/7 latency + location monitor (5 s probes with goroutines, cached ip-api locations, dashboard on :8099, /status.json, /metrics, Discord / Telegram alerts, systemd unit). Built with Go 1.27.4 from the source tarball in release v5.02.64 (new `mplatency` CI job); binaries for Linux, Termux / Android, Windows and macOS are in the release.
+- New net references (net/REFERENCES.md): RakNet (SA-MP client), RakNet2 (open.mp), RakNet3 (original), Pawn.RakNet, RakLua, moxygen, infinite-streaming (`net/streaming/` radio test stream), Wired, and the motion-planning forks pRRTC, curobo, ompl, mpt (notes only, not networking).
+
 ### NetWire 1.3 (game build stays 5.02.64)
 - 19 more forks used in net/ (net/REFERENCES.md, and the networking table above):
   - samp-packet-proxy: net/query-shield, an iptables redirect plus a query cache so query floods don't make a server show offline.

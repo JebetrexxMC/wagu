@@ -35,6 +35,8 @@ net/
   swift-pulse/             MPNetPulse: Moya -> Pulse logger plugin (iOS 15 / macOS 13)
   py/mpprobe.py            async probe with asyncio, uvloop or trio
   go/mpedge                gnet UDP edge: MPNETPNG pings + SA-MP / MP query cache in front of a server
+  go/mplatency             24/7 latency + location monitor (5 s probes, dashboard, Discord / Telegram alerts)
+  streaming/               infinite-streaming test stream for the MP URL radio
   server/mpnet-dns.c       libevent evdns: every wire host resolved at once (make dns)
   server/mpnet-ws.cpp      POCO WebSocket: wires.json pushed live on change (make ws)
   gns/                     GameNetworkingSockets reliable / unreliable lane test

@@ -25,10 +25,19 @@ namespace
     // null / tiny pointer = never a real handle. (Closed handles are NOT tracked on purpose: the game
     // reuses memory, and blocking a valid file that got the same address would break model loading.)
     inline bool Bad(void* h) { return (uintptr_t)h < 0x10000; }
+    // 5.02.65: the name of the last file the game could not open. A user's mp_log had
+    // "OS_FileGetPosition / OS_FileRead / OS_FileClose on a bad file handle 0x0" right after a save was loaded,
+    // and no way to tell which file was missing (a mod that deleted / renamed a data file). Now it is in the log.
+    char s_szLastMissing[160] = "";
+    std::atomic<int> s_nMissing{0};
     void Report(const char* fn, void* h)
     {
         int n = ++s_nBlocked;
-        if(n <= 5 || (n % 100) == 0) logger->Error("FileGuard: %s on a bad file handle %p blocked (crash avoided, %d so far)", fn, h, n);
+        if(n <= 5 || (n % 100) == 0)
+        {
+            if(s_szLastMissing[0]) logger->Error("FileGuard: %s on a bad file handle %p blocked (crash avoided, %d so far) - last file the game could not open: %s", fn, h, n, s_szLastMissing);
+            else logger->Error("FileGuard: %s on a bad file handle %p blocked (crash avoided, %d so far)", fn, h, n);
+        }
     }
 
     int (*Close_orig)(void*) = nullptr;
@@ -36,12 +45,24 @@ namespace
     int (*Read_orig)(void*, void*, int) = nullptr;
     int (*Size_orig)(void*) = nullptr;
     int (*GetPos_orig)(void*) = nullptr;
+    int (*Open_orig)(int, void**, const char*, int) = nullptr;   // OS_FileOpen(OSFileDataArea, void** handle, const char*, OSFileAccessType)
 
     int HookClose(void* h)          { if(Bad(h)) { Report("OS_FileClose", h); return 0; } return Close_orig(h); }
     int HookSetPos(void* h, int p)  { if(Bad(h)) { Report("OS_FileSetPosition", h); return 3; } return SetPos_orig(h, p); }   // 3 = the game's own seek error code
     int HookRead(void* h, void* b, int n) { if(Bad(h) || (!b && n > 0)) { Report("OS_FileRead", h); return 3; } return Read_orig(h, b, n); }
     int HookSize(void* h)           { if(Bad(h)) { Report("OS_FileSize", h); return 0; } return Size_orig(h); }
     int HookGetPos(void* h)         { if(Bad(h)) { Report("OS_FileGetPosition", h); return 0; } return GetPos_orig(h); }
+    int HookOpen(int area, void** out, const char* name, int access)
+    {
+        const int r = Open_orig(area, out, name, access);
+        if((r != 0 || !out || Bad(*out)) && name && access == 0)   // 0 = read: a missing file the game wanted to read
+        {
+            strncpy(s_szLastMissing, name, sizeof(s_szLastMissing) - 1); s_szLastMissing[sizeof(s_szLastMissing) - 1] = 0;
+            const int n = ++s_nMissing;
+            if(n <= 20) logger->Info("FileGuard: the game could not open \"%s\" (area %d, result %d) - missing or renamed data file?", name, area, r);
+        }
+        return r;
+    }
 
     void H(void* lib, const char* sym, void* hook, void** orig, int& ok)
     {
@@ -174,7 +195,9 @@ void Game::InitFileGuard(void* h)
     H(h, "_Z11OS_FileSizePv", (void*)&HookSize, (void**)&Size_orig, ok);
     H(h, "_Z18OS_FileGetPositionPv", (void*)&HookGetPos, (void**)&GetPos_orig, ok);
     H(h, "_Z12OS_FileClosePv", (void*)&HookClose, (void**)&Close_orig, ok);
-    logger->Info("FileGuard: %d/5 game file functions guarded", ok);
+    int op = 0;   // 5.02.65: names the file behind a null handle
+    H(h, "_Z11OS_FileOpen14OSFileDataAreaPPvPKc16OSFileAccessType", (void*)&HookOpen, (void**)&Open_orig, op);
+    logger->Info("FileGuard: %d/5 game file functions guarded, open tracking %s", ok, op ? "on" : "off");
     InitStdioGuard(h);   // 3.21
 }
 int Game::FileGuardBlocked() { return s_nBlocked.load(); }

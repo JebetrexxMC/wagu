@@ -1,0 +1,14 @@
+[Unit]
+Description=MP NetWire latency monitor (mplatency)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/opt/wagu/net/go/mplatency/mplatency -wires /opt/wagu/net/wires.txt -http :8099 -quiet
+EnvironmentFile=-/etc/default/mplatency
+Restart=always
+RestartSec=5
+DynamicUser=yes
+
+[Install]
+WantedBy=multi-user.target

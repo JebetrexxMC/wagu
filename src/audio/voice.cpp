@@ -26,6 +26,12 @@
 #include "sound.h"
 #include "net/protocol.h"
 #include "net/server.h"   // MP_NowMs
+#ifndef MP_VOICE_HOSTTEST
+#include "game/jvmthread.h"   // 5.02.65: helper / picker threads run attached to the JVM (binder abort)
+#define MP_JVM_SCOPE(n) MPJvm::ThreadScope jvm_(n)
+#else
+#define MP_JVM_SCOPE(n) (void)0
+#endif
 
 #define V_RATE       48000
 #define V_FRAME      960                  // 20 ms at 48 kHz
@@ -384,6 +390,7 @@ static void HelperFrame(int16_t* b, int n)   // same path as the OpenSL recorder
 }
 static void HelperLoop()
 {
+    MP_JVM_SCOPE("MP voice");
     int fd = (int)socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if(fd < 0) { s_nHelperState = 0; return; }
     sockaddr_in me; memset(&me, 0, sizeof(me)); me.sin_family = AF_INET; me.sin_addr.s_addr = htonl(0x7F000001u); me.sin_port = 0;
@@ -700,6 +707,7 @@ static void PickOpenOnUi(void*)
 }
 static void PickThread()
 {
+    MP_JVM_SCOPE("MP picker");
     int ls = socket(AF_INET, SOCK_STREAM, 0);
     if(ls < 0) { s_nPickState = 4; return; }
     int one = 1; setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));

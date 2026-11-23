@@ -158,6 +158,47 @@ jobs:
           /tmp/mpedge -listen 127.0.0.1:7791 -backend 127.0.0.1:7792 & sleep 1
           python3 ../tests/udp_ping.py 127.0.0.1 7791
 
+  mplatency:
+    # 5.02.65: mplatency (24/7 latency + location monitor) built with Go 1.27.4 from the wagu release
+    # v5.02.64 (go1.27.4.src.tar.gz, built from source with the runner's Go as bootstrap), tested, and
+    # cross-compiled for Linux / Termux / Windows / macOS. The binaries are uploaded as an artifact.
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: net
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+      - name: Go 1.27.4 from the wagu release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          gh release download v5.02.64 -R "$GITHUB_REPOSITORY" -p go1.27.4.src.tar.gz -D /tmp
+          tar xzf /tmp/go1.27.4.src.tar.gz -C /tmp
+          cd /tmp/go/src && GOROOT_BOOTSTRAP="$(go env GOROOT)" ./make.bash > /tmp/make.log 2>&1 || { tail -40 /tmp/make.log; exit 1; }
+          echo "/tmp/go/bin" >> "$GITHUB_PATH"
+      - name: vet + test + build
+        working-directory: net/go
+        run: |
+          set -e
+          go version | grep -q go1.27.4
+          go vet ./mplatency && go test -count=1 ./mplatency
+          mkdir -p /tmp/mpl
+          for t in linux/amd64 linux/arm64 linux/arm android/arm64 windows/amd64 darwin/arm64; do
+            os=${t%/*}; arch=${t#*/}; ext=; [ "$os" = windows ] && ext=.exe
+            CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath -ldflags "-s -w" -o /tmp/mpl/mplatency-$os-$arch$ext ./mplatency
+          done
+          ls -la /tmp/mpl
+          timeout 60 /tmp/mpl/mplatency-linux-amd64 -once -wires ../wires.txt -groups region,web || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mplatency
+          path: /tmp/mpl/*
+
   native:
     # mpnet-dns (libevent), mpnet-ws (POCO), mpprobe.py (asyncio / uvloop / trio)
     if: github.event_name != 'schedule'

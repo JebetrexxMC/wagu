@@ -67,3 +67,18 @@ Repos checked for MP NetWire (NetWire 1.0) and what came out of each.
 | [JebetrexxMC/scanopy](https://github.com/JebetrexxMC/scanopy) | self-updating network diagrams | `scanopy/README.md`: map of an MP box |
 | [JebetrexxMC/raspap-webgui](https://github.com/JebetrexxMC/raspap-webgui) + [JebetrexxMC/plugins](https://github.com/JebetrexxMC/plugins) | Raspberry Pi router / hotspot + its plugin format | `raspap/MPNetWire`: RaspAP plugin (mpnetd status + service buttons) for a LAN-party hotspot |
 | [JebetrexxMC/HP-Socket](https://github.com/JebetrexxMC/HP-Socket) | C/C++ TCP / UDP / HTTP component | Reference only (`hpsocket/README.md`): its reliable UDP can't talk RakNet |
+
+## 5.02.65
+
+| Repo | What it is | Used for MP |
+|---|---|---|
+| [JebetrexxMC/RakNet2](https://github.com/JebetrexxMC/RakNet2) (fork of openmultiplayer/RakNet) | open.mp's RakNet | The same RakNet that MP Crossplay talks to; the `samp` probe in `go/mplatency` uses its query packet format. |
+| [JebetrexxMC/RakNet](https://github.com/JebetrexxMC/RakNet) (0xcds4r) | SA-MP 0.3.7 client RakNet | Reference for the client side of the crossplay handshake (packet ids, RPC numbering). |
+| [JebetrexxMC/RakNet3](https://github.com/JebetrexxMC/RakNet3) (facebookarchive) | original RakNet 4 | Reference only: newer than the SA-MP 2.x RakNet, not wire compatible. |
+| [JebetrexxMC/Pawn.RakNet](https://github.com/JebetrexxMC/Pawn.RakNet) (katursis, `omp` branch) | server plugin to read / edit RakNet traffic from Pawn | Server side of crossplay: a gamemode can log or filter the packets MP clients send. Not built here (needs the open.mp SDK). |
+| [JebetrexxMC/RakLua](https://github.com/JebetrexxMC/RakLua) (Northn) | RakNet hooks for Lua (MoonLoader style) | Reference for MonetLoader scripts that want packet events; no code copied. |
+| [JebetrexxMC/moxygen](https://github.com/JebetrexxMC/moxygen) (Media over QUIC) | MoQT relay + library | Reference for a future voice / radio relay over QUIC. Not built (needs folly / proxygen, too big for NDK and Termux). |
+| [JebetrexxMC/infinite-streaming](https://github.com/JebetrexxMC/infinite-streaming) | HLS / DASH live test server (Go, Docker) | `streaming/`: local test stream for the MP URL radio player (`streaming/README.md`). |
+| [JebetrexxMC/Wired](https://github.com/JebetrexxMC/Wired) (Rust) | Arrow / Protobuf / MessagePack on one stream | Reference only; NetWire status stays JSON so the website and phones can read it. |
+| [JebetrexxMC/pRRTC](https://github.com/JebetrexxMC/pRRTC), [curobo](https://github.com/JebetrexxMC/curobo), [ompl](https://github.com/JebetrexxMC/ompl), [mpt](https://github.com/JebetrexxMC/mpt) | robot motion planning (RRT-Connect on GPU, CUDA, OMPL, templates) | Not networking. Notes for NPC / vehicle path planning only; CUDA needs a desktop GPU, so nothing runs on phones. |
+| Go 1.27.4 source (wagu release v5.02.64) | Go toolchain | `go/mplatency` is built with it in the `mplatency` CI job. |

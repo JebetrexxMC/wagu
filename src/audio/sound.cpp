@@ -27,6 +27,7 @@
 #define MINIMP3_NO_STDIO
 #include "../../third_party/minimp3/minimp3_ex.h"
 #include "sound.h"
+#include "../game/jvmthread.h"   // 5.02.65: audio worker threads run attached to the JVM (binder abort)
 #include <fcntl.h>
 #include <unistd.h>
 #include <SLES/OpenSLES_Android.h>
@@ -293,6 +294,7 @@ bool Sound::PlayMusic(const char* path, float volume, bool loop)
     Pcm* old = s_Music.pcm; s_Music.pcm = nullptr;
     std::string p = path;
     std::thread([p, old]() {
+        MPJvm::ThreadScope jvm("MP music");
         Pcm* n = new Pcm(); n->path = p;
         bool ok = DecodeInto(p.c_str(), n);
         s_Music.pcm = n;   // the old PCM is kept (a voice may still have read from it)
@@ -382,6 +384,7 @@ namespace
     }
     void StDecodeThread(std::string path, int myGen, float startSec)
     {
+        MPJvm::ThreadScope jvm("MP stream");
         FILE* f = fopen(path.c_str(), "rb");
         if(!f) { s_St.failed = true; s_St.eof = true; return; }
         fseek(f, 0, SEEK_END); long fileLen = ftell(f); fseek(f, 0, SEEK_SET);
@@ -488,6 +491,7 @@ namespace
         try
         {
             std::thread([h]() mutable {
+                MPJvm::ThreadScope jvm("MP audio release");
                 if(h->p.play) (*h->p.play)->SetPlayState(h->p.play, SL_PLAYSTATE_STOPPED);
                 h.reset();   // Destroy (may wait for a dead network - fine here)
             }).detach();
@@ -516,6 +520,7 @@ namespace
         try
         {
             std::thread([h]() {
+                MPJvm::ThreadScope jvm("MP audio pos");
                 while(!h->dead.load())
                 {
                     SLmillisecond ms = 0;
@@ -565,6 +570,7 @@ namespace
     std::string s_UrlErr;
     void UrlThread(std::string url, int gen)
     {
+        MPJvm::ThreadScope jvm("MP url audio");
         SLDataLocator_URI loc = { SL_DATALOCATOR_URI, (SLchar*)url.c_str() };
         SLDataFormat_MIME mime = { SL_DATAFORMAT_MIME, nullptr, SL_CONTAINERTYPE_UNSPECIFIED };
         SLDataSource src = { &loc, &mime };
