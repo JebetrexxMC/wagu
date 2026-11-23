@@ -196,6 +196,31 @@ jobs:
           timeout 90 /tmp/mpl/mplatency-linux-amd64 -once -rounds 3 -every 2s -wires ../wires.txt -json /tmp/lat.json || true
           python3 ../tools/render_latency.py /tmp/lat.json /tmp/mpl-card
           python3 -c "import json;d=json.load(open('/tmp/mpl-card/mplatency.json'));assert d['targets'] and d['round']==3"
+      - name: Pawn.RakNet wire (open.mp 1.6.7 + Pawn.RakNet 1.6.0-omp, probe omp-pawnraknet)
+        # 5.02.66: the omp-pawnraknet wire in wires.txt points at 127.0.0.1:7777; here a real open.mp server
+        # with the Pawn.RakNet component runs on the runner and mplatency probes that wire.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          sudo dpkg --add-architecture i386 && sudo apt-get update -qq && sudo apt-get install -y -qq libc6:i386 libstdc++6:i386 libatomic1:i386 libgcc-s1:i386 >/dev/null
+          curl -fsSL --retry 5 -o /tmp/omp.tgz https://github.com/openmultiplayer/open.mp/releases/download/v1.6.7.3218/open.mp-linux-x86.tar.gz
+          tar xzf /tmp/omp.tgz -C /tmp
+          gh release download 1.6.0-omp -R katursis/Pawn.RakNet -p '*linux.tar.gz' -D /tmp/pr
+          tar xzf /tmp/pr/*.tar.gz -C /tmp/pr && cp /tmp/pr/pawnraknet.so /tmp/Server/components/
+          cd /tmp/Server
+          python3 -c "import json;c=json.load(open('config.json'));c['pawn']['main_scripts']=['simpletdm 1'];c['name']='MP Pawn.RakNet wire';json.dump(c,open('config.json','w'),indent=1)"
+          ./omp-server > /tmp/omp.log 2>&1 &
+          for i in $(seq 1 30); do grep -qi "legacy network started\|started server on port\|unable" /tmp/omp.log && break; sleep 1; done
+          cat /tmp/omp.log | head -60
+          grep -qi "pawn.raknet\|pawnraknet" /tmp/omp.log || { echo "Pawn.RakNet component not loaded"; exit 1; }
+          cd "$GITHUB_WORKSPACE/net"
+          /tmp/mpl/mplatency-linux-amd64 -once -rounds 3 -every 1s -geo "" -groups custom -wires wires.txt -json /tmp/prk.json || true
+          python3 -c "
+          import json,sys
+          t=[x for x in json.load(open('/tmp/prk.json'))['targets'] if x.get('id')=='omp-pawnraknet' or 'Pawn.RakNet' in x.get('name','')]
+          print(json.dumps(t,indent=1)); sys.exit(0 if t and t[0]['status']=='ONLINE' else 1)"
+          kill %1 || true
       - uses: actions/upload-artifact@v4
         with:
           name: mplatency
@@ -337,6 +362,8 @@ jobs:
           while :; do
             # re-read main's wires.txt every round: a wire added while the shift runs is probed too
             curl -fsSL "https://raw.githubusercontent.com/${REPO}/main/net/wires.txt" -o wires.txt 2>/dev/null || cp net/wires.txt wires.txt
+            # local wires (127.0.0.1 / localhost, e.g. omp-pawnraknet) are for your own PC; nothing runs on the runner
+            sed -i -E '/^[^#].*\| *(127\.0\.0\.1|localhost):[0-9]+ *\|/d' wires.txt
             python3 net/tools/sources.py 20 > dyn.txt || true
             rm -rf out; mkdir -p out
             curl -fsSL "https://raw.githubusercontent.com/${REPO}/netwire-status/history.json" -o prev.json 2>/dev/null || echo '{}' > prev.json

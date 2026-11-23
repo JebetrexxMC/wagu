@@ -54,6 +54,9 @@ def main():
             if name == "MP LAN Server": grp, wid = "default", "default"
             elif any(name.startswith(f) for f in FEATURED): grp, wid = "featured", "f-" + slug(name)
             else: grp, wid = "custom", "c-" + slug(name)
+            # player-hosted (custom) servers come and go: list them only while the lobby reading is fresh,
+            # a closed one is not a "down" wire (it made the custom group 0/N up, red)
+            if grp == "custom" and not on: continue
             while wid in seen: wid += "x"
             seen.add(wid)
             disp = "Broker MQQ (MP LAN Server)" if grp == "default" else name

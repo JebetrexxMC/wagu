@@ -65,5 +65,7 @@ bore-pub     | web | tcp  | bore.pub:7835 | bore.pub public tunnel server (TCP t
 # ---- templates (remove the leading '#' to probe your own) ----
 # infinite-streaming test stream for the MP URL radio (net/streaming/README.md, JebetrexxMC/infinite-streaming):
 # stream-local | custom | http | 127.0.0.1:30000 | infinite-streaming test stream | path=/
-# open.mp server on the RakNet2 / Pawn.RakNet stack (JebetrexxMC/RakNet2, JebetrexxMC/Pawn.RakNet):
-# omp-local    | custom | samp | 127.0.0.1:7777  | my open.mp server
+# open.mp server with the Pawn.RakNet component (RakNet2 / Pawn.RakNet stack) (JebetrexxMC/RakNet2, JebetrexxMC/Pawn.RakNet):
+# 5.02.66: enabled. Probed by mplatency / mpnetd on your own PC or phone (Termux); the 24/7 GitHub runner skips
+# 127.0.0.1 / localhost wires (nothing runs there).
+omp-pawnraknet | custom | samp | 127.0.0.1:7777  | open.mp + Pawn.RakNet (local) | plugin=Pawn.RakNet

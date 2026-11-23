@@ -60,6 +60,10 @@ def main():
         badge(out, "best", "best wire", "%s %d ms" % (b["id"], round(b["rtt"])), "brightgreen" if b["grade"] == "green" else "yellow")
     else:
         badge(out, "best", "best wire", "none up", "red")
+    # mplatency badges: a grey "waiting" placeholder until render_latency.py writes the real ones, so the README
+    # never shows shields.io's red "custom badge / resource not found" when mplatency did not finish this round
+    badge(out, "latency", "mplatency", "waiting", "lightgrey")
+    badge(out, "latency-jitter", "jitter", "waiting", "lightgrey")
     rows = []
     for g in GROUPS:
         gw = [w for w in wires if w["group"] == g]
