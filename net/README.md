@@ -55,6 +55,8 @@ net/
   containerlab/            phone - relay - server lab, netem lag / loss on demand
   pjon/                    mp-pjon-beacon: MP LAN servers announced over PJON LocalUDP (boards + boxes)
   kuma/                    service mesh for the mpnet HTTP side (UDP 7777 excluded)
+  global-satellite-vps-network/  global center + 5 continental VPS (FastAPI) + edge client: fastest VPS by RTT, failover, satellite link detection
+  xdp-firewall/            MP rules + installer for xdp-firewall (XDP/eBPF DDoS drop in front of the VPS)
   k8s/                     Dockerfile, Deployment / Service, NetworkPolicy, Calico policy, CNI conflist
   REFERENCES.md            the repos this was checked against
 ```

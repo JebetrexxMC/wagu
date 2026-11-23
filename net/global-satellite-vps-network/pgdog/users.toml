@@ -1,0 +1,4 @@
+[[users]]
+name = "mp"
+database = "mp"
+password = "change-me"

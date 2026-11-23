@@ -1,0 +1,19 @@
+# PgDog (JebetrexxMC/pgdog) in front of the MP account database, one per continental VPS.
+# Writes (register, password change) go to the primary; reads (login, stats) go to the nearest replica.
+[general]
+host = "0.0.0.0"
+port = 6432
+default_pool_size = 10
+load_balancing_strategy = "round_robin"
+
+[[databases]]
+name = "mp"
+host = "db-primary.example"     # the one primary (e.g. the Asia VPS)
+port = 5432
+role = "primary"
+
+[[databases]]
+name = "mp"
+host = "127.0.0.1"              # streaming replica on this VPS
+port = 5432
+role = "replica"

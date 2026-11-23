@@ -68,6 +68,20 @@ Repos checked for MP NetWire (NetWire 1.0) and what came out of each.
 | [JebetrexxMC/raspap-webgui](https://github.com/JebetrexxMC/raspap-webgui) + [JebetrexxMC/plugins](https://github.com/JebetrexxMC/plugins) | Raspberry Pi router / hotspot + its plugin format | `raspap/MPNetWire`: RaspAP plugin (mpnetd status + service buttons) for a LAN-party hotspot |
 | [JebetrexxMC/HP-Socket](https://github.com/JebetrexxMC/HP-Socket) | C/C++ TCP / UDP / HTTP component | Reference only (`hpsocket/README.md`): its reliable UDP can't talk RakNet |
 
+## 5.02.71
+
+| Repo | What it is | Used for MP |
+|---|---|---|
+| [librespacefoundation/satnogs](https://gitlab.com/librespacefoundation/satnogs) | SatNOGS: global network of satellite ground stations | Model for `global-satellite-vps-network/`: one center, many stations reporting in. |
+| [JebetrexxMC/ground-station](https://github.com/JebetrexxMC/ground-station) | browser ground station (tracking, SDR, telemetry; JavaScript) | Reference for status views; nothing vendored. |
+| [JebetrexxMC/ground-station-optimizer](https://github.com/JebetrexxMC/ground-station-optimizer) | optimal ground station network for a mission (Python, IEEE Aerospace 2024) | Where to place the continental VPS; docs only. |
+| [JebetrexxMC/awesome-satellite-network](https://github.com/JebetrexxMC/awesome-satellite-network) | satellite / non-terrestrial networking papers and tools | LEO / GEO latency classes in `edge_client.py`. |
+| [JebetrexxMC/geo-loadbalanced-service](https://github.com/JebetrexxMC/geo-loadbalanced-service) | geo load balanced service (Java) | `GET /global/best` (nearest + load). |
+| [JebetrexxMC/pgdog](https://github.com/JebetrexxMC/pgdog) | Postgres pooler, load balancer, sharder (Rust) | `global-satellite-vps-network/pgdog/`: shared account DB, local replica reads. |
+| [JebetrexxMC/linux-dual-wan-failover](https://github.com/JebetrexxMC/linux-dual-wan-failover) | dual-WAN failover for Linux routers (Shell) | Failover rule (N failed probes) in the edge client. |
+| [JebetrexxMC/FailOver-Routing](https://github.com/JebetrexxMC/FailOver-Routing) | multi-WAN failover on a Raspberry Pi (Python) | Same, edge client on a Pi. |
+| [JebetrexxMC/xdp-firewall](https://github.com/JebetrexxMC/xdp-firewall) | stateless XDP/eBPF firewall with IPv6, rate limits, block list (C) | `xdp-firewall/`: MP rule generator + VPS installer; config checked with its own loader. |
+
 ## 5.02.70
 
 | Repo | What it is | Used for MP |

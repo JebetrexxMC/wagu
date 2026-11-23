@@ -509,7 +509,7 @@ Every repository under [JebetrexxMC](https://github.com/JebetrexxMC) (307) and [
 </details>
 
 <details>
-<summary><b>Networking (net/) and the PC launcher</b> (51)</summary>
+<summary><b>Networking (net/) and the PC launcher</b> (60)</summary>
 
 | # | Repository | Forked from | About | Language | In wagu | Last commit |
 |---|---|---|---|---|---|---|
@@ -564,6 +564,15 @@ Every repository under [JebetrexxMC](https://github.com/JebetrexxMC) (307) and [
 | 49 | [JebetrexxMC/containerlab](https://github.com/JebetrexxMC/containerlab) | [srl-labs/containerlab](https://github.com/srl-labs/containerlab) | Container-based networking labs | Go | net/containerlab mp-lab.clab.yml | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/containerlab?style=flat-square&label=&cacheSeconds=86400) |
 | 50 | [JebetrexxMC/Computer-Science-Resources](https://github.com/JebetrexxMC/Computer-Science-Resources) | [the-akira/Computer-Science-Resources](https://github.com/the-akira/Computer-Science-Resources) | Collection of resources spanning key areas of Computer Science |  | net/REFERENCES.md (reading list) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/Computer-Science-Resources?style=flat-square&label=&cacheSeconds=86400) |
 | 51 | [JebetrexxMC/opensnitch](https://github.com/JebetrexxMC/opensnitch) | [evilsocket/opensnitch](https://github.com/evilsocket/opensnitch) | GNU/Linux interactive application firewall | Python | net/opensnitch mp-allow-game.json | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/opensnitch?style=flat-square&label=&cacheSeconds=86400) |
+| 52 | [librespacefoundation/satnogs](https://gitlab.com/librespacefoundation/satnogs) | (GitLab) | SatNOGS global satellite ground station network |  | net/global-satellite-vps-network (model) |  |
+| 53 | [JebetrexxMC/ground-station](https://github.com/JebetrexxMC/ground-station) | [sgoudelis/ground-station](https://github.com/sgoudelis/ground-station) | Browser-based ground station suite for celestial body, mission and satellite tracking, SDR reception, hardware control, and telemetry decoding | JavaScript | net/global-satellite-vps-network (reference) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/ground-station?style=flat-square&label=&cacheSeconds=86400) |
+| 54 | [JebetrexxMC/ground-station-optimizer](https://github.com/JebetrexxMC/ground-station-optimizer) | [duncaneddy/ground-station-optimizer](https://github.com/duncaneddy/ground-station-optimizer) | Optimal ground station provider and station network for a satellite mission (2024 IEEE Aerospace Conference) | Python | net/global-satellite-vps-network (VPS placement) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/ground-station-optimizer?style=flat-square&label=&cacheSeconds=86400) |
+| 55 | [JebetrexxMC/awesome-satellite-network](https://github.com/JebetrexxMC/awesome-satellite-network) | [liuwei-network/awesome-satellite-network](https://github.com/liuwei-network/awesome-satellite-network) | Papers, open-source systems, datasets, testbeds, and tools for satellite networking and non-terrestrial networks |  | net/REFERENCES.md (reading list) | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/awesome-satellite-network?style=flat-square&label=&cacheSeconds=86400) |
+| 56 | [JebetrexxMC/geo-loadbalanced-service](https://github.com/JebetrexxMC/geo-loadbalanced-service) | [skaveesh/geo-loadbalanced-service](https://github.com/skaveesh/geo-loadbalanced-service) | Geo Load Balanced Service | Java | global_center /global/best | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/geo-loadbalanced-service?style=flat-square&label=&cacheSeconds=86400) |
+| 57 | [JebetrexxMC/pgdog](https://github.com/JebetrexxMC/pgdog) | [pgdogdev/pgdog](https://github.com/pgdogdev/pgdog) | PostgreSQL connection pooler, load balancer and database sharder. | Rust | net/global-satellite-vps-network/pgdog | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/pgdog?style=flat-square&label=&cacheSeconds=86400) |
+| 58 | [JebetrexxMC/linux-dual-wan-failover](https://github.com/JebetrexxMC/linux-dual-wan-failover) | [fidpa/linux-dual-wan-failover](https://github.com/fidpa/linux-dual-wan-failover) | Dual-WAN failover for Linux routers. Measured in production: median time to the backup under a minute. | Shell | edge_client.py failover | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/linux-dual-wan-failover?style=flat-square&label=&cacheSeconds=86400) |
+| 59 | [JebetrexxMC/FailOver-Routing](https://github.com/JebetrexxMC/FailOver-Routing) | [d03n3rfr1tz3/FailOver-Routing](https://github.com/d03n3rfr1tz3/FailOver-Routing) | A simple showcase of a Multi-WAN FailOver including some basic policy routing on a Raspberry Pi | Python | edge_client.py failover | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/FailOver-Routing?style=flat-square&label=&cacheSeconds=86400) |
+| 60 | [JebetrexxMC/xdp-firewall](https://github.com/JebetrexxMC/xdp-firewall) | [gamemann/xdp-firewall](https://github.com/gamemann/xdp-firewall) | A firewall that utilizes the Linux kernel's XDP hook for dropping malicious traffic from a (D)DoS attack. IPv6 supported. | C | net/xdp-firewall | ![last commit](https://img.shields.io/github/last-commit/JebetrexxMC/xdp-firewall?style=flat-square&label=&cacheSeconds=86400) |
 
 </details>
 
@@ -828,6 +837,11 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 - Test: `test/sampgate_test.cpp` (against a real omp-server 1.6.7), Docker: [docker/README.md](docker/README.md).
 
 ## Changelog
+
+### 5.02.71
+- net/global-satellite-vps-network: a global center + continental VPS (NA, EU, ASIA, SA, OC) on FastAPI, and an edge client (Python standard library, runs in Termux) that picks the fastest VPS by measured round-trip time and fails over when it stops answering, even when the center is down. It spots satellite / high-latency links (Starlink LEO, GEO) and writes the pick as NetWire lines. docker-compose for a one-box test, PgDog config for one shared account database.
+- net/xdp-firewall: MP rules for xdp-firewall (drops bad-size UDP to the game ports 1922-1932, per-IP floods with a CGNAT-safe limit, DNS / NTP / SSDP / memcached reflection, SYN floods to MQTT / web ports) and a VPS installer. The config is checked with the firewall's own loader.
+- MP itself (libMP32.so / libMP64.so) is unchanged from 5.02.70.
 
 ### 5.02.70
 - Fix: SIGBUS / SIGSEGV in SurfaceInfos_c::CantSprintOn as soon as you walk after loading (also the 5.02.64/65 crash, fault 0x6C). AbsoluteFix.lua ("improvedrun") writes PC x86 code `66 33 C0 C2` ("xor ax, ax; ret 4") to 0x55E870. MP's PC address layer mapped that to the ARM CantSprintOn, where JPatch's hook had left the page writable, so 4 x86 bytes landed on ARM code. MonetLoader for MP now refuses any write to a PC function's code ("pccompat: ... is the code of ... - write skipped"). Calls to PC functions still work.

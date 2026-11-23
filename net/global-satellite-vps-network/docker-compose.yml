@@ -1,0 +1,137 @@
+version: "3.9"
+
+# MP global satellite VPS network: one global center + one VPS per continent.
+# Local test: docker compose up  ->  python3 edge_client/edge_client.py --center http://127.0.0.1:8000
+# Real deployment: run ONE vps-* service per real VPS (see README.md) and set PUBLIC_URL to its public address.
+
+services:
+  global-center:
+    image: python:3.11-slim
+    container_name: global-center
+    working_dir: /app
+    volumes:
+      - ./global_center:/app
+    environment:
+      - PORT=8000
+      - STALE_S=20
+      # - GLOBAL_TOKEN=change-me   # same value on every VPS
+    command: sh -c "pip install fastapi uvicorn pydantic && python global_center.py"
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  vps-na:
+    image: python:3.11-slim
+    container_name: vps-na
+    working_dir: /app
+    volumes:
+      - ./continental_vps:/app
+    environment:
+      - CONTINENT=NA
+      - PORT=8001
+      - GLOBAL_CENTER_URL=http://global-center:8000/global/sync
+      - LAT=40.7
+      - LON=-74.0
+      - UPLINK=fiber
+      - GAME_HOST=nasamp.duckdns.org
+      - GAME_PORT=1922
+      - MQTT_HOST=nasamp.duckdns.org
+      - MQTT_PORT=1883
+    command: sh -c "pip install fastapi uvicorn httpx pydantic && python continental_vps.py"
+    ports:
+      - "8001:8001"
+    depends_on:
+      - global-center
+    restart: unless-stopped
+
+  vps-eu:
+    image: python:3.11-slim
+    container_name: vps-eu
+    working_dir: /app
+    volumes:
+      - ./continental_vps:/app
+    environment:
+      - CONTINENT=EU
+      - PORT=8002
+      - GLOBAL_CENTER_URL=http://global-center:8000/global/sync
+      - LAT=50.1
+      - LON=8.7
+      - UPLINK=fiber
+      - GAME_HOST=eusamp.duckdns.org
+      - GAME_PORT=1922
+      - MQTT_HOST=eusamp.duckdns.org
+      - MQTT_PORT=1883
+    command: sh -c "pip install fastapi uvicorn httpx pydantic && python continental_vps.py"
+    ports:
+      - "8002:8002"
+    depends_on:
+      - global-center
+    restart: unless-stopped
+
+  vps-asia:
+    image: python:3.11-slim
+    container_name: vps-asia
+    working_dir: /app
+    volumes:
+      - ./continental_vps:/app
+    environment:
+      - CONTINENT=ASIA
+      - PORT=8003
+      - GLOBAL_CENTER_URL=http://global-center:8000/global/sync
+      - LAT=1.35
+      - LON=103.8
+      - UPLINK=fiber
+      - GAME_HOST=mpsamp.duckdns.org
+      - GAME_PORT=1922
+      - MQTT_HOST=mpsamp.duckdns.org
+      - MQTT_PORT=1883
+    command: sh -c "pip install fastapi uvicorn httpx pydantic && python continental_vps.py"
+    ports:
+      - "8003:8003"
+    depends_on:
+      - global-center
+    restart: unless-stopped
+
+  vps-sa:
+    image: python:3.11-slim
+    container_name: vps-sa
+    working_dir: /app
+    volumes:
+      - ./continental_vps:/app
+    environment:
+      - CONTINENT=SA
+      - PORT=8004
+      - GLOBAL_CENTER_URL=http://global-center:8000/global/sync
+      - LAT=-23.5
+      - LON=-46.6
+      - UPLINK=fiber
+    command: sh -c "pip install fastapi uvicorn httpx pydantic && python continental_vps.py"
+    ports:
+      - "8004:8004"
+    depends_on:
+      - global-center
+    restart: unless-stopped
+
+  vps-oc:
+    image: python:3.11-slim
+    container_name: vps-oc
+    working_dir: /app
+    volumes:
+      - ./continental_vps:/app
+    environment:
+      - CONTINENT=OC
+      - PORT=8005
+      - GLOBAL_CENTER_URL=http://global-center:8000/global/sync
+      - LAT=-33.9
+      - LON=151.2
+      - UPLINK=fiber
+      - GAME_HOST=ocsamp.duckdns.org
+      - GAME_PORT=1922
+      - MQTT_HOST=ocsamp.duckdns.org
+      - MQTT_PORT=1883
+    command: sh -c "pip install fastapi uvicorn httpx pydantic && python continental_vps.py"
+    ports:
+      - "8005:8005"
+    depends_on:
+      - global-center
+    restart: unless-stopped
