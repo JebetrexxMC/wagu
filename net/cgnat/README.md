@@ -60,6 +60,23 @@ server bound to 0.0.0.0 answers from its LAN address; bind open.mp / SA-MP to 10
 VPS -> home ping. Also available as `gateway status` on the autobot, `mpadmin gw` in Termux and
 `g` in the HiveMQ console.
 
+## Check on a loop + outside probe
+
+- Phone: `mpadmin cgnat loop on` runs the check every 30 min (Termux:Boot restarts it) and publishes the result, retained, to
+  `thirtyfox/mp5/cgnat/<device>` on the public brokers. The website Termux console (termux.html) types `bash cgnat-check.sh`
+  by itself every 10 min and shows each phone's latest verdict.
+- GitHub: `.github/workflows/cgnat-probe.yml` probes 143.44.193.152 from outside every hour (`outside-probe.sh`: TCP SYN on
+  22 80 443 1883 7547 8080 8883 8884 51821 23456, traceroute, ping) and writes `cgnat.json` + `history.json` to the
+  `cgnat-status` branch. From outside you can't prove CGNAT; "SOMETHING ANSWERS" (RST) or "NO ANSWER" just means
+  no forward reaches the broker. The phone check is the real test.
+
+## Home + public lobby together (home-bridge.sh)
+
+`bash home-bridge.sh on asia` (or `mpadmin bridge on asia`, autobot `bridge on`) runs MpBridge next to the home broker:
+the home 24/7 servers are mirrored into the public lobby and the game frames (s/<tok>, c/<cid>) are carried both ways.
+Wi-Fi offline: the public lobby stays up (the game already falls back to it). Wi-Fi back: the bridge reconnects
+(1-30 s backoff) and lists the servers again; in the local test it was listed again 8 s after the link returned. `off` / `status` / `log`.
+
 ## Ping
 
 The gateway makes the regions reachable (standby -> up) and enables the direct-UDP path, but every

@@ -22,6 +22,8 @@
 #   mpadmin gw [status|rules|off]          CGNAT gateway on the VPS, through the autobot
 #   mpadmin duck [status|once|pin IP|unpin|token T]   the 4 region names (net/cgnat/duckdns-mp.sh)
 #   mpadmin udp <host> [port]              UDP ping (net/udp-bench); the VPS side: mpadmin bot udpbench <host>
+#   mpadmin cgnat loop [on|off]            check every 30 min in the background, result -> website Termux console
+#   mpadmin bridge [on|off|status|log]     home broker + public lobby together (MpBridge mirror, net/cgnat/home-bridge.sh)
 #   mpadmin widget | boot | update | config
 set -u
 RAW=https://raw.githubusercontent.com/JebetrexxMC/wagu/main
@@ -83,7 +85,34 @@ fw() {
 
 # NetWire 1.4: CGNAT kit (net/cgnat, net/udp-bench) - fetched on first use
 netget() { [ -f "$D/$(basename "$1")" ] && [ "${2:-}" != new ] || curl -fsSL "$RAW/net/$1" -o "$D/$(basename "$1")" || { say "download failed"; return 1; }; }
-cgnat() { has traceroute || pkgi traceroute; netget cgnat/cgnat-check.sh new && bash "$D/cgnat-check.sh" "$@"; }
+cgnat() {
+  [ "${1:-}" = loop ] && { shift; cgnat_loop "${1:-on}"; return; }
+  has traceroute || pkgi traceroute; netget cgnat/cgnat-check.sh new && bash "$D/cgnat-check.sh" "$@"; }
+# NetWire 1.4: the check on a loop; each result is published (retained) to the public lobby brokers,
+# where the website's Termux console (mpsamp-open.github.io/termux.html) shows it - no typing.
+CG_TOPIC_ROOT=thirtyfox/mp5/cgnat
+cgnat_id() { local m; m=$(getprop ro.product.model 2>/dev/null || hostname); printf '%s-%s' "$m" "$(id -u)" | tr -c 'A-Za-z0-9_-' '_' | cut -c1-40; }
+cgnat_once() {
+  local j; netget cgnat/cgnat-check.sh new >/dev/null 2>&1; j=$(bash "$D/cgnat-check.sh" --json ${ROUTER_WAN:-} 2>/dev/null) || return 1
+  [ -n "$j" ] || return 1; echo "$j" > "$D/cgnat.json"
+  has mosquitto_pub || pkgi mosquitto >/dev/null 2>&1
+  for b in broker.hivemq.com test.mosquitto.org broker.emqx.io; do mosquitto_pub -h $b -p 1883 -r -q 1 -t "$CG_TOPIC_ROOT/$(cgnat_id)" -m "$j" 2>/dev/null; done
+  local v; v=$(echo "$j" | sed -n 's/.*"verdict":"\([^"]*\)".*/\1/p')
+  [ "$v" != "$(cat "$D/cgnat.last" 2>/dev/null)" ] && { echo "$v" > "$D/cgnat.last"; notify cgnat "MP home line" "CGNAT check: $v"; }
+  echo "$(date '+%F %T') $v"
+}
+cgnat_loop() {
+  case "$1" in
+    on) has traceroute || pkgi traceroute; has mosquitto_pub || pkgi mosquitto; touch "$D/cgnat.on"
+        pgrep -f "mpadmin.*cgnat-run|cgnat-run" >/dev/null || { has termux-wake-lock && termux-wake-lock; nohup "$SELF" cgnat-run >> "$D/cgnat.log" 2>&1 & }
+        [ $TERMUX = 1 ] && { mkdir -p "$HOME/.termux/boot"; printf '#!%s/bin/sh\n[ -f %s/cgnat.on ] && %s cgnat-run >> %s/cgnat.log 2>&1 &\n' "$P" "$D" "$SELF" "$D" > "$HOME/.termux/boot/mp-cgnat"; chmod +x "$HOME/.termux/boot/mp-cgnat"; }
+        say "CGNAT check runs every 30 min; results on the website Termux console. Log: $D/cgnat.log" ;;
+    off) rm -f "$D/cgnat.on"; pkill -f cgnat-run; say "CGNAT loop stopped" ;;
+    *) tail -n 10 "$D/cgnat.log" 2>/dev/null ;;
+  esac
+}
+cgnat_run() { while [ -f "$D/cgnat.on" ]; do cgnat_once; tail -n 200 "$D/cgnat.log" > "$D/cgnat.log.t" 2>/dev/null && mv "$D/cgnat.log.t" "$D/cgnat.log"; sleep 1800; done; }
+bridge() { netget cgnat/home-bridge.sh new && bash "$D/home-bridge.sh" "${@:-status}"; }
 duck() { netget cgnat/duckdns-mp.sh && bash "$D/duckdns-mp.sh" "${@:-status}"; }
 udpb() { [ -n "${1:-}" ] || { echo "mpadmin udp <host> [port]"; return 2; }; netget udp-bench/udp-bench.sh && bash "$D/udp-bench.sh" rtt "$1" "${2:-1939}" 50; }
 gw() { bot gateway "${1:-status}"; }
@@ -215,12 +244,13 @@ menu() {
     echo " 8) fastest VPS now                 9) background edge on  0) background edge off   l) edge log"
     echo " k) SSH key for the VPS             s) SSH into the VPS    t) Debian lab test (proot-distro)"
     echo " n) CGNAT check (home line)         G) CGNAT gateway on the VPS      d) DuckDNS region names"
+    echo " N) CGNAT check loop -> website     B) home + public lobby together (bridge on)   v) bridge status"
     echo " g) MP logs -> Downloads            w) buttons  b) boot  p) Termux password  u) update  c) settings  q) exit"
     local k; read -r -p "> " k </dev/tty || return 0
     case "$k" in
       1) status;; 2) fw install;; 3) fw status;; 4) fw off;; 5) bot ping;; 6) bot botupdate;; 7) omp247;;
       8) edge once;; 9) edge on;; 0) edge off;; l) edge log;; k) sshx key;; s) sshx login;; t) lab;;
-      n) cgnat;; G) gw status;; d) duck status;;
+      n) cgnat;; G) gw status;; d) duck status;; N) cgnat loop on;; B) bridge on;; v) bridge status;;
       g) mplog;; w) widget;; b) boot;; p) lock;; u) update; exec "$SELF";; c) config;; q|Q) return 0;; *) echo "?";;
     esac
   done
@@ -230,6 +260,6 @@ case "${1:-menu}" in
   menu) menu;; setup) setup;; status) status;; config) config;; update) update;; widget) widget;; boot) boot;; lock) lock;;
   fw|firewall) shift; fw "$@";; bot) shift; bot "$@";; edge) shift; edge "$@";; edge-loop) edge_loop;;
   ssh) shift; sshx "$@";; lab) lab;; log|logs) mplog;;
-  cgnat) shift; cgnat "$@";; gw|gateway) shift; gw "$@";; duck|duckdns) shift; duck "$@";; udp) shift; udpb "$@";;
-  *) sed -n '2,28p' "$0";;
+  cgnat) shift; cgnat "$@";; cgnat-run) cgnat_run;; bridge) shift; bridge "$@";; gw|gateway) shift; gw "$@";; duck|duckdns) shift; duck "$@";; udp) shift; udpb "$@";;
+  *) sed -n '2,30p' "$0";;
 esac

@@ -20,6 +20,8 @@ Commands (plain text; with BOT_TOKEN set, the first word must be the token):
     gateway [status|rules|off]        NetWire 1.4: CGNAT gateway on this VPS (net/cgnat/mp-gateway.sh)
     duckdns [status|once]             NetWire 1.4: the 4 region names (net/cgnat/duckdns-mp.sh)
     udpbench <host> [port]            NetWire 1.4: UDP ping from this machine (net/udp-bench)
+    cgnat                             NetWire 1.4: CGNAT check of this machine's line (net/cgnat/cgnat-check.sh)
+    bridge [status|on|off|log]        NetWire 1.4: home broker + public lobby together (net/cgnat/home-bridge.sh)
 Only these run - never a shell line. Names: letters, digits, _ and -. The broker login decides who may
 publish commands (the MP HiveMQ kit: only "admin" and "bridge" may use thirtyfox/mp4/omp/#).
 """
@@ -158,7 +160,7 @@ def fetch_latest():
 
 HELP = ("commands: install (finds every server) | find | list | install <name> <port> <server_dir> | status <name> | start|stop|restart <name> | "
         "backup <name> | logs <name> [lines] | update | ping | xdpfw [install|status|off|conf] | "
-        "gateway [status|rules|off] | duckdns [status|once] | udpbench <host> [port]")
+        "gateway [status|rules|off] | duckdns [status|once] | udpbench <host> [port] | cgnat | bridge [status|on|off|log]")
 
 WAGU = os.environ.get("WAGU_DIR", "/opt/wagu")
 WAGU_GIT = "https://github.com/JebetrexxMC/wagu"
@@ -191,6 +193,8 @@ def wagu_net(pull=True):
 NET_TOOLS = {   # NetWire 1.4: command -> (script under net/, allowed sub-commands)
     "gateway": ("cgnat/mp-gateway.sh", ("status", "rules", "off")),
     "duckdns": ("cgnat/duckdns-mp.sh", ("status", "once")),
+    "cgnat": ("cgnat/cgnat-check.sh", ("check",)),                       # the CGNAT check where the bot runs
+    "bridge": ("cgnat/home-bridge.sh", ("status", "on", "off", "log")),  # home broker + public lobby together
 }
 
 def net_tool(c, a):
@@ -199,11 +203,11 @@ def net_tool(c, a):
         port = a[1] if len(a) > 1 and a[1].isdigit() and 0 < int(a[1]) < 65536 else "1939"
         ok, out = wagu_net(pull=False)
         return run(["bash", os.path.join(WAGU, "net", "udp-bench", "udp-bench.sh"), "rtt", a[0], port, "50"], timeout=90) if ok else (False, out)
-    script, subs = NET_TOOLS[c]; sub = a[0].lower() if a else "status"
+    script, subs = NET_TOOLS[c]; sub = a[0].lower() if a else subs[0]
     if sub not in subs: return False, "%s %s" % (c, " | ".join(subs))
-    ok, out = wagu_net(pull=sub != "status")
+    ok, out = wagu_net(pull=sub not in ("status", "log"))
     if not ok: return False, out
-    argv = ["bash", os.path.join(WAGU, "net", script), sub] + (["up"] if sub == "rules" else [])
+    argv = ["bash", os.path.join(WAGU, "net", script)] + ([] if sub == "check" else [sub]) + (["up"] if sub == "rules" else [])
     return run(argv, timeout=120)
 
 def do(words):

@@ -1,0 +1,34 @@
+# NetWire 1.4 - the home line (mpsamp.duckdns.org) seen from outside, every hour.
+# Result: cgnat-status branch (cgnat.json, history of the last 48 runs); the network page shows it next to
+# the phone check (cgnat-check.sh in Termux -> mpadmin cgnat loop publishes it over the public broker).
+name: CGNAT probe
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['net/cgnat/outside-probe.sh', '.github/workflows/cgnat-probe.yml']
+permissions:
+  contents: write
+concurrency: { group: cgnat-probe, cancel-in-progress: false }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: net/cgnat, sparse-checkout-cone-mode: true }
+      - run: sudo apt-get install -y -qq nmap traceroute >/dev/null
+      - name: probe
+        run: sudo bash net/cgnat/outside-probe.sh mpsamp.duckdns.org > /tmp/cgnat.json && cat /tmp/cgnat.json
+      - name: publish (cgnat-status branch)
+        env: { TOKEN: '${{ github.token }}', REPO: '${{ github.repository }}' }
+        run: |
+          mkdir -p /tmp/out && cd /tmp/out
+          curl -fsSL "https://raw.githubusercontent.com/$REPO/cgnat-status/history.json" -o prev.json 2>/dev/null || echo '[]' > prev.json
+          python3 -c "import json;h=json.load(open('prev.json'));n=json.load(open('/tmp/cgnat.json'));h=(h if isinstance(h,list) else [])[-47:]+[{k:n[k] for k in ('time','verdict','ping_ms','trace_reached')}];json.dump(h,open('history.json','w'))"
+          cp /tmp/cgnat.json cgnat.json; rm prev.json
+          git init -q -b cgnat-status && git add -A
+          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -qm "cgnat probe $(date -u +%FT%TZ)"
+          git push -qf "https://x-access-token:${TOKEN}@github.com/${REPO}.git" cgnat-status

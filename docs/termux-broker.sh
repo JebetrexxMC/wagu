@@ -63,3 +63,7 @@ echo
 echo "Router (http://192.168.1.1) port forwarding:"
 echo "  MP-MQTT      TCP 1883 -> ${LAN:-192.168.1.137}:1883"
 echo "  MP-MQTT-TLS  TCP 8883 -> ${LAN:-192.168.1.137}:8883"
+echo
+echo "Keep the public lobby joined to this broker (Wi-Fi offline -> public lobby stays; back -> rejoined in <30 s):"
+echo "  curl -fsSLO https://raw.githubusercontent.com/JebetrexxMC/wagu/main/net/cgnat/home-bridge.sh && bash home-bridge.sh on asia"
+[ "${MP_BRIDGE:-0}" = 1 ] && curl -fsSL https://raw.githubusercontent.com/JebetrexxMC/wagu/main/net/cgnat/home-bridge.sh -o "$HOME/mp-broker/home-bridge.sh" && bash "$HOME/mp-broker/home-bridge.sh" on "${MP_BRIDGE_REGION:-asia}"

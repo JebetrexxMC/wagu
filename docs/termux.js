@@ -7,7 +7,8 @@
   var REG = ['Asia', 'Europe', 'NA', 'Oceania'];
   var PUBLIC = ['wss://broker.hivemq.com:8884/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://test.mosquitto.org:8081/'];
   var ROOT = 'thirtyfox/mp5/', FRESH = 15000;
-  var PORTS = 'https://raw.githubusercontent.com/JebetrexxMC/wagu/live-status/ports.json', lastBroker = 0;
+  var PORTS = 'https://raw.githubusercontent.com/JebetrexxMC/wagu/live-status/ports.json', lastBroker = 0, lastCg = 0, phoneCg = {};
+  var CGNAT = 'https://raw.githubusercontent.com/JebetrexxMC/wagu/cgnat-status/cgnat.json';   // NetWire 1.4: outside probe (GitHub, hourly)
   var RAW = 'https://mpsamp-open.github.io/';   // 3.35: openmpsa.com (no repo links)
   var API = 'release.json';
   var $ = function (id) { return document.getElementById(id); };
@@ -61,9 +62,9 @@
     var o = { clientId: 'webtermux' + Math.random().toString(16).slice(2, 12), clean: true, connectTimeout: 8000, reconnectPeriod: 4000, keepalive: 30, protocolVersion: 4 };
     if (user) { o.username = user; o.password = pass || ''; }
     var c = mqtt.connect(url, o);
-    c.on('connect', function () { c.subscribe(ROOT + 'l/+'); live(); });
+    c.on('connect', function () { c.subscribe(ROOT + 'l/+'); c.subscribe(ROOT + 'cgnat/+'); live(); });
     c.on('close', live); c.on('error', function () {});
-    c.on('message', function (t, pl) { onList(t, pl); });
+    c.on('message', function (t, pl) { if (t.indexOf(ROOT + 'cgnat/') === 0) { try { if (pl.length) phoneCg[t.slice(ROOT.length + 6)] = JSON.parse(String(pl)); } catch (e) {} return; } onList(t, pl); });
     conns.push({ url: url, c: c });
   }
   function live() {
@@ -249,6 +250,28 @@
         else p('g', '  ' + open + ' region broker(s) reachable - players worldwide can use them');
       }).catch(function (e) { p('r', 'ports: ' + e.message); });
     },
+    'cgnat-check': function () {   // NetWire 1.4: CGNAT check - phone results (mpadmin cgnat loop) + the outside probe from GitHub
+      lastCg = Date.now();
+      p('m', 'CGNAT check - run it once in the real Termux app (or  mpadmin cgnat loop on  = every 30 min, results show up here):');
+      print('  <span class="g">' + esc('pkg install curl traceroute') + '</span>');
+      print('  <span class="g">' + esc('curl -fsSLO https://raw.githubusercontent.com/JebetrexxMC/wagu/main/net/cgnat/cgnat-check.sh') + '</span>');
+      print('  <span class="g">' + esc('bash cgnat-check.sh') + '</span>');
+      var ks = Object.keys(phoneCg);
+      if (!ks.length) p('y', '  no phone report yet (start  mpadmin cgnat loop on  in Termux)');
+      ks.forEach(function (k) { var j = phoneCg[k], v = j.verdict || '?';
+        print('  phone ' + esc(k) + ': <span class="' + (v === 'PUBLIC' ? 'g' : v === 'CGNAT' ? 'r' : 'y') + '">' + esc(v) + '</span> <span class="m">' + esc((j.why || '') + (j.public_ip ? '  ip ' + j.public_ip : '') + (j.time ? '  ' + new Date(j.time * 1000).toLocaleString() : '')) + '</span>'); });
+      return fetch(CGNAT, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (j) {
+        var v = j.verdict || '?';
+        print('  outside probe (GitHub ' + esc(j.time ? new Date(j.time * 1000).toLocaleString() : '?') + ') ' + esc(j.ip || '') + ': <span class="' + (v === 'PUBLIC' ? 'g' : 'y') + '">' + esc(v) + '</span>');
+        if (j.why) p('m', '    ' + j.why);
+        if (j.ports) p('m', '    ports ' + Object.keys(j.ports).map(function (k) { return k + ' ' + (typeof j.ports[k] === 'object' ? JSON.stringify(j.ports[k]) : j.ports[k]); }).join(', '));
+      }).catch(function (e) { p('r', 'outside probe: ' + e.message); });
+    },
+    'home-bridge': function () {   // NetWire 1.4: home broker + public lobby together
+      p('m', 'home broker + public lobby together (Wi-Fi offline -> the public lobby stays; Wi-Fi back -> joined again in <30 s):');
+      print('  <span class="g">' + esc('mpadmin bridge on asia') + '</span>  <span class="m">or: curl -fsSLO https://raw.githubusercontent.com/JebetrexxMC/wagu/main/net/cgnat/home-bridge.sh && bash home-bridge.sh on asia</span>');
+      print('  <span class="g">' + esc('mpadmin bridge status') + '</span>  <span class="m">links + last log lines</span>');
+    },
     'clear': function () { out.innerHTML = ''; }
   };
   // what the bot types -> which command runs
@@ -259,7 +282,7 @@
     'cat $MP_DATA/broker.txt': 'cat-broker',
     'cat $MP_DATA/regions.txt': 'cat-regions',
     'mp-server status': 'status', 'mp-server list': 'list', 'mp-server log': 'log', 'mp-server doctor': 'doctor', 'mp-server vps-update': 'vps-update', 'mp-server vps-setup': 'vps-setup', 'curl -fsSL https://mpsamp-open.github.io/HiveMQ/update.sh | sudo bash': 'vps-update',
-    'git-helper': 'git-helper', 'git-helper scan': 'git-helper', 'ping -c 2 $BROKERS': 'ping', 'curl -s $MP/release.json': 'release', 'mp-server xdp-setup': 'xdp-setup', 'xdp-setup': 'xdp-setup', 'mp-server iso-join': 'iso-join', 'iso-join': 'iso-join', 'clear': 'clear', 'mp-server phone-broker': 'phone-broker'
+    'git-helper': 'git-helper', 'git-helper scan': 'git-helper', 'ping -c 2 $BROKERS': 'ping', 'curl -s $MP/release.json': 'release', 'mp-server xdp-setup': 'xdp-setup', 'xdp-setup': 'xdp-setup', 'mp-server iso-join': 'iso-join', 'iso-join': 'iso-join', 'clear': 'clear', 'mp-server phone-broker': 'phone-broker', 'bash cgnat-check.sh': 'cgnat-check', 'cgnat-check': 'cgnat-check', 'mpadmin cgnat': 'cgnat-check', 'mpadmin bridge status': 'home-bridge', 'home-bridge': 'home-bridge'
   };
   function run(line) {
     print('<span class="g">~ $</span> ' + esc(line));
@@ -271,7 +294,7 @@
   }
 
   // ------------------------------------------------------------ MP Bot planner
-  var boot = ['termux-info', 'curl -fsSL $MP/install.sh | grep say', 'cat ~/mp-server/server.conf', 'cat $MP_DATA/broker.txt', 'cat $MP_DATA/regions.txt', 'curl -s $MP/release.json', 'curl -fsSL https://mpsamp-open.github.io/HiveMQ/update.sh | sudo bash', 'mp-server phone-broker', 'mp-server status'];
+  var boot = ['termux-info', 'curl -fsSL $MP/install.sh | grep say', 'cat ~/mp-server/server.conf', 'cat $MP_DATA/broker.txt', 'cat $MP_DATA/regions.txt', 'curl -s $MP/release.json', 'curl -fsSL https://mpsamp-open.github.io/HiveMQ/update.sh | sudo bash', 'mp-server phone-broker', 'bash cgnat-check.sh', 'mpadmin bridge status', 'mp-server status'];
   var relCheck = false, relSeen = '';
   var rot = ['mp-server status', 'mp-server list', 'mp-server log', 'mp-server status', 'mp-server log', 'mp-server status', 'mp-server xdp-setup', 'mp-server list', 'mp-server log', 'mp-server iso-join'], ri = 0, cycles = 0, lastRel = Date.now();
   function next() {
@@ -284,6 +307,7 @@
     if (Date.now() - lastRel > 600000) { lastRel = Date.now(); relCheck = true; return { cmd: 'curl -s $MP/release.json', why: 'checking for a new release' }; }
     if (relCheck && release) { relCheck = false; if (release.tag_name !== relSeen) { relSeen = release.tag_name; return { cmd: 'curl -fsSL https://mpsamp-open.github.io/HiveMQ/update.sh | sudo bash', why: 'release ' + release.tag_name + ': typing the VPS update' }; } }
     if (Date.now() - lastBroker > 300000) return { cmd: 'mp-server phone-broker', why: 'region broker ports (every 5 min)' };
+    if (Date.now() - lastCg > 600000) return { cmd: 'bash cgnat-check.sh', why: 'CGNAT check (every 10 min)' };
     if (++cycles % 10 === 0) return { cmd: 'clear', why: 'keeping the screen short', wait: 600 };
     if (botsUp < BOTS.length && cycles % 4 === 0) return { cmd: 'mp-server doctor', why: '24/7 bot host: ' + botsUp + '/' + BOTS.length };
     return { cmd: rot[ri++ % rot.length], why: 'routine check' };
