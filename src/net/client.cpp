@@ -65,6 +65,7 @@ bool MPClient::Connect(const char* host, uint16_t port, const char* name, uint16
     m_fPingAvg = -1.0f; m_nPing = 0;
     m_bDirect = false; m_bDirectFellBack = false; m_bGotReply = false; m_nFallbackVia = 0; m_nAltSeen = 0;
     m_nNetGenSeen = Online::NetGeneration(); m_nNetChangedMs = 0;   // 4.05.8
+    m_nLastPong = 0; m_nLastAutoRe = 0; m_nUnknownPongs = 0; m_nAutoReN = 0;   // 5.02.73
     memset(m_Pings, 0, sizeof(m_Pings)); m_nPingRec = 0; m_nLossPct = 0; m_nJitter = 0; m_fJitter = 0; m_nLastRtt = -1; m_bWeakLink = false; m_nDupLen = 0;
 
     if(m_nDirectIp)   // 3.11: straight to the 24/7 server's public address (relay only as fallback)
@@ -163,6 +164,32 @@ void MPClient::Disconnect(bool sendLeave)
     m_Sock = -1;
     m_eState = NET_DISCONNECTED;
     m_nMyId = MP_INVALID_ID;
+}
+
+// 5.02.73: auto reconnect - a virtual leave + join that nobody sees: a new UDP socket (= a new NAT mapping on the
+// phone's router / carrier), then a rebind join for the same slot. The state stays NET_CONNECTED, so the game
+// keeps the world, the players, the textdraws and the HUD; the server takes the slot over by the phone id
+// (no "left" / "joined", no welcome or rules) and tells the others "{name} reconnected to the server successfully".
+void MPClient::AutoReconnect(uint64_t now, const char* why)
+{
+    m_nLastAutoRe = now;
+    if(m_eState != NET_CONNECTED) return;
+    int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if(fd >= 0)
+    {
+        fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
+        { int sb = MP_SOCK_BUF; setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &sb, sizeof(sb)); }
+        { int tos = 0xB8; setsockopt(fd, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)); }
+        std::lock_guard<std::mutex> lk(m_SockMutex);
+        if(m_Sock >= 0) close(m_Sock);
+        m_Sock = fd;
+    }
+    m_nAltSeen = 0; m_nUnknownPongs = 0; m_nLastPong = now;   // give the new path 12 s
+    ++m_nAutoReN;
+    (void)why;   // (the reason is for reading the code: the client has no log)
+    SendJoin(MP_JOIN_REBIND);
+    SendJoin(MP_JOIN_REBIND);   // UDP: twice
+    m_nLastRebind = now;
 }
 
 void MPClient::Send(const void* data, int len)
@@ -403,6 +430,21 @@ void MPClient::Poll(INetEvents* ev)
                         m_nPing = (int)(m_fPingAvg + 0.5f);
                         TrackPong(sent, rtt);   // 4.05.8
                     }
+                    m_nLastPong = now;
+                    // 5.02.73: auto reconnect. The server answers pings from any address, so a phone whose NAT /
+                    // relay port changed still saw pongs and a "good" link, while the server dropped all its game
+                    // packets (unknown address): everybody read "{name} is reconnecting to the server..." and saw
+                    // the player frozen until the 5 min drop. Now the pong says so and the phone re-attaches to
+                    // its own slot at once (rebind = same id, same session, nothing on the screen changes).
+                    if(r >= (int)sizeof(PktPong2) && m_eState == NET_CONNECTED && m_nServerBuild >= MP_PONG_KNOWN_BUILD)
+                    {
+                        if(buf[offsetof(PktPong2, known)]) m_nUnknownPongs = 0;
+                        else if(++m_nUnknownPongs >= 2 && now - m_nLastRebind > 1000)
+                        {
+                            SendJoin(MP_JOIN_REBIND); m_nLastRebind = now;
+                            if(m_nUnknownPongs >= 5) AutoReconnect(now, "the server does not know this address");
+                        }
+                    }
                 }
                 break;
         }
@@ -460,6 +502,16 @@ void MPClient::Poll(INetEvents* ev)
             }
             SendJoin(MP_JOIN_REBIND);
             m_nLastRebind = now;
+        }
+        // 5.02.73: auto reconnect (the "bot" in the background): the link is stuck although the phone's internet
+        // is fine - nothing from the server for 12 s, or packets come but no pong for 12 s (our side does not
+        // arrive) - then a fresh socket (new NAT mapping) re-attaches to the same slot, every 10 s until it works.
+        // The world, the players, the textdraws and the logo stay as they are; no welcome, no rules, no spawn.
+        if(m_nServerBuild >= 33900 && now - m_nLastAutoRe > 10000 && now - m_nConnectStart > 15000)
+        {
+            const bool noPong = m_nLastPong && now - m_nLastPong > 12000;
+            if(quiet > 12000) AutoReconnect(now, "no packets from the server");
+            else if(noPong) AutoReconnect(now, "no pong from the server");
         }
         // 4.13.22: no "Lost connection (Timeout)" any more: keep the session and keep trying (the server keeps
         // the slot, the gamemode and the world for MP_RECONNECT_GRACE_MS too); give up only after that

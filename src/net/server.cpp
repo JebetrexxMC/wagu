@@ -1128,7 +1128,10 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             w.type = PKT_WELCOME; w.yourId = (uint8_t)slot; w.maxPlayers = (uint8_t)m_nMaxPlayers.load(); w.color = s.color;
             MP_CopyStr(w.serverName, m_szName, sizeof(w.serverName));
             w2.build = MP_BUILD;
-            const std::string welcome = IsDefaultServer() || IsBcwServer() ? std::string() : GetWelcome();   // 5.00.08: custom servers only
+            // 5.02.73: a rebind (auto reconnect / network switch) is the same game session: the player never left,
+            // so no welcome line and no join / leave format lines again (the rules + MOTD were already fresh-only)
+            const bool sameSession = !fresh && rebind;
+            const std::string welcome = IsDefaultServer() || IsBcwServer() || sameSession ? std::string() : GetWelcome();   // 5.00.08: custom servers only
             w3.flags = (m_bCineCam ? MP_SRVF_CINECAM : 0) | (m_bDevStage ? MP_SRVF_DEVSTAGE : 0) | (welcome.empty() ? 0 : MP_SRVF_WELCOME)
                      | ((m_bBrowserFmt || IsDefaultServer()) ? MP_SRVF_BROWSERFMT : 0);   // 5.02.31: BrowserFormat Join/Leave   // 4.13.2: + dev stage
             SendTo(slot, &w3, sizeof(w3));
@@ -1138,7 +1141,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
                 MP_CopyStr(wm.text, welcome.c_str(), sizeof(wm.text));
                 SendTo(slot, &wm, sizeof(wm));
             }
-            if(m_bBrowserFmt && !IsDefaultServer() && !IsBcwServer() && s.build >= 50241)
+            if(m_bBrowserFmt && !IsDefaultServer() && !IsBcwServer() && s.build >= 50241 && !sameSession)
             {   // 5.02.41 (older phones would print the template as a chat line): the owner's own join / leave lines (Add server > BrowserFormat Join/Leave)
                 std::string jf, lf; GetJoinLeaveFmt(jf, lf);
                 for(int k = 0; k < 2; ++k)
@@ -1606,8 +1609,9 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
         case PKT_PING:
         {
             if(len < (int)sizeof(PktPing)) return;
-            PktPing p = *(const PktPing*)data;
-            p.type = PKT_PONG;
+            PktPong2 p; p.p = *(const PktPing*)data;
+            p.p.type = PKT_PONG;
+            p.known = slot >= 0 ? 1 : 0;   // 5.02.73: unknown address = the phone re-attaches by itself (auto reconnect)
             // 3.33/3.34: answer NOW, not in the sendmmsg batch (a join in the same batch held the pong back)
             sendto(m_Sock, (const char*)&p, sizeof(p), 0, (const sockaddr*)&from, sizeof(from));
             break;

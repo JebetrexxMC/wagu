@@ -14,10 +14,10 @@
 // phones refuse servers older than that too (they would let old phones in).
 // 3.10: build 31000. MP_MIN_BUILD stays 30406 and the lobby stays thirtyfox/mp5/: 3.04.6 (no cheats)
 // and 3.10 phones play together on the same servers; only 3.04.5 and older (mp4) stay shut out.
-#define MP_BUILD 50272
+#define MP_BUILD 50273
 #define MP_MIN_BUILD       30406
 #define MP_AUTH_MIN_BUILD  32106   // 3.21.6: servers with the login system refuse older phones (they could not log in)
-#define MP_VERSION_STR     "5.02.72"
+#define MP_VERSION_STR     "5.02.73"
 #define MP_VOICE_BUILD     31100   // 3.11: phones from this build on get voice packets
 #define MP_DOWNLOAD_URL    "mpsamp-open.github.io"   // 4.05.4: new website (mpsamp-open org); jebetrexxmc.github.io/wagu still works as a backup
 #define MP_DEFAULT_HOST    "127.0.0.1"
@@ -487,6 +487,11 @@ struct PktChat        { uint8_t type; uint8_t id; char text[MP_CHAT_LEN]; };
 struct PktDeath       { uint8_t type; uint8_t victim; uint8_t killer; uint8_t weapon; };
 struct PktDamage      { uint8_t type; uint8_t from; uint8_t target; uint8_t weapon; float amount; };
 struct PktPing        { uint8_t type; uint32_t time; };
+// 5.02.73: the pong says whether the address it came from has a player slot on this server. 0 = the server
+// can't match our packets (the phone's NAT / relay port changed, but the pong still reaches us): the phone
+// re-attaches silently right away (auto reconnect). Older phones read only PktPing.
+struct PktPong2       { PktPing p; uint8_t known; };
+#define MP_PONG_KNOWN_BUILD 50273
 struct PktLeave       { uint8_t type; };
 struct PktServerMsg   { uint8_t type; uint32_t color; char text[MP_CHAT_LEN]; };
 struct PktAnnounce    { uint8_t type; uint8_t id; uint32_t color; char text[MP_CHAT_LEN]; };   // 2.21

@@ -838,6 +838,14 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.73
+- **Auto reconnect** (fixes "{name} is reconnecting to the server..." that never ended). The phone's NAT / relay port could change while its internet was fine: the server still answered its pings (pings are answered for any address), so the phone saw a good link, but every game packet from the new port was dropped as an unknown address. Everyone else saw the player frozen and "reconnecting" until the 5 min drop, and the player had to leave and join again by hand.
+  - The pong now says whether the server knows the address (`PktPong2.known`, older phones ignore the extra byte). The phone re-attaches by itself at once: a rebind to its own slot (same id, same session).
+  - Auto reconnect in the background: 12 s with no packets or no pong -> a fresh UDP socket (new NAT mapping) + a rebind, every 10 s until it works. It's a virtual leave + join that nobody sees: the world, players, textdraws, logo and HUD stay, the game never goes to "Connecting...".
+  - A rebind is the same session on the server: no welcome line and no BrowserFormat join / leave lines again (the rules and MOTD dialog were already first-join only). The others read "{name} reconnected to the server successfully".
+  - Tested with the standalone server + a NAT proxy: 5.02.72 reproduced the bug (the phone never noticed, the server logged "is reconnecting" forever); 5.02.73 logged "back on a new network path (rebind)" with no message on either side. In a 35 s full outage it was back about 1 s after the network returned.
+- Not touched: the loading screens, the neon join and < Spawn >.
+
 ### NetWire 1.4 (game build stays 5.02.72)
 - **CGNAT kit** (`net/cgnat/`) - why the 4 region brokers are on standby and how to bring them online. The home line (Converge, 143.44.193.152) is most likely behind carrier-grade NAT, so no port forward on the ZTE F670L can reach it.
   - `cgnat-check.sh` (Termux / Linux, no root, no router password): public IP + ISP, carrier address check (100.64.0.0/10), traceroute hop count to your own IP, where the duckdns names point, then the right next step (ask Converge for a public IP, or the gateway). Bridge mode (marfillaster's F670L gist) only removes the double NAT, not CGNAT - noted in the output.

@@ -141,6 +141,12 @@ private:
     uint64_t    m_nLastRebind = 0;    // 3.39
     volatile bool m_bReconnecting = false;   // 4.13.22
     uint64_t    m_nReconnSince = 0;        // 4.13.22
+    // 5.02.73: auto reconnect - re-attach to the same slot without leaving (no screen change, no welcome / rules)
+    void        AutoReconnect(uint64_t now, const char* why);
+    uint64_t    m_nLastPong = 0;      // last pong (any)
+    uint64_t    m_nLastAutoRe = 0;    // last new-socket re-attach
+    int         m_nUnknownPongs = 0;  // pongs that said "this address has no slot here"
+    int         m_nAutoReN = 0;       // re-attaches this session
     uint32_t    m_nNetGenSeen = 0;    // 4.05.8: Online::NetGeneration() at the last check
     uint64_t    m_nNetChangedMs = 0;  // 4.05.8
     // 4.05.8: link quality + redundancy
