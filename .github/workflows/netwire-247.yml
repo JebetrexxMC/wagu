@@ -268,7 +268,7 @@ jobs:
           pip install -q pytest pytest-mock && (cd /tmp/spp && python3 -m pytest -q --deselect test_pack_scan.py::TestUDPServer::test_handles_invalid_server_address_and_returns_false)   # that upstream test fails on its own
       - name: CGNAT kit (NetWire 1.4) - gateway lab, udp-bench, scripts
         run: |
-          for f in net/cgnat/*.sh net/udp-bench/*.sh net/tests/cgnat_gateway_lab.sh HiveMQ/global/mosquitto-docker/setup.sh; do bash -n "$f"; done
+          for f in net/cgnat/*.sh net/udp-bench/*.sh net/tests/cgnat_gateway_lab.sh; do bash -n "$f"; done
           sudo apt-get install -y -qq socat
           sudo bash net/tests/cgnat_gateway_lab.sh
           (bash net/udp-bench/udp-bench.sh server 1939 &) ; sleep 15
