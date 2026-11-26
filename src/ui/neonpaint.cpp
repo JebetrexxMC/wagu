@@ -349,9 +349,14 @@ void NeonPaint::OnTouch(int kind, int finger, float x, float y)
     }
     else if(finger == s_nFinger)
     {
+        if(kind == 2 && (x < 0 || y < 0)) return;   // 5.02.74
         s_fX = x; s_fY = y;
         if(x >= 0 && y >= 0) { const float d = fabsf(x - s_fPX) + fabsf(y - s_fPY); if(d > s_fMove) s_fMove = d; }
-        if(kind == 3) { s_bDown = false; s_bUp = true; s_fUX = x; s_fUY = y; s_nFinger = -1; }
+        if(kind == 3)
+        {   // 5.02.74: some phones give the release no coordinates (-1 / 0,0): the last place the finger was
+            if(x < 0 || y < 0 || (x == 0 && y == 0)) { x = s_fX >= 0 ? s_fX : s_fPX; y = s_fY >= 0 ? s_fY : s_fPY; }
+            s_bDown = false; s_bUp = true; s_fUX = x; s_fUY = y; s_nFinger = -1;
+        }
     }
 }
 void NeonPaint::FrameInput()
@@ -362,7 +367,7 @@ void NeonPaint::FrameInput()
     f_bTap = s_bUp; f_fUX = s_fUX; f_fUY = s_fUY; s_bUp = false;
 }
 static inline bool In(float x, float y, float x0, float y0, float x1, float y1) { return x >= x0 && x <= x1 && y >= y0 && y <= y1; }
-bool NeonPaint::Tap(float x0, float y0, float x1, float y1) { return f_bTap && f_fMove < H() * 0.05f &&   /* 5.02.47: 3.5 % lost taps with a little finger roll */ In(f_fPX, f_fPY, x0, y0, x1, y1) && In(f_fUX, f_fUY, x0, y0, x1, y1); }
+bool NeonPaint::Tap(float x0, float y0, float x1, float y1) { return f_bTap && f_fMove < H() * 0.05f &&   /* 5.02.47: 3.5 % lost taps with a little finger roll */ In(f_fPX, f_fPY, x0, y0, x1, y1) && (In(f_fUX, f_fUY, x0, y0, x1, y1) || f_fMove < H() * 0.02f); }   // 5.02.74: pressed on it and barely moved = its tap
 bool NeonPaint::Held(float x0, float y0, float x1, float y1) { return f_bDown && In(f_fX, f_fY, x0, y0, x1, y1) && In(f_fPX, f_fPY, x0, y0, x1, y1); }
 void NeonPaint::EatTap() { f_bTap = false; }
 // 5.01.11: lists scroll with the finger, sliders follow it

@@ -2224,6 +2224,15 @@ static void NeonPDialog(float W, float H, float u)
     EatTap();   // nothing under the dialog gets the tap
 }
 static int s_nNTMSel = 3;   // 5.02.43: the focused title item (Browse servers)
+// 5.02.74: the language pill (top right) is a dropdown now: English + 20 languages, tap one = the MP language at once
+static bool s_bNeonLangOpen = false; static int s_nNeonLangSel = 0; static float s_fNeonLangScroll = 0;
+static void NeonLangPick(int i)
+{
+    if(i < 0 || i >= I18n::Count()) return;
+    const I18n::LangInfo& L = I18n::Info(i);
+    if(I18n::Set(L.code)) { MP_CopyStr(settings.uiLanguage, L.code, sizeof(settings.uiLanguage)); MP::SaveConfig(); logger->Info("Neon menu: language -> %s", L.code); }
+    else { logger->Info("Neon menu: language %s - %s", L.code, I18n::LastError()); NeonToast("LANGUAGE", "Not installed: files/TYFMC/MP/lang/ is missing it"); }
+}
 static void NeonPTitle(float W, float H)
 {   // 5.02.43: the TrueMenu title layout: the logo centred, the items centred in spaced caps under it, the focused one
     // on a soft glass bar with a diamond, the last save under the list, the language top right, the version bottom left
@@ -2239,7 +2248,8 @@ static void NeonPTitle(float W, float H)
         ly += h;
     }
     // the dialog takes the taps first (it is drawn last, on top)
-    const bool dlg = s_nNeonDlg != 0;
+    if(s_nNeonDlg) s_bNeonLangOpen = false;
+    const bool dlg = s_nNeonDlg != 0 || s_bNeonLangOpen;   // 5.02.74: + the language list
     bool tapUsed = false;
     static const char* const kItems[] = { "RESUME", "NEW GAME", "LOAD GAME", "BROWSE SERVERS", "QUICK CONNECT", "SETTINGS", "ABOUT", "QUIT GAME" };
     const int ni = 8; const float fs = 17 * u, tr = 4.2f * u, step = 41 * u, y0 = ly + 34 * u;
@@ -2266,6 +2276,7 @@ static void NeonPTitle(float W, float H)
         if(s_nNK & (NK_A | NK_START)) activate(s_nNTMSel);
         else if(s_nNK & NK_B) { s_nNeonDlg = 2; s_nNeonDlgSel = 0; }
         if(s_nNK & NK_Y) NeonTOpenBrowse();
+        if(s_nNK & NK_X) { s_bNeonLangOpen = true; s_nNeonLangSel = I18n::Current(); }   // 5.02.74: X = the language list
     }
     float maxw = 0; for(int i = 0; i < ni; ++i) maxw = fmaxf(maxw, TextW(F_CAPS, kItems[i], fs, tr));
     const float bw = maxw + 150 * u, bx0 = (W - bw) * 0.5f, bx1 = bx0 + bw;
@@ -2345,17 +2356,58 @@ static void NeonPTitle(float W, float H)
                 x += TextW(F_UI, kv[i * 2 + 1], 12 * u, 2.2f * u) + 26 * u;
             }
         }
-        const char* ln = "ENGLISH";
-        {   // the atlas is ASCII: other languages show their code
-            static char up[16]; const char* c = settings.uiLanguage[0] ? settings.uiLanguage : "en";
-            if(strcasecmp(c, "en")) { NeonUpper(up, sizeof(up), c); ln = up; }
-        }
+        static char ln[40];   // the atlas is ASCII: the language's English name (5.02.74)
+        NeonUpper(ln, sizeof(ln), I18n::Info(I18n::Current()).english);
         const float pf = 11 * u, pw = TextW(F_CAPS, ln, pf, 2.4f * u) + 30 * u, px1 = W - L + 14 * u, px0 = px1 - pw, py0 = 30 * u, py1 = 58 * u;
         Quad(px0, py0, px1, py1, TM_GLASS(130)); Quad(px0, py0, px1, py0 + 1.0f * u, TM_EDGE(70)); NeonPFrame(px0, py0, px1, py1, 1.0f * u, TM_EDGE(46));
         Quad(px0 + 11 * u, (py0 + py1) * 0.5f - 2.5f * u, px0 + 16 * u, (py0 + py1) * 0.5f + 2.5f * u, NB_BLUE());
         NeonPText(F_CAPS, ln, px0 + 22 * u, (py0 + py1 - pf) * 0.5f, pf, TM_TEXT(), 2.4f * u);
+        {   // the little arrow: it opens
+            const float ax = px1 - 12 * u, ay = (py0 + py1) * 0.5f;
+            Quad(ax - 4 * u, ay - 1.5f * u, ax + 4 * u, ay + 0.5f * u, TM_TEXT(s_bNeonLangOpen ? 255 : 170));
+            Quad(ax - 2 * u, ay + 0.5f * u, ax + 2 * u, ay + 2.5f * u, TM_TEXT(s_bNeonLangOpen ? 255 : 170));
+        }
+        if(!s_nNeonDlg && !tapUsed && Tap(px0 - 8 * u, py0 - 10 * u, px1 + 8 * u, py1 + 10 * u))
+        {   // 5.02.74: the pill is a button
+            tapUsed = true; EatTap();
+            s_bNeonLangOpen = !s_bNeonLangOpen; s_nNeonLangSel = I18n::Current(); s_fNeonLangScroll = 0;
+        }
+        if(s_bNeonLangOpen)
+        {
+            const int n = I18n::Count();
+            const float rf = 12 * u, rh = 30 * u, lw = fmaxf(pw, 300 * u), lx1 = px1, lx0 = lx1 - lw, ly0 = py1 + 6 * u;
+            const float maxH = H - ly0 - 24 * u, fullH = n * rh + 12 * u, lh = fminf(fullH, maxH), ly1 = ly0 + lh;
+            if(s_nNK)
+            {   // the controller: up / down, A = this language, B / X = close
+                if(s_nNK & NK_UP) s_nNeonLangSel = (s_nNeonLangSel + n - 1) % n;
+                if(s_nNK & NK_DOWN) s_nNeonLangSel = (s_nNeonLangSel + 1) % n;
+                if(s_nNK & (NK_A | NK_START)) { NeonLangPick(s_nNeonLangSel); s_bNeonLangOpen = false; }
+                else if(s_nNK & (NK_B | NK_X)) s_bNeonLangOpen = false;
+                const float sy = s_nNeonLangSel * rh;   // keep it in view
+                if(sy - s_fNeonLangScroll < 0) s_fNeonLangScroll = sy;
+                if(sy + rh - s_fNeonLangScroll > lh - 12 * u) s_fNeonLangScroll = sy + rh - (lh - 12 * u);
+            }
+            s_fNeonLangScroll -= DragDY(lx0, ly0, lx1, ly1);
+            s_fNeonLangScroll = fmaxf(0.0f, fminf(s_fNeonLangScroll, fullH - lh));
+            Quad(lx0, ly0, lx1, ly1, TM_GLASS(235)); NeonPFrame(lx0, ly0, lx1, ly1, 1.0f * u, TM_EDGE(90));
+            const int cur = I18n::Current();
+            for(int i = 0; i < n; ++i)
+            {
+                const float ry0 = ly0 + 6 * u + i * rh - s_fNeonLangScroll, ry1 = ry0 + rh;
+                if(ry0 < ly0 + 2 * u || ry1 > ly1 - 2 * u) continue;
+                const bool held = Held(lx0, ry0, lx1, ry1) && !Dragging(), on = held || i == s_nNeonLangSel;
+                if(on) NeonPGlassBar(lx0 + 2 * u, ry0, lx1 - 2 * u, ry1, held ? 44 : 30, lw * 0.3f);
+                if(i == cur) Quad(lx0 + 12 * u, (ry0 + ry1) * 0.5f - 3 * u, lx0 + 18 * u, (ry0 + ry1) * 0.5f + 3 * u, NB_BLUE());
+                char nm[48]; NeonUpper(nm, sizeof(nm), I18n::Info(i).english);
+                NeonPText(F_CAPS, nm, lx0 + 28 * u, ry0 + (rh - rf) * 0.5f, rf, i == cur ? NC(255, 255, 255) : TM_TEXT(210), 2.0f * u);
+                char cd[16]; NeonUpper(cd, sizeof(cd), I18n::Info(i).code);
+                NeonPText(F_UI, cd, lx1 - 14 * u - TextW(F_UI, cd, 10 * u), ry0 + (rh - 10 * u) * 0.5f, 10 * u, NC(150, 160, 180));
+                if(!tapUsed && Tap(lx0, ry0, lx1, ry1)) { tapUsed = true; EatTap(); s_nNeonLangSel = i; NeonLangPick(i); s_bNeonLangOpen = false; }
+            }
+            if(!tapUsed && Tap(0, 0, W, H) && !Tap(lx0, ly0, lx1, ly1)) { tapUsed = true; EatTap(); s_bNeonLangOpen = false; }   // outside = close
+        }
     }
-    if(dlg) NeonPDialog(W, H, u);
+    if(s_nNeonDlg) NeonPDialog(W, H, u);
 }
 static void NeonPLoading(float W, float H)
 {   // 5.01.14 (the 5.01.13 look again in 5.01.15): the cover over the game's menus while a server is being joined

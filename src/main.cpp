@@ -38,7 +38,7 @@
 #include "net/server.h"
 
 // 4.12.7: the config is files/TYFMC/TYFMC.MP.ini (the old configs/net.thirtyfox.mp.ini is moved there)
-TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.73, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
+TYFMC_MODCFG(net.thirtyfox.mp, MP Multiplayer, 5.02.74, JebetrexxMC, MP, net.thirtyfox.mp)   // 5.02.33: the real version in crash logs (it said 5.01.00 since 5.01)
 // 4.13.36: no NEEDGAME(com.rockstargames.gtasa) - AML would refuse libMP in GTA Vice City. OnModLoad starts the
 // San Andreas code only when libGTASA.so is there, and the Vice City layer (src/vc/) when libGTAVC.so is.
 
@@ -218,6 +218,15 @@ DECL_HOOKv(LS_RenderSplash)
 static uint8_t* s_pPointers = nullptr; static bool s_bPointersLooked = false;
 static uint32_t s_SavedPtr[2][3]; static int s_SavedPtrXY[2][2]; static bool s_bPtrMasked[2] = { false, false };
 static bool s_bNeonPrevDown = false;
+// 5.02.74: the neon title buttons could not be tapped on some phones (Red Magic 10S Pro ...). Only pointer slot 0 was read:
+// the shoulder triggers / game-space overlays hold slot 0, the real finger lands in slot 1+ and was never seen. Every slot
+// is read now (the finger that went down first is followed), and when the game's pointers table never sees a finger
+// the touch hook sent (or the game has no LIB_Pointer* functions), the hook's touches drive the neon menu instead.
+static int  s_nNeonPtrFinger = -1;
+static std::atomic<bool> s_bNeonHookMode{false};
+static std::atomic<uint64_t> s_nNeonHookPushMs{0}, s_nNeonPtrSeenMs{0};
+static std::atomic<int> s_nNeonHookX{-1}, s_nNeonHookY{-1};
+static inline bool NeonHookFeeds() { return s_bNeonHookMode.load() || !LIB_PointerGetButton || !LIB_PointerGetCoordinates; }
 static int  s_nNeonPrevSt = 0, s_nNeonPrevX = -1, s_nNeonPrevY = -1; static bool s_bNeonPrevFrame = false;   // 5.02.47: quick taps between two frames
 static const int kPtrStride = BYBIT(0x70, 0x78), kPtrX = 0x0C, kPtrOff = -30000;
 static void NeonMaskPointers()
@@ -259,13 +268,22 @@ DECL_HOOKv(MobileMenu_Update, void* self)
             s_pPointers = (uint8_t*)aml->GetSym(aml->GetLibHandle("libGTASA.so"), "pointers");
             logger->Info("5.01.10: neon menu touches like PCMenu (game pointers table %s)", s_pPointers ? "found - the game's menu under it is blinded" : "MISSING - the game's menu may still get taps");
         }
-        st = LIB_PointerGetButton(0, 0);
+        // 5.02.74: every pointer slot (0..3), not only slot 0
+        int sts[4]; int pick = -1;
+        for(int f = 0; f < 4; ++f) sts[f] = LIB_PointerGetButton(f, 0);
+        if(s_nNeonPtrFinger >= 0 && (sts[s_nNeonPtrFinger] == 2 || sts[s_nNeonPtrFinger] == 3)) pick = s_nNeonPtrFinger;
+        else if(s_bNeonPrevDown && s_nNeonPtrFinger >= 0) pick = s_nNeonPtrFinger;   // its release
+        else for(int f = 0; f < 4; ++f) if(sts[f] == 2 || sts[f] == 3) { pick = f; break; }
+        if(pick < 0) { pick = 0; for(int f = 0; f < 4; ++f) if(sts[f] == 1) { pick = f; break; } }
+        st = sts[pick];
         down = (st == 2 || st == 3);
-        float pr = 0; LIB_PointerGetCoordinates(0, &tx, &ty, &pr); MapTouch(tx, ty);
+        float pr = 0; LIB_PointerGetCoordinates(pick, &tx, &ty, &pr); MapTouch(tx, ty);
+        if(down) { s_nNeonPtrFinger = pick; s_nNeonPtrSeenMs = MP_NowMs(); }
         NeonMaskPointers();
     }
     MobileMenu_Update(self);
-    if(neon)
+    if(neon && s_bNeonHookMode.load()) { NeonUnmaskPointers(); s_bNeonPrevDown = false; }
+    else if(neon)
     {
         NeonUnmaskPointers();
         if(down && !s_bNeonPrevDown) MP::NeonTouch(1, 0, (float)tx, (float)ty);
@@ -277,10 +295,27 @@ DECL_HOOKv(MobileMenu_Update, void* self)
             // The pointer says "just released" at a new spot: it is a full tap there.
             MP::NeonTouch(1, 0, (float)tx, (float)ty);
             MP::NeonTouch(3, 0, (float)tx, (float)ty);
+            s_nNeonPtrSeenMs = MP_NowMs();
         }
+        if(!down && s_bNeonPrevDown) s_nNeonPtrFinger = -1;
         s_bNeonPrevDown = down; s_nNeonPrevSt = st; s_nNeonPrevX = tx; s_nNeonPrevY = ty;
     }
     else if(s_bNeonPrevDown) { s_bNeonPrevDown = false; MP::NeonTouch(3, 0, -1, -1); }
+    if(neon && !s_bNeonHookMode.load())
+    {   // 5.02.74: the touch hook saw a press 300 ms ago and the pointers table saw nothing since: the table is dead here
+        const uint64_t hp = s_nNeonHookPushMs.load(), now = MP_NowMs();
+        if(hp && now - hp > 300)
+        {
+            s_nNeonHookPushMs = 0;
+            if(s_nNeonPtrSeenMs.load() + 80 < hp)
+            {
+                s_bNeonHookMode = true;
+                logger->Info("5.02.74: neon menu - the game's pointers table never saw the finger, touches now come from the touch hook");
+                const float hx = (float)s_nNeonHookX.load(), hy = (float)s_nNeonHookY.load();
+                MP::NeonTouch(1, 99, hx, hy); MP::NeonTouch(3, 99, hx, hy);   // the tap that was lost
+            }
+        }
+    }
     s_bNeonPrevFrame = neon;   // 5.02.47: a stale "released" from before the neon menu showed is not a tap
     if(neon) NeonPadPoll();   // 5.01.11: the controller drives the neon title menu
     MP::NeonMenuTick();   // 4.13.28: the tapped title menu action
@@ -533,7 +568,15 @@ DECL_HOOKv(AND_TouchEvent, int type, int finger, int x, int y)
     if(!HUD::IsInitialised() || finger < 0 || finger >= 16) { AND_TouchEvent(type, finger, x, y); return; }
     // 5.01.10: the neon title menu reads the finger from the game's pointers table (MobileMenu_Update, PCMenu's way):
     // the touch must reach it, the game's own menu is blinded there
-    if(NeonCoverRecent()) { s_nLastHookTouchMs = MP_NowMs(); AND_TouchEvent(type, finger, x, y); return; }
+    if(NeonCoverRecent())
+    {
+        s_nLastHookTouchMs = MP_NowMs();
+        int mx = x, my = y; MapTouch(mx, my);
+        const bool rel = (type == TOUCH_RELEASE || type == TOUCH_POINTER_UP);
+        if(NeonHookFeeds()) MP::NeonTouch(type == TOUCH_PUSH ? 1 : (rel ? 3 : 2), finger, (float)mx, (float)my);   // 5.02.74
+        else if(type == TOUCH_PUSH) { s_nNeonHookX = mx; s_nNeonHookY = my; s_nNeonHookPushMs = MP_NowMs(); }
+        AND_TouchEvent(type, finger, x, y); return;
+    }
     s_nLastHookTouchMs = MP_NowMs();
     int ox = x, oy = y;
     MapTouch(x, y);

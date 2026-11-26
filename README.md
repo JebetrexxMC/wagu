@@ -838,6 +838,13 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.74
+- Neon main menu: the buttons (Resume, New game, Load game, Browse servers, Quick connect, Settings, About, Quit game) can be tapped on every phone again (Red Magic 10S Pro and others). Only touch slot 0 of the game's pointers table was read; the shoulder triggers / game-space overlays hold slot 0 there, so the real finger was never seen. Every slot (0-3) is read now, and when the pointers table never sees a finger the Android touch hook saw, the hook drives the neon menu (logged once in mp_log.txt).
+- A release with no coordinates (-1 / 0,0 on some phones) uses the finger's last spot; pressed on a button and barely moved = its tap.
+- Nothing on the title menu waits for the network: every button works offline or on a slow connection (Quick connect with no server list opens Browse servers; the menu music streams on its own thread).
+- The ENGLISH pill (top right) is a dropdown: English + 20 languages (Spanish, Filipino, Indonesian, Portuguese (Brazil), Arabic, Korean, Russian, Chinese (Simplified / Traditional), Vietnamese, Japanese, French, German, Italian, Turkish, Polish, Thai, Malay, Ukrainian, Dutch). Tap one = the MP language at once, saved. Controller: X opens it, up / down, A picks, B closes.
+- Not touched: the loading screens, the neon join and < Spawn >.
+
 ### 5.02.73
 - **Auto reconnect** (fixes "{name} is reconnecting to the server..." that never ended). The phone's NAT / relay port could change while its internet was fine: the server still answered its pings (pings are answered for any address), so the phone saw a good link, but every game packet from the new port was dropped as an unknown address. Everyone else saw the player frozen and "reconnecting" until the 5 min drop, and the player had to leave and join again by hand.
   - The pong now says whether the server knows the address (`PktPong2.known`, older phones ignore the extra byte). The phone re-attaches by itself at once: a rebind to its own slot (same id, same session).
