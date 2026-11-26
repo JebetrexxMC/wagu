@@ -74,6 +74,7 @@ namespace Online
     void SetRegionPrefs(int menuRegion, bool autoPick);   // call often; autoPick = lowest ping
     bool HasRegionalBrokers();
     int  CurrentRegion();              // region of the broker in use (-1 = public / offline)
+    bool OnPublicLobby();              // 5.02.72: connected, on a public broker (Mosquitto / HiveMQ / EMQX), no region in use
     int  RegionPingMs(int region);     // -1 unknown / no broker, -2 unreachable
     const char* RegionLabel(int region);   // 4.12: "Asia - Singapore" (regions.txt label = ...)
     int  RegionSameAs(int region);     // 4.12: >= 0 = this region's broker is the SAME machine as that region's (no real VPS there)

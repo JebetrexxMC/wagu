@@ -2779,6 +2779,7 @@ bool Online::HasRegionalBrokers() { return s_bRegional; }
 int  Online::CurrentRegion() { return s_bConnected ? s_nCurRegion.load() : -1; }
 const char* Online::RegionLabel(int r) { if(r < 0 || r >= REGION_COUNT) return "Worldwide"; return s_RegionLabel[r][0] ? s_RegionLabel[r] : g_MPRegionLong[r]; }
 int  Online::RegionSameAs(int r) { return (r >= 0 && r < REGION_COUNT) ? s_RegionSame[r].load() : -1; }
+bool Online::OnPublicLobby() { return s_bConnected && s_nCurRegion < 0; }   // 5.02.72
 int  Online::RegionPingMs(int r) { return (r >= 0 && r < REGION_COUNT) ? s_RegionPing[r].load() : -1; }
 int  Online::BestRegion()
 {
@@ -2811,7 +2812,7 @@ void Online::GetDiagnostics(std::vector<std::string>& out)
             char b[48];
             if(s_RegionSame[r] >= 0) snprintf(b, sizeof(b), "  %s = %s (same machine)", g_MPRegionNames[r], g_MPRegionNames[s_RegionSame[r].load()]);   // 4.12
             else if(ms >= 0) snprintf(b, sizeof(b), "  %s %d ms", g_MPRegionNames[r], ms);
-            else if(ms == -2) snprintf(b, sizeof(b), "  %s down", g_MPRegionNames[r]);
+            else if(ms == -2) snprintf(b, sizeof(b), "  %s %s", g_MPRegionNames[r], (s_bConnected && s_nCurRegion < 0) ? "standby" : "down");   // 5.02.72
             else continue;
             pl += b;
         }
@@ -2820,7 +2821,11 @@ void Online::GetDiagnostics(std::vector<std::string>& out)
         snprintf(line, sizeof(line), "Lobby region: %s%s", cr >= 0 ? g_MPRegionNames[cr] : "public broker", s_nPrefRegion < 0 ? " (auto: lowest ping)" : "");
         out.push_back(line);
         bool anyUp = false; for(int r = 0; r < REGION_COUNT; ++r) if(RegionUp(r)) anyUp = true;
-        if(s_bPingedOnce && !anyUp) out.push_back("All regions down: staying on the public lobby, regions re-checked every 2 min (2.23)");
+        // 5.02.72: when the public lobby carries the game nothing is down for the player: every server and player
+        // is listed and joinable there. Only say "down" when there is no lobby connection at all.
+        if(s_bPingedOnce && !anyUp)
+            out.push_back(s_bConnected ? "Region brokers on standby: the public lobby carries the game (every server and player is here). Regions re-checked every 2 min."
+                                       : "All regions down and no lobby yet: trying the public lobby, regions re-checked every 2 min (2.23)");
     }
     for(int i = 0; i < (int)s_Brokers.size() && i < (int)s_Diag.size(); ++i) if(!s_Diag[i].empty()) out.push_back(s_Diag[i]);
 }

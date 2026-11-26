@@ -324,7 +324,12 @@ def main():
         e["mqtt"] = e["1883"] == "open" and mqtt_ok(r)
         rep.append(e)
     n = len(rep); ok = sum(1 for e in rep if e["mqtt"])
-    badge("regions.json", "region brokers", "%d/%d reachable" % (ok, n), "brightgreen" if ok == n else ("yellow" if ok else "red"))
+    # 5.02.72: no region broker answering is not an outage while a public lobby is up - the game moves there and
+    # every server and player stays listed and joinable - so the badge says standby (blue) instead of red
+    if ok == 0 and n and up:
+        badge("regions.json", "region brokers", "standby · public lobby in use", "blue")
+    else:
+        badge("regions.json", "region brokers", "%d/%d reachable" % (ok, n), "brightgreen" if ok == n else ("yellow" if ok else "red"))
     for port in ("1883", "8883"):
         op = sum(1 for e in rep if e[port] == "open")
         why = sorted({e[port] for e in rep if e[port] != "open"})

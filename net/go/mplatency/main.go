@@ -510,8 +510,15 @@ func (m *Monitor) Round(ctx context.Context) {
 	m.round++
 	m.last = time.Now()
 	m.mu.Unlock()
-	if m.alert != nil {
+	if m.alert != nil && len(changes) > 0 {
+		now := map[string]Row{}
+		for _, r := range m.Rows() { // with STANDBY applied
+			now[r.ID] = r
+		}
 		for _, c := range changes {
+			if r, ok := now[c.ID]; ok {
+				c.Status, c.Grade = r.Status, r.Grade
+			}
 			m.alert.Send(c)
 		}
 	}
@@ -536,6 +543,36 @@ func (m *Monitor) rowLocked(t Target) Row {
 	return r
 }
 
+// StandbyGroups: optional wires. The region brokers and the region VPS game ports are only a faster path; when
+// they don't answer, the game moves to the public lobby (group "lobby": Mosquitto / HiveMQ / EMQX) and every
+// server and player is still listed and joinable there. 5.02.72: so while a lobby wire is ONLINE, an OFFLINE
+// region / vps wire is STANDBY (grade "standby"), not down - it doesn't fail -once and its alert says so.
+var StandbyGroups = map[string]bool{"region": true, "vps": true}
+
+const FallbackGroup = "lobby"
+
+// ApplyStandby marks OFFLINE wires of StandbyGroups as STANDBY when a FallbackGroup wire is ONLINE.
+func ApplyStandby(rows []Row) int {
+	fallback := false
+	for _, r := range rows {
+		if r.Group == FallbackGroup && r.Status == "ONLINE" {
+			fallback = true
+			break
+		}
+	}
+	n := 0
+	if !fallback {
+		return 0
+	}
+	for i := range rows {
+		if StandbyGroups[rows[i].Group] && rows[i].Status == "OFFLINE" {
+			rows[i].Status, rows[i].Grade = "STANDBY", "standby"
+			n++
+		}
+	}
+	return n
+}
+
 func (m *Monitor) Rows() []Row {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -543,6 +580,7 @@ func (m *Monitor) Rows() []Row {
 	for _, t := range m.targets {
 		rows = append(rows, m.rowLocked(t))
 	}
+	ApplyStandby(rows)
 	sort.SliceStable(rows, func(i, j int) bool {
 		if rows[i].Group != rows[j].Group {
 			return rows[i].Group < rows[j].Group
@@ -613,14 +651,16 @@ func (m *Monitor) Handler() http.Handler {
 	})
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-		fmt.Fprintln(w, "# TYPE mp_latency_ms gauge\n# TYPE mp_up gauge\n# TYPE mp_loss_pct gauge")
+		fmt.Fprintln(w, "# TYPE mp_latency_ms gauge\n# TYPE mp_up gauge\n# TYPE mp_standby gauge\n# TYPE mp_loss_pct gauge")
 		for _, row := range m.Rows() {
 			l := fmt.Sprintf("id=%q,group=%q,kind=%q,country=%q", row.ID, row.Group, row.Kind, row.Country)
-			up := 0
+			up, sb := 0, 0
 			if row.Status == "ONLINE" {
 				up = 1
+			} else if row.Status == "STANDBY" {
+				sb = 1
 			}
-			fmt.Fprintf(w, "mp_up{%s} %d\nmp_latency_ms{%s} %g\nmp_loss_pct{%s} %g\n", l, up, l, row.Stats.LastMs, l, row.Stats.LossPct)
+			fmt.Fprintf(w, "mp_up{%s} %d\nmp_standby{%s} %d\nmp_latency_ms{%s} %g\nmp_loss_pct{%s} %g\n", l, up, l, sb, l, row.Stats.LastMs, l, row.Stats.LossPct)
 		}
 	})
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, "ok\n") })
@@ -638,6 +678,8 @@ func (a *Alerter) Send(r Row) {
 	msg := fmt.Sprintf("MP NetWire: %s (%s %s) is %s", r.Name, r.Kind, r.Addr(), r.Status)
 	if r.Status == "ONLINE" {
 		msg += fmt.Sprintf(" again, %s", fmtMs(r.Stats.LastMs))
+	} else if r.Status == "STANDBY" {
+		msg += " (standby: the public lobby carries the game, nothing to do for players)"
 	} else if r.Error != "" {
 		msg += " - " + r.Error
 	}
@@ -745,7 +787,7 @@ func main() {
 			log.Printf("json: %v", err)
 		}
 		for _, r := range m.Rows() {
-			if r.Status != "ONLINE" {
+			if r.Status == "OFFLINE" { // STANDBY is not a failure
 				os.Exit(1)
 			}
 		}

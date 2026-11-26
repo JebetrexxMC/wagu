@@ -117,7 +117,7 @@ Prebuilt binaries:
 
 ## NetWire live latency
 
-Every 5 minutes the [NetWire 24/7 workflow](https://github.com/JebetrexxMC/wagu/actions/workflows/netwire-247.yml) runs `net/go/mplatency` against every wire in `net/wires.txt` (5 samples each) and publishes the result to the `netwire-status` branch: [mplatency.json](https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/mplatency.json) (avg / min / max / jitter / loss / location per wire) and the card below. Pings are measured from GitHub's US / EU runners, so they show what is up and which path is fastest, not the ping a player in the Philippines gets. Run it yourself for your own numbers: `net/go/mplatency/README.md`.
+Every 5 minutes the [NetWire 24/7 workflow](https://github.com/JebetrexxMC/wagu/actions/workflows/netwire-247.yml) runs `net/go/mplatency` against every wire in `net/wires.txt` (5 samples each) and publishes the result to the `netwire-status` branch: [mplatency.json](https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/mplatency.json) (avg / min / max / jitter / loss / location per wire) and the card below. Pings are measured from GitHub's US / EU runners, so they show what is up and which path is fastest, not the ping a player in the Philippines gets. Region brokers / VPS ports that don't answer while the public lobby is up are shown as standby (blue): the game is still fully playable over the public lobby (5.02.72). Run it yourself for your own numbers: `net/go/mplatency/README.md`.
 
 <p align="center"><a href="https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/mplatency.json"><img alt="MP NetWire latency (mplatency)" src="https://raw.githubusercontent.com/JebetrexxMC/wagu/netwire-status/mplatency.svg"></a></p>
 
@@ -837,6 +837,14 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 - Test: `test/sampgate_test.cpp` (against a real omp-server 1.6.7), Docker: [docker/README.md](docker/README.md).
 
 ## Changelog
+
+### 5.02.72
+- Fix: "regions down" while everything worked. The 4 region brokers (mpsamp / eusamp / nasamp / ocsamp.duckdns.org, all on the home line 143.44.193.152, Converge, Cagayan de Oro) don't answer from the internet (1883 refused, 8883 / 8884 time out, UDP 1922 no reply), so the game does what it was built to do: it stays on the public lobby (Mosquitto / HiveMQ / EMQX) and every default, featured and custom server and player is still listed and joinable there. The status said red "down" / "offline" for that anyway. Now a region broker or region VPS port that doesn't answer while the public lobby is up is **standby** (blue), not down:
+  - In game: the region list (pin icon) and Settings > Connection > Switch region say "standby - public lobby" instead of "offline", Auto says "public lobby", and the connection info says "Region brokers on standby: the public lobby carries the game". "down" / "offline" only shows when there is no lobby connection at all. Text only: the loading screens, the neon join and < Spawn > are not touched.
+  - mplatency: new STANDBY status / grade "standby" for the region and vps groups while a lobby wire is ONLINE (`ApplyStandby`, test `TestApplyStandby`). `-once` no longer exits 1 for standby wires, alerts say "standby", /metrics has `mp_standby`.
+  - NetWire (render.py, render_latency.py): standby wires are blue on the cards, not counted against "up" or the 24 h uptime; badges say "standby · public lobby in use" (region, vps) and "46/46 up · 16 standby" (wires). live-status regions.json: "standby · public lobby in use" instead of red "0/4 reachable".
+  - Website network page: blue standby dot / spark, "standby" tab count and row text.
+- The region brokers come back as green by themselves once the broker on 143.44.193.152 (or a VPS) answers again: forward TCP 1883 / 8883 / 8884 and UDP 1922-1932 to the broker PC, or move the duckdns names to a VPS (docs/REGIONS_VPS.md).
 
 ### 5.02.71
 - net/global-satellite-vps-network: a global center + continental VPS (NA, EU, ASIA, SA, OC) on FastAPI, and an edge client (Python standard library, runs in Termux) that picks the fastest VPS by measured round-trip time and fails over when it stops answering, even when the center is down. It spots satellite / high-latency links (Starlink LEO, GEO) and writes the pick as NetWire lines. docker-compose for a one-box test, PgDog config for one shared account database.

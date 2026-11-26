@@ -1040,7 +1040,7 @@ static void LRegionPicker(const std::vector<LanServer>& nearby)
     float wantW = 0;
     {
         ImFont* f = ImGui::GetFont();
-        float l1w = f->CalcTextSizeA(fs1, FLT_MAX, 0, "Oceania").x, l2w = f->CalcTextSizeA(fs2, FLT_MAX, 0, "offline  |  888 servers").x;
+        float l1w = f->CalcTextSizeA(fs1, FLT_MAX, 0, "Oceania").x, l2w = f->CalcTextSizeA(fs2, FLT_MAX, 0, "standby - public lobby  |  888").x;   // 5.02.72: longest l2
         wantW = pw * 2 + UI::S(34) + l1w + UI::S(28) + l2w + UI::S(16);
     }
     const float w = ImMin(ImMax(ImMax(UI::S(470), ds.x * 0.26f), wantW), ds.x - UI::S(20));
@@ -1087,7 +1087,9 @@ static void LRegionPicker(const std::vector<LanServer>& nearby)
             {
                 int best = Online::BestRegion();
                 snprintf(l1, sizeof(l1), "Auto");
-                if(best >= 0) snprintf(l2, sizeof(l2), "%s  |  %d servers", Online::RegionLabel(best), all); else snprintf(l2, sizeof(l2), "lowest ping  |  %d", all);
+                if(best >= 0) snprintf(l2, sizeof(l2), "%s  |  %d servers", Online::RegionLabel(best), all);
+                else if(Online::OnPublicLobby()) snprintf(l2, sizeof(l2), "public lobby  |  %d servers", all);   // 5.02.72
+                else snprintf(l2, sizeof(l2), "lowest ping  |  %d", all);
             }
             else
             {
@@ -1095,7 +1097,9 @@ static void LRegionPicker(const std::vector<LanServer>& nearby)
                 int ms = Online::RegionPingMs(i), same = Online::RegionSameAs(i);
                 if(same >= 0) snprintf(l2, sizeof(l2), "same server as %s  |  %d", g_MPRegionNames[same], cnt[i]);   // 4.12: no VPS of its own yet
                 else if(ms >= 0) snprintf(l2, sizeof(l2), "%d ms  |  %d servers", ms, cnt[i]);
-                else snprintf(l2, sizeof(l2), "%s  |  %d servers", ms == -2 ? "offline" : "-- ms", cnt[i]);
+                else snprintf(l2, sizeof(l2), "%s  |  %d servers", ms == -2 ? (Online::OnPublicLobby() ? "standby - public lobby" : "offline") : "-- ms", cnt[i]);
+                // 5.02.72: a region broker that does not answer while the public lobby carries the game is on
+                // standby (every server and player is still listed and joinable), not "offline"
             }
             ImFont* rf = ImGui::GetFont();   // 4.10: the panel's font (was the fixed UI::Font())
             const ImVec2 s2 = rf->CalcTextSizeA(fs2, FLT_MAX, 0, l2);

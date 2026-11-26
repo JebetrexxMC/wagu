@@ -115,3 +115,25 @@ func TestWriteJSON(t *testing.T) {
 		t.Fatalf("bad json %v: %s", err, b)
 	}
 }
+
+func TestApplyStandby(t *testing.T) {
+	rows := []Row{
+		{Target: Target{ID: "asia-mqtt", Group: "region"}, Status: "OFFLINE", Grade: "down"},
+		{Target: Target{ID: "asia-srv", Group: "vps"}, Status: "OFFLINE", Grade: "down"},
+		{Target: Target{ID: "omp-1", Group: "omp"}, Status: "OFFLINE", Grade: "down"},
+		{Target: Target{ID: "lobby-emqx", Group: "lobby"}, Status: "ONLINE", Grade: "green"},
+	}
+	if n := ApplyStandby(rows); n != 2 {
+		t.Fatalf("standby = %d, want 2", n)
+	}
+	if rows[0].Status != "STANDBY" || rows[1].Grade != "standby" || rows[2].Status != "OFFLINE" {
+		t.Fatalf("rows = %+v", rows)
+	}
+	rows = []Row{
+		{Target: Target{ID: "asia-mqtt", Group: "region"}, Status: "OFFLINE", Grade: "down"},
+		{Target: Target{ID: "lobby-emqx", Group: "lobby"}, Status: "OFFLINE", Grade: "down"},
+	}
+	if n := ApplyStandby(rows); n != 0 || rows[0].Status != "OFFLINE" {
+		t.Fatalf("no lobby up: region must stay OFFLINE, got %+v", rows)
+	}
+}

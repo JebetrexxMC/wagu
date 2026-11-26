@@ -7787,13 +7787,13 @@ static void SettingsRegion()
     {
         const bool sel = i < 0 ? settings.lobbyAuto : (!settings.lobbyAuto && settings.region == i);
         char lbl[128];
-        if(i < 0) snprintf(lbl, sizeof(lbl), "Auto (lowest ping)%s%s", best >= 0 ? "  -  " : "", best >= 0 ? Online::RegionLabel(best) : "");
+        if(i < 0) snprintf(lbl, sizeof(lbl), "Auto (lowest ping)%s%s", (best >= 0 || Online::OnPublicLobby()) ? "  -  " : "", best >= 0 ? Online::RegionLabel(best) : (Online::OnPublicLobby() ? "public lobby" : ""));   // 5.02.72
         else
         {
             const int ms = Online::RegionPingMs(i), same = Online::RegionSameAs(i);
             if(same >= 0) snprintf(lbl, sizeof(lbl), "%s  -  same server as %s", Online::RegionLabel(i), g_MPRegionNames[same]);
             else if(ms >= 0) snprintf(lbl, sizeof(lbl), "%s  -  %d ms", Online::RegionLabel(i), ms);
-            else snprintf(lbl, sizeof(lbl), "%s  -  %s", Online::RegionLabel(i), ms == -2 ? "offline" : "-- ms");
+            else snprintf(lbl, sizeof(lbl), "%s  -  %s", Online::RegionLabel(i), ms == -2 ? (Online::OnPublicLobby() ? "standby (public lobby in use)" : "offline") : "-- ms");   // 5.02.72
         }
         ImGui::PushID(i + 7000);
         if(sel) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(20 / 255.f, 120 / 255.f, 170 / 255.f, 1.0f));

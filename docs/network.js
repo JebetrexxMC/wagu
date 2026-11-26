@@ -21,10 +21,12 @@
     ORDER.forEach(function (g) {
       var ws = g === "all" ? data.wires : data.wires.filter(function (w) { return w.group === g; });
       if (!ws.length) return;
-      var up = ws.filter(function (w) { return w.grade !== "down"; }).length;
+      // 5.02.72: standby = a region / vps wire that doesn't answer while the public lobby carries the game
+      var sb = ws.filter(function (w) { return w.grade === "standby"; }).length;
+      var up = ws.filter(function (w) { return w.grade !== "down" && w.grade !== "standby"; }).length;
       var b = el("button", "tab"); b.type = "button"; b.setAttribute("role", "tab");
       b.setAttribute("aria-selected", g === group ? "true" : "false");
-      b.appendChild(el("span", null, g)); b.appendChild(el("span", "c", up + "/" + ws.length));
+      b.appendChild(el("span", null, g)); b.appendChild(el("span", "c", sb && !up ? "standby" : up + "/" + (ws.length - sb)));
       b.addEventListener("click", function () { group = g; tabs(); rows(); });
       box.appendChild(b);
     });
@@ -34,7 +36,7 @@
     var tb = $("wb"); tb.textContent = "";
     var ws = data.wires.filter(function (w) { return group === "all" || w.group === group; });
     ws.sort(function (a, b) {
-      var r = { green: 0, yellow: 1, red: 2, skip: 3, down: 4 };
+      var r = { green: 0, yellow: 1, red: 2, standby: 3, skip: 4, down: 5 };
       return (r[a.grade] - r[b.grade]) || ((a.rtt == null ? 1e9 : a.rtt) - (b.rtt == null ? 1e9 : b.rtt));
     });
     if (!ws.length) { var tr0 = el("tr"); var td0 = el("td", "m", "No wires in this group."); td0.colSpan = 7; tr0.appendChild(td0); tb.appendChild(tr0); return; }
@@ -47,10 +49,11 @@
       if (w.players != null) sub += " · " + w.players + (w.max_players != null ? "/" + w.max_players : "") + " players";
       if (w.server && w.server !== w.name) sub += " · " + w.server;
       if (w.grade === "down" && w.error) sub += " · " + w.error;
+      if (w.grade === "standby") sub += " · standby: the public lobby carries the game, every server is still joinable";
       t.appendChild(el("small", null, sub));
       nm.appendChild(t); td.appendChild(nm); tr.appendChild(td);
       tr.appendChild(el("td", "m", w.kind));
-      tr.appendChild(el("td", "n g-" + w.grade, w.kind === "lobby" ? (w.grade === "down" ? "down" : "listed") : ms(w.rtt)));
+      tr.appendChild(el("td", "n g-" + w.grade, w.kind === "lobby" ? (w.grade === "down" ? "down" : "listed") : (w.grade === "standby" ? "standby" : ms(w.rtt))));
       tr.appendChild(el("td", "n", w.jitter == null ? "-" : Math.round(w.jitter) + " ms"));
       tr.appendChild(el("td", "n", w.kind === "lobby" ? "-" : w.loss + "%"));
       tr.appendChild(el("td", "n", w.uptime == null ? "-" : w.uptime + "%"));
@@ -62,11 +65,11 @@
   }
 
   function summary() {
-    $("s-up").textContent = data.up + " / " + data.probed;
+    $("s-up").textContent = data.up + " / " + data.probed + (data.standby ? " (+" + data.standby + " standby)" : "");
     $("s-green").textContent = data.green;
     var best = null;
     data.wires.forEach(function (w) {
-      if (w.grade === "down" || w.rtt == null || !GAME[w.kind] || w.group === "omp") return;
+      if (w.grade === "down" || w.grade === "standby" || w.rtt == null || !GAME[w.kind] || w.group === "omp") return;
       if (!best || w.rtt < best.rtt) best = w;
     });
     $("s-best").textContent = best ? best.name + " · " + ms(best.rtt) : "none up";
