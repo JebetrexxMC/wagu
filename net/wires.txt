@@ -69,3 +69,7 @@ bore-pub     | web | tcp  | bore.pub:7835 | bore.pub public tunnel server (TCP t
 # 5.02.66: enabled. Probed by mplatency / mpnetd on your own PC or phone (Termux); the 24/7 GitHub runner skips
 # 127.0.0.1 / localhost wires (nothing runs there).
 omp-pawnraknet | custom | samp | 127.0.0.1:7777  | open.mp + Pawn.RakNet (local) | plugin=Pawn.RakNet
+
+# ---- NetWire 1.4: CGNAT gateway (net/cgnat) - remove the # and put the VPS IP in once mp-gateway.sh runs ----
+# gw-mqtt     | relay  | mqtt | VPS_IP:1883  | CGNAT gateway -> home broker (MQTT) | user=mp pass=M6oehkIzqcJKSTalT8nL
+# gw-udp      | relay  | udp  | VPS_IP:1939  | CGNAT gateway -> home udp-bench echo

@@ -27,7 +27,8 @@ D="$HOME/mp-broker"; CONF="$PREFIX/etc/mosquitto/mp.conf"; n=0
 while true; do
   pgrep -x mosquitto >/dev/null || mosquitto -d -c "$CONF"
   if [ $((n % 150)) -eq 0 ] && [ -s "$D/duckdns.token" ]; then
-    curl -s "https://www.duckdns.org/update?domains=mpsamp,eusamp,nasamp,ocsamp&token=$(cat "$D/duckdns.token")&ip=" > "$D/duckdns.last"
+    # NetWire 1.4: behind CGNAT, net/cgnat/duckdns-mp.sh pin <VPS_IP> keeps the names on the gateway VPS
+    curl -s "https://www.duckdns.org/update?domains=mpsamp,eusamp,nasamp,ocsamp&token=$(cat "$D/duckdns.token")&ip=$(cat "$D/duckdns.pin" 2>/dev/null)" > "$D/duckdns.last"
   fi
   n=$((n+1)); sleep 2
 done

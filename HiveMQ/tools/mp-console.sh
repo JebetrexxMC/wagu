@@ -146,6 +146,7 @@ while true; do
     echo "  p) open.mp 24/7 servers + autobot (install / log / restart / backup)"
     echo "  a) AUTO open.mp 24/7: find + install every server + autobot    t) omp247 console"
     echo "  x) xdp-firewall (DDoS drop, MP rules): install    X) its status    f) turn it off"
+    echo "  g) CGNAT gateway status (home broker via WireGuard)   G) make this VPS the gateway   d) DuckDNS names"
     line
     read -r -p "  choose: " k || exit 0
     case "$k" in
@@ -167,6 +168,11 @@ while true; do
         x|X|f|F) xs=install; [ "$k" = X ] && xs=status; [ "$k" = f ] || [ "$k" = F ] && xs=off
            { [ -d /opt/wagu/.git ] || { command -v git >/dev/null || apt-get install -y -qq git; git clone -q --depth 1 --filter=blob:none --sparse https://github.com/JebetrexxMC/wagu /opt/wagu && git -C /opt/wagu sparse-checkout set net; }; } \
              && { [ "$xs" != install ] || git -C /opt/wagu pull -q --ff-only; } && bash /opt/wagu/net/xdp-firewall/install-vps.sh "$xs"
+           read -r -p "  enter to continue" _ ;;
+        g|G|d|D) { [ -d /opt/wagu/.git ] || { command -v git >/dev/null || apt-get install -y -qq git; git clone -q --depth 1 --filter=blob:none --sparse https://github.com/JebetrexxMC/wagu /opt/wagu && git -C /opt/wagu sparse-checkout set net; }; } \
+             && git -C /opt/wagu pull -q --ff-only
+           case "$k" in g) bash /opt/wagu/net/cgnat/mp-gateway.sh status ;; G) bash /opt/wagu/net/cgnat/mp-gateway.sh vps ;;
+             *) bash /opt/wagu/net/cgnat/duckdns-mp.sh status ;; esac
            read -r -p "  enter to continue" _ ;;
         0|q|exit) exit 0 ;;
     esac

@@ -18,6 +18,10 @@
 #   mpadmin lab             global center + 2 VPS test inside proot-distro Debian on the phone
 #   mpadmin log             MP's mp_log.txt / crash log from the game folder -> Downloads (to send)
 #   mpadmin lock            Termux password (termux-auth)
+#   mpadmin cgnat [WAN-IP]  NetWire 1.4: is the home line behind Converge CGNAT? (no router password needed)
+#   mpadmin gw [status|rules|off]          CGNAT gateway on the VPS, through the autobot
+#   mpadmin duck [status|once|pin IP|unpin|token T]   the 4 region names (net/cgnat/duckdns-mp.sh)
+#   mpadmin udp <host> [port]              UDP ping (net/udp-bench); the VPS side: mpadmin bot udpbench <host>
 #   mpadmin widget | boot | update | config
 set -u
 RAW=https://raw.githubusercontent.com/JebetrexxMC/wagu/main
@@ -76,6 +80,13 @@ fw() {
   fi
   return $r
 }
+
+# NetWire 1.4: CGNAT kit (net/cgnat, net/udp-bench) - fetched on first use
+netget() { [ -f "$D/$(basename "$1")" ] && [ "${2:-}" != new ] || curl -fsSL "$RAW/net/$1" -o "$D/$(basename "$1")" || { say "download failed"; return 1; }; }
+cgnat() { has traceroute || pkgi traceroute; netget cgnat/cgnat-check.sh new && bash "$D/cgnat-check.sh" "$@"; }
+duck() { netget cgnat/duckdns-mp.sh && bash "$D/duckdns-mp.sh" "${@:-status}"; }
+udpb() { [ -n "${1:-}" ] || { echo "mpadmin udp <host> [port]"; return 2; }; netget udp-bench/udp-bench.sh && bash "$D/udp-bench.sh" rtt "$1" "${2:-1939}" 50; }
+gw() { bot gateway "${1:-status}"; }
 
 edge_args() { load; local a=""; [ -n "$CENTER" ] && a="--center $CENTER"; for s in $SEEDS; do a="$a --seed $s"; done; echo "$a"; }
 edge() {
@@ -203,11 +214,13 @@ menu() {
     echo " 5) VPS bot ping                    6) update the VPS bot  7) omp247 console (open.mp servers)"
     echo " 8) fastest VPS now                 9) background edge on  0) background edge off   l) edge log"
     echo " k) SSH key for the VPS             s) SSH into the VPS    t) Debian lab test (proot-distro)"
+    echo " n) CGNAT check (home line)         G) CGNAT gateway on the VPS      d) DuckDNS region names"
     echo " g) MP logs -> Downloads            w) buttons  b) boot  p) Termux password  u) update  c) settings  q) exit"
     local k; read -r -p "> " k </dev/tty || return 0
     case "$k" in
       1) status;; 2) fw install;; 3) fw status;; 4) fw off;; 5) bot ping;; 6) bot botupdate;; 7) omp247;;
       8) edge once;; 9) edge on;; 0) edge off;; l) edge log;; k) sshx key;; s) sshx login;; t) lab;;
+      n) cgnat;; G) gw status;; d) duck status;;
       g) mplog;; w) widget;; b) boot;; p) lock;; u) update; exec "$SELF";; c) config;; q|Q) return 0;; *) echo "?";;
     esac
   done
@@ -217,5 +230,6 @@ case "${1:-menu}" in
   menu) menu;; setup) setup;; status) status;; config) config;; update) update;; widget) widget;; boot) boot;; lock) lock;;
   fw|firewall) shift; fw "$@";; bot) shift; bot "$@";; edge) shift; edge "$@";; edge-loop) edge_loop;;
   ssh) shift; sshx "$@";; lab) lab;; log|logs) mplog;;
-  *) sed -n '2,24p' "$0";;
+  cgnat) shift; cgnat "$@";; gw|gateway) shift; gw "$@";; duck|duckdns) shift; duck "$@";; udp) shift; udpb "$@";;
+  *) sed -n '2,28p' "$0";;
 esac

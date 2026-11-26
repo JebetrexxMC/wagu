@@ -1,0 +1,17 @@
+# NetWire 1.4 - MP region broker as a Docker container (Eclipse Mosquitto 2).
+# Based on JebetrexxMC/mosquitto-docker-compose and JebetrexxMC/setup-mosquitto-with-docker, with the
+# MP logins + topic rules of edge-mosquitto.sh. Run setup.sh first (makes ./config and the passwords).
+# network_mode host: no docker-proxy in the path (that userland copy adds latency per message) and
+# the CGNAT gateway (net/cgnat/mp-gateway.sh) DNATs straight to the broker.
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mp-mosquitto
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./config:/mosquitto/config:ro
+      - ./certs:/mosquitto/certs:ro
+      - ./log:/mosquitto/log
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
