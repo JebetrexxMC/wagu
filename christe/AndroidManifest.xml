@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Christe Multiplayer 1.1: GTA SA now runs INSIDE Christe (activity .Game, process ":game"), with the installed
+<!-- AML Multiplayer 1.2 (was Christe Multiplayer, same package com.christe.mp): renamed, new icon, never a silent switch
+     to the GTA SA app; the game's native libs are unpacked into its own folder.
+     Christe Multiplayer 1.1: GTA SA now runs INSIDE Christe (activity .Game, process ":game"), with the installed
      AML GTA SA's code and Christe's own OBB (Android/obb/com.christe.mp main.8/patch.8.com.christe.mp.obb).
      Christe Multiplayer 1.0: the MP launcher for GTA SA (AML) and Vice City, SA + VC crossplay.
      Always landscape. It starts the games you already have installed with their own OBB
@@ -8,8 +10,8 @@
      and Android/obb/com.christe.mp (main.<n>.com.christe.mp.obb = optional launcher resources). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.christe.mp"
-    android:versionCode="110"
-    android:versionName="1.1.0">
+    android:versionCode="120"
+    android:versionName="1.2.0">
     <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="28" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -29,7 +31,7 @@
         <package android:name="com.thirtyfox.moquil" />
     </queries>
     <application android:name=".ChristeApp" android:appComponentFactory=".ChristeFactory"
-        android:extractNativeLibs="true" android:label="Christe Multiplayer" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
+        android:extractNativeLibs="true" android:label="AML Multiplayer" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
         android:allowBackup="false" android:hardwareAccelerated="true" android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true" android:theme="@style/Christe">
         <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask"

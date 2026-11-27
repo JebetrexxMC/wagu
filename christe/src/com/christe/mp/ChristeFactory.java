@@ -13,7 +13,7 @@ public class ChristeFactory extends AppComponentFactory {
     @Override public ClassLoader instantiateClassLoader(ClassLoader cl, ApplicationInfo ai) {
         try {
             String p = Application.getProcessName();
-            if (p == null || !p.endsWith(":game")) return cl;
+            if ((p == null || !p.endsWith(":game")) && !GameEnv.isGameProcess()) return cl;
             ClassLoader game = GameEnv.loader(ai.dataDir, cl.getParent());
             if (game == null) return cl;
             StringBuilder dex = new StringBuilder(ai.sourceDir);

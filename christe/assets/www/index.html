@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Christe Multiplayer</title>
+<title>AML Multiplayer</title>
 <link rel="stylesheet" href="css/christe.css">
 </head>
 <body>
@@ -12,12 +12,11 @@
   <video id="bootVid" playsinline muted class="hide"></video>
   <div class="ldArt" id="bootArt">
     <div class="ldBg"></div><div class="ldVig"></div>
-    <img class="ldTitle" src="img/title.png" alt="Christe Multiplayer">
+    <img class="ldTitle" src="img/title.png" alt="AML Multiplayer">
     <div class="ldTip"><b><i>!</i>GAMEPLAY TIP</b><span id="bootTip"></span></div>
     <div class="ldPct">LOADING... <span id="bootPct">0</span>%</div>
     <div class="ldBar"><i id="bootBar"></i></div>
   </div>
-  <button class="bootSkip" id="bootSkip">Skip</button>
 </div>
 
 <div id="app" class="hide">
@@ -25,8 +24,8 @@
   <!-- title bar (SA-MP 0.3.7 window title) -->
   <header id="titleBar">
     <img src="img/logo.png" alt="" class="tIco">
-    <span class="tName">Christe Multiplayer <em id="verLbl">1.1.0</em></span>
-    <span class="wm">powered by HiveMQ &middot; JebetrexxMC</span>
+    <span class="tName">AML Multiplayer <em id="verLbl">1.2.0</em></span>
+    <span class="wm">powered by ThirtyFoxMC</span>
     <span class="grow"></span>
     <button class="tb" id="bellBtn" title="Notifications"><svg><use href="#i-bell"/></svg><i class="dot hide" id="bellDot"></i></button>
     <button class="avatar" id="avatarBtn" title="Profile"><span id="avatarImg" class="av guest"><svg><use href="#i-user"/></svg></span><span id="avatarName">Guest</span></button>
@@ -78,7 +77,7 @@
     <div class="btabs" id="btabs">
       <a data-page="favorites">Favorites</a><a data-page="internet">Internet</a><a data-page="featured">Featured</a><a data-page="lan">Lan</a><a data-page="hosted">Hosted</a>
     </div>
-    <div class="status" id="statusLine">Servers: 0 players, playing on 0 servers.</div>
+    <div class="fstat" id="statusLine">Servers: 0 players, playing on 0 servers.</div>
     <button class="connect" id="connectBtn"><svg><use href="#i-play"/></svg>CONNECT</button>
   </footer>
 </div>

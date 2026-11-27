@@ -1,4 +1,4 @@
-/* Christe Multiplayer 1.1 - launcher UI (landscape). Talks to Android through window.Christe (MainActivity.Bridge).
+/* AML Multiplayer 1.2 (was Christe Multiplayer) - launcher UI (landscape). Talks to Android through window.Christe (MainActivity.Bridge).
    The layout is the SA-MP 0.3.7 browser (File/View/Servers/Tools/Help, tool bar + Name:, HostName/Players/Ping/Mode/
    Language, Player/Score + Rule/Value, Favorites/Internet/Hosted tabs, "Servers: N players" line) in the MP launcher skin.
    Lists: Internet = MP lobby (live-status/status.json) + open.mp (api.open.mp/servers), Featured = MP's own servers,
@@ -7,7 +7,7 @@
 (function (G, D) {
   'use strict';
   var $ = function (s, r) { return (r || D).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || D).querySelectorAll(s)); };
-  var VERSION = '1.1.0', MPVER = '5.02.77';
+  var VERSION = '1.2.0', MPVER = '5.02.77';
   var URLS = {
     lobby: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/live-status/status.json',
     f247: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/mp247-data/omp247.json',
@@ -82,7 +82,7 @@
     { id: 'mvf', name: 'Mega Vil Futuristic', icon: 'rp', bg: 'rp', desc: 'Roleplay in a futuristic city with jobs, houses and gangs.', match: function (r) { return /mega vil/i.test(r.name); } },
     { id: 'pdz', name: 'Project Day Z Legacy', icon: 'dz', bg: 'dz', desc: 'Survival: loot, bases, zombies and the Day Z map.', match: function (r) { return /day ?z/i.test(r.name); } },
     { id: 'lg', name: 'Rocket League', icon: 'main_df', bg: 'lg', desc: 'Car football matches between teams.', match: function (r) { return /league/i.test(r.name); } },
-    { id: 'vc', name: 'Vice City', icon: 'main_df', bg: '1', desc: 'GTA Vice City with ViceLoader: the VC LAN server and crossplay with San Andreas players.', match: function (r) { return r.game === 'vc'; }, badge: 'VC' },
+    { id: 'vc', name: 'Vice City', icon: 'main_df', bg: '7', desc: 'GTA Vice City with ViceLoader: the VC LAN server and crossplay with San Andreas players.', match: function (r) { return r.game === 'vc'; }, badge: 'VC' },
     { id: 'omp', name: 'open.mp Community', icon: 'main_df', bg: 'default', desc: 'Every open.mp / SA-MP PC server. MP joins them through crossplay.', match: function (r) { return r.kind === 'omp'; } }
   ];
   var SPECIAL = /brief ?case|modern warfare|mw3|mega vil|day ?z|league/i;
@@ -93,18 +93,22 @@
   function rowKey(r) { return r.kind + '|' + (r.host || r.name).toLowerCase() + '|' + r.port; }
   function isVc(name, mode) { return /vice ?city|\bvc\b|vclan/i.test((name || '') + ' ' + (mode || '')); }
   function joinSpec(r) { return r.kind === 'mp' || r.kind === 'lan' ? 'mp|' + r.name + '|' + r.port + '|' + (r.host || '') : 'omp|' + r.host + '|' + r.port + '|' + r.name; }
-  function iconOf(r) {
-    var n = r.name || '';
-    if (/brief ?case/i.test(n)) return 'bcw'; if (/mw3|modern warfare/i.test(n)) return 'mw3'; if (/day ?z/i.test(n)) return 'dz';
-    if (/role ?play|\brp\b|mega vil/i.test(n + ' ' + (r.mode || ''))) return 'rp';
-    return 'main_df';
+  // 1.2: the row / pane background is the MP mod's server picture (bg_server.jar), not a logo icon
+  var FEAT = [[/brief ?case/i, 'bcw', 'Brief Case War'], [/modern warfare|mw3/i, 'mw3', 'MW3'], [/mega vil/i, 'rp', 'Roleplay'], [/day ?z/i, 'dz', 'Day Z'], [/league/i, 'lg', 'Rocket Soccer']];
+  function featOf(name) { for (var i = 0; i < FEAT.length; i++) if (FEAT[i][0].test(name || '')) return FEAT[i]; return null; }
+  function bgOf(r) {
+    var f = featOf(r.name); if (f) return 'img/bg/bg_' + f[1] + '.jpg';
+    if (r.kind === 'omp') { var h = 5381, k = (r.host || '') + ':' + r.port; for (var i = 0; i < k.length; i++) h = (h * 33 + k.charCodeAt(i)) >>> 0; return 'img/bg/bg_' + (1 + h % 40) + '.jpg'; }
+    if (r.game === 'vc') return 'img/bg/bg_7.jpg';
+    return 'img/bg/bg_default.jpg';
   }
   var LANGCC = { ru: 'ru', rus: 'ru', russian: 'ru', br: 'br', pt: 'br', brasil: 'br', portuguese: 'br', ro: 'ro', romana: 'ro', romanian: 'ro', en: 'gb', eng: 'gb', english: 'gb', es: 'es', spanish: 'es', espanol: 'es', ph: 'ph', filipino: 'ph', tagalog: 'ph',
     id: 'id', indonesia: 'id', indonesian: 'id', tr: 'tr', turkish: 'tr', pl: 'pl', polish: 'pl', polski: 'pl', vn: 'vn', vietnamese: 'vn', de: 'de', german: 'de', fr: 'fr', french: 'fr', ua: 'ua', ukrainian: 'ua', it: 'it', italian: 'it',
     hu: 'hu', hungarian: 'hu', bg: 'bg', bulgarian: 'bg', cz: 'cz', czech: 'cz', sk: 'sk', rs: 'rs', serbian: 'rs', hr: 'hr', ar: 'sa', arabic: 'sa', ge: 'ge', lt: 'lt', lv: 'lv', az: 'az', kz: 'kz', th: 'th', thai: 'th', my: 'my', malay: 'my', mx: 'mx', us: 'us', uk: 'gb', il: 'il', gr: 'gr', md: 'md', mk: 'mk', ba: 'ba', al: 'al', by: 'by', mn: 'mn', cn: 'cn', jp: 'jp', kr: 'kr', in: 'in', hindi: 'in', pk: 'pk', ir: 'ir', persian: 'ir', nl: 'nl', dutch: 'nl', se: 'se', no: 'no', dk: 'dk', fi: 'fi', ee: 'ee' };
   function ccFromLang(l) { var w = String(l || '').toLowerCase().split(/[^a-z]+/); for (var i = 0; i < w.length; i++) if (LANGCC[w[i]]) return LANGCC[w[i]]; return ''; }
   function flag(cc) {
-    var i = cc ? CC.indexOf(cc.toLowerCase()) : -1; if (i < 0) return '<span></span>'; var slot = i + 1;
+    if (cc === 'global') return '<span class="flag glob" title="Global">' + ic('globe') + '</span>';
+    var i = cc ? CC.indexOf(cc.toLowerCase()) : -1; if (i < 0) return '<span class="flag none" title="Unknown">-</span>'; var slot = i + 1;
     return '<span class="flag" title="' + esc(cc || '') + '" style="background-position:' + (-(slot % 16) * 20) + 'px ' + (-Math.floor(slot / 16) * 15) + 'px"></span>';
   }
   function loadServers() {
@@ -119,7 +123,7 @@
         var k = (s.name || '').toLowerCase() + '|' + s.port;
         if (seen[k]) { seen[k].players = Math.max(seen[k].players, s.players | 0); return; }
         var r = { kind: 'mp', name: s.name || 'MP server', host: '', port: s.port | 0, players: s.players | 0, max: s.max | 0, region: (s.region | 0) + 1, mode: 'Freeroam', lang: 'Any', cc: s.cc || '', locked: !!s.locked, ping: -2, game: isVc(s.name) ? 'vc' : 'sa', desc: '' };
-        if (/brief ?case/i.test(r.name)) r.mode = 'Brief Case War'; else if (/mw3|modern warfare/i.test(r.name)) r.mode = 'Deathmatch'; else if (/mega vil/i.test(r.name)) r.mode = 'Roleplay'; else if (/day ?z/i.test(r.name)) r.mode = 'Survival'; else if (/league/i.test(r.name)) r.mode = 'Car football';
+        var ft = featOf(r.name); r.feat = !!ft; r.mode = ft ? ft[2] : r.game === 'vc' ? 'Vice City' : /mp lan server/i.test(r.name) ? 'Bounty Hunter' : 'Freeroam'; if (!r.cc) r.cc = 'global';
         seen[k] = r; rows.push(r);
       });
       S.lobbyMeta = { updated: j.updated, players: j.players };
@@ -147,7 +151,7 @@
     LANCB[id] = function (list) {
       S.lanBusy = false; S.lanAt = Date.now();
       S.lan = list.filter(function (s) { return !HIDE_INTERNET.test(s.name || ''); }).map(function (s) {
-        var r = { kind: 'lan', name: s.name || 'MP LAN Server', host: s.host, port: s.port | 0, players: s.players | 0, max: s.max | 0, region: s.region | 0, mode: s.mode || 'Freeroam', lang: s.lang || '', cc: s.cc || '', locked: !!s.locked, ping: s.ping | 0, game: isVc(s.name, s.mode) ? 'vc' : 'sa', desc: s.desc || '', tags: s.tags || '' };
+        var r = { kind: 'lan', name: s.name || 'MP LAN Server', host: s.host, port: s.port | 0, players: s.players | 0, max: s.max | 0, region: s.region | 0, mode: s.mode || 'Freeroam', lang: s.lang || '', cc: s.cc || 'global', locked: !!s.locked, ping: s.ping | 0, game: isVc(s.name, s.mode) ? 'vc' : 'sa', desc: s.desc || '', tags: s.tags || '' };
         r.key = rowKey(r); return r;
       });
       render();
@@ -167,8 +171,8 @@
 
   function listRows(page) {
     var rows = S.rows;
-    if (page === 'internet') rows = rows.filter(function (r) { return r.kind === 'mp' || r.kind === 'omp'; });
-    else if (page === 'featured') rows = rows.filter(function (r) { return r.kind === 'mp'; });
+    if (page === 'internet') rows = rows.filter(function (r) { return r.kind === 'mp' && !r.feat; });   // 1.2: MP servers only (MP LAN Server, VC, players' own); open.mp is Hosted
+    else if (page === 'featured') rows = rows.filter(function (r) { return r.kind === 'mp' && r.feat; });   // the MP 24/7 featured servers
     else if (page === 'hosted') rows = rows.filter(function (r) { return r.kind === 'omp'; });
     else if (page === 'lan') rows = S.lan;
     else if (page === 'favorites') rows = allRows().filter(function (r) { return S.favs[r.key]; });
@@ -212,7 +216,7 @@
     return '';
   }
   function oops(t, p, icon) { return '<div class="oops"><div class="oi">' + ic(icon) + '</div><h2>' + esc(t) + '</h2><p>' + esc(p) + '</p><div style="display:flex;gap:8px;margin-top:6px"><button class="btn go" data-act="retry">' + ic('refresh') + 'Retry</button><button class="btn" data-go="lan">Lan</button><button class="btn" data-act="offline-play">Play offline</button></div></div>'; }
-  function skelRows(n) { var o = ''; for (var i = 0; i < n; i++) o += '<div class="skRow"><span class="sk" style="width:14px"></span><span class="sk" style="width:20px;height:18px"></span><span class="sk" style="width:' + (30 + (i * 37) % 40) + '%"></span><span style="flex:1"></span><span class="sk" style="width:46px"></span><span class="sk" style="width:30px"></span><span class="sk" style="width:60px"></span></div>'; return o; }
+  function skelRows(n) { var o = ''; for (var i = 0; i < n; i++) o += '<div class="skRow"><span class="sk" style="width:14px"></span><span class="sk" style="width:' + (30 + (i * 37) % 40) + '%"></span><span style="flex:1"></span><span class="sk" style="width:46px"></span><span class="sk" style="width:30px"></span><span class="sk" style="width:60px"></span></div>'; return o; }
 
   var PAGES = {
     internet: function () { return browser(); }, featured: function () { return browser(); }, favorites: function () { return browser(); },
@@ -226,16 +230,16 @@
       return '<div class="ph"><h1>Communities</h1><span class="sub">MP communities and their servers</span><span class="grow"></span><select class="dd" id="exSort"><option value="rec">Recommended</option><option value="players">Most players</option><option value="az">A - Z</option></select></div>' +
         (needNet() || '<div class="cards">' + list.map(function (c) {
           var n = commRows(c).length;
-          return '<div class="scard ccard" data-comm="' + c.id + '" style="min-height:112px"><div class="bgart" style="background:url(img/bg_' + c.bg + '.jpg)"></div><div class="st">' + esc(c.name) + (c.badge ? ' <span class="badge">' + esc(c.badge) + '</span>' : '') + '</div><div class="sd">' + esc(c.desc) + '</div>' +
-            '<div class="sf"><img class="cicon" src="img/ic_' + c.icon + '.png" alt=""><div class="sn"><div class="on"><i></i>' + (S.loaded ? commPlayers(c) : '-') + ' online</div><b>' + n + ' server' + (n === 1 ? '' : 's') + '</b></div></div></div>';
+          return '<div class="scard ccard" data-comm="' + c.id + '" style="min-height:112px"><div class="bgart" style="background:url(img/bg/bg_' + c.bg + '.jpg)"></div><div class="st">' + esc(c.name) + (c.badge ? ' <span class="badge">' + esc(c.badge) + '</span>' : '') + '</div><div class="sd">' + esc(c.desc) + '</div>' +
+            '<div class="sf"><div class="sn"><div class="on"><i></i>' + (S.loaded ? commPlayers(c) : '-') + ' online</div><b>' + n + ' server' + (n === 1 ? '' : 's') + '</b></div></div></div>';
         }).join('') + '</div>');
     },
-    game: function () { return '<div class="ph"><h1>Play</h1><span class="sub">GTA San Andreas runs inside Christe Multiplayer with its own OBB</span></div><div class="hero">' + gameCard('sa') + gameCard('vc') + '</div>' + obbCard() + engineCard(); },
+    game: function () { return '<div class="ph"><h1>Play</h1><span class="sub">GTA San Andreas runs inside AML Multiplayer with its own OBB</span></div><div class="hero">' + gameCard('sa') + gameCard('vc') + '</div>' + obbCard() + engineCard(); },
     about: function () {
-      return '<div class="ph"><h1>Christe Multiplayer</h1><span class="sub">v' + esc(INFO.version || VERSION) + '</span></div>' +
-        '<div class="card"><h3>The launcher</h3><p style="margin:0 0 6px;color:#c3c7d2">Christe Multiplayer is the MP launcher for GTA San Andreas (AML) and GTA Vice City on Android, with SA + VC + PC crossplay. GTA SA runs inside Christe (its own game screen, not the GTA SA app), with Christe\'s own OBB copy, and MP joins the server you picked from the title screen.</p>' +
+      return '<div class="ph"><h1>AML Multiplayer</h1><span class="sub">v' + esc(INFO.version || VERSION) + '</span></div>' +
+        '<div class="card"><h3>The launcher</h3><p style="margin:0 0 6px;color:#c3c7d2">AML Multiplayer is the MP launcher for GTA San Andreas (AML) and GTA Vice City on Android, with SA + VC + PC crossplay. GTA SA runs inside AML Multiplayer (its own game screen, not the GTA SA app), with its own OBB copy, and MP joins the server you picked from the title screen.</p>' +
         '<div class="kv"><span>MP mod</span><span>libMP ' + MPVER + ' (bundled, copied to Android/data/com.christe.mp/mods)</span><span>GTA SA code</span><span>' + esc(INFO.saPkg || 'com.rockstargames.gtasa') + ' (AML) - 2.10 on 64-bit, 2.00 on 32-bit</span><span>OBB</span><span>Android/obb/com.christe.mp/main.8 + patch.8.com.christe.mp.obb</span><span>Vice City</span><span>com.rockstargames.gtavc + ViceLoader (127.0.0.1:47790)</span><span>CPU</span><span>' + esc(INFO.deviceAbi || '') + '</span><span>Own files</span><span>' + esc(INFO.date2 || '') + '</span></div></div>' +
-        '<div class="card"><h3>From the MP mod</h3><div class="kv"><span>Mod</span><span>MP (Multiplayer for GTA SA Android) by JebetrexxMC / ThirtyFoxMC</span><span>Source</span><span><a data-open-url="https://github.com/JebetrexxMC/wagu">github.com/JebetrexxMC/wagu</a></span><span>Discord</span><span><a data-open-url="' + esc(DISCORD) + '">MP Discord server</a></span><span>Latest MP release</span><span>' + esc(S.relTag || '-') + '</span></div></div>' +
+        '<div class="card"><h3>From the MP mod</h3><div class="kv"><span>Mod</span><span>MP (Multiplayer for GTA SA Android) by ThirtyFoxMC</span><span>Source</span><span><a data-open-url="https://github.com/JebetrexxMC/wagu">github.com/JebetrexxMC/wagu</a></span><span>Discord</span><span><a data-open-url="' + esc(DISCORD) + '">MP Discord server</a></span><span>Latest MP release</span><span>' + esc(S.relTag || '-') + '</span></div></div>' +
         '<div class="card"><h3>Open source used</h3><div class="kv"><span>Layout</span><span>SA-MP 0.3.7 server browser</span><span>Skin</span><span>MP launcher (libMP): ui_bg.jpg, title.png, icons, flags (lipis/flag-icons, MIT)</span><span>Skeleton loaders</span><span>idea from SkeletonView (Juanpe)</span><span>Server list</span><span>open.mp API, MP lobby (HiveMQ)</span></div></div>';
     },
     settings: function () { return '<div class="ph"><h1>Settings</h1></div>' + (SET[S.setTab] || SET.account)(); }
@@ -245,8 +249,8 @@
     var sa = g === 'sa', inf = sa ? INFO.sa || {} : INFO.vc || {}, vl = INFO.vl || {};
     var abi = sa ? (INFO.abi || 'armeabi-v7a') : '';
     var ver = inf.installed ? 'v' + esc(inf.version || '?') : '<span class="st-bad">not installed</span>';
-    var how = sa ? (ENG.mode === 'app' ? 'Opens the GTA SA app' : ENG.problem ? '<span class="st-mid">Opens the GTA SA app: ' + esc(ENG.problem) + '</span>' : '<span class="st-ok">Runs inside Christe</span>') : (vl.installed ? 'ViceLoader' : 'Opens Vice City');
-    return '<div class="gcard ' + g + '" style="background:url(img/bg_' + (sa ? 'default' : '1') + '.jpg)"><div class="gt">GRAND THEFT AUTO</div>' +
+    var how = sa ? (ENG.mode === 'app' ? 'Opens the GTA SA app' : ENG.problem ? '<span class="st-mid">Opens the GTA SA app: ' + esc(ENG.problem) + '</span>' : '<span class="st-ok">Runs inside AML Multiplayer</span>') : (vl.installed ? 'ViceLoader' : 'Opens Vice City');
+    return '<div class="gcard ' + g + '" style="background:url(img/bg/bg_' + (sa ? 'default' : '7') + '.jpg)"><div class="gt">GRAND THEFT AUTO</div>' +
       '<h2>' + (sa ? 'San Andreas' : 'Vice City') + '</h2>' +
       '<div class="gi"><span>' + (sa ? 'AML' : 'VC') + ' ' + ver + '</span>' + (sa ? '<span class="chip mob">' + esc(abi) + '</span>' : '') + '</div>' +
       '<div class="gi">' + how + '</div>' +
@@ -255,12 +259,12 @@
   }
   function obbRow(k) {
     var o = OBB[k] || {};
-    var st = o.own > 0 ? '<span class="st-ok">Christe copy ' + gb(o.own) + '</span>' : o.game > 0 ? '<span class="st-mid">GTA SA\'s ' + gb(o.game) + ' (read in place)</span>' : '<span class="st-bad">not found</span>';
+    var st = o.own > 0 ? '<span class="st-ok">Own copy ' + gb(o.own) + '</span>' : o.game > 0 ? '<span class="st-mid">GTA SA\'s ' + gb(o.game) + ' (read in place)</span>' : '<span class="st-bad">not found</span>';
     return opt(k + '.8 OBB', st, '');
   }
   function obbCard() {
     var j = S.job;
-    return '<div class="card"><h3>GTA SA OBB (Christe\'s own)</h3>' + obbRow('main') + obbRow('patch') +
+    return '<div class="card"><h3>GTA SA OBB (AML Multiplayer\'s own)</h3>' + obbRow('main') + obbRow('patch') +
       '<div class="opt"><div class="ol"><b>Get the OBB</b><span>Copy it from the installed GTA SA, or pick main.8 / patch.8 .obb files. Android 11+ may need "Allow access" first.</span>' +
       (j ? '<div class="prog"><i style="width:' + (j.total ? Math.round(j.done * 100 / j.total) : 0) + '%"></i></div><span id="jobMsg">' + esc(j.msg || '') + '</span>' : '') + '</div>' +
       '<button class="btn sm go" data-act="obb-copy"' + (j ? ' disabled' : '') + '>' + ic('download') + 'Copy</button><button class="btn sm" data-act="obb-import"' + (j ? ' disabled' : '') + '>' + ic('folder') + 'Import</button>' + (OBB.canAsk ? '<button class="btn sm" data-act="obb-access">Allow access</button>' : '') + '</div></div>';
@@ -281,10 +285,10 @@
     function th(k, t) { return '<span class="' + (S.sort === k ? 'sorted' : '') + '" data-sort="' + k + '">' + t + (S.sort === k ? (S.sortDir < 0 ? ' &#9662;' : ' &#9652;') : '') + '</span>'; }
     var empty = S.page === 'favorites' ? 'No favourite servers yet. Select a server and tap the star.' : S.page === 'lan' ? (S.lanBusy ? 'Searching this Wi-Fi / hotspot for MP servers...' : 'No MP server on this Wi-Fi / hotspot. Start one in the game (Host) or tap Search again.') : 'No servers match.';
     var body = (!S.loaded && S.page !== 'lan' && S.page !== 'favorites') || (S.page === 'lan' && S.lanBusy && !rows.length) ? skelRows(10) : rows.length ? rows.slice(0, 500).map(function (r) {
-      return '<div class="trow' + (sel && r.key === sel.key ? ' sel' : '') + '" data-key="' + esc(r.key) + '"><span class="lk' + (r.locked ? '' : ' n') + '">' + ic(r.locked ? 'lock' : 'unlock') + '</span><img class="sic" src="img/ic_' + iconOf(r) + '.png" alt="">' +
-        '<span class="nm"><span class="t">' + esc(r.name) + '</span>' + (r.game === 'vc' ? '<em class="vc">VC</em>' : r.kind === 'mp' ? '<em>MP</em>' : r.kind === 'lan' ? '<em>LAN</em>' : '') + '</span><span class="pl">' + r.players + '<span> / ' + r.max + '</span></span><span class="pg ' + pcls(r.kind === 'mp' ? 0 : r.ping) + '">' + ptxt(r) + '</span><span class="md">' + esc(r.mode) + '</span><span class="lg">' + esc(r.lang) + '</span>' + flag(r.cc || (r.kind === 'mp' ? '' : ccFromLang(r.lang))) + '</div>';
+      return '<div class="trow' + (sel && r.key === sel.key ? ' sel' : '') + '" data-key="' + esc(r.key) + '"><i class="rbg" style="background-image:url(' + bgOf(r) + ')"></i><span class="lk' + (r.locked ? '' : ' n') + '">' + ic(r.locked ? 'lock' : 'unlock') + '</span>' +
+        '<span class="nm"><span class="t">' + esc(r.name) + '</span></span><span class="md">' + esc(r.mode || '-') + '</span><span class="pl">' + r.players + '<span> / ' + r.max + '</span></span><span class="pg ' + pcls(r.kind === 'mp' ? 0 : r.ping) + '">' + ptxt(r) + '</span><span class="lg">' + esc(r.lang || '-') + '</span><span class="loc">' + flag(r.cc || ccFromLang(r.lang)) + '</span></div>';
     }).join('') : '<div class="empty">' + empty + '</div>';
-    return '<div class="thead"><span>' + ic('lock') + '</span><span></span>' + th('name', 'HostName') + th('players', 'Players') + th('ping', 'Ping') + th('mode', 'Mode') + th('lang', 'Language') + '<span></span></div><div class="tbody">' + body + '</div>';
+    return '<div class="thead"><span>' + ic('lock') + '</span>' + th('name', 'HostName') + th('mode', 'Gamemode') + th('players', 'Players') + th('ping', 'Ping') + th('lang', 'Language') + '<span class="lc">Loc.</span></div><div class="tbody">' + body + '</div>';
   }
   function rulesOf(r) {
     if (r.kind === 'omp') { var x = S.rules[r.key]; if (x) return x; fetchRules(r); return null; }
@@ -301,7 +305,7 @@
     else rr = '<div class="none">Loading rules...</div>';
     var web = ru && ru.weburl ? ru.weburl : '';
     var who = r.players ? r.players + ' player' + (r.players === 1 ? '' : 's') + ' online. Names show in the game (Tab).' : 'Nobody is playing right now.';
-    return '<div class="pane"><div class="sel"><img src="img/ic_' + iconOf(r) + '.png" alt=""><div style="min-width:0"><b>' + esc(r.name) + '</b><span>' + esc(r.kind === 'mp' ? 'MP lobby, port ' + r.port : r.host + ':' + r.port) + '</span></div><span class="grow"></span><a data-fav="' + esc(r.key) + '" title="Favorite" style="color:' + (S.favs[r.key] ? 'var(--mid)' : 'var(--dim)') + '">' + ic('star') + '</a></div>' +
+    return '<div class="pane"><div class="sel"><i class="rbg" style="background-image:url(' + bgOf(r) + ')"></i><div style="min-width:0;flex:1"><b>' + esc(r.name) + '</b><span>' + esc(r.kind === 'mp' ? 'MP lobby, port ' + r.port : r.host + ':' + r.port) + '</span><span class="pf">' + esc(r.mode || '') + ' &middot; ' + (r.cc === 'global' ? 'Global' : esc((r.cc || ccFromLang(r.lang) || '-').toUpperCase())) + '</span></div><a data-fav="' + esc(r.key) + '" title="Favorite" style="color:' + (S.favs[r.key] ? 'var(--mid)' : 'var(--dim)') + '">' + ic('star') + '</a></div>' +
       '<div class="ph"><span>Player</span><span>Score</span></div><div class="pl"><div class="none">' + esc(who) + '</div></div>' +
       '<div class="ph"><span>Rule</span><span>Value</span></div><div class="ru">' + rr + '</div>' + (web ? '<a class="web" data-open-url="' + esc(/^https?:/.test(web) ? web : 'http://' + web) + '">' + esc(web) + '</a>' : '') + '</div>';
   }
@@ -312,23 +316,23 @@
   function sw(id, on) { return '<button class="sw' + (on ? ' on' : '') + '" data-sw="' + id + '"></button>'; }
   var SET = {
     account: function () {
-      return '<div class="card"><h3>MP account</h3>' + (S.user ? opt('Signed in as ' + esc(S.user.user), 'The same account as in the game, Moquil and the MP apps', '<button class="btn sm red" data-act="logout">Sign out</button>')
+      return '<div class="card"><h3>MP account</h3>' + (S.user ? opt((S.user.avatar ? '<img class="avBig" src="' + S.user.avatar + '" alt="">' : '') + 'Signed in as ' + esc(S.user.user), S.user.dname ? 'Discord: ' + esc(S.user.dname) + ' &middot; the same account as in the game, Moquil and the MP apps' : S.user.sess ? 'Getting your Discord picture...' : 'Sign out and in again to show your Discord picture', '<button class="btn sm red" data-act="logout">Sign out</button>')
         : opt('Guest', 'Sign in or create an MP account to keep your name, stats and friends', '<button class="btn sm go" data-act="auth">Sign in</button>')) +
         opt('Name in game', 'The Name: box. Sent to MP when the game starts', '<input class="inp" id="nickInp" style="width:170px" maxlength="23" value="' + esc(nick()) + '"' + (S.user ? ' disabled' : '') + '>') + '</div>';
     },
     game: function () {
       var sa = INFO.sa || {};
       return '<div class="card"><h3>GTA San Andreas (AML)</h3>' + opt('Game', esc(INFO.saPkg || 'com.rockstargames.gtasa') + ' &middot; ' + (sa.installed ? 'v' + esc(sa.version) + ' (' + esc(sa.abi || '?') + ')' : '<span class="st-bad">not installed</span>'), '') +
-        opt('Run GTA SA', ENG.problem ? '<span class="st-mid">Inside Christe is not possible here: ' + esc(ENG.problem) + '</span>' : 'Inside Christe: its own game screen, OBB and MP files. GTA SA app: open the installed game instead.',
-          '<select class="dd" id="engSel"><option value="christe">Inside Christe</option><option value="app">GTA SA app</option></select>') +
+        opt('Run GTA SA', ENG.problem ? '<span class="st-mid">Inside AML Multiplayer is not possible here: ' + esc(ENG.problem) + '</span>' : 'Inside AML Multiplayer: its own game screen, OBB and MP files. GTA SA app: open the installed game instead.',
+          '<select class="dd" id="engSel"><option value="christe">Inside AML Multiplayer</option><option value="app">GTA SA app</option></select>') +
         opt('Game package', 'Change only for a renamed AML GTA SA', '<input class="inp" id="saPkg" style="width:200px" value="' + esc(INFO.saPkg || 'com.rockstargames.gtasa') + '">') +
-        opt('CPU / MP build', 'arm64-v8a = GTA SA 2.10, armeabi-v7a = GTA SA 2.00. Inside Christe always uses this phone\'s CPU (' + (ENG.proc64 ? '64-bit' : '32-bit') + ')',
+        opt('CPU / MP build', 'arm64-v8a = GTA SA 2.10, armeabi-v7a = GTA SA 2.00. Inside AML Multiplayer always uses this phone\'s CPU (' + (ENG.proc64 ? '64-bit' : '32-bit') + ')',
           '<select class="dd" id="abiSel"><option value="auto">Auto (' + esc(INFO.abi || '') + ')</option><option value="arm64-v8a">arm64-v8a (2.10)</option><option value="armeabi-v7a">armeabi-v7a (2.00)</option></select>') +
         opt('Join from the title screen', 'MP joins the server you picked as soon as the title menu is up', sw('autoJoin', ls('autoJoin') !== false)) + '</div>' +
         '<div class="card"><h3>Vice City</h3>' + opt('GTA Vice City', (INFO.vc || {}).installed ? 'v' + esc(INFO.vc.version) + ' - opens the Vice City app (ViceLoader for MP)' : '<span class="st-bad">not installed</span>', '<button class="btn sm" data-act="open-vc">Open</button>') + '</div>';
     },
     storage: function () {
-      return obbCard() + engineCard() + '<div class="card"><h3>Christe folder (date2)</h3>' + opt('date2', esc(INFO.date2 || ''), '<button class="btn sm" data-act="setup">Repair</button>') +
+      return obbCard() + engineCard() + '<div class="card"><h3>AML Multiplayer folder (date2)</h3>' + opt('date2', esc(INFO.date2 || ''), '<button class="btn sm" data-act="setup">Repair</button>') +
         opt('Boot video', 'Put your own startup.mp4 in date2/resources to play it at start-up', '') + '</div>';
     },
     network: function () {
@@ -382,7 +386,7 @@
       var b = $('.prog i'); if (b) b.style.width = (total ? Math.round(done * 100 / total) : 0) + '%'; var m = $('#jobMsg'); if (m) m.textContent = S.job.msg;
     };
     var fn = { 'obb-copy': 'obbCopy', 'obb-import': 'obbImport', 'mp-files': 'mpFiles' }[kind];
-    if (!call(fn, id)) { delete PROG[id]; S.job = null; render(); toast('Update Christe Multiplayer for this'); }
+    if (!call(fn, id)) { delete PROG[id]; S.job = null; render(); toast('Update AML Multiplayer for this'); }
   }
   function act(a) {
     if (a === 'retry') { S.err = ''; loadServers(); render(); }
@@ -406,12 +410,12 @@
     readInfo();
     var inf = game === 'vc' ? INFO.vc : INFO.sa;
     if ((!inf || !inf.installed) && !(game === 'vc' && INFO.vl && INFO.vl.installed)) {
-      dialog(game === 'vc' ? 'Vice City is not installed' : 'GTA SA is not installed', game === 'vc' ? 'Install GTA Vice City (and ViceLoader for MP) first.' : 'Install GTA San Andreas with AML (Android Mod Loader) first. Christe runs its code with its own OBB and MP.', [['OK', '']]);
+      dialog(game === 'vc' ? 'Vice City is not installed' : 'GTA SA is not installed', game === 'vc' ? 'Install GTA Vice City (and ViceLoader for MP) first.' : 'Install GTA San Andreas with AML (Android Mod Loader) first. AML Multiplayer runs its code with its own OBB and MP.', [['OK', '']]);
       return;
     }
     if (game === 'sa' && inApp() && !hasObb()) {
-      dialog('The GTA SA OBB', '<p>GTA SA inside Christe needs the OBB (main.8 and patch.8). Copy it from the installed GTA SA or import the .obb files once.</p>', [['GTA SA app', ''], ['Import', ''], ['Copy', 'go']], function (i) {
-        if (i === 0) { X.set('engine', 'app'); readInfo(); play(game, row, pass); } else if (i === 1) { go('settings', 'storage'); job('obb-import'); } else { go('settings', 'storage'); job('obb-copy'); }
+      dialog('The GTA SA OBB', '<p>GTA SA inside AML Multiplayer needs the OBB (main.8 and patch.8). Copy it from the installed GTA SA or import the .obb files once.</p>', [['Cancel', ''], ['Import', ''], ['Copy', 'go']], function (i) {
+        if (i === 1) { go('settings', 'storage'); job('obb-import'); } else if (i === 2) { go('settings', 'storage'); job('obb-copy'); }
       });
       return;
     }
@@ -425,6 +429,13 @@
     setTimeout(function () {
       var r = X.play(game, ls('autoJoin') === false ? '' : spec, nick(), pass || '');
       setTimeout(function () { clearInterval(t); L.remove(); }, 1800);
+      if (String(r).indexOf('noinapp:') === 0) {
+        clearInterval(t); L.remove();
+        dialog('GTA SA can\'t run inside AML Multiplayer', '<p>' + esc(r.slice(8)) + '.</p><p>AML Multiplayer runs the game in its own screen with its own OBB. Install the GTA SA (AML) build for this phone, then tap Connect again.</p>', [['OK', 'go'], ['Use the GTA SA app once', '']], function (i) {
+          if (i === 1) { var r2 = X.playApp ? X.playApp(ls('autoJoin') === false ? '' : spec, nick()) : 'old'; if (r2 !== 'ok') toast('Could not open the GTA SA app'); }
+        });
+        return;
+      }
       if (r !== 'ok') toast(r === 'missing' ? 'The game is not installed' : 'Could not start the game: ' + r);
     }, 1100);
   }
@@ -475,7 +486,7 @@
   }
   function bellDot() { $('#bellDot').classList.toggle('hide', !S.notes.some(function (n) { return !n.seen; })); }
   function checkRelease() {
-    getJson(URLS.rel).then(function (j) { if (j && j.tag_name) { S.relTag = j.tag_name; note('rel-' + j.tag_name, 'MP ' + j.tag_name + ' is out', (j.name || 'New release') + ' - update Christe Multiplayer for the new libMP'); } }).catch(function () {});
+    getJson(URLS.rel).then(function (j) { if (j && j.tag_name) { S.relTag = j.tag_name; note('rel-' + j.tag_name, 'MP ' + j.tag_name + ' is out', (j.name || 'New release') + ' - update AML Multiplayer for the new libMP'); } }).catch(function () {});
   }
 
   // ---------- auth (fullscreen, Moquil style, with X back to the launcher) ----------
@@ -493,8 +504,8 @@
   function closeAuth() { if (AC) { AC.stop(); AC = null; } $('#auth').classList.add('hide'); $('#auth').innerHTML = ''; }
   function shell(title, sub, inner, foot) {
     return '<div class="aSky"><i></i></div><button class="aClose" id="aX" title="Back">' + ic('x') + '</button>' +
-      '<div class="aWrap"><div class="aForm"><div class="aBrand"><img src="img/title.png" alt="Christe Multiplayer" style="width:150px;height:auto;border-radius:0"></div><h1>' + title + '</h1><div class="sub">' + sub + '</div>' + inner + '<div id="status" class="status"></div><div class="aFoot">' + foot + '</div></div>' +
-      '<div class="aSide"><h2>One MP account</h2><p>The same account in the game, Moquil, MP Voice and Christe Multiplayer. Create it with the MP Discord bot: a code, /gen in #verification, then your name and password.</p><button class="btn sm blue" data-ourl="' + esc(DISCORD) + '">' + ic('discord') + 'MP Discord</button><button class="btn sm" id="aGuest">Continue as guest</button></div></div>';
+      '<div class="aWrap"><div class="aForm"><div class="aBrand"><img src="img/title.png" alt="AML Multiplayer" style="width:150px;height:auto;border-radius:0"></div><h1>' + title + '</h1><div class="sub">' + sub + '</div>' + inner + '<div id="status" class="status"></div><div class="aFoot">' + foot + '</div></div>' +
+      '<div class="aSide"><h2>One MP account</h2><p>The same account in the game, Moquil, MP Voice and AML Multiplayer. Create it with the MP Discord bot: a code, /gen in #verification, then your name and password.</p><button class="btn sm blue" data-ourl="' + esc(DISCORD) + '">' + ic('discord') + 'MP Discord</button><button class="btn sm" id="aGuest">Continue as guest</button></div></div>';
   }
   function bindAuth() {
     var A = $('#auth'); $('#aX').onclick = closeAuth;
@@ -512,7 +523,7 @@
   function showAuth(view) {
     var A = $('#auth'); A.classList.remove('hide');
     if (view === 'register') {
-      A.innerHTML = shell('Create an account', 'One MP account for the game, Moquil and Christe',
+      A.innerHTML = shell('Create an account', 'One MP account for the game, Moquil and AML Multiplayer',
         '<div id="step1"><p class="sub" style="margin:0 0 8px">1. Join the MP Discord server.<br>2. In the #verification channel type:</p><div id="code" class="code">/gen ........</div>' + discordBtns() + '</div>' +
         '<form id="step2" class="hide" autocomplete="off"><div class="chip mob" id="dname"></div><label class="lbl">Account name</label><input id="user" class="inp" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_\\[\\].$=@()]+">' +
         '<div class="aRow"><div><label class="lbl">Password</label><input id="pass" type="password" class="inp" required minlength="6"></div><div><label class="lbl">Repeat</label><input id="pass2" type="password" class="inp" required></div></div>' +
@@ -525,7 +536,7 @@
           $('#step1').classList.add('hide'); $('#step2').classList.remove('hide'); $('#dname').textContent = 'Discord verified: ' + (a.dname || 'ok'); st('');
         }); },
         gen: function (a) { flow && flow.gen(a); }, verified: function (a) { flow && flow.verified(a); },
-        signup: function (a) { busy(false); if (a.ok === '1') loggedIn(a.user || $('#user').value.trim()); else st(a.err || 'Sign up failed.', 'bad'); } });
+        signup: function (a) { busy(false); if (a.ok === '1') loggedIn(a.user || $('#user').value.trim(), a.sess); else st(a.err || 'Sign up failed.', 'bad'); } });
       $('#step2').onsubmit = function (e) {
         e.preventDefault(); if ($('#pass').value !== $('#pass2').value) { st('The passwords are not the same.', 'bad'); return; }
         if (!this.checkValidity()) { st('Account name: 3-24 letters, digits or _ . Password: 6 or more.', 'bad'); return; }
@@ -559,22 +570,44 @@
       '<div style="margin-top:6px"><a href="#" data-auth="forgot" style="font-size:12px">Forgot your password?</a></div>' +
       '<button type="submit" class="btn go wide" style="margin-top:10px">Log in</button></form>', 'Need an account? <a href="#" data-auth="register">Register</a>');
     bindAuth();
-    var t = 0, c3 = acct({ login: function (a) { clearTimeout(t); busy(false); if (a.ok === '1') loggedIn(a.user || $('#user').value.trim()); else st(a.err || 'Login failed.', 'bad'); } });
+    var t = 0, c3 = acct({ login: function (a) { clearTimeout(t); busy(false); if (a.ok === '1') loggedIn(a.user || $('#user').value.trim(), a.sess); else st(a.err || 'Login failed.', 'bad'); } });
     $('#lf').onsubmit = function (e) {
       e.preventDefault(); var u = $('#user').value.trim(), p = $('#pass').value; if (!u || !p) { st('Type your account name and password.', 'bad'); return; }
       busy(true); st('Logging in...'); c3.send({ op: 'login', user: u, pass: p, chal: MPAuth.Client.chal(), srv: 'christe' });
       t = setTimeout(function () { busy(false); st('No answer from the account server. Try again.', 'bad'); }, 20000);
     };
   }
-  function loggedIn(user) {
-    S.user = { user: user, at: Date.now() }; ls('session', S.user); ls('lastUser', user); S.nick = user; ls('nick', user);
+  function loggedIn(user, sess) {
+    S.user = { user: user, at: Date.now(), sess: sess || '' }; ls('session', S.user); ls('lastUser', user); S.nick = user; ls('nick', user);
     closeAuth(); renderAvatar(); render(); toast('Signed in as ' + user);
+    setTimeout(fetchAvatar, 300);
+  }
+  // 1.2: the Discord profile picture of the MP account (the bot's "avatar" answer, the same one the game shows):
+  // {ok, n, p0..p(n-1) = base64 PNG, dname}; wait=1 means the bot is getting it from Discord and pushes it after
+  var AVC = null;
+  function fetchAvatar() {
+    if (!S.user || !S.user.sess || !G.MPAuth || AVC) return;
+    var stopT, me = S.user.user;
+    AVC = new MPAuth.Client(function (a) {
+      if (a.op !== 'avatar' && !(a.op === undefined && a.rid === 'a')) return;
+      if (a.ok === '1' && a.wait === '1') return;
+      clearTimeout(stopT); var c = AVC; AVC = null; if (c) c.stop();
+      if (!S.user || S.user.user !== me) return;
+      if (a.ok === '1' && (a.n | 0) > 0) {
+        var b = ''; for (var i = 0; i < (a.n | 0); i++) b += a['p' + i] || '';
+        S.user.avatar = 'data:image/png;base64,' + b; S.user.dname = a.dname || ''; S.user.avAt = Date.now();
+      } else { S.user.avAt = Date.now(); if (a.relogin === '1') S.user.sess = ''; }
+      ls('session', S.user); renderAvatar(); if (S.page === 'settings') render();
+    });
+    AVC.start(); AVC.send({ op: 'avatar', sess: S.user.sess, rid: 'a' });
+    stopT = setTimeout(function () { if (AVC) { AVC.stop(); AVC = null; } }, 45000);
   }
 
   function renderAvatar() {
     var n = nick(), im = $('#avatarImg');
     $('#avatarName').textContent = S.user ? S.user.user : (n ? n : 'Guest');
-    if (S.user || n) { im.className = 'av'; im.style.cssText = logo(n); im.textContent = initials(n); } else { im.className = 'av guest'; im.style.cssText = ''; im.innerHTML = ic('user'); }
+    if (S.user && S.user.avatar) { im.className = 'av pic'; im.style.cssText = ''; im.innerHTML = '<img src="' + S.user.avatar + '" alt="">'; }
+    else if (S.user || n) { im.className = 'av'; im.style.cssText = logo(n); im.textContent = initials(n); } else { im.className = 'av guest'; im.style.cssText = ''; im.innerHTML = ic('user'); }
     var nb = $('#nameInp'); if (nb && D.activeElement !== nb) { nb.value = n; nb.disabled = !!S.user; }
   }
 
@@ -584,7 +617,7 @@
     view: [['Internet', 'v-internet'], ['Featured', 'v-featured'], ['Favorites', 'v-favorites'], ['Lan', 'v-lan'], ['Hosted (open.mp)', 'v-hosted'], ['Communities', 'v-explore']],
     servers: [['Connect', 'connect'], ['Add server (host:port)', 'add'], ['Add to favorites', 'fav'], ['Refresh', 'refresh'], ['Search Lan', 'lan']],
     tools: [['Play GTA SA / VC', 'v-game'], ['Storage & OBB', 's-storage'], ['Game settings', 's-game'], ['Settings', 's-account']],
-    help: [['About Christe Multiplayer', 'v-about'], ['MP Discord', 'discord'], ['MP on GitHub', 'github']]
+    help: [['About AML Multiplayer', 'v-about'], ['MP Discord', 'discord'], ['MP on GitHub', 'github']]
   };
   function menuAct(k) {
     if (k === 'connect') join(rowBy(S.sel)); else if (k === 'exit') X.exit();
@@ -629,7 +662,7 @@
     };
     $('#gearBtn').onclick = function () {
       pop(this, '<div class="ph2">QUICK SETTINGS</div>' +
-        '<div class="pi" data-q="engine">' + ic('play') + 'GTA SA: ' + (ENG.mode === 'app' ? 'GTA SA app' : 'inside Christe') + '</div>' +
+        '<div class="pi" data-q="engine">' + ic('play') + 'GTA SA: ' + (ENG.mode === 'app' ? 'GTA SA app' : 'inside AML Multiplayer') + '</div>' +
         '<div class="pi" data-q="region">' + ic('pin') + 'Region: ' + REGIONS[S.region] + '</div>' +
         '<div class="pi' + (S.autoRefresh ? ' on' : '') + '" data-q="auto">' + ic('refresh') + 'Auto refresh</div>' +
         '<div class="pi' + (ls('autoJoin') !== false ? ' on' : '') + '" data-q="join">' + ic('play') + 'Join from the title</div>' +
@@ -666,7 +699,7 @@
   function crashCheck() {
     if (!ENG.crash) return;
     var c = ENG.crash; ENG.crash = ''; call('crashSeen');
-    dialog('GTA SA stopped', '<p>GTA SA inside Christe closed with an error. You can play with the GTA SA app instead (Settings &gt; Game).</p><pre style="max-height:120px;overflow:auto;font-size:10px;white-space:pre-wrap;background:#0b0d11;padding:6px">' + esc(c) + '</pre>', [['OK', ''], ['Use the GTA SA app', 'go']], function (i) { if (i === 1) { X.set('engine', 'app'); readInfo(); render(); } });
+    dialog('GTA SA stopped', '<p>GTA SA inside AML Multiplayer closed with an error. Send this to the MP Discord so it can be fixed.</p><pre style="max-height:120px;overflow:auto;font-size:10px;white-space:pre-wrap;background:#0b0d11;padding:6px">' + esc(c) + '</pre>', [['OK', ''], ['Use the GTA SA app', 'go']], function (i) { if (i === 1) { X.set('engine', 'app'); readInfo(); render(); } });
   }
   G.CX_resume = function () { readInfo(); if (!LISTS[S.page]) render(); crashCheck(); };
   G.CX_back = function () {
@@ -685,6 +718,7 @@
     if (/auth/.test(location.hash)) setTimeout(function () { showAuth('login'); }, 10);
     $('#regionLbl').textContent = REGIONS[S.region] || 'Auto';
     renderAvatar(); bindShell(); render();
+    if (S.user && S.user.sess && (!S.user.avatar || Date.now() - (S.user.avAt || 0) > 864e5)) setTimeout(fetchAvatar, 1500);
     loadServers(); checkRelease();
     var B = $('#boot'), tip = 0, pct = 0;
     $('#bootTip').textContent = TIPS[0];
@@ -692,7 +726,6 @@
     var pctT = setInterval(function () { var cap = S.loaded || S.err ? 100 : 90; pct = Math.min(cap, pct + 3); $('#bootPct').textContent = pct; $('#bootBar').style.width = pct + '%'; }, 70);
     var done = false;
     function handoff() { if (done) return; done = true; clearInterval(tipT); clearInterval(pctT); $('#app').classList.remove('hide'); B.classList.add('out'); setTimeout(function () { B.remove(); crashCheck(); }, 650); }
-    $('#bootSkip').onclick = handoff;
     var vid = X.startupVideo && X.startupVideo();
     if (vid) {
       var V = $('#bootVid'); V.classList.remove('hide'); $('#bootArt').classList.add('hide'); V.src = vid;

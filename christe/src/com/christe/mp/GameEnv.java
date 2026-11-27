@@ -20,11 +20,12 @@ final class GameEnv {
 
     static File file(String dataDir) { return new File(dataDir, "files/christe_game.txt"); }
 
-    static void save(Context c, String pkg, ApplicationInfo ai, String abi) throws Exception {
+    static void save(Context c, String pkg, ApplicationInfo ai, String abi, String own) throws Exception {
         StringBuilder a = new StringBuilder(ai.sourceDir);
         if (ai.splitSourceDirs != null) for (String s : ai.splitSourceDirs) a.append(':').append(s);
         String abiDir = abi.startsWith("arm64") ? "arm64-v8a" : "armeabi-v7a";
-        StringBuilder l = new StringBuilder(ai.nativeLibraryDir == null ? "" : ai.nativeLibraryDir);
+        StringBuilder l = new StringBuilder(own);   // 1.2: the unpacked libs first
+        if (ai.nativeLibraryDir != null) l.append(':').append(ai.nativeLibraryDir);
         l.append(':').append(ai.sourceDir).append("!/lib/").append(abiDir);
         if (ai.splitSourceDirs != null) for (String s : ai.splitSourceDirs) l.append(':').append(s).append("!/lib/").append(abiDir);
         File f = file(c.getApplicationInfo().dataDir);

@@ -851,6 +851,18 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
   - A Player/Score and Rule/Value pane (open.mp rules come from api.open.mp).
   - Favorites / Internet / Featured / Lan / Hosted tabs at the bottom, the "Servers: N players, playing on M servers" line and a green CONNECT button.
   - Lan uses MP's own Wi-Fi / hotspot query. The MP Crossplay 24/7 [PC + Mobile] server is no longer listed in Internet. The app icon and the logo are the SA / VC picture (`research/icon-sa-vc.png`) and MP's title picture.
+- AML Multiplayer 1.2: Christe Multiplayer is renamed **AML Multiplayer**. The package is still `com.christe.mp`, so data and the OBB stay where they are.
+  - New icon: the same black background as Moquil, MP Voice, MP Textdraw Editor and ViceLoader, with an orange "SA" and a pink "VC" tied together.
+  - Connect never switches to the GTA SA app on its own. Before, a strict check (the CPU type the game was installed as, plus a code check) could send you to the GTA SA app. Now the game's native libraries for this phone's CPU are unpacked from the GTA SA APK (split APKs too) into AML Multiplayer's own folder. Your AML mods next to GTA SA (SAUtils, CamFX, ...) are copied into `Android/data/com.christe.mp/mods` when they can be read, so the world loads inside AML Multiplayer. If it really can't run (no build for this CPU), it says why, and the GTA SA app is only an extra button.
+  - Server list like the MP mod:
+    - every row and the selected-server pane use the MP server pictures from `bg_server.jar` (bg_default / bcw / mw3 / rp / dz / lg, bg_1..bg_40 for open.mp), and the logo icons are gone
+    - the "MP" / "LAN" / "VC" tags after the name are gone; that place is now the **Gamemode** column (Bounty Hunter, Brief Case War, MW3, Roleplay, Day Z, Rocket Soccer, Vice City, ...)
+    - a **Loc.** column with the flag (the Global flag for the MP servers)
+  - Internet now has only MP servers (MP LAN Server, the Vice City LAN server, players' own). Featured has only the five MP 24/7 featured servers. The open.mp servers are only in Hosted / open.mp.
+  - Login shows your Discord profile picture (the bot's `avatar` answer, the same picture the game shows) in the title bar and in Settings > Account.
+  - The start-up screen has no Skip button. The title bar says "powered by ThirtyFoxMC". The footer server line no longer sits under CONNECT.
+  - The APK is `AMLMultiplayer.apk`, signed with a fixed key from now on (the `CHRISTE_KEYSTORE` secret), so later updates install over it. Uninstall 1.0 / 1.1 once.
+- CamFX 2.4 is packaged: `docs/mods/CamFX-2.4.zip` (Moquil's mod list now points to it) and the [CamFX v2.4 release](https://github.com/JebetrexxMC/CamFX/releases/tag/v2.4).
 - Not touched: the loading screens, the neon join and < Spawn >.
 
 ### 5.02.76

@@ -1,4 +1,4 @@
-name: Christe Multiplayer
+name: AML Multiplayer
 # 5.02.76: builds the Christe Multiplayer APK (christe/, no Gradle: aapt2 + javac + d8 + apksigner).
 # Signing key: repository secrets CHRISTE_KEYSTORE (base64 of a .jks / .p12) + CHRISTE_KEYPASS. Without
 # them a new key is made for that run (fine for testing; an update then needs an uninstall first).
@@ -45,24 +45,24 @@ jobs:
             echo "::warning::No CHRISTE_KEYSTORE secret: signing with a new key made for this run"
             P=$(openssl rand -hex 16)
             keytool -genkeypair -keystore "$RUNNER_TEMP/christe.jks" -storepass "$P" -keypass "$P" -alias christe \
-              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Christe Multiplayer, O=JebetrexxMC" > /dev/null
+              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=AML Multiplayer, O=ThirtyFoxMC" > /dev/null
             echo "::add-mask::$P"; echo "KEYPASS=$P" >> "$GITHUB_ENV"
           fi
           echo "KEYSTORE=$RUNNER_TEMP/christe.jks" >> "$GITHUB_ENV"
       - name: Build
         run: |
           SDK=$ANDROID_HOME OBB=1 bash christe/build.sh
-          mv christe/ChristeMultiplayer.apk christe/main.*.com.christe.mp.obb .
-          unzip -l ChristeMultiplayer.apk | grep -E "classes.dex|assets/www/index.html|assets/libs"
+          mv christe/AMLMultiplayer.apk christe/main.*.com.christe.mp.obb .
+          unzip -l AMLMultiplayer.apk | grep -E "classes.dex|assets/www/index.html|assets/libs"
       - uses: actions/upload-artifact@v4
         with:
-          name: ChristeMultiplayer
+          name: AMLMultiplayer
           path: |
-            ChristeMultiplayer.apk
+            AMLMultiplayer.apk
             main.*.com.christe.mp.obb
           if-no-files-found: error
       - name: Attach to the release
         if: inputs.release != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ inputs.release }}" ChristeMultiplayer.apk --clobber
+        run: gh release upload "${{ inputs.release }}" AMLMultiplayer.apk --clobber

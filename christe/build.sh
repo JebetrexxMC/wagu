@@ -9,7 +9,7 @@ set -e
 cd "$(dirname "$0")"
 SDK=${SDK:-${ANDROID_HOME:-$HOME/android-sdk}}; BTV=${BUILD_TOOLS:-34.0.0}; BT=$SDK/build-tools/$BTV; JAR=$SDK/platforms/android-34/android.jar
 [ -n "$JAVA_HOME" ] && export PATH=$JAVA_HOME/bin:$PATH
-OUT=${OUT:-ChristeMultiplayer.apk}
+OUT=${OUT:-AMLMultiplayer.apk}
 rm -rf build; mkdir -p build/res build/classes build/dex build/assets
 cp -r assets/. build/assets/
 mkdir -p build/assets/libs

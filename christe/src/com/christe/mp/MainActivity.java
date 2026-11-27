@@ -49,7 +49,7 @@ import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-// Christe Multiplayer 1.0 (com.christe.mp): a landscape WebView launcher (assets/www) for MP on
+// AML Multiplayer (was Christe Multiplayer; package com.christe.mp): a landscape WebView launcher (assets/www) for MP on
 // GTA SA (AML, com.rockstargames.gtasa) and Vice City (com.rockstargames.gtavc / ViceLoader).
 //  - the games are the ones already installed; they keep reading their own OBB
 //    (Android/obb/com.rockstargames.gtasa/main.8 + patch.8), nothing is copied or repacked
@@ -85,7 +85,7 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(true);
         s.setAllowFileAccessFromFileURLs(true);
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setUserAgentString(s.getUserAgentString() + " ChristeMP/1.0");
+        s.setUserAgentString(s.getUserAgentString() + " AMLMultiplayer/1.2");
         web.addJavascriptInterface(new Bridge(), "Christe");
         web.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView v, String url) {
@@ -334,7 +334,7 @@ public class MainActivity extends Activity {
                 try {
                     HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
                     c.setConnectTimeout(8000); c.setReadTimeout(12000);
-                    c.setRequestProperty("User-Agent", "ChristeMP/1.0 (Android)");
+                    c.setRequestProperty("User-Agent", "AMLMultiplayer/1.2 (Android)");
                     c.setRequestProperty("Accept", "application/json, text/plain, */*");
                     code = c.getResponseCode();
                     InputStream in = code < 400 ? c.getInputStream() : c.getErrorStream();
@@ -396,8 +396,8 @@ public class MainActivity extends Activity {
             if (!"app".equals(prefs.getString("engine", "christe"))) {
                 String why = inAppProblem(pkg);
                 if (why.length() == 0) return launchInApp(pkg, join, nick);
-                log("in-app GTA SA not possible: " + why + " - opening the GTA SA app");
-                toast(why + " - opening the GTA SA app");
+                log("in-app GTA SA not possible: " + why);
+                return "noinapp:" + why;   // 1.2: never a silent switch to the GTA SA app (the launcher asks)
             }
             return launch(pkg, join, nick);
         }
@@ -420,6 +420,7 @@ public class MainActivity extends Activity {
         }
         @JavascriptInterface public void crashSeen() { prefs.edit().putLong("crash_seen", System.currentTimeMillis()).apply(); }
         @JavascriptInterface public void lan(final String id) { new Thread(new Runnable() { public void run() { lanScan(id); } }).start(); }
+        @JavascriptInterface public String playApp(String join, String nick) { return launch(prefs.getString("sa_pkg", SA), join, nick); }
         @JavascriptInterface public boolean openApp(String pkg) { return "ok".equals(launch(pkg, "", "")); }
         @JavascriptInterface public void open(String url) { openLink(url); }
         @JavascriptInterface public void toast(String t) { MainActivity.this.toast(t); }
@@ -440,20 +441,66 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 23) return android.os.Process.is64Bit();
         return false;
     }
-    // "" = the installed GTA SA can run inside Christe, else why not
+    // "" = the installed GTA SA can run inside AML Multiplayer, else why not (1.2: only real blockers)
     String inAppProblem(String pkg) {
         ApplicationInfo ai;
-        PackageInfo pi;
-        try { pi = getPackageManager().getPackageInfo(pkg, 0); ai = pi.applicationInfo; }
+        try { ai = getPackageManager().getApplicationInfo(pkg, 0); }
         catch (Exception e) { return "GTA SA (" + pkg + ") is not installed"; }
-        String ga = gameAbi(pkg);
-        boolean g64 = ga.startsWith("arm64") || (ga.length() == 0 && zipHas(ai.sourceDir, "lib/arm64-v8a/libGTASA.so"));
-        if (g64 != proc64()) return "this GTA SA is " + (g64 ? "64-bit (2.10)" : "32-bit (2.00)") + " but Christe runs " + (proc64() ? "64-bit" : "32-bit") + " here";
-        String key = "gtasa_cls_" + pkg, stamp = String.valueOf(pi.lastUpdateTime);
-        String c = prefs.getString(key, "");
-        if (!c.startsWith(stamp + ":")) { c = stamp + ":" + (dexHas(ai.sourceDir, "Lcom/rockstargames/gtasa/GTASA;") ? "1" : "0"); prefs.edit().putString(key, c).apply(); }
-        if (c.endsWith(":0")) return "this GTA SA has no com.rockstargames.gtasa.GTASA";
-        return "";
+        String abi = proc64() ? "arm64-v8a" : "armeabi-v7a";
+        if (new File(gameLibDir(abi), "libGTASA.so").isFile()) return "";
+        if (ai.nativeLibraryDir != null && new File(ai.nativeLibraryDir, "libGTASA.so").isFile() && gameAbi(pkg).startsWith(proc64() ? "arm64" : "armeabi")) return "";
+        for (String apk : apks(ai)) if (zipHas(apk, "lib/" + abi + "/libGTASA.so")) return "";
+        return "this GTA SA has no " + abi + " game (" + (proc64() ? "this phone needs GTA SA 2.10, 64-bit" : "this phone needs GTA SA 2.00, 32-bit") + ")";
+    }
+    static java.util.List<String> apks(ApplicationInfo ai) {
+        java.util.List<String> l = new java.util.ArrayList<String>(); l.add(ai.sourceDir);
+        if (ai.splitSourceDirs != null) for (String x : ai.splitSourceDirs) l.add(x);
+        return l;
+    }
+    File gameLibDir(String abi) { return new File(getDir("gamelib", MODE_PRIVATE), abi); }
+    // 1.2: the game's native libraries (libGTASA, libAML, libImmEmulatorJ, ...) for this CPU, unpacked from its APK
+    // into AML Multiplayer's own folder: it works for split APKs, compressed libs and a game installed as the other ABI
+    File unpackGameLibs(String pkg, String abi) {
+        File dir = gameLibDir(abi);
+        try {
+            PackageInfo pi = getPackageManager().getPackageInfo(pkg, 0); ApplicationInfo ai = pi.applicationInfo;
+            String stamp = pkg + ":" + pi.lastUpdateTime + ":" + abi;
+            if (stamp.equals(prefs.getString("gamelib_stamp", "")) && new File(dir, "libGTASA.so").isFile()) return dir;
+            dir.mkdirs(); for (File f : dir.listFiles()) f.delete();
+            String pre = "lib/" + abi + "/"; int n = 0;
+            for (String apk : apks(ai)) {
+                ZipFile z = new ZipFile(apk);
+                for (Enumeration<? extends ZipEntry> e = z.entries(); e.hasMoreElements();) {
+                    ZipEntry en = e.nextElement(); String nm = en.getName();
+                    if (!nm.startsWith(pre) || !nm.endsWith(".so") || nm.indexOf('/', pre.length()) >= 0) continue;
+                    copy(z.getInputStream(en), new FileOutputStream(new File(dir, nm.substring(pre.length())))); n++;
+                }
+                z.close();
+            }
+            if (n == 0 && ai.nativeLibraryDir != null) {   // libs only in the installed folder
+                File[] fs = new File(ai.nativeLibraryDir).listFiles();
+                if (fs != null) for (File f : fs) if (f.getName().endsWith(".so")) { copy(new FileInputStream(f), new FileOutputStream(new File(dir, f.getName()))); n++; }
+            }
+            for (File f : dir.listFiles()) { f.setReadable(true, false); f.setExecutable(true, false); }
+            prefs.edit().putString("gamelib_stamp", stamp).apply();
+            log("game libs unpacked: " + n + " for " + abi);
+        } catch (Exception e) { log("game libs: " + e); }
+        return dir;
+    }
+    // 1.2: the AML mods next to GTA SA (SAUtils, CamFX, ...) come along when they can be read; libMP is our own
+    void copyGameMods(String pkg, File mods) {
+        String sd = Environment.getExternalStorageDirectory().getAbsolutePath();
+        String[] dirs = { sd + "/Android/data/" + pkg + "/mods", sd + "/Android_unprotected/data/" + pkg + "/mods" };
+        for (String d : dirs) {
+            File[] fs = new File(d).listFiles(); if (fs == null) continue;
+            for (File f : fs) {
+                String n = f.getName();
+                if (!f.isFile() || !n.endsWith(".so") || n.equalsIgnoreCase("libMP.so")) continue;
+                File to = new File(mods, n);
+                if (to.isFile() && to.length() == f.length()) continue;
+                try { copy(new FileInputStream(f), new FileOutputStream(to)); log("mod copied: " + n); } catch (Exception e) {}
+            }
+        }
     }
     static boolean zipHas(String zip, String name) { try { ZipFile z = new ZipFile(zip); boolean h = z.getEntry(name) != null; z.close(); return h; } catch (Exception e) { return false; } }
     static boolean dexHas(String apk, String cls) {
@@ -478,13 +525,16 @@ public class MainActivity extends Activity {
     String launchInApp(String pkg, String join, String nick) {
         try {
             ApplicationInfo ai = getPackageManager().getApplicationInfo(pkg, 0);
-            GameEnv.save(this, pkg, ai, proc64() ? "arm64-v8a" : "armeabi-v7a");
+            String abi = proc64() ? "arm64-v8a" : "armeabi-v7a";
+            File gl = unpackGameLibs(pkg, abi);
+            GameEnv.save(this, pkg, ai, abi, gl.getAbsolutePath());
             // AML in Christe reads Android/data/com.christe.mp/mods: libMP for this CPU goes there
             File mods = new File(gameData(), "mods"); mods.mkdirs();
             File lib = new File(mods, "libMP.so");
             String asset = proc64() ? "libs/libMP64.so" : "libs/libMP32.so";
             int ver = 0; try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; } catch (Exception e) {}
             if (!lib.isFile() || prefs.getInt("modlib", 0) != ver) { try { copy(getAssets().open(asset), new FileOutputStream(lib)); prefs.edit().putInt("modlib", ver).apply(); } catch (Exception e) { log("libMP copy: " + e); } }
+            copyGameMods(pkg, mods);
             new File(gameData(), "files").mkdirs(); new File(gameData(), "configs").mkdirs();
             killGame();
             Intent i = new Intent().setClassName(getPackageName(), "com.christe.mp.Game");
@@ -601,7 +651,7 @@ public class MainActivity extends Activity {
                 // Android 11+: an app allowed to install apps may read other apps' Android/obb
                 if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls())
                     startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName())));
-            } catch (Exception e) { toast("Open Settings > Apps > Christe Multiplayer > Install unknown apps"); }
+            } catch (Exception e) { toast("Open Settings > Apps > AML Multiplayer > Install unknown apps"); }
         }});
     }
 
@@ -611,7 +661,7 @@ public class MainActivity extends Activity {
         long done = 0, total = 0; int n = 0;
         try {
             HttpURLConnection c = (HttpURLConnection) new URL("https://raw.githubusercontent.com/JebetrexxMC/wagu/main/assets/MP/MP.zip").openConnection();
-            c.setConnectTimeout(10000); c.setReadTimeout(30000); c.setRequestProperty("User-Agent", "ChristeMP/1.1 (Android)");
+            c.setConnectTimeout(10000); c.setReadTimeout(30000); c.setRequestProperty("User-Agent", "AMLMultiplayer/1.2 (Android)");
             total = c.getContentLength();
             final long[] got = { 0 };
             final long tot = total; final String fid = id;

@@ -1,4 +1,12 @@
-# Christe Multiplayer (com.christe.mp)
+# AML Multiplayer (com.christe.mp, was Christe Multiplayer)
+
+**1.2:**
+- Renamed AML Multiplayer, with a new icon: black, an orange SA and a pink VC tied together.
+- Connect never opens the GTA SA app on its own. The game's native libraries (lib/<abi>/ of the GTA SA APK and its splits) are unpacked into `app_gamelib/<abi>`, and readable AML mods next to GTA SA are copied into `Android/data/com.christe.mp/mods`.
+- Server rows use the bg_server.jar pictures, with Gamemode and Loc. columns. Internet = MP servers, Featured = the MP 24/7 featured servers, Hosted = open.mp.
+- Login shows your Discord profile picture.
+- No Skip on the start-up screen.
+- `AMLMultiplayer.apk` is signed with a fixed key.
 
 **1.1:** GTA SA runs **inside Christe**, so Join no longer switches to the GTA SA app.
 - The `com.christe.mp.Game` activity runs in the `:game` process with its own task. It extends the installed AML GTA SA's `com.rockstargames.gtasa.GTASA`, which is loaded from that APK at run time: `ChristeFactory` on Android 9+, `ChristeApp` on Android 5–8.

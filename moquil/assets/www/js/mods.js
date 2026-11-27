@@ -21,11 +21,11 @@
       gallery: ['img/mods/unknown.svg']
     },
     {
-      id: 'camfx', name: 'CamFX', ver: '2.1', kind: 'AML mod', size: '160 KB', tag: 'Camera',
-      cover: 'img/mods/unknown.svg', icon: 'img/mods/unknown.svg', file: SITE + 'mods/CamFX-2.1.zip', fileName: 'CamFX-2.1.zip', action: 'Download',
+      id: 'camfx', name: 'CamFX', ver: '2.4', kind: 'AML mod', size: '270 KB', tag: 'Camera',
+      cover: 'img/mods/unknown.svg', icon: 'img/mods/unknown.svg', file: SITE + 'mods/CamFX-2.4.zip', fileName: 'CamFX-2.4.zip', action: 'Download',
       short: 'Camera FOV effects: sprint, fall, parachute, vehicle and weapon zoom with smooth blends.',
-      desc: 'CamFX (CameraFX 2.1) is the native version of the SACamFX CLEO script. The field of view widens while you sprint or fall, follows your speed in a vehicle and zooms with rifles while aiming. Settings are in Settings > CameraFX in the game. Needs AML and SAUtils. The zip has libCameraFX32.so and libCameraFX64.so.',
-      features: ['Sprint zoom and fall zoom', 'Parachute, vehicle (follows speed) and weapon zoom', 'Change FOV when falling, sky dive only, drunk effect when falling', 'Smooth blend transitions, 8 languages', '2.1: 64-bit fix for SAUtils script outputs'],
+      desc: 'CamFX (CameraFX 2.4) is the native version of the SACamFX CLEO script. The field of view widens while you sprint or fall, follows your speed in a vehicle and zooms with rifles while aiming. Settings are in Settings > CameraFX in the game. Needs AML and SAUtils. The zip has libCameraFX32.so and libCameraFX64.so.',
+      features: ['Sprint zoom and fall zoom', 'Parachute, vehicle (follows speed) and weapon zoom', 'Change FOV when falling, sky dive only, drunk effect when falling', 'Smooth blend transitions, 8 languages', 'Car Cam FX (CarCamera v2.7) and Intermezzo Cam FX', '2.4: the car camera keeps the speed view at max speed after nitro'],
       gallery: ['img/mods/unknown.svg']
     },
     {
