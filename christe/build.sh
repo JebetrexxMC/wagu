@@ -13,7 +13,7 @@ OUT=${OUT:-AMLMultiplayer.apk}
 rm -rf build; mkdir -p build/res build/classes build/dex build/assets
 cp -r assets/. build/assets/
 mkdir -p build/assets/libs
-for l in libMP32.so libMP64.so; do [ -f ../bin/$l ] && cp ../bin/$l build/assets/libs/ && echo "bundled $l"; done
+for l in libMP32.so libMP64.so libCoopFusion32.so; do [ -f ../bin/$l ] && cp ../bin/$l build/assets/libs/ && echo "bundled $l"; done
 $BT/aapt2 compile --dir res -o build/res/res.zip
 $BT/aapt2 link -I $JAR --manifest AndroidManifest.xml -A build/assets -o build/base.apk build/res/res.zip --min-sdk-version 21 --target-sdk-version 28
 # stubs/ (com.rockstargames.gtasa.GTASA) only compile against: the real class comes from the installed GTA SA at run time

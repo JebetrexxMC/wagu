@@ -97,10 +97,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .browser { display: flex; height: 100%; min-height: 0; }
 .tbl { flex: 1; min-width: 0; display: flex; flex-direction: column; background: rgba(12,14,18,.35); }
 .ttabs { display: flex; gap: 2px; padding: 5px 8px 0; background: rgba(18,21,26,.6); border-bottom: 1px solid var(--line); flex: none; }
-.ttabs a { padding: 4px 9px 6px; white-space: nowrap; color: var(--dim); font-size: 11.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; position: relative; }
+.ttabs a { padding: 4px 7px 6px; white-space: nowrap; color: var(--dim); font-size: 11.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; position: relative; }
 .ttabs a.on { color: #fff; } .ttabs a.on::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; background: #fff; }
 .ttabs .cnt a { text-transform: none; letter-spacing: 0; font-weight: 600; }
-.ttabs { overflow: hidden; } .ttabs .cnt { white-space: nowrap; flex: none; padding-left: 8px; margin-left: auto; color: var(--dim2); font-size: 10.5px; align-self: center; }
+.ttabs { overflow: hidden; } .ttabs a { flex: none; } .ttabs .cnt { white-space: nowrap; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: flex; gap: 2px; padding-left: 8px; margin-left: auto; color: var(--dim2); font-size: 10.5px; align-self: center; }
 .thead, .trow { display: grid; grid-template-columns: 18px minmax(0, 1fr) minmax(0, 96px) 62px 44px minmax(0, 72px) 30px; align-items: center; gap: 5px; padding: 0 8px 0 6px; }
 .thead { height: 24px; flex: none; background: linear-gradient(180deg, rgba(64,72,82,.85), rgba(38,43,50,.9)); font-size: 11px; color: #dfe3e8; border-bottom: 1px solid rgba(0,0,0,.4); }
 .thead span { cursor: pointer; white-space: nowrap; overflow: hidden; } .thead span.sorted { color: var(--sky); } .thead svg { width: 12px; height: 12px; }
@@ -108,7 +108,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .trow { height: 30px; font-size: 12px; cursor: pointer; background: var(--row1); position: relative; isolation: isolate; border-bottom: 1px solid rgba(0,0,0,.35); }
 .trow:nth-child(even) { background: var(--row2); } .trow > span { position: relative; }
 /* 1.2: the MP mod's server picture (bg_server.jar) behind every row, fading into the table like the MP launcher */
-.trow .rbg { position: absolute; left: 0; top: 0; bottom: 0; width: 300px; max-width: 70%; z-index: -2; background: center / cover no-repeat; }
+.trow .rbg { position: absolute; left: 0; top: 0; bottom: 0; width: calc(100% - 342px); max-width: 420px; z-index: -2; background: center / cover no-repeat;
+  /* 1.3: the picture stays under HostName and fades out on its right edge (like the MP mod), never under Gamemode */
+  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 55%, transparent 100%); mask-image: linear-gradient(90deg, #000 0, #000 55%, transparent 100%); }
 .trow::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(12,14,18,.15) 0, rgba(12,14,18,.5) 22%, rgba(12,14,18,.88) 46%, rgba(12,14,18,.93) 100%); }
 .trow .nm .t { font-weight: 600; text-shadow: 0 1px 2px #000; }
 .trow.sel { background: rgba(126,178,226,.26) !important; box-shadow: inset 3px 0 0 var(--neon); }
@@ -281,10 +283,34 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @media (max-width: 760px) {
   :root { --side: 118px; --pane: 160px; }
   .wm, .nameBox span { display: none; } .nameBox input { width: 92px; }
-  .thead, .trow { grid-template-columns: 18px minmax(0,1fr) minmax(0,80px) 54px 34px 26px; } .thead span:nth-child(6), .trow .lg { display: none; }
+  .thead, .trow { grid-template-columns: 18px minmax(0,1fr) minmax(0,80px) 54px 34px 26px; } .thead span:nth-child(6), .trow .lg { display: none; } .trow .rbg { width: calc(100% - 238px); }
   .aSide { display: none; }
 }
 @media (max-width: 640px) { :root { --side: 40px; } #side nav a { font-size: 0; justify-content: center; } .sideHead { font-size: 0; padding: 3px 0; } .menus a:nth-child(n+3) { display: none; } }
 
 .av.pic { padding: 0; overflow: hidden; background: #000; } .av.pic img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
 .avBig { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 8px; }
+
+/* 1.3 Communities: MP Social servers (the same as the game and Moquil), Discord-like */
+.socLinks { display: flex; gap: 8px; margin: 0 0 10px; flex-wrap: wrap; }
+.socLinks a { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--panel); border: 1px solid var(--line); color: var(--text); font-size: 12px; cursor: pointer; border-radius: 4px; }
+.socLinks a img, .socLinks a svg { width: 16px; height: 16px; } .socLinks a b { font-weight: 600; } .socLinks a span { color: var(--dim); }
+.ccard .cic { width: 34px; height: 34px; border-radius: 10px; background: center / cover no-repeat; flex: none; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.6); }
+.ccard .chd { display: flex; gap: 8px; align-items: center; position: relative; } .ccard .chd .st { margin: 0; }
+.soc { display: flex; height: 100%; min-height: 0; background: var(--panel); border: 1px solid var(--line); }
+.socSide { width: 150px; flex: none; background: rgba(0,0,0,.25); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+.socSide .sb { height: 44px; background: center / cover no-repeat, linear-gradient(135deg, #2a3442, #1a1f27); position: relative; flex: none; }
+.socSide .sb b { position: absolute; left: 8px; bottom: 6px; right: 8px; font-size: 13px; text-shadow: 0 1px 3px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.socSide .chs { flex: 1; overflow-y: auto; padding: 6px 4px; } .socSide .chh { font-size: 10px; color: var(--dim2); padding: 4px 6px; letter-spacing: .06em; }
+.socSide .ch { display: block; padding: 5px 8px; font-size: 12px; color: var(--dim); cursor: pointer; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.socSide .ch.on, .socSide .ch:hover { background: rgba(126,178,226,.18); color: var(--text); }
+.socSide .back { padding: 8px; font-size: 12px; color: var(--sky); cursor: pointer; border-top: 1px solid var(--line); }
+.socMain { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.socMain .sh { padding: 4px 10px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; font-size: 13px; flex: none; }
+.socMain .sh span { color: var(--dim); font-size: 11px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.socPosts { flex: 1; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column-reverse; gap: 8px; min-height: 0; }
+.socPosts .po { display: flex; gap: 8px; } .socPosts .av { width: 28px; height: 28px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.socPosts .pb { min-width: 0; } .socPosts .pb b { font-size: 12px; } .socPosts .pb i { font-style: normal; color: var(--dim2); font-size: 10px; margin-left: 6px; }
+.socPosts .pb p { margin: 2px 0 0; font-size: 12px; color: #d3d7dd; white-space: pre-wrap; word-break: break-word; }
+.socPosts .none { color: var(--dim); font-size: 12px; text-align: center; margin: auto; }
+.socComp { display: flex; gap: 6px; padding: 5px 10px; border-top: 1px solid var(--line); flex: none; } .socComp .inp { flex: 1; }

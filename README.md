@@ -838,6 +838,23 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.78 / AML Multiplayer 1.3 / CoopFusion32 1.1
+- Neon main menu, Browse servers: the rows of "Choose your server" and the SELECTED SERVER card no longer draw a logo tile with the server's initials. They draw the server's `bg_server.jar` picture (the same pictures as the MP launcher rows), cover-cropped, with a soft fade on the right edge so the name and gamemode text stay readable. The initials tile is only a fallback while a picture is still loading.
+- **CoopFusion32** (`coopfusion/CoopFusion32`, by our new collaborator) is now part of MP: an AML co-op mod for GTA SA 2.00 32-bit (`net.coopfusion32.mobile`, needs SAUtils 1.6). Built by the **CoopFusion32** workflow (`.github/workflows/coopfusion.yml`, NDK r27), shipped as `bin/libCoopFusion32.so`. 1.1 adds:
+  - combat sync: a death is sent with the last player who hurt you and the weapon, the server answers `KILL|killer|name|victim|name|weapon` to everyone, and a kill feed is drawn top right (gun damage was already synced);
+  - a server list answer (`INFO|name|players|max|1.1`), LAN discovery on port+1 (`COOP_DISCOVER`) and the host's name ("<name>'s co-op");
+  - `AutoConnect=1` in `[CoopFusion]` of `configs/net.coopfusion32.mobile.ini`: the game joins the co-op server on its own once the world is loaded (used by AML Multiplayer);
+  - `server/index.mjs`: `NAME` / `MAX_PLAYERS`, the same INFO / KILL / discovery answers. Public co-op servers go into `coopfusion/servers.json`.
+- **AML Multiplayer 1.3** (`com.christe.mp`):
+  - **Add GTA SA**: the GTA SA game can be added to AML Multiplayer itself (pick the GTA SA APK, Replace / Remove later), so it can connect even when the GTA SA app is not installed or its check is strict.
+  - The OBB fix, the same way the GTA SA Mobile AML loaders (32 / 64) do it: the game reads its files from AML Multiplayer's own storage folder through the fastman92 settings in the manifest, so it no longer asks for the GTA SA OBB.
+  - "OBB" is gone from the pages: the page is **Storage** (was Storage & OBB), and the texts say "game files".
+  - **Co-op** tab (after open.mp): the CoopFusion32 servers (`coopfusion/servers.json`, your own added with + Add, LAN co-op servers found on Wi-Fi) with players / max / ping. Connect copies `libCoopFusion32.so` into AML Multiplayer's mods folder, writes the server into its ini with `AutoConnect=1`, and starts GTA SA without libMP for that game (normal servers put libMP back). Co-op is crossplay: AML Multiplayer players and players with the stock AML GTA SA + CoopFusion32 play on the same servers. It needs the 32-bit game (GTA SA 2.00); on a 64-bit-only game AML Multiplayer says so.
+  - **Communities** is now MP Social: the real communities and their text channels and posts (the same as Moquil), with Join / Leave, a composer, and Discord / YouTube links, not a server list.
+  - Server rows: the `bg_server` picture fades out on its right edge and no longer runs under the Gamemode text.
+  - About: the source GitHub link is removed (Help > GitHub is now the YouTube channel). Credits list CoopFusion32 and MP Social.
+- Not touched: the loading screens, the neon join and < Spawn >.
+
 ### 5.02.77
 - Neon main menu languages: picking a language in the language pill (or Settings > Language) now changes the neon menu itself. Before, the neon title menu and its pages drew their words out of ASCII-only font pictures and never asked the language tables, so they stayed English whatever you picked. Now every neon text goes through the MP language. Words the menu draws in CAPITALS ("SETTINGS", "JOIN SERVER") are found too: the lookup ignores case and the translation comes back in capitals. The letters each language needs (accents, Cyrillic, Vietnamese, Thai, Arabic, Chinese, Japanese, Korean) come from a letter picture per language that is built into libMP (`assets/MP/neon/intl/`, made by `tools/i18n/neon_intl.py`).
 - The 19 languages are complete again. The tables had about 2,780 texts, but MP draws about 4,960 today, so everything added since 3.52 stayed English in every language. `tools/i18n/en.txt` was collected again (now with the neon menu's CAPITAL words), and all 19 languages were translated again (`tools/i18n/translate.py`, plus a second pass for texts with colour codes and `%d`). What is left in English is names (vehicles, places, servers), commands and code.

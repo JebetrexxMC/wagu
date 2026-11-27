@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- AML Multiplayer 1.2 (was Christe Multiplayer, same package com.christe.mp): renamed, new icon, never a silent switch
+<!-- AML Multiplayer 1.3: the fastman92 launcher settings of the AML GTA SA loaders (LAUNCHER_* meta-data below, read
+     in the game process) so the game finds its files; "Add GTA SA" imports the AML GTA SA APK; Co-op (CoopFusion).
+     AML Multiplayer 1.2 (was Christe Multiplayer, same package com.christe.mp): renamed, new icon, never a silent switch
      to the GTA SA app; the game's native libs are unpacked into its own folder.
      Christe Multiplayer 1.1: GTA SA now runs INSIDE Christe (activity .Game, process ":game"), with the installed
      AML GTA SA's code and Christe's own OBB (Android/obb/com.christe.mp main.8/patch.8.com.christe.mp.obb).
@@ -10,8 +12,8 @@
      and Android/obb/com.christe.mp (main.<n>.com.christe.mp.obb = optional launcher resources). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.christe.mp"
-    android:versionCode="120"
-    android:versionName="1.2.0">
+    android:versionCode="130"
+    android:versionName="1.3.0">
     <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="28" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -22,8 +24,8 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-feature android:glEsVersion="0x00020000" android:required="true" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <queries>
         <package android:name="com.rockstargames.gtasa" />
         <package android:name="com.rockstargames.gtavc" />
@@ -34,6 +36,15 @@
         android:extractNativeLibs="true" android:label="AML Multiplayer" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
         android:allowBackup="false" android:hardwareAccelerated="true" android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true" android:theme="@style/Christe">
+        <meta-data android:name="APP_NAME" android:value="com.rockstargames.gtasa" />
+        <meta-data android:name="LAUNCHER_USE_LAUNCHER_SETTINGS_XML" android:value="no" />
+        <meta-data android:name="LAUNCHER_ORIGINAL_PACKAGE_NAME" android:value="com.rockstargames.gtasa" />
+        <meta-data android:name="LAUNCHER_USE_ANDROID_UNPROTECTED_DIRECTORY" android:value="no" />
+        <meta-data android:name="LAUNCHER_ANDROID_DATA_DIRECTORY" android:value="com.christe.mp" />
+        <meta-data android:name="LAUNCHER_ANDROID_OBB_DIRECTORY" android:value="com.christe.mp" />
+        <meta-data android:name="LAUNCHER_CHECK_FOR_MULTIPLE_DIRS" android:value="no" />
+        <meta-data android:name="LAUNCHER_ASSETPACKS_USED" android:value="no" />
+        <meta-data android:name="LAUNCHER_SHOW_MESSAGE_BOX_ON_APPLICATION_STARTUP" android:value="no" />
         <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask"
             android:screenOrientation="sensorLandscape"
             android:configChanges="orientation|screenSize|keyboardHidden|keyboard|screenLayout|smallestScreenSize|uiMode"

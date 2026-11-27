@@ -1,5 +1,13 @@
 # AML Multiplayer (com.christe.mp, was Christe Multiplayer)
 
+**1.3:**
+- **Add GTA SA** (Storage): the GTA SA APK can be added to AML Multiplayer, then Replace / Remove.
+- OBB fix like the GTA SA Mobile AML loaders: fastman92 settings in the manifest point the game to AML Multiplayer's own storage. "Storage & OBB" is now **Storage**; no OBB wording.
+- **Co-op** tab after open.mp: CoopFusion32 servers (`coopfusion/servers.json`, + Add, LAN discovery on 6768–6771). Connect installs `libCoopFusion32.so` in `Android/data/com.christe.mp/mods`, writes `configs/net.coopfusion32.mobile.ini` (`ServerHost`, `ServerPort`, `Nickname`, `AutoConnect=1`) and starts GTA SA without libMP. 32-bit (GTA SA 2.00) only; needs SAUtils 1.6 in mods.
+- **Communities** = MP Social channels and posts, Join / Leave, composer.
+- Server row pictures fade on the right and stop before the Gamemode text.
+- About has no source GitHub link.
+
 **1.2:**
 - Renamed AML Multiplayer, with a new icon: black, an orange SA and a pink VC tied together.
 - Connect never opens the GTA SA app on its own. The game's native libraries (lib/<abi>/ of the GTA SA APK and its splits) are unpacked into `app_gamelib/<abi>`, and readable AML mods next to GTA SA are copied into `Android/data/com.christe.mp/mods`.

@@ -25,7 +25,12 @@ public class Game extends com.rockstargames.gtasa.GTASA {
         if (gameAi == null) {
             try {
                 if (GameEnv.pkg == null || GameEnv.pkg.length() == 0) GameEnv.load(super.getApplicationInfo().dataDir);
-                gameAi = super.getPackageManager().getApplicationInfo(GameEnv.pkg, 0);
+                String a = GameEnv.apk == null ? "" : GameEnv.apk.split(":")[0];
+                if (a.startsWith(super.getApplicationInfo().dataDir)) {   // 1.3: the imported GTA SA APK, not installed
+                    android.content.pm.PackageInfo pi = super.getPackageManager().getPackageArchiveInfo(a, 0);
+                    if (pi != null) { gameAi = pi.applicationInfo; gameAi.sourceDir = a; gameAi.publicSourceDir = a; }
+                }
+                if (gameAi == null) gameAi = super.getPackageManager().getApplicationInfo(GameEnv.pkg, 0);
             } catch (Throwable t) {}
         }
         return gameAi;
@@ -56,14 +61,15 @@ public class Game extends com.rockstargames.gtasa.GTASA {
         File own = getObbDir();
         String ownDir = own != null ? own.getAbsolutePath() : sd + "/Android/obb/com.christe.mp";
         String g = GameEnv.pkg != null && GameEnv.pkg.length() > 0 ? GameEnv.pkg : "com.rockstargames.gtasa";
+        String o = "com.rockstargames.gtasa";   // 1.3: the AML loaders name the files after the original package
         String[] c = {
+            ownDir + "/" + kind + ".8." + o + ".obb",
             ownDir + "/" + kind + ".8.com.christe.mp.obb",
-            ownDir + "/" + kind + ".8." + g + ".obb",
-            sd + "/Android/obb/" + g + "/" + kind + ".8." + g + ".obb",
             sd + "/Android_unprotected/obb/" + g + "/" + kind + ".8." + g + ".obb",
+            sd + "/Android/obb/" + g + "/" + kind + ".8." + g + ".obb",
+            sd + "/GTASA/" + kind + ".8." + o + ".obb",
             sd + "/Android_unprotected/data/" + g + "/obb/" + kind + ".8." + g + ".obb",
-        };
-        if (orig != null && new File(orig).canRead()) return orig;
+        };        if (orig != null && new File(orig).canRead()) return orig;
         for (String p : c) { File f = new File(p); if (f.isFile() && f.canRead()) return p; }
         return orig != null ? orig : c[0];
     }

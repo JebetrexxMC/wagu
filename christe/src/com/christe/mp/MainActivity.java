@@ -85,7 +85,7 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(true);
         s.setAllowFileAccessFromFileURLs(true);
         s.setMediaPlaybackRequiresUserGesture(false);
-        s.setUserAgentString(s.getUserAgentString() + " AMLMultiplayer/1.2");
+        s.setUserAgentString(s.getUserAgentString() + " AMLMultiplayer/1.3");
         web.addJavascriptInterface(new Bridge(), "Christe");
         web.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView v, String url) {
@@ -207,7 +207,7 @@ public class MainActivity extends Activity {
         d.mkdirs();
         File best = null;
         File[] l = d.listFiles();
-        if (l != null) for (File f : l) if (f.getName().startsWith("main.") && f.getName().endsWith(".com.christe.mp.obb") && (best == null || f.lastModified() > best.lastModified())) best = f;
+        if (l != null) for (File f : l) if (f.getName().startsWith("main.") && f.getName().endsWith(".com.christe.mp.obb") && !f.getName().contains(".8.") && f.length() < (100L << 20) && (best == null || f.lastModified() > best.lastModified())) best = f;
         return best;
     }
     synchronized JSONObject setupDate2() {
@@ -334,7 +334,7 @@ public class MainActivity extends Activity {
                 try {
                     HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
                     c.setConnectTimeout(8000); c.setReadTimeout(12000);
-                    c.setRequestProperty("User-Agent", "AMLMultiplayer/1.2 (Android)");
+                    c.setRequestProperty("User-Agent", "AMLMultiplayer/1.3 (Android)");
                     c.setRequestProperty("Accept", "application/json, text/plain, */*");
                     code = c.getResponseCode();
                     InputStream in = code < 400 ? c.getInputStream() : c.getErrorStream();
@@ -393,6 +393,11 @@ public class MainActivity extends Activity {
                 return r;
             }
             String pkg = prefs.getString("sa_pkg", SA);
+            if (join != null && join.startsWith("coop|")) {   // 1.3: Co-op always runs in-app (CoopFusion32 instead of libMP)
+                String why = coopProblem(); if (why.length() > 0) return "nocoop:" + why;
+                why = inAppProblem(pkg); if (why.length() > 0) return "noinapp:" + why;
+                return launchInApp(pkg, join, nick);
+            }
             if (!"app".equals(prefs.getString("engine", "christe"))) {
                 String why = inAppProblem(pkg);
                 if (why.length() == 0) return launchInApp(pkg, join, nick);
@@ -405,6 +410,8 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void obbCopy(final String id) { new Thread(new Runnable() { public void run() { copyGameObb(id); } }).start(); }
         @JavascriptInterface public void obbImport(String id) { importId = id; pickObb(); }
         @JavascriptInterface public void obbAccess() { askObbAccess(); }
+        @JavascriptInterface public void gameAdd(String id) { importId = id; pickApk(); }
+        @JavascriptInterface public void gameRemove() { File f = importedApk(); f.setWritable(true); f.delete(); prefs.edit().putString("gamelib_stamp", "").apply(); }
         @JavascriptInterface public void mpFiles(final String id) { new Thread(new Runnable() { public void run() { downloadMpFiles(id); } }).start(); }
         @JavascriptInterface public String engine() {
             try {
@@ -419,6 +426,10 @@ public class MainActivity extends Activity {
             } catch (Exception e) { return "{}"; }
         }
         @JavascriptInterface public void crashSeen() { prefs.edit().putLong("crash_seen", System.currentTimeMillis()).apply(); }
+        // 1.3 Co-op (CoopFusion32): server info over TCP ("INFO" -> INFO|name|players|max|version), LAN discovery over UDP
+        @JavascriptInterface public void coopInfo(final String id, final String host, final int port) { new Thread(new Runnable() { public void run() { js("window.CX_coop && CX_coop(" + q(id) + "," + coopQuery(host, port).toString() + ")"); } }).start(); }
+        @JavascriptInterface public void coopLan(final String id) { new Thread(new Runnable() { public void run() { js("window.CX_coopLan && CX_coopLan(" + q(id) + "," + coopDiscover().toString() + ")"); } }).start(); }
+        @JavascriptInterface public String coopReady() { return coopProblem(); }
         @JavascriptInterface public void lan(final String id) { new Thread(new Runnable() { public void run() { lanScan(id); } }).start(); }
         @JavascriptInterface public String playApp(String join, String nick) { return launch(prefs.getString("sa_pkg", SA), join, nick); }
         @JavascriptInterface public boolean openApp(String pkg) { return "ok".equals(launch(pkg, "", "")); }
@@ -443,12 +454,11 @@ public class MainActivity extends Activity {
     }
     // "" = the installed GTA SA can run inside AML Multiplayer, else why not (1.2: only real blockers)
     String inAppProblem(String pkg) {
-        ApplicationInfo ai;
-        try { ai = getPackageManager().getApplicationInfo(pkg, 0); }
-        catch (Exception e) { return "GTA SA (" + pkg + ") is not installed"; }
+        ApplicationInfo ai = gameAi(pkg);
+        if (ai == null) return "GTA SA is not added yet (Add GTA SA in Storage, or install the AML GTA SA)";
         String abi = proc64() ? "arm64-v8a" : "armeabi-v7a";
         if (new File(gameLibDir(abi), "libGTASA.so").isFile()) return "";
-        if (ai.nativeLibraryDir != null && new File(ai.nativeLibraryDir, "libGTASA.so").isFile() && gameAbi(pkg).startsWith(proc64() ? "arm64" : "armeabi")) return "";
+        if (!isImported(ai) && ai.nativeLibraryDir != null && new File(ai.nativeLibraryDir, "libGTASA.so").isFile() && gameAbi(pkg).startsWith(proc64() ? "arm64" : "armeabi")) return "";
         for (String apk : apks(ai)) if (zipHas(apk, "lib/" + abi + "/libGTASA.so")) return "";
         return "this GTA SA has no " + abi + " game (" + (proc64() ? "this phone needs GTA SA 2.10, 64-bit" : "this phone needs GTA SA 2.00, 32-bit") + ")";
     }
@@ -457,14 +467,39 @@ public class MainActivity extends Activity {
         if (ai.splitSourceDirs != null) for (String x : ai.splitSourceDirs) l.add(x);
         return l;
     }
+    // 1.3: "Add GTA SA" - the AML GTA SA APK picked by the player, copied into AML Multiplayer (read-only: Android 14
+    // only loads code from read-only files). With it GTA SA does not have to be installed at all.
+    File importedApk() { return new File(getDir("game", MODE_PRIVATE), "gtasa.apk"); }
+    boolean isImported(ApplicationInfo ai) { return ai != null && importedApk().getAbsolutePath().equals(ai.sourceDir); }
+    ApplicationInfo gameAi(String pkg) {
+        File imp = importedApk();
+        if (imp.isFile() && !"installed".equals(prefs.getString("game_src", ""))) {
+            try {
+                PackageInfo pi = getPackageManager().getPackageArchiveInfo(imp.getAbsolutePath(), 0);
+                if (pi != null) { ApplicationInfo ai = pi.applicationInfo; ai.sourceDir = ai.publicSourceDir = imp.getAbsolutePath(); ai.splitSourceDirs = null; ai.nativeLibraryDir = null; return ai; }
+            } catch (Exception e) {}
+        }
+        try { return getPackageManager().getApplicationInfo(pkg, 0); } catch (Exception e) {}
+        return null;
+    }
+    // 1.3: the game files folder for the fastman92 settings, relative to Android/obb (see GameEnv)
+    String obbDirFor() {
+        String sd = Environment.getExternalStorageDirectory().getAbsolutePath(), o = "com.rockstargames.gtasa", g = prefs.getString("sa_pkg", SA);
+        if (ownObbFile("main").isFile()) return getPackageName();
+        if (new File(sd + "/Android_unprotected/obb/" + g, "main.8." + g + ".obb").isFile()) return "../../Android_unprotected/obb/" + g;
+        if (new File(sd + "/Android/obb/" + g, "main.8." + g + ".obb").canRead()) return g;
+        if (new File(sd + "/GTASA", "main.8." + o + ".obb").isFile()) return "../../GTASA";
+        return getPackageName();
+    }
     File gameLibDir(String abi) { return new File(getDir("gamelib", MODE_PRIVATE), abi); }
     // 1.2: the game's native libraries (libGTASA, libAML, libImmEmulatorJ, ...) for this CPU, unpacked from its APK
     // into AML Multiplayer's own folder: it works for split APKs, compressed libs and a game installed as the other ABI
     File unpackGameLibs(String pkg, String abi) {
         File dir = gameLibDir(abi);
         try {
-            PackageInfo pi = getPackageManager().getPackageInfo(pkg, 0); ApplicationInfo ai = pi.applicationInfo;
-            String stamp = pkg + ":" + pi.lastUpdateTime + ":" + abi;
+            ApplicationInfo ai = gameAi(pkg); if (ai == null) return dir;
+            File src = new File(ai.sourceDir);
+            String stamp = ai.sourceDir + ":" + src.length() + ":" + src.lastModified() + ":" + abi;
             if (stamp.equals(prefs.getString("gamelib_stamp", "")) && new File(dir, "libGTASA.so").isFile()) return dir;
             dir.mkdirs(); for (File f : dir.listFiles()) f.delete();
             String pre = "lib/" + abi + "/"; int n = 0;
@@ -477,7 +512,7 @@ public class MainActivity extends Activity {
                 }
                 z.close();
             }
-            if (n == 0 && ai.nativeLibraryDir != null) {   // libs only in the installed folder
+            if (n == 0 && ai.nativeLibraryDir != null && new File(ai.nativeLibraryDir).isDirectory()) {   // libs only in the installed folder
                 File[] fs = new File(ai.nativeLibraryDir).listFiles();
                 if (fs != null) for (File f : fs) if (f.getName().endsWith(".so")) { copy(new FileInputStream(f), new FileOutputStream(new File(dir, f.getName()))); n++; }
             }
@@ -524,17 +559,22 @@ public class MainActivity extends Activity {
     }
     String launchInApp(String pkg, String join, String nick) {
         try {
-            ApplicationInfo ai = getPackageManager().getApplicationInfo(pkg, 0);
+            ApplicationInfo ai = gameAi(pkg);
+            if (ai == null) return "error: GTA SA is not added";
             String abi = proc64() ? "arm64-v8a" : "armeabi-v7a";
             File gl = unpackGameLibs(pkg, abi);
-            GameEnv.save(this, pkg, ai, abi, gl.getAbsolutePath());
+            migrateObb();
+            GameEnv.save(this, pkg, ai, abi, gl.getAbsolutePath(), obbDirFor());
             // AML in Christe reads Android/data/com.christe.mp/mods: libMP for this CPU goes there
             File mods = new File(gameData(), "mods"); mods.mkdirs();
             File lib = new File(mods, "libMP.so");
             String asset = proc64() ? "libs/libMP64.so" : "libs/libMP32.so";
             int ver = 0; try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; } catch (Exception e) {}
+            File off = new File(mods, "libMP.so.coop");
+            if (off.isFile() && !lib.isFile()) off.renameTo(lib);
             if (!lib.isFile() || prefs.getInt("modlib", 0) != ver) { try { copy(getAssets().open(asset), new FileOutputStream(lib)); prefs.edit().putInt("modlib", ver).apply(); } catch (Exception e) { log("libMP copy: " + e); } }
             copyGameMods(pkg, mods);
+            setupCoop(mods, join, nick);
             new File(gameData(), "files").mkdirs(); new File(gameData(), "configs").mkdirs();
             killGame();
             Intent i = new Intent().setClassName(getPackageName(), "com.christe.mp.Game");
@@ -548,6 +588,105 @@ public class MainActivity extends Activity {
             log("in-app GTA SA started: " + pkg + " join=" + join);
             return "ok";
         } catch (Exception e) { log("in-app start failed: " + e); return "error: " + e.getMessage(); }
+    }
+    // ---- 1.3 Co-op: CoopFusion32 (by our collaborator) for GTA SA 2.00, 32-bit; libMP sits out for that session ----
+    static final String COOP_LIB = "libCoopFusion32.so", COOP_INI = "net.coopfusion32.mobile.ini";
+    boolean hasAsset(String a) { try { getAssets().open(a).close(); return true; } catch (Exception e) { return false; } }
+    String coopProblem() {
+        if (proc64()) return "Co-op (CoopFusion32) is made for GTA SA 2.00 32-bit. This phone runs the 64-bit GTA SA 2.10, so it can't load it yet.";
+        if (!hasAsset("libs/" + COOP_LIB)) return "This build of AML Multiplayer has no CoopFusion32 inside.";
+        return "";
+    }
+    void setupCoop(File mods, String join, String nick) {
+        File coop = new File(mods, COOP_LIB), mp = new File(mods, "libMP.so"), off = new File(mods, "libMP.so.coop");
+        File ini = new File(new File(gameData(), "configs"), COOP_INI);
+        if (join == null || !join.startsWith("coop|")) {   // normal MP join: CoopFusion out, libMP in
+            if (coop.isFile()) coop.delete();
+            if (ini.isFile()) updateIni(ini, "AutoConnect", "0");
+            return;
+        }
+        String[] f = join.split("\\|", -1);
+        try { copy(getAssets().open("libs/" + COOP_LIB), new FileOutputStream(coop)); } catch (Exception e) { log("coop copy: " + e); }
+        if (mp.isFile()) { off.delete(); mp.renameTo(off); }
+        new File(gameData(), "configs").mkdirs();
+        String n = nick == null || nick.length() == 0 ? "Player" : nick.replaceAll("[|\\r\\n]", "_");
+        updateIni(ini, "ServerHost", f.length > 1 ? f[1] : "127.0.0.1");
+        updateIni(ini, "ServerPort", f.length > 2 ? f[2] : "6767");
+        updateIni(ini, "Nickname", n.length() > 14 ? n.substring(0, 14) : n);
+        updateIni(ini, "AutoConnect", "1");
+        boolean sau = false; File[] l = mods.listFiles(); if (l != null) for (File x : l) if (x.getName().toLowerCase().contains("sautils")) sau = true;
+        if (!sau) toast("Co-op needs SAUtils 1.6 in GTA SA's AML mods folder");
+        log("co-op session: " + join);
+    }
+    // keeps the mod's other settings (Theme, ...): only the given key in [CoopFusion] changes
+    void updateIni(File ini, String key, String val) {
+        StringBuilder out = new StringBuilder(); boolean inSec = false, done = false, hadSec = false;
+        try {
+            if (ini.isFile()) {
+                java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(ini)); String line;
+                while ((line = r.readLine()) != null) {
+                    String t = line.trim();
+                    if (t.startsWith("[")) { if (inSec && !done) { out.append(key).append(" = ").append(val).append("\n"); done = true; } inSec = t.equalsIgnoreCase("[CoopFusion]"); hadSec |= inSec; }
+                    else if (inSec && t.contains("=") && t.substring(0, t.indexOf('=')).trim().equalsIgnoreCase(key)) { if (!done) out.append(key).append(" = ").append(val).append("\n"); done = true; continue; }
+                    out.append(line).append("\n");
+                }
+                r.close();
+            }
+            if (!done) { if (!hadSec) out.append("[CoopFusion]\n"); else if (!inSec) out.append("[CoopFusion]\n"); out.append(key).append(" = ").append(val).append("\n"); }
+            write(ini, out.toString());
+        } catch (Exception e) { log("coop ini: " + e); }
+    }
+    JSONObject coopQuery(String host, int port) {
+        JSONObject o = new JSONObject();
+        try {
+            o.put("ok", false);
+            long t0 = System.nanoTime();
+            java.net.Socket so = new java.net.Socket(); so.connect(new java.net.InetSocketAddress(host, port), 2500); so.setSoTimeout(2500);
+            so.getOutputStream().write("INFO\n".getBytes("UTF-8")); so.getOutputStream().flush();
+            java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(so.getInputStream(), "UTF-8"));
+            String line = r.readLine(); so.close();
+            o.put("ms", (int) ((System.nanoTime() - t0) / 1000000L));
+            if (line != null && line.startsWith("INFO|")) {
+                String[] f = line.split("\\|", -1);
+                o.put("ok", true); o.put("name", f.length > 1 ? f[1] : host);
+                o.put("players", f.length > 2 ? parse(f[2]) : 0); o.put("max", f.length > 3 ? parse(f[3]) : 0); o.put("ver", f.length > 4 ? f[4] : "");
+            } else { o.put("ok", true); o.put("name", host); o.put("ver", "1.0"); }   // a CoopFusion 1.0 server answers nothing to INFO but is there
+        } catch (Exception e) { try { o.put("err", String.valueOf(e.getMessage())); } catch (Exception x) {} }
+        return o;
+    }
+    static int parse(String v) { try { return Integer.parseInt(v.trim()); } catch (Exception e) { return 0; } }
+    JSONArray coopDiscover() {
+        JSONArray out = new JSONArray();
+        try {
+            DatagramSocket s = new DatagramSocket(); s.setBroadcast(true); s.setSoTimeout(200);
+            byte[] q = "COOP_DISCOVER".getBytes("UTF-8");
+            java.util.LinkedHashSet<String> hosts = new java.util.LinkedHashSet<String>();
+            hosts.add("255.255.255.255"); hosts.add("192.168.43.1"); hosts.add("192.168.49.1"); hosts.add("172.20.10.1"); hosts.add("127.0.0.1");
+            try {
+                for (Enumeration<java.net.NetworkInterface> en = java.net.NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
+                    java.net.NetworkInterface ni = en.nextElement();
+                    if (!ni.isUp() || ni.isLoopback()) continue;
+                    for (java.net.InterfaceAddress ia : ni.getInterfaceAddresses()) if (ia.getBroadcast() != null) hosts.add(ia.getBroadcast().getHostAddress());
+                }
+            } catch (Exception e) {}
+            for (int port = 6768; port <= 6771; port++) for (String h : hosts) { try { s.send(new DatagramPacket(q, q.length, InetAddress.getByName(h), port)); } catch (Exception e) {} }
+            java.util.HashSet<String> seen = new java.util.HashSet<String>();
+            long end = System.currentTimeMillis() + 1600; byte[] b = new byte[512];
+            while (System.currentTimeMillis() < end) {
+                DatagramPacket p = new DatagramPacket(b, b.length);
+                try { s.receive(p); } catch (Exception e) { continue; }
+                String m = new String(b, 0, p.getLength(), "UTF-8").trim();
+                if (!m.startsWith("COOP_HERE|")) continue;
+                String[] f = m.split("\\|", -1); if (f.length < 3) continue;
+                String host = p.getAddress().getHostAddress(); if (!seen.add(host + ":" + f[2])) continue;
+                JSONObject o = new JSONObject();
+                o.put("host", host); o.put("name", f[1]); o.put("port", parse(f[2]));
+                o.put("players", f.length > 3 ? parse(f[3]) : 0); o.put("max", f.length > 4 ? parse(f[4]) : 0); o.put("ver", f.length > 5 ? f[5] : "");
+                out.put(o);
+            }
+            s.close();
+        } catch (Exception e) {}
+        return out;
     }
     void killGame() {
         try {
@@ -563,12 +702,21 @@ public class MainActivity extends Activity {
         String sd = Environment.getExternalStorageDirectory().getAbsolutePath(), g = prefs.getString("sa_pkg", SA), n = kind + ".8." + g + ".obb";
         String[] dirs = { sd + "/Android/obb/" + g, sd + "/Android_unprotected/obb/" + g, sd + "/Android_unprotected/data/" + g + "/obb" };
         for (String d : dirs) { File f = new File(d, n); if (f.isFile() && f.canRead()) return f; }
-        return null;
+        File f = new File(sd + "/GTASA", kind + ".8.com.rockstargames.gtasa.obb");
+        return f.isFile() && f.canRead() ? f : null;
     }
-    File ownObbFile(String kind) { File d = getObbDir(); if (d == null) d = new File(Environment.getExternalStorageDirectory(), "Android/obb/" + getPackageName()); d.mkdirs(); return new File(d, kind + ".8.com.christe.mp.obb"); }
+    File ownObbFile(String kind) { File d = getObbDir(); if (d == null) d = new File(Environment.getExternalStorageDirectory(), "Android/obb/" + getPackageName()); d.mkdirs(); return new File(d, kind + ".8.com.rockstargames.gtasa.obb"); }
+    // 1.3: the AML loaders open <kind>.8.com.rockstargames.gtasa.obb; 1.1/1.2 saved <kind>.8.com.christe.mp.obb
+    void migrateObb() {
+        for (String k : OBB_KIND) {
+            File n = ownObbFile(k), old = new File(n.getParentFile(), k + ".8.com.christe.mp.obb");
+            if (old.isFile() && !n.isFile()) old.renameTo(n);
+        }
+    }
     JSONObject obbStatus() {
         JSONObject o = new JSONObject();
         try {
+            migrateObb();
             for (String k : OBB_KIND) {
                 JSONObject e = new JSONObject();
                 File own = ownObbFile(k), g = gameObb(k);
@@ -577,7 +725,11 @@ public class MainActivity extends Activity {
                 o.put(k, e);
             }
             o.put("ready", ownObbFile("main").isFile() || gameObb("main") != null);
-            o.put("canAsk", Build.VERSION.SDK_INT >= 26);
+            o.put("canAsk", Build.VERSION.SDK_INT >= 23);
+            ApplicationInfo ai = gameAi(prefs.getString("sa_pkg", SA));
+            o.put("gameAdded", ai != null); o.put("gameImported", isImported(ai));
+            if (ai != null) { File a = new File(ai.sourceDir); o.put("gameSize", a.length()); }
+            o.put("gameNeed", proc64() ? "GTA SA 2.10 AML (64-bit)" : "GTA SA 2.00 AML (32-bit)");
         } catch (Exception e) {}
         return o;
     }
@@ -587,7 +739,7 @@ public class MainActivity extends Activity {
     void copyGameObb(String id) {
         long total = 0, done = 0;
         for (String k : OBB_KIND) { File g = gameObb(k); if (g != null) total += g.length(); }
-        if (total == 0) { progress(id, "error", 0, 0, "The GTA SA OBB can't be read from here. Allow access or import the files."); return; }
+        if (total == 0) { progress(id, "error", 0, 0, "The GTA SA game files can't be read from here. Allow access or import the files."); return; }
         try {
             for (String k : OBB_KIND) {
                 File g = gameObb(k); if (g == null) continue;
@@ -599,11 +751,42 @@ public class MainActivity extends Activity {
                 in.close(); out.close();
                 o.delete(); tmp.renameTo(o);
             }
-            progress(id, "done", total, total, "OBB ready");
+            progress(id, "done", total, total, "Game files ready");
         } catch (Exception e) { progress(id, "error", done, total, String.valueOf(e.getMessage())); }
     }
     String importId = "";
-    static final int REQ_OBB = 41;
+    static final int REQ_OBB = 41, REQ_APK = 42;
+    void pickApk() {
+        runOnUiThread(new Runnable() { public void run() {
+            try {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+                startActivityForResult(i, REQ_APK);
+            } catch (Exception e) { toast("No file picker on this phone"); }
+        }});
+    }
+    void importApk(final Uri uri, final String id) {
+        new Thread(new Runnable() { public void run() {
+            File to = importedApk(), tmp = new File(to.getPath() + ".part");
+            long total = 0, done = 0;
+            try {
+                try { Cursor c = getContentResolver().query(uri, null, null, null, null); if (c != null && c.moveToFirst()) total = c.getLong(c.getColumnIndex(OpenableColumns.SIZE)); if (c != null) c.close(); } catch (Exception e) {}
+                InputStream in = getContentResolver().openInputStream(uri); OutputStream out = new FileOutputStream(tmp);
+                byte[] b = new byte[1 << 20]; int r; long last = 0;
+                while ((r = in.read(b)) > 0) { out.write(b, 0, r); done += r; if (done - last > (4 << 20)) { last = done; progress(id, "copy", done, total, "GTA SA"); } }
+                in.close(); out.close();
+                String abi = proc64() ? "arm64-v8a" : "armeabi-v7a";
+                PackageInfo pi = getPackageManager().getPackageArchiveInfo(tmp.getAbsolutePath(), 0);
+                if (pi == null) { tmp.delete(); progress(id, "error", 0, 0, "That file is not an APK"); return; }
+                if (!zipHas(tmp.getAbsolutePath(), "lib/" + abi + "/libGTASA.so")) { tmp.delete(); progress(id, "error", 0, 0, "This GTA SA has no " + abi + " game. This phone needs " + (proc64() ? "GTA SA 2.10 AML (64-bit)" : "GTA SA 2.00 AML (32-bit)")); return; }
+                if (!dexHas(tmp.getAbsolutePath(), "com/fastman92/main_activity_launcher")) log("imported APK has no fastman92 launcher code: " + pi.packageName);
+                if (to.isFile()) { to.setWritable(true); to.delete(); }
+                tmp.renameTo(to); to.setReadOnly();
+                prefs.edit().putString("game_src", "imported").putString("gamelib_stamp", "").apply();
+                log("GTA SA added: " + pi.packageName + " " + pi.versionName + " " + to.length());
+                progress(id, "done", done, done, "GTA SA " + (pi.versionName == null ? "" : pi.versionName) + " added");
+            } catch (Exception e) { tmp.delete(); progress(id, "error", done, total, String.valueOf(e.getMessage())); }
+        }}).start();
+    }
     void pickObb() {
         runOnUiThread(new Runnable() { public void run() {
             try {
@@ -615,6 +798,10 @@ public class MainActivity extends Activity {
     }
     @Override protected void onActivityResult(int req, int res, final Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == REQ_APK) {
+            if (res != RESULT_OK || data == null || data.getData() == null) { progress(importId, "cancel", 0, 0, ""); return; }
+            importApk(data.getData(), importId); return;
+        }
         if (req != REQ_OBB) return;
         if (res != RESULT_OK || data == null) { progress(importId, "cancel", 0, 0, ""); return; }
         final java.util.ArrayList<Uri> uris = new java.util.ArrayList<Uri>();
@@ -640,14 +827,14 @@ public class MainActivity extends Activity {
                     while ((r = in.read(b)) > 0) { out.write(b, 0, r); done += r; if (done - last > (8 << 20)) { last = done; progress(id, "copy", done, total, kind); } }
                     in.close(); out.close(); o.delete(); tmp.renameTo(o); ok++;
                 }
-                progress(id, ok > 0 ? "done" : "error", total, total, ok > 0 ? ok + " OBB file(s) imported" : "Pick main.8...obb / patch.8...obb");
+                progress(id, ok > 0 ? "done" : "error", total, total, ok > 0 ? ok + " game file(s) imported" : "Pick the main.8 / patch.8 game files");
             } catch (Exception e) { progress(id, "error", done, total, String.valueOf(e.getMessage())); }
         }}).start();
     }
     void askObbAccess() {
         runOnUiThread(new Runnable() { public void run() {
             try {
-                if (Build.VERSION.SDK_INT >= 23 && Build.VERSION.SDK_INT <= 32) requestPermissions(new String[] { "android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE" }, 7);
+                if (Build.VERSION.SDK_INT >= 23) requestPermissions(new String[] { "android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE" }, 7);
                 // Android 11+: an app allowed to install apps may read other apps' Android/obb
                 if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls())
                     startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName())));
@@ -661,7 +848,7 @@ public class MainActivity extends Activity {
         long done = 0, total = 0; int n = 0;
         try {
             HttpURLConnection c = (HttpURLConnection) new URL("https://raw.githubusercontent.com/JebetrexxMC/wagu/main/assets/MP/MP.zip").openConnection();
-            c.setConnectTimeout(10000); c.setReadTimeout(30000); c.setRequestProperty("User-Agent", "AMLMultiplayer/1.2 (Android)");
+            c.setConnectTimeout(10000); c.setReadTimeout(30000); c.setRequestProperty("User-Agent", "AMLMultiplayer/1.3 (Android)");
             total = c.getContentLength();
             final long[] got = { 0 };
             final long tot = total; final String fid = id;
