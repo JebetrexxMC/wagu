@@ -8,11 +8,11 @@ LOCAL_SRC_FILES := \
     coopfusion/runtime.cpp \
     coopfusion/ui/ui_common.cpp \
     coopfusion/ui/fx.cpp \
-    $(call all-cpp-files-under,coopfusion/transport) \
-    $(call all-cpp-files-under,coopfusion/world) \
-    $(call all-cpp-files-under,coopfusion/diagnostics) \
-    $(call all-cpp-files-under,coopfusion/platform/mod) \
-    $(call all-cpp-files-under,imgui)
+    $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/coopfusion/transport/*.cpp)) \
+    $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/coopfusion/world/*.cpp)) \
+    $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/coopfusion/diagnostics/*.cpp)) \
+    $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/coopfusion/platform/mod/*.cpp)) \
+    $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/imgui/*.cpp))
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH) \
