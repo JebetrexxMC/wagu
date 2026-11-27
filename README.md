@@ -838,6 +838,12 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### AML Multiplayer 1.4.1
+- **One APK again**: `AMLMultiplayer-32bit.apk` is gone. `AMLMultiplayer.apk` carries both MP builds (`lib/arm64-v8a/libMP64.so` and `lib/armeabi-v7a/libMP32.so`).
+- A GTA SA with no arm64-v8a (GTA SA 2.00, 32-bit) works on a 64-bit phone. AML Multiplayer reinstalls its own APK in 32-bit mode, with Android's CPU override (the same as `adb install --abi armeabi-v7a`), and Android keeps that mode for later updates. Switching back to 64-bit works the same way. Nothing is downloaded, and settings, game files and the added GTA SA stay. If an Android build blocks the override, the app shows the `adb install --abi` command instead.
+- Add GTA SA takes any GTA SA AML .apk: 2.10 (64-bit) or 2.00 (32-bit). Settings > Storage > **CPU mode** shows the mode and the Switch button.
+- Not touched: the loading screens, the neon join and < Spawn >.
+
 ### AML Multiplayer 1.4
 - **AML Multiplayer 32-bit**: a GTA SA with no arm64-v8a (32-bit only, GTA SA 2.00) can now be added on a 64-bit phone too. Android gives an app one CPU mode, so AML Multiplayer now comes in two editions of the same app (`com.christe.mp`): the normal one (64-bit on 64-bit phones, GTA SA 2.10) and `AMLMultiplayer-32bit.apk` (libMP32 in `lib/armeabi-v7a`, so the whole app and the game run 32-bit).
 - Add GTA SA no longer turns down an APK built for the other CPU. It checks what the APK has (`lib/arm64-v8a`, `lib/armeabi-v7a` or both), keeps it, and offers **Switch to 32-bit** (or back to 64-bit).

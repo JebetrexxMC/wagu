@@ -1,5 +1,8 @@
 # AML Multiplayer (com.christe.mp, was Christe Multiplayer)
 
+**1.4.1:**
+- One APK: `lib/arm64-v8a/libMP64.so` + `lib/armeabi-v7a/libMP32.so`. For a GTA SA with no arm64-v8a the app reinstalls its own APK with the 32-bit CPU override (hidden `SessionParams.abiOverride`, like `adb install --abi armeabi-v7a`); Android keeps it for updates. No second APK, no download.
+
 **1.4:**
 - Two editions of the same app: `AMLMultiplayer.apk` (64-bit on 64-bit phones, GTA SA 2.10 arm64-v8a) and `AMLMultiplayer-32bit.apk` (`EDITION=32`, libMP32 in `lib/armeabi-v7a`, runs GTA SA 2.00 armeabi-v7a on 64-bit phones).
 - Add GTA SA accepts a GTA SA with no arm64-v8a and offers to switch. The app downloads the other edition from the `aml-multiplayer-<version>` release and installs it over itself (PackageInstaller); data stays.

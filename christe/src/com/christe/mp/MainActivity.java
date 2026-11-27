@@ -452,14 +452,14 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 23) return android.os.Process.is64Bit();
         String a = System.getProperty("os.arch", ""); return a.contains("64");
     }
-    // ---- 1.4: editions. Android fixes one CPU mode per app: the normal AML Multiplayer runs 64-bit on a 64-bit phone
-    // (GTA SA 2.10, arm64-v8a), AML Multiplayer 32-bit (same app, lib/armeabi-v7a inside) runs 32-bit (GTA SA 2.00).
-    // A GTA SA with no arm64-v8a is still added; the app then offers to switch to the 32-bit edition (and back).
-    static final String ED_URL = "https://github.com/JebetrexxMC/wagu/releases/download/aml-multiplayer-%s/%s";
+    // ---- 1.4: one APK, two CPU modes. Android runs an app in one CPU mode, picked at install. AML Multiplayer carries
+    // lib/arm64-v8a/libMP64.so and lib/armeabi-v7a/libMP32.so, and for a GTA SA with no arm64-v8a (GTA SA 2.00) it
+    // reinstalls its own APK with the 32-bit CPU override (the same as "adb install --abi armeabi-v7a"); Android keeps
+    // that override for later updates. Switching back reinstalls with arm64-v8a. Nothing is downloaded.
     static boolean has32() { return Build.VERSION.SDK_INT >= 21 && Build.SUPPORTED_32_BIT_ABIS != null && Build.SUPPORTED_32_BIT_ABIS.length > 0; }
     static boolean has64() { return Build.VERSION.SDK_INT >= 21 && Build.SUPPORTED_64_BIT_ABIS != null && Build.SUPPORTED_64_BIT_ABIS.length > 0; }
     static String procAbi() { return proc64() ? "arm64-v8a" : "armeabi-v7a"; }
-    String edition() { return proc64() ? "64" : (has64() ? "32" : "32only"); }   // 32only = a 32-bit phone (one edition fits)
+    String edition() { return proc64() ? "64" : (has64() ? "32" : "32only"); }   // 32only = a 32-bit phone
     // which game CPUs a GTA SA has: "64", "32", "both" or ""
     static String apkAbis(java.util.List<String> apks) {
         boolean a64 = false, a32 = false;
@@ -476,50 +476,48 @@ public class MainActivity extends Activity {
         return has64() ? "64" : "no64";
     }
     static String editionText(String need) {
-        if ("32".equals(need)) return "This GTA SA is 32-bit only (no arm64-v8a, GTA SA 2.00). Switch to AML Multiplayer 32-bit to play it. Your settings, game files and the added GTA SA stay.";
-        if ("64".equals(need)) return "This GTA SA is 64-bit only (arm64-v8a, GTA SA 2.10). Switch back to the normal AML Multiplayer (64-bit) to play it.";
+        if ("32".equals(need)) return "This GTA SA is 32-bit (GTA SA 2.00, no arm64-v8a). AML Multiplayer switches itself to 32-bit mode to run it: Android asks once to reinstall AML Multiplayer, your settings, game files and the added GTA SA stay.";
+        if ("64".equals(need)) return "This GTA SA is 64-bit (GTA SA 2.10, arm64-v8a). AML Multiplayer switches itself back to 64-bit mode to run it: Android asks once to reinstall AML Multiplayer, everything stays.";
         if ("no32".equals(need)) return "This GTA SA is 32-bit only, and this phone can't run 32-bit apps at all. Add GTA SA 2.10 (64-bit, arm64-v8a).";
         if ("no64".equals(need)) return "This GTA SA is 64-bit only, and this phone is 32-bit. Add GTA SA 2.00 (32-bit, armeabi-v7a).";
         return "";
     }
-    // downloads the other edition from the AML Multiplayer release and installs it over this one (same app, data kept)
+    // reinstalls this same APK in the other CPU mode (no download)
     void switchEdition(final String id, final String to) {
         new Thread(new Runnable() { public void run() {
-            String file = "32".equals(to) ? "AMLMultiplayer-32bit.apk" : "AMLMultiplayer.apk";
-            String ver = ""; try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName.replaceAll("\\.0$", ""); } catch (Exception e) {}   // 1.4.0 -> release aml-multiplayer-1.4
-            File apk = new File(getExternalCacheDir() != null ? getExternalCacheDir() : getCacheDir(), file), tmp = new File(apk.getPath() + ".part");
-            long done = 0, total = 0;
             try {
-                String[] urls = { String.format(ED_URL, ver, file), "https://github.com/JebetrexxMC/wagu/releases/latest/download/" + file };
-                HttpURLConnection c = null;
-                for (String u : urls) {
-                    c = (HttpURLConnection) new URL(u).openConnection(); c.setInstanceFollowRedirects(true); c.setConnectTimeout(15000); c.setReadTimeout(30000);
-                    if (c.getResponseCode() == 200) break; c.disconnect(); c = null;
-                }
-                if (c == null) { progress(id, "error", 0, 0, "The " + ("32".equals(to) ? "32-bit" : "64-bit") + " edition isn't online yet"); return; }
-                total = c.getContentLength();
-                InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(tmp);
-                byte[] b = new byte[1 << 16]; int n; long last = 0;
-                while ((n = in.read(b)) > 0) { out.write(b, 0, n); done += n; if (done - last > (2 << 20)) { last = done; progress(id, "copy", done, total, "AML Multiplayer " + ("32".equals(to) ? "32-bit" : "64-bit")); } }
-                in.close(); out.close(); apk.delete(); tmp.renameTo(apk);
-                PackageInfo pi = getPackageManager().getPackageArchiveInfo(apk.getAbsolutePath(), 0);
-                if (pi == null || !getPackageName().equals(pi.packageName)) { apk.delete(); progress(id, "error", 0, 0, "The download is not AML Multiplayer"); return; }
+                File apk = new File(getApplicationInfo().sourceDir);
+                progress(id, "copy", 0, apk.length(), "32".equals(to) ? "32-bit mode" : "64-bit mode");
                 prefs.edit().putString("edition_to", to).commit();
-                progress(id, "done", done, done, "Installing AML Multiplayer " + ("32".equals(to) ? "32-bit" : "64-bit") + "...");
-                installApk(apk);
-            } catch (Exception e) { tmp.delete(); progress(id, "error", done, total, String.valueOf(e.getMessage())); }
+                installApk(apk, "32".equals(to) ? "armeabi-v7a" : "arm64-v8a", id);
+            } catch (Exception e) { progress(id, "error", 0, 0, String.valueOf(e.getMessage())); }
         }}).start();
     }
+    // the hidden SessionParams.abiOverride ("pm install --abi"); lifts the hidden-API check first if needed
+    static boolean setAbiOverride(Object sp, String abi) {
+        try { sp.getClass().getField("abiOverride").set(sp, abi); return true; } catch (Throwable t) {}
+        try {
+            java.lang.reflect.Method forName = Class.class.getDeclaredMethod("forName", String.class);
+            java.lang.reflect.Method gdm = Class.class.getDeclaredMethod("getDeclaredMethod", String.class, Class[].class);
+            Class<?> vm = (Class<?>) forName.invoke(null, "dalvik.system.VMRuntime");
+            java.lang.reflect.Method rt = (java.lang.reflect.Method) gdm.invoke(vm, "getRuntime", null);
+            java.lang.reflect.Method ex = (java.lang.reflect.Method) gdm.invoke(vm, "setHiddenApiExemptions", new Class[] { String[].class });
+            ex.invoke(rt.invoke(null), new Object[] { new String[] { "L" } });
+            sp.getClass().getField("abiOverride").set(sp, abi); return true;
+        } catch (Throwable t) { return false; }
+    }
     static final String ACT_INSTALLED = "com.christe.mp.INSTALL_STATUS";
-    void installApk(File apk) throws Exception {
+    void installApk(File apk, String abi, String id) throws Exception {
         if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
             toast("Allow AML Multiplayer to install apps, then tap Switch again");
             startActivity(new Intent("android.settings.MANAGE_UNKNOWN_APP_SOURCES", Uri.parse("package:" + getPackageName())));
+            progress(id, "error", 0, 0, "Allow \"Install unknown apps\" for AML Multiplayer, then tap Switch again");
             return;
         }
         android.content.pm.PackageInstaller pk = getPackageManager().getPackageInstaller();
         android.content.pm.PackageInstaller.SessionParams sp = new android.content.pm.PackageInstaller.SessionParams(android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL);
         sp.setAppPackageName(getPackageName()); sp.setSize(apk.length());
+        if (!setAbiOverride(sp, abi)) { progress(id, "error", 0, 0, "This Android doesn't let AML Multiplayer change its CPU mode. On a PC: adb install -r --abi " + abi + " AMLMultiplayer.apk"); return; }
         int sid = pk.createSession(sp);
         android.content.pm.PackageInstaller.Session se = pk.openSession(sid);
         InputStream in = new FileInputStream(apk); OutputStream out = se.openWrite("base.apk", 0, apk.length());
@@ -529,6 +527,7 @@ public class MainActivity extends Activity {
         int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? (1 << 25) : 0);   // FLAG_MUTABLE: the installer adds its status
         se.commit(PendingIntent.getActivity(this, sid, i, fl).getIntentSender());
         se.close();
+        progress(id, "done", apk.length(), apk.length(), "Android asks to reinstall AML Multiplayer in " + ("armeabi-v7a".equals(abi) ? "32-bit" : "64-bit") + " mode");
     }
     // the installer's answer (singleTask: onNewIntent)
     boolean installStatus(Intent i) {
@@ -543,11 +542,16 @@ public class MainActivity extends Activity {
         }
         return true;
     }
-    // the MP library for this process: assets/libs (normal edition) or lib/armeabi-v7a (32-bit edition)
+    // the MP library: lib/<abi>/ inside this APK (both CPUs are in it; Android only unpacks the current one)
     InputStream mpLib(boolean is64) throws Exception {
-        String n = is64 ? "libMP64.so" : "libMP32.so";
-        try { return getAssets().open("libs/" + n); } catch (Exception e) {}
-        return new FileInputStream(new File(getApplicationInfo().nativeLibraryDir, n));
+        String n = is64 ? "libMP64.so" : "libMP32.so", abi = is64 ? "arm64-v8a" : "armeabi-v7a";
+        File f = new File(getApplicationInfo().nativeLibraryDir, n); if (f.isFile()) return new FileInputStream(f);
+        try {
+            final ZipFile z = new ZipFile(getApplicationInfo().sourceDir); java.util.zip.ZipEntry e = z.getEntry("lib/" + abi + "/" + n);
+            if (e != null) return new java.io.FilterInputStream(z.getInputStream(e)) { @Override public void close() throws java.io.IOException { super.close(); z.close(); } };
+            z.close();
+        } catch (Exception e) {}
+        return getAssets().open("libs/" + n);   // older builds
     }
     // "" = the installed GTA SA can run inside AML Multiplayer, else why not (1.2: only real blockers)
     String inAppProblem(String pkg) {
@@ -790,7 +794,7 @@ public class MainActivity extends Activity {
             ApplicationInfo ai = gameAi(prefs.getString("sa_pkg", SA));
             o.put("gameAdded", ai != null); o.put("gameImported", isImported(ai));
             if (ai != null) { File a = new File(ai.sourceDir); o.put("gameSize", a.length()); try { PackageInfo gp = getPackageManager().getPackageArchiveInfo(a.getAbsolutePath(), 0); if (gp != null && gp.versionName != null) o.put("gameVersion", gp.versionName); } catch (Exception e) {} }
-            o.put("gameNeed", proc64() ? "GTA SA 2.10 AML (64-bit, arm64-v8a)" + (has32() ? " - a 32-bit GTA SA 2.00 works with AML Multiplayer 32-bit" : "") : has64() ? "GTA SA 2.00 AML (32-bit, armeabi-v7a) - a 64-bit GTA SA 2.10 works with the normal AML Multiplayer" : "GTA SA 2.00 AML (32-bit)");
+            o.put("gameNeed", has64() && has32() ? "any GTA SA AML .apk: 2.10 (64-bit) or 2.00 (32-bit), AML Multiplayer switches its CPU mode to fit" : has64() ? "GTA SA 2.10 AML (64-bit, this phone has no 32-bit mode)" : "GTA SA 2.00 AML (32-bit)");
             String pk = prefs.getString("sa_pkg", SA); String need = editionNeed(pk);
             o.put("edition", edition()); o.put("has32", has32()); o.put("editionNeed", need); o.put("editionText", editionText(need));
             if (ai != null) { String g = apkAbis(apks(ai)); o.put("gameAbi", "both".equals(g) ? "32-bit + 64-bit" : "64".equals(g) ? "64-bit (arm64-v8a)" : "32".equals(g) ? "32-bit only (armeabi-v7a)" : ""); }

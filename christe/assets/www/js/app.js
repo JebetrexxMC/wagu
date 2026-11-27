@@ -7,7 +7,7 @@
 (function (G, D) {
   'use strict';
   var $ = function (s, r) { return (r || D).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || D).querySelectorAll(s)); };
-  var VERSION = '1.4.0', MPVER = '5.02.79';
+  var VERSION = '1.4.1', MPVER = '5.02.79';
   var URLS = {
     lobby: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/live-status/status.json',
     f247: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/mp247-data/omp247.json',
@@ -45,7 +45,7 @@
     get: function (id, url) { fetch(url).then(function (r) { return r.text().then(function (t) { G.CX_got(id, r.status, t); }); }).catch(function (e) { G.CX_got(id, 0, String(e)); }); },
     ping: function (id) { setTimeout(function () { G.CX_ping(id, 20 + Math.round(Math.random() * 180)); }, 300); },
     play: function () { return 'ok'; }, openApp: function () { return false; }, open: function (u) { G.open(u, '_blank'); }, toast: function (t) { toast(t); }, exit: function () {}, log: function () {},
-    obb: function () { return JSON.stringify({ main: { own: 1970000000, game: 1970000000, ownPath: '/storage/emulated/0/Android/obb/com.christe.mp/main.8.com.christe.mp.obb' }, patch: { own: 0, game: 625000000, ownPath: '/storage/emulated/0/Android/obb/com.christe.mp/patch.8.com.christe.mp.obb' }, ready: true, canAsk: true, gameAdded: true, gameImported: true, gameSize: 1.6e9, gameNeed: 'GTA SA 2.10 AML (64-bit, arm64-v8a) - a 32-bit GTA SA 2.00 works with AML Multiplayer 32-bit', edition: '64', has32: true, gameAbi: '32-bit only (armeabi-v7a)', editionNeed: G.location.hash.indexOf('ed32') >= 0 ? '32' : '', editionText: 'This GTA SA is 32-bit only (no arm64-v8a, GTA SA 2.00). Switch to AML Multiplayer 32-bit to play it. Your settings, game files and the added GTA SA stay.' }); },
+    obb: function () { return JSON.stringify({ main: { own: 1970000000, game: 1970000000, ownPath: '/storage/emulated/0/Android/obb/com.christe.mp/main.8.com.christe.mp.obb' }, patch: { own: 0, game: 625000000, ownPath: '/storage/emulated/0/Android/obb/com.christe.mp/patch.8.com.christe.mp.obb' }, ready: true, canAsk: true, gameAdded: true, gameImported: true, gameSize: 1.6e9, gameNeed: 'any GTA SA AML .apk: 2.10 (64-bit) or 2.00 (32-bit), AML Multiplayer switches its CPU mode to fit', edition: '64', has32: true, gameAbi: '32-bit only (armeabi-v7a)', editionNeed: G.location.hash.indexOf('ed32') >= 0 ? '32' : '', editionText: 'This GTA SA is 32-bit (GTA SA 2.00, no arm64-v8a). AML Multiplayer switches itself to 32-bit mode to run it: Android asks once to reinstall AML Multiplayer, your settings, game files and the added GTA SA stay.' }); },
     obbCopy: function (id) { var d = 0; var t = setInterval(function () { d += 0.2; G.CX_prog(id, d >= 1 ? 'done' : 'copy', d * 2.6e9, 2.6e9, d >= 1 ? 'Game files ready' : 'main'); if (d >= 1) clearInterval(t); }, 400); },
     obbImport: function (id) { G.CX_prog(id, 'cancel', 0, 0, ''); }, obbAccess: function () {}, gameAdd: function (id) { G.CX_prog(id, 'cancel', 0, 0, ''); }, gameRemove: function () {},
     coopInfo: function (id, h, p) { setTimeout(function () { G.CX_coop(id, JSON.stringify({ ok: true, name: 'CoopFusion LAN', players: 2, max: 8, ver: '1.1', ms: 40 })); }, 300); },
@@ -350,29 +350,29 @@
     Promise.resolve(Soc.post(S.soc, t, { ch: S.socCh })).then(function (ok) { if (ok) { i.value = ''; var b = $('#socPosts'); if (b) b.innerHTML = socPostsHtml(S.soc); } else toast('Could not send (slow mode or no permission)'); });
   }
   function saReady() { return !!OBB.gameAdded; }   // 1.4: only the GTA SA added to AML Multiplayer
-  // 1.4: AML Multiplayer 32-bit. Android gives an app one CPU mode, so a GTA SA without arm64-v8a (2.00, 32-bit)
-  // runs in the 32-bit edition of AML Multiplayer (same app, installed over this one; settings and files stay).
-  function edName(e) { return e === '32' ? 'AML Multiplayer 32-bit' : 'AML Multiplayer (64-bit)'; }
+  // 1.4: one APK, two CPU modes. Android gives an app one CPU mode, so for a GTA SA without arm64-v8a (2.00, 32-bit)
+  // AML Multiplayer reinstalls itself in 32-bit mode (the same APK, nothing downloaded; settings and files stay).
+  function edName(e) { return e === '32' ? '32-bit mode' : '64-bit mode'; }
   function editionAsk(text) {
     var need = OBB.editionNeed || '';
     if (need !== '32' && need !== '64') { if (need) dialog('This GTA SA can\'t run here', '<p>' + esc(OBB.editionText || text || '') + '</p>', [['OK', 'go']]); return; }
-    dialog('Switch to ' + edName(need), '<p>' + esc(OBB.editionText || text || '') + '</p><p>AML Multiplayer downloads ' + edName(need) + ' and Android asks you to install it over this one. Tap Connect again after it opens.</p>', [['Later', ''], ['Switch', 'go']], function (i) { if (i === 1) { go('settings', 'storage'); job('edition', need); } });
+    dialog('Switch to ' + edName(need), '<p>' + esc(OBB.editionText || text || '') + '</p><p>Android asks once to reinstall AML Multiplayer in ' + edName(need) + '. Open it again and tap Connect.</p>', [['Later', ''], ['Switch', 'go']], function (i) { if (i === 1) { go('settings', 'storage'); job('edition', need); } });
   }
   function editionCard() {
     var j = S.job && S.job.kind === 'edition' ? S.job : null, need = OBB.editionNeed || '', ed = OBB.edition || '';
     var other = ed === '64' ? '32' : ed === '32' ? '64' : '';
-    var st = '<span class="st-ok">' + (ed === '32' ? 'AML Multiplayer 32-bit (GTA SA 2.00, armeabi-v7a)' : ed === '32only' ? '32-bit phone (GTA SA 2.00, armeabi-v7a)' : 'AML Multiplayer 64-bit (GTA SA 2.10, arm64-v8a)') + '</span>';
+    var st = '<span class="st-ok">' + (ed === '32' ? '32-bit mode (GTA SA 2.00, armeabi-v7a)' : ed === '32only' ? '32-bit phone (GTA SA 2.00, armeabi-v7a)' : '64-bit mode (GTA SA 2.10, arm64-v8a)') + '</span>';
     if (OBB.gameAbi) st += '<br>Added GTA SA: ' + esc(OBB.gameAbi);
     if (need) st += '<br><span class="st-bad">' + esc(OBB.editionText || '') + '</span>';
     var btn = other && (need === other || !need) ? '<button class="btn sm' + (need ? ' go' : '') + '" data-act="edition"' + (S.job ? ' disabled' : '') + '>' + ic('download') + 'Switch to ' + (other === '32' ? '32-bit' : '64-bit') + '</button>' : '';
     if (ed === '64' && OBB.has32 === false) btn = '';
-    return '<div class="card"><h3>Edition</h3>' + opt('CPU edition', st + '<br>A GTA SA with no arm64-v8a (32-bit only) runs in AML Multiplayer 32-bit, the same app installed over this one.' +
+    return '<div class="card"><h3>CPU mode</h3>' + opt('CPU mode', st + '<br>One AML Multiplayer for both: a GTA SA with no arm64-v8a runs in 32-bit mode. Switching reinstalls this same app (Android asks once), nothing is downloaded.' +
       (j ? '<div class="prog"><i style="width:' + (j.total ? Math.round(j.done * 100 / j.total) : 0) + '%"></i></div><span id="jobMsg">' + esc(j.msg || '') + '</span>' : ''), btn) + '</div>';
   }
   function addGameCard() {
     var j = S.job && S.job.kind === 'game-add' ? S.job : null;
     var st = OBB.gameImported ? '<span class="st-ok">Added to AML Multiplayer' + (OBB.gameVersion ? ' v' + esc(OBB.gameVersion) : '') + (OBB.gameSize ? ' (' + gb(OBB.gameSize) + ')' : '') + '</span>' : '<span class="st-bad">Not added yet</span>';
-    return '<div class="card"><h3>GTA SA game</h3>' + opt('GTA San Andreas', st + '<br>This phone needs ' + esc(OBB.gameNeed || 'GTA SA AML') + '. Pick your own GTA SA .apk once: AML Multiplayer keeps its own copy and always runs that one inside; it never opens or uses the GTA SA app. (Rockstar\'s game is not shipped with AML Multiplayer, you add the copy you own.)' +
+    return '<div class="card"><h3>GTA SA game</h3>' + opt('GTA San Andreas', st + '<br>Works with ' + esc(OBB.gameNeed || 'GTA SA AML') + '. Pick your own GTA SA .apk once: AML Multiplayer keeps its own copy and always runs that one inside; it never opens or uses the GTA SA app. (Rockstar\'s game is not shipped with AML Multiplayer, you add the copy you own.)' +
       (j ? '<div class="prog"><i style="width:' + (j.total ? Math.round(j.done * 100 / j.total) : 0) + '%"></i></div><span id="jobMsg">' + esc(j.msg || '') + '</span>' : ''),
       '<button class="btn sm go" data-act="game-add"' + (S.job ? ' disabled' : '') + '>' + ic('plus') + (OBB.gameImported ? 'Replace' : 'Add GTA SA') + '</button>' + (OBB.gameImported ? '<button class="btn sm red" data-act="game-remove">Remove</button>' : '')) + '</div>';
   }
@@ -512,11 +512,11 @@
   function rowBy(k) { return k ? allRows().filter(function (r) { return r.key === k; })[0] : null; }
   function toggleFav(k) { if (S.favs[k]) delete S.favs[k]; else S.favs[k] = 1; ls('favs', S.favs); if (S.page === 'favorites') render(); else refreshPane(); }
   function job(kind, arg) {
-    if (S.job) return; var id = 'j' + (++cbn); S.job = { kind: kind, done: 0, total: 0, msg: kind === 'mp-files' ? 'Downloading MP files...' : kind === 'edition' ? 'Downloading AML Multiplayer ' + (arg === '32' ? '32-bit' : '64-bit') + '...' : 'Starting...' }; render();
+    if (S.job) return; var id = 'j' + (++cbn); S.job = { kind: kind, done: 0, total: 0, msg: kind === 'mp-files' ? 'Downloading MP files...' : kind === 'edition' ? 'Switching to ' + edName(arg) + '...' : 'Starting...' }; render();
     PROG[id] = function (state, done, total, msg) {
       if (state === 'cancel') { S.job = null; render(); return; }
       if (state === 'done' || state === 'error') { S.job = null; readInfo(); render(); toast(msg || (state === 'done' ? 'Done' : 'Failed')); if (state === 'done' && kind === 'game-add') editionAsk(); return; }
-      S.job.done = done; S.job.total = total; S.job.msg = (state === 'download' || kind === 'edition' ? 'Downloading ' : 'Copying ') + (msg || '') + ' ' + gb(done) + (total > 0 ? ' / ' + gb(total) : '');
+      S.job.done = done; S.job.total = total; S.job.msg = kind === 'edition' ? 'Preparing ' + (msg || '') : (state === 'download' ? 'Downloading ' : 'Copying ') + (msg || '') + ' ' + gb(done) + (total > 0 ? ' / ' + gb(total) : '');
       var b = $('.prog i'); if (b) b.style.width = (total ? Math.round(done * 100 / total) : 0) + '%'; var m = $('#jobMsg'); if (m) m.textContent = S.job.msg;
     };
     var fn = { 'obb-copy': 'obbCopy', 'obb-import': 'obbImport', 'mp-files': 'mpFiles', 'game-add': 'gameAdd', edition: 'editionSwitch' }[kind];
@@ -529,7 +529,7 @@
     else if (a === 'lan-scan') scanLan();
     else if (a === 'obb-copy' || a === 'obb-import' || a === 'mp-files' || a === 'game-add') job(a);
     else if (a === 'go-storage') go('settings', 'storage');
-    else if (a === 'edition') { var ot = OBB.edition === '32' ? '64' : '32'; if (OBB.editionNeed === ot) job('edition', ot); else confirmDlg('Switch edition', 'Install ' + edName(ot) + ' over this one? Your settings, game files and the added GTA SA stay. ' + (ot === '32' ? 'It runs 32-bit GTA SA 2.00 only.' : 'It runs 64-bit GTA SA 2.10.'), 'Switch', function () { job('edition', ot); }); }
+    else if (a === 'edition') { var ot = OBB.edition === '32' ? '64' : '32'; if (OBB.editionNeed === ot) job('edition', ot); else confirmDlg('Switch CPU mode', 'Reinstall AML Multiplayer in ' + edName(ot) + '? Your settings, game files and the added GTA SA stay. ' + (ot === '32' ? 'It runs 32-bit GTA SA 2.00 only.' : 'It runs 64-bit GTA SA 2.10.'), 'Switch', function () { job('edition', ot); }); }
     else if (a === 'game-remove') confirmDlg('Remove GTA SA', 'Remove the GTA SA copy that was added to AML Multiplayer? Your game files and saves stay.', 'Remove', function () { call('gameRemove'); readInfo(); render(); });
     else if (a === 'coop-scan') loadCoop();
     else if (a === 'soc-back') { S.soc = null; render(); }
