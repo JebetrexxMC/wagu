@@ -60,6 +60,7 @@ namespace
 {
 
 uint64_t SteadyNowMs();
+static VehicleExtendedState CaptureVehicleExtendedState(CVehicle* vehicle);   // used before its definition (vehicle sync)
 
 constexpr bool kBonePoseSyncEnabled = false;
 
