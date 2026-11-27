@@ -7,51 +7,80 @@
 <link rel="stylesheet" href="css/christe.css">
 </head>
 <body>
-<!-- boot: Dragon Codex Boot style hand-off (your own date2/resources/startup.mp4, or the built-in animation) -->
+<!-- 1.1 boot = the MP loading screen (ui_bg.jpg, title.png, GAMEPLAY TIP bottom left, LOADING % bottom right) -->
 <div id="boot">
   <video id="bootVid" playsinline muted class="hide"></video>
-  <div class="bootArt" id="bootArt">
-    <div class="grid"></div>
-    <svg class="emblem" viewBox="0 0 120 120" aria-hidden="true">
-      <circle class="ring" cx="60" cy="60" r="50"/>
-      <path class="carc" d="M83 39 A31 31 0 1 0 83 81"/>
-      <path class="cross" d="M60 36 V84 M48 52 H72"/>
-    </svg>
-    <div class="bootTitle"><span>CHRISTE</span><b>MULTIPLAYER</b></div>
-    <div class="bars"><i></i><i></i><i></i><i></i><i></i></div>
-    <div class="bootStep" id="bootStep">Starting...</div>
+  <div class="ldArt" id="bootArt">
+    <div class="ldBg"></div><div class="ldVig"></div>
+    <img class="ldTitle" src="img/title.png" alt="Christe Multiplayer">
+    <div class="ldTip"><b><i>!</i>GAMEPLAY TIP</b><span id="bootTip"></span></div>
+    <div class="ldPct">LOADING... <span id="bootPct">0</span>%</div>
+    <div class="ldBar"><i id="bootBar"></i></div>
   </div>
   <button class="bootSkip" id="bootSkip">Skip</button>
 </div>
 
 <div id="app" class="hide">
-  <aside id="side">
-    <div class="brand"><img src="img/logo.png" alt=""><div><b>CHRISTE</b><span>MULTIPLAYER</span></div></div>
-    <nav id="nav">
-      <a data-page="home" class="on"><svg><use href="#i-home"/></svg>Home</a>
-      <a data-page="internet"><svg><use href="#i-globe"/></svg>Internet</a>
-      <a data-page="favorites"><svg><use href="#i-star"/></svg>Favorites</a>
-      <a data-page="explore"><svg><use href="#i-compass"/></svg>Explore Community</a>
-    </nav>
-    <div class="sideHead">COMMUNITIES</div>
-    <div id="commList" class="commList"></div>
-    <nav class="sideFoot">
-      <a data-page="about"><svg><use href="#i-info"/></svg>About</a>
-      <a data-page="settings"><svg><use href="#i-gear"/></svg>Settings</a>
-    </nav>
-  </aside>
-  <main id="main">
-    <header id="top">
-      <div class="search"><svg><use href="#i-search"/></svg><input id="q" placeholder="Search servers, communities, host:port" autocomplete="off"></div>
-      <button class="ib" id="regionBtn" title="Region"><svg><use href="#i-pin"/></svg><span id="regionLbl">Auto</span></button>
-      <button class="ib" id="refreshBtn" title="Refresh servers"><svg><use href="#i-refresh"/></svg></button>
-      <button class="ib" id="bellBtn" title="Notifications"><svg><use href="#i-bell"/></svg><i class="dot hide" id="bellDot"></i></button>
-      <button class="ib" id="gearBtn" title="Quick settings"><svg><use href="#i-gear"/></svg></button>
-      <button class="avatar" id="avatarBtn" title="Profile"><span id="avatarImg" class="av guest"><svg><use href="#i-user"/></svg></span><span id="avatarName">Guest</span></button>
-    </header>
-    <div id="netBar" class="netBar hide"></div>
-    <section id="page"></section>
-  </main>
+  <div class="appBg"></div>
+  <!-- title bar (SA-MP 0.3.7 window title) -->
+  <header id="titleBar">
+    <img src="img/logo.png" alt="" class="tIco">
+    <span class="tName">Christe Multiplayer <em id="verLbl">1.1.0</em></span>
+    <span class="wm">powered by HiveMQ &middot; JebetrexxMC</span>
+    <span class="grow"></span>
+    <button class="tb" id="bellBtn" title="Notifications"><svg><use href="#i-bell"/></svg><i class="dot hide" id="bellDot"></i></button>
+    <button class="avatar" id="avatarBtn" title="Profile"><span id="avatarImg" class="av guest"><svg><use href="#i-user"/></svg></span><span id="avatarName">Guest</span></button>
+    <button class="tb x" id="exitBtn" title="Exit"><svg><use href="#i-x"/></svg></button>
+  </header>
+  <!-- menu bar + tool bar + Name: (SA-MP 0.3.7) -->
+  <div id="toolBar">
+    <nav class="menus"><a data-menu="file">File</a><a data-menu="view">View</a><a data-menu="servers">Servers</a><a data-menu="tools">Tools</a><a data-menu="help">Help</a></nav>
+    <span class="sep"></span>
+    <button class="tool go" id="tConnect" title="Connect"><svg><use href="#i-play"/></svg></button>
+    <button class="tool" id="refreshBtn" title="Refresh"><svg><use href="#i-refresh"/></svg></button>
+    <button class="tool" id="tAdd" title="Add server (host:port)"><svg><use href="#i-plus"/></svg></button>
+    <button class="tool" id="tFav" title="Add to favorites"><svg><use href="#i-star"/></svg></button>
+    <button class="tool" id="regionBtn" title="Region"><svg><use href="#i-pin"/></svg><span id="regionLbl">Auto</span></button>
+    <button class="tool" id="gearBtn" title="Settings"><svg><use href="#i-gear"/></svg></button>
+    <button class="tool" id="tInfo" title="About"><svg><use href="#i-info"/></svg></button>
+    <span class="sep"></span>
+    <div class="search"><svg><use href="#i-search"/></svg><input id="q" placeholder="Filter / host:port" autocomplete="off"></div>
+    <label class="nameBox">Name:<input id="nameInp" maxlength="23" placeholder="Name_Surname" autocomplete="off"></label>
+  </div>
+  <div id="netBar" class="netBar hide"></div>
+  <div id="body">
+    <aside id="side">
+      <div class="sideHead">SERVERS</div>
+      <nav id="nav">
+        <a data-page="internet"><svg><use href="#i-globe"/></svg>Internet</a>
+        <a data-page="featured"><svg><use href="#i-crown"/></svg>Featured</a>
+        <a data-page="favorites"><svg><use href="#i-star"/></svg>Favorites</a>
+        <a data-page="lan"><svg><use href="#i-wifi"/></svg>Lan</a>
+        <div class="sideHead">COMMUNITY</div>
+        <a data-page="explore"><svg><use href="#i-compass"/></svg>Communities</a>
+        <a data-ourl="https://discord.gg/QSdtut3SWV"><img src="img/discord.png" alt="">Discord</a>
+        <div class="sideHead">GAME</div>
+        <a data-page="game"><svg><use href="#i-play"/></svg>Play SA / VC</a>
+        <div class="sideHead">SETTINGS</div>
+        <a data-page="settings" data-set="account"><svg><use href="#i-user"/></svg>Account</a>
+        <a data-page="settings" data-set="game"><svg><use href="#i-chip"/></svg>Game</a>
+        <a data-page="settings" data-set="storage"><svg><use href="#i-folder"/></svg>Storage &amp; OBB</a>
+        <a data-page="settings" data-set="network"><svg><use href="#i-wifi"/></svg>Network</a>
+        <a data-page="settings" data-set="ui"><svg><use href="#i-gear"/></svg>Interface</a>
+        <div class="sideHead">INFO</div>
+        <a data-page="about"><svg><use href="#i-info"/></svg>About</a>
+      </nav>
+    </aside>
+    <main id="main"><section id="page"></section></main>
+  </div>
+  <!-- bottom: SA-MP tabs + status line + CONNECT -->
+  <footer id="foot">
+    <div class="btabs" id="btabs">
+      <a data-page="favorites">Favorites</a><a data-page="internet">Internet</a><a data-page="featured">Featured</a><a data-page="lan">Lan</a><a data-page="hosted">Hosted</a>
+    </div>
+    <div class="status" id="statusLine">Servers: 0 players, playing on 0 servers.</div>
+    <button class="connect" id="connectBtn"><svg><use href="#i-play"/></svg>CONNECT</button>
+  </footer>
 </div>
 
 <div id="pop" class="pop hide"></div>
@@ -79,6 +108,11 @@
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
   <symbol id="i-chip" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1"/><path d="M9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4"/></symbol>
   <symbol id="i-discord" viewBox="0 0 24 24"><path d="M8 7.5c2.6-.8 5.4-.8 8 0M7 16.5c3.3 1.2 6.7 1.2 10 0M7 16.5 5.5 19C3.5 17.7 3 15 3.5 11c.6-2.6 1.7-4.6 4-5.5L8.5 7.5M17 16.5l1.5 2.5c2-1.3 2.5-4 2-8-.6-2.6-1.7-4.6-4-5.5l-1 2"/><circle cx="9.5" cy="12.5" r="1.2"/><circle cx="14.5" cy="12.5" r="1.2"/></symbol>
+  <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-crown" viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r=".8"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
 </svg>
 <script src="js/mpauth.js"></script>
 <script src="js/app.js"></script>

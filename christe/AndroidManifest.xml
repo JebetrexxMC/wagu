@@ -1,17 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Christe Multiplayer 1.0: the MP launcher for GTA SA (AML) and Vice City, SA + VC crossplay.
+<!-- Christe Multiplayer 1.1: GTA SA now runs INSIDE Christe (activity .Game, process ":game"), with the installed
+     AML GTA SA's code and Christe's own OBB (Android/obb/com.christe.mp main.8/patch.8.com.christe.mp.obb).
+     Christe Multiplayer 1.0: the MP launcher for GTA SA (AML) and Vice City, SA + VC crossplay.
      Always landscape. It starts the games you already have installed with their own OBB
      (Android/obb/com.rockstargames.gtasa: main.8 + patch.8), it never copies or repacks them.
      Its own files: Android/data/com.christe.mp/date2 (resources, libs, files, configs, mods, scripts)
      and Android/obb/com.christe.mp (main.<n>.com.christe.mp.obb = optional launcher resources). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.christe.mp"
-    android:versionCode="100"
-    android:versionName="1.0.0">
-    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34" />
+    android:versionCode="110"
+    android:versionName="1.1.0">
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="28" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <queries>
@@ -20,7 +28,8 @@
         <package android:name="com.thirtyfoxmc.viceloader" />
         <package android:name="com.thirtyfox.moquil" />
     </queries>
-    <application android:label="Christe Multiplayer" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
+    <application android:name=".ChristeApp" android:appComponentFactory=".ChristeFactory"
+        android:extractNativeLibs="true" android:label="Christe Multiplayer" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
         android:allowBackup="false" android:hardwareAccelerated="true" android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true" android:theme="@style/Christe">
         <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask"
@@ -32,5 +41,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".Game" android:process=":game" android:taskAffinity="com.christe.mp.game"
+            android:exported="false" android:launchMode="singleTask" android:screenOrientation="sensorLandscape"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" android:hardwareAccelerated="true"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|layoutDirection|fontScale|density"
+            android:windowSoftInputMode="adjustPan" android:resizeableActivity="false" android:excludeFromRecents="false" />
     </application>
 </manifest>

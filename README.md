@@ -843,6 +843,14 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 - The 19 languages are complete again. The tables had about 2,780 texts, but MP draws about 4,960 today, so everything added since 3.52 stayed English in every language. `tools/i18n/en.txt` was collected again (now with the neon menu's CAPITAL words), and all 19 languages were translated again (`tools/i18n/translate.py`, plus a second pass for texts with colour codes and `%d`). What is left in English is names (vehicles, places, servers), commands and code.
 - The language tables are built into libMP too. A `files/TYFMC/MP/lang/<code>.lng` that is missing, or older (`#build=` below 50277), is replaced by the built-in one. An old MP folder no longer leaves the new texts in English, and a language is never "not installed".
 - ImGui screens: a text drawn in capitals is translated as well (the same lookup without case).
+- Christe Multiplayer 1.1 (`com.christe.mp`): Join no longer jumps to the normal GTA SA app. GTA SA now runs inside Christe, in its own game screen (`com.christe.mp.Game`, process `:game`). It uses the installed AML GTA SA's code, Christe's own copy of the OBB (`Android/obb/com.christe.mp/main.8` + `patch.8.com.christe.mp.obb`, copied from GTA SA or imported once), and Christe's own AML folders (`Android/data/com.christe.mp/mods`, with the bundled libMP, and `files/TYFMC/MP`). If the game can't run inside Christe (a different CPU build, or a GTA SA without `com.rockstargames.gtasa.GTASA`), Christe says why and opens the GTA SA app. Settings > Game can choose the app too. Vice City still opens the Vice City app / ViceLoader.
+- Christe 1.1 screens: the start-up screen and the "starting the game" screen are the MP loading screen (ui_bg.jpg, the title picture, a red GAMEPLAY TIP bottom left, LOADING… % bottom right). The home OBB / game cards are gone. The home is now the server browser in the SA-MP 0.3.7 layout with the MP launcher look:
+  - A title bar with the version and "powered by HiveMQ · JebetrexxMC".
+  - File / View / Servers / Tools / Help menus, a tool bar and the Name: box.
+  - Internet / Featured / Favorites / Lan / open.mp tabs, and a lock | icon | HostName | Players | Ping | Mode | Language | flag table using MP's server icons and flags.
+  - A Player/Score and Rule/Value pane (open.mp rules come from api.open.mp).
+  - Favorites / Internet / Featured / Lan / Hosted tabs at the bottom, the "Servers: N players, playing on M servers" line and a green CONNECT button.
+  - Lan uses MP's own Wi-Fi / hotspot query. The MP Crossplay 24/7 [PC + Mobile] server is no longer listed in Internet. The app icon and the logo are the SA / VC picture (`research/icon-sa-vc.png`) and MP's title picture.
 - Not touched: the loading screens, the neon join and < Spawn >.
 
 ### 5.02.76

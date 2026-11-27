@@ -1,6 +1,12 @@
 package com.christe.mp;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.database.Cursor;
+import android.provider.OpenableColumns;
+import android.provider.Settings;
+import java.io.FileInputStream;
+import java.util.zip.ZipInputStream;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -386,14 +392,303 @@ public class MainActivity extends Activity {
                 }
                 return r;
             }
-            return launch(prefs.getString("sa_pkg", SA), join, nick);
+            String pkg = prefs.getString("sa_pkg", SA);
+            if (!"app".equals(prefs.getString("engine", "christe"))) {
+                String why = inAppProblem(pkg);
+                if (why.length() == 0) return launchInApp(pkg, join, nick);
+                log("in-app GTA SA not possible: " + why + " - opening the GTA SA app");
+                toast(why + " - opening the GTA SA app");
+            }
+            return launch(pkg, join, nick);
         }
+        @JavascriptInterface public String obb() { return obbStatus().toString(); }
+        @JavascriptInterface public void obbCopy(final String id) { new Thread(new Runnable() { public void run() { copyGameObb(id); } }).start(); }
+        @JavascriptInterface public void obbImport(String id) { importId = id; pickObb(); }
+        @JavascriptInterface public void obbAccess() { askObbAccess(); }
+        @JavascriptInterface public void mpFiles(final String id) { new Thread(new Runnable() { public void run() { downloadMpFiles(id); } }).start(); }
+        @JavascriptInterface public String engine() {
+            try {
+                JSONObject o = new JSONObject();
+                String pkg = prefs.getString("sa_pkg", SA);
+                o.put("mode", prefs.getString("engine", "christe")); o.put("problem", inAppProblem(pkg));
+                o.put("proc64", proc64()); o.put("mpFiles", new File(gameData(), "files/TYFMC/MP").isDirectory());
+                o.put("mods", new File(gameData(), "mods").getAbsolutePath());
+                File c = new File(date2(), "logs/game_crash.txt");
+                if (c.isFile() && c.lastModified() > prefs.getLong("crash_seen", 0)) { o.put("crash", readHead(c, 1200)); }
+                return o.toString();
+            } catch (Exception e) { return "{}"; }
+        }
+        @JavascriptInterface public void crashSeen() { prefs.edit().putLong("crash_seen", System.currentTimeMillis()).apply(); }
+        @JavascriptInterface public void lan(final String id) { new Thread(new Runnable() { public void run() { lanScan(id); } }).start(); }
         @JavascriptInterface public boolean openApp(String pkg) { return "ok".equals(launch(pkg, "", "")); }
         @JavascriptInterface public void open(String url) { openLink(url); }
         @JavascriptInterface public void toast(String t) { MainActivity.this.toast(t); }
         @JavascriptInterface public void exit() { runOnUiThread(new Runnable() { public void run() { moveTaskToBack(true); } }); }
-        @JavascriptInterface public void log(String t) {
-            try { FileWriter w = new FileWriter(new File(date2(), "logs/christe_log.txt"), true); w.write(t + "\n"); w.close(); } catch (Exception e) {}
-        }
+        @JavascriptInterface public void log(String t) { MainActivity.this.log(t); }
+    }
+
+    void log(String t) {
+        try { FileWriter w = new FileWriter(new File(date2(), "logs/christe_log.txt"), true); w.write(t + "\n"); w.close(); } catch (Exception e) {}
+    }
+    static String readHead(File f, int max) {
+        try { FileInputStream in = new FileInputStream(f); byte[] b = new byte[max]; int n = in.read(b); in.close(); return n > 0 ? new String(b, 0, n, "UTF-8") : ""; } catch (Exception e) { return ""; }
+    }
+
+    // ---- 1.1: GTA SA inside Christe (Game, process ":game") ---------------------------------
+    File gameData() { File f = getExternalFilesDir(null); return f != null ? f.getParentFile() : getFilesDir(); }   // Android/data/com.christe.mp
+    static boolean proc64() {
+        if (Build.VERSION.SDK_INT >= 23) return android.os.Process.is64Bit();
+        return false;
+    }
+    // "" = the installed GTA SA can run inside Christe, else why not
+    String inAppProblem(String pkg) {
+        ApplicationInfo ai;
+        PackageInfo pi;
+        try { pi = getPackageManager().getPackageInfo(pkg, 0); ai = pi.applicationInfo; }
+        catch (Exception e) { return "GTA SA (" + pkg + ") is not installed"; }
+        String ga = gameAbi(pkg);
+        boolean g64 = ga.startsWith("arm64") || (ga.length() == 0 && zipHas(ai.sourceDir, "lib/arm64-v8a/libGTASA.so"));
+        if (g64 != proc64()) return "this GTA SA is " + (g64 ? "64-bit (2.10)" : "32-bit (2.00)") + " but Christe runs " + (proc64() ? "64-bit" : "32-bit") + " here";
+        String key = "gtasa_cls_" + pkg, stamp = String.valueOf(pi.lastUpdateTime);
+        String c = prefs.getString(key, "");
+        if (!c.startsWith(stamp + ":")) { c = stamp + ":" + (dexHas(ai.sourceDir, "Lcom/rockstargames/gtasa/GTASA;") ? "1" : "0"); prefs.edit().putString(key, c).apply(); }
+        if (c.endsWith(":0")) return "this GTA SA has no com.rockstargames.gtasa.GTASA";
+        return "";
+    }
+    static boolean zipHas(String zip, String name) { try { ZipFile z = new ZipFile(zip); boolean h = z.getEntry(name) != null; z.close(); return h; } catch (Exception e) { return false; } }
+    static boolean dexHas(String apk, String cls) {
+        try {
+            byte[] needle = cls.getBytes("UTF-8");
+            ZipFile z = new ZipFile(apk);
+            for (Enumeration<? extends ZipEntry> e = z.entries(); e.hasMoreElements();) {
+                ZipEntry en = e.nextElement(); String n = en.getName();
+                if (!n.startsWith("classes") || !n.endsWith(".dex")) continue;
+                InputStream in = z.getInputStream(en); byte[] buf = new byte[1 << 20]; int keep = 0, r;
+                while ((r = in.read(buf, keep, buf.length - keep)) > 0) {
+                    int len = keep + r;
+                    outer: for (int i = 0; i + needle.length <= len; i++) { for (int j = 0; j < needle.length; j++) if (buf[i + j] != needle[j]) continue outer; in.close(); z.close(); return true; }
+                    keep = Math.min(needle.length, len); System.arraycopy(buf, len - keep, buf, 0, keep);
+                }
+                in.close();
+            }
+            z.close();
+        } catch (Exception e) {}
+        return false;
+    }
+    String launchInApp(String pkg, String join, String nick) {
+        try {
+            ApplicationInfo ai = getPackageManager().getApplicationInfo(pkg, 0);
+            GameEnv.save(this, pkg, ai, proc64() ? "arm64-v8a" : "armeabi-v7a");
+            // AML in Christe reads Android/data/com.christe.mp/mods: libMP for this CPU goes there
+            File mods = new File(gameData(), "mods"); mods.mkdirs();
+            File lib = new File(mods, "libMP.so");
+            String asset = proc64() ? "libs/libMP64.so" : "libs/libMP32.so";
+            int ver = 0; try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; } catch (Exception e) {}
+            if (!lib.isFile() || prefs.getInt("modlib", 0) != ver) { try { copy(getAssets().open(asset), new FileOutputStream(lib)); prefs.edit().putInt("modlib", ver).apply(); } catch (Exception e) { log("libMP copy: " + e); } }
+            new File(gameData(), "files").mkdirs(); new File(gameData(), "configs").mkdirs();
+            killGame();
+            Intent i = new Intent().setClassName(getPackageName(), "com.christe.mp.Game");
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            if (join != null && join.length() > 0) i.putExtra("christe_join", join);
+            if (nick != null && nick.length() > 0) i.putExtra("christe_nick", nick);
+            i.putExtra("christe_abi", proc64() ? "arm64-v8a" : "armeabi-v7a");
+            i.putExtra("christe_date2", date2().getAbsolutePath());
+            i.putExtra("christe_ingame", true);
+            startActivity(i);
+            log("in-app GTA SA started: " + pkg + " join=" + join);
+            return "ok";
+        } catch (Exception e) { log("in-app start failed: " + e); return "error: " + e.getMessage(); }
+    }
+    void killGame() {
+        try {
+            ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            for (ActivityManager.RunningAppProcessInfo p : am.getRunningAppProcesses())
+                if ((getPackageName() + ":game").equals(p.processName)) android.os.Process.killProcess(p.pid);
+        } catch (Exception e) {}
+    }
+
+    // ---- 1.1: Christe's own OBB (Android/obb/com.christe.mp/main.8 + patch.8.com.christe.mp.obb) ----
+    static final String[] OBB_KIND = { "main", "patch" };
+    File gameObb(String kind) {
+        String sd = Environment.getExternalStorageDirectory().getAbsolutePath(), g = prefs.getString("sa_pkg", SA), n = kind + ".8." + g + ".obb";
+        String[] dirs = { sd + "/Android/obb/" + g, sd + "/Android_unprotected/obb/" + g, sd + "/Android_unprotected/data/" + g + "/obb" };
+        for (String d : dirs) { File f = new File(d, n); if (f.isFile() && f.canRead()) return f; }
+        return null;
+    }
+    File ownObbFile(String kind) { File d = getObbDir(); if (d == null) d = new File(Environment.getExternalStorageDirectory(), "Android/obb/" + getPackageName()); d.mkdirs(); return new File(d, kind + ".8.com.christe.mp.obb"); }
+    JSONObject obbStatus() {
+        JSONObject o = new JSONObject();
+        try {
+            for (String k : OBB_KIND) {
+                JSONObject e = new JSONObject();
+                File own = ownObbFile(k), g = gameObb(k);
+                e.put("own", own.isFile() ? own.length() : 0); e.put("ownPath", own.getAbsolutePath());
+                e.put("game", g != null ? g.length() : 0); e.put("gamePath", g != null ? g.getAbsolutePath() : "");
+                o.put(k, e);
+            }
+            o.put("ready", ownObbFile("main").isFile() || gameObb("main") != null);
+            o.put("canAsk", Build.VERSION.SDK_INT >= 26);
+        } catch (Exception e) {}
+        return o;
+    }
+    void progress(String id, String state, long done, long total, String msg) {
+        js("window.CX_prog && CX_prog(" + q(id) + "," + q(state) + "," + done + "," + total + "," + q(msg) + ")");
+    }
+    void copyGameObb(String id) {
+        long total = 0, done = 0;
+        for (String k : OBB_KIND) { File g = gameObb(k); if (g != null) total += g.length(); }
+        if (total == 0) { progress(id, "error", 0, 0, "The GTA SA OBB can't be read from here. Allow access or import the files."); return; }
+        try {
+            for (String k : OBB_KIND) {
+                File g = gameObb(k); if (g == null) continue;
+                File o = ownObbFile(k), tmp = new File(o.getPath() + ".part");
+                if (o.isFile() && o.length() == g.length()) { done += g.length(); continue; }
+                InputStream in = new FileInputStream(g); OutputStream out = new FileOutputStream(tmp);
+                byte[] b = new byte[1 << 20]; int n; long last = 0;
+                while ((n = in.read(b)) > 0) { out.write(b, 0, n); done += n; if (done - last > (8 << 20)) { last = done; progress(id, "copy", done, total, k); } }
+                in.close(); out.close();
+                o.delete(); tmp.renameTo(o);
+            }
+            progress(id, "done", total, total, "OBB ready");
+        } catch (Exception e) { progress(id, "error", done, total, String.valueOf(e.getMessage())); }
+    }
+    String importId = "";
+    static final int REQ_OBB = 41;
+    void pickObb() {
+        runOnUiThread(new Runnable() { public void run() {
+            try {
+                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
+                i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                startActivityForResult(i, REQ_OBB);
+            } catch (Exception e) { toast("No file picker on this phone"); }
+        }});
+    }
+    @Override protected void onActivityResult(int req, int res, final Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req != REQ_OBB) return;
+        if (res != RESULT_OK || data == null) { progress(importId, "cancel", 0, 0, ""); return; }
+        final java.util.ArrayList<Uri> uris = new java.util.ArrayList<Uri>();
+        if (data.getClipData() != null) for (int i = 0; i < data.getClipData().getItemCount(); i++) uris.add(data.getClipData().getItemAt(i).getUri());
+        else if (data.getData() != null) uris.add(data.getData());
+        final String id = importId;
+        new Thread(new Runnable() { public void run() {
+            long total = 0, done = 0; int ok = 0;
+            String[] names = new String[uris.size()]; long[] sizes = new long[uris.size()];
+            for (int i = 0; i < uris.size(); i++) {
+                names[i] = ""; sizes[i] = 0;
+                try { Cursor c = getContentResolver().query(uris.get(i), null, null, null, null); if (c != null && c.moveToFirst()) { names[i] = c.getString(c.getColumnIndex(OpenableColumns.DISPLAY_NAME)); sizes[i] = c.getLong(c.getColumnIndex(OpenableColumns.SIZE)); } if (c != null) c.close(); } catch (Exception e) {}
+                total += sizes[i];
+            }
+            try {
+                for (int i = 0; i < uris.size(); i++) {
+                    String n = names[i] == null ? "" : names[i].toLowerCase();
+                    String kind = n.startsWith("patch") ? "patch" : n.startsWith("main") ? "main" : "";
+                    if (kind.length() == 0 || !n.endsWith(".obb")) continue;
+                    File o = ownObbFile(kind), tmp = new File(o.getPath() + ".part");
+                    InputStream in = getContentResolver().openInputStream(uris.get(i)); OutputStream out = new FileOutputStream(tmp);
+                    byte[] b = new byte[1 << 20]; int r; long last = 0;
+                    while ((r = in.read(b)) > 0) { out.write(b, 0, r); done += r; if (done - last > (8 << 20)) { last = done; progress(id, "copy", done, total, kind); } }
+                    in.close(); out.close(); o.delete(); tmp.renameTo(o); ok++;
+                }
+                progress(id, ok > 0 ? "done" : "error", total, total, ok > 0 ? ok + " OBB file(s) imported" : "Pick main.8...obb / patch.8...obb");
+            } catch (Exception e) { progress(id, "error", done, total, String.valueOf(e.getMessage())); }
+        }}).start();
+    }
+    void askObbAccess() {
+        runOnUiThread(new Runnable() { public void run() {
+            try {
+                if (Build.VERSION.SDK_INT >= 23 && Build.VERSION.SDK_INT <= 32) requestPermissions(new String[] { "android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE" }, 7);
+                // Android 11+: an app allowed to install apps may read other apps' Android/obb
+                if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls())
+                    startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName())));
+            } catch (Exception e) { toast("Open Settings > Apps > Christe Multiplayer > Install unknown apps"); }
+        }});
+    }
+
+    // ---- 1.1: the MP files (files/TYFMC/MP) for the GTA SA inside Christe, from the wagu repo -----------
+    void downloadMpFiles(String id) {
+        File to = new File(gameData(), "files/TYFMC/MP"); to.mkdirs();
+        long done = 0, total = 0; int n = 0;
+        try {
+            HttpURLConnection c = (HttpURLConnection) new URL("https://raw.githubusercontent.com/JebetrexxMC/wagu/main/assets/MP/MP.zip").openConnection();
+            c.setConnectTimeout(10000); c.setReadTimeout(30000); c.setRequestProperty("User-Agent", "ChristeMP/1.1 (Android)");
+            total = c.getContentLength();
+            final long[] got = { 0 };
+            final long tot = total; final String fid = id;
+            InputStream raw = new java.io.FilterInputStream(c.getInputStream()) {
+                long last = 0;
+                @Override public int read(byte[] b, int o, int l) throws java.io.IOException { int r = super.read(b, o, l); if (r > 0) { got[0] += r; if (got[0] - last > (2 << 20)) { last = got[0]; progress(fid, "download", got[0], tot, "MP files"); } } return r; }
+            };
+            ZipInputStream z = new ZipInputStream(new java.io.BufferedInputStream(raw, 1 << 16));
+            String base = to.getCanonicalPath();
+            for (ZipEntry e; (e = z.getNextEntry()) != null;) {
+                String nm = e.getName(); int at = nm.indexOf("assets/MP/"), cut = 10;
+                if (at < 0) { at = nm.indexOf("TYFMC/MP/"); cut = 9; }
+                if (at < 0) continue;
+                String rel = nm.substring(at + cut); if (rel.length() == 0) continue;
+                File f = new File(to, rel); if (!f.getCanonicalPath().startsWith(base)) continue;
+                if (e.isDirectory()) { f.mkdirs(); continue; }
+                f.getParentFile().mkdirs();
+                OutputStream out = new FileOutputStream(f); byte[] b = new byte[65536]; int r;
+                while ((r = z.read(b)) > 0) out.write(b, 0, r);
+                out.close(); n++;
+            }
+            z.close(); c.disconnect();
+            progress(id, "done", total, total, n + " MP files ready");
+        } catch (Exception e) { progress(id, "error", done, total, String.valueOf(e.getMessage())); }
+    }
+
+    // ---- 1.1: LAN servers (MP's own query, the same as the game: PKT_QUERY 14 -> PKT_INFO 15) ---------
+    void lanScan(String id) {
+        JSONArray out = new JSONArray();
+        try {
+            DatagramSocket s = new DatagramSocket(); s.setBroadcast(true); s.setSoTimeout(150);
+            byte[] q = new byte[5]; int t0 = (int) (System.currentTimeMillis() & 0x7fffffff);
+            q[0] = 14; q[1] = (byte) t0; q[2] = (byte) (t0 >> 8); q[3] = (byte) (t0 >> 16); q[4] = (byte) (t0 >> 24);
+            int[] ports = { 1922, 1923, 1924, 1930, 1931, 1932, 1933, 1934 };
+            java.util.LinkedHashSet<String> hosts = new java.util.LinkedHashSet<String>();
+            hosts.add("255.255.255.255"); hosts.add("192.168.43.1"); hosts.add("192.168.49.1"); hosts.add("172.20.10.1"); hosts.add("127.0.0.1");
+            try {
+                for (Enumeration<java.net.NetworkInterface> en = java.net.NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
+                    java.net.NetworkInterface ni = en.nextElement();
+                    if (!ni.isUp() || ni.isLoopback() || ni.getName().startsWith("rmnet") || ni.getName().startsWith("ccmni")) continue;
+                    for (java.net.InterfaceAddress ia : ni.getInterfaceAddresses()) {
+                        if (!(ia.getAddress() instanceof java.net.Inet4Address)) continue;
+                        if (ia.getBroadcast() != null) hosts.add(ia.getBroadcast().getHostAddress());
+                        byte[] a = ia.getAddress().getAddress();
+                        for (int h = 1; h < 255; h++) hosts.add((a[0] & 255) + "." + (a[1] & 255) + "." + (a[2] & 255) + "." + h);
+                    }
+                }
+            } catch (Exception e) {}
+            for (int port : ports) for (String h : hosts) { try { s.send(new DatagramPacket(q, q.length, InetAddress.getByName(h), port)); } catch (Exception e) {} }
+            java.util.HashSet<String> seen = new java.util.HashSet<String>();
+            long end = System.currentTimeMillis() + 1800;
+            byte[] b = new byte[1024];
+            while (System.currentTimeMillis() < end) {
+                DatagramPacket p = new DatagramPacket(b, b.length);
+                try { s.receive(p); } catch (Exception e) { continue; }
+                int len = p.getLength(); if (len < 42 || b[0] != 15) continue;
+                String key = p.getAddress().getHostAddress() + ":" + p.getPort(); if (!seen.add(key)) continue;
+                JSONObject o = new JSONObject();
+                o.put("host", p.getAddress().getHostAddress()); o.put("port", p.getPort());
+                int rt = (b[1] & 255) | ((b[2] & 255) << 8) | ((b[3] & 255) << 16) | ((b[4] & 255) << 24);
+                o.put("ping", Math.max(1, (int) ((System.currentTimeMillis() & 0x7fffffff) - rt)));
+                o.put("players", b[7] & 255); o.put("max", b[8] & 255); o.put("region", b[9] & 255);
+                o.put("name", cstr(b, 10, 32));
+                if (len >= 43) o.put("locked", b[42] != 0);
+                if (len >= 44) o.put("icon", b[43] & 255);
+                if (len >= 68) o.put("lang", cstr(b, 44, 24));
+                if (len >= 72 + 8 + 1 + 24) { o.put("cc", cstr(b, 72, 8)); o.put("modeCol", b[80] & 255); o.put("mode", cstr(b, 81, 24)); }
+                if (len >= 105 + 96) o.put("tags", cstr(b, 105, 96));
+                if (len >= 201 + 160) o.put("desc", cstr(b, 201, 160));
+                out.put(o);
+            }
+            s.close();
+        } catch (Exception e) {}
+        js("window.CX_lan && CX_lan(" + q(id) + "," + q(out.toString()) + ")");
+    }
+    static String cstr(byte[] b, int at, int n) {
+        int e = at; while (e < at + n && e < b.length && b[e] != 0) e++;
+        try { return new String(b, at, e - at, "UTF-8"); } catch (Exception x) { return ""; }
     }
 }

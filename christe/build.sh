@@ -15,9 +15,12 @@ cp -r assets/. build/assets/
 mkdir -p build/assets/libs
 for l in libMP32.so libMP64.so; do [ -f ../bin/$l ] && cp ../bin/$l build/assets/libs/ && echo "bundled $l"; done
 $BT/aapt2 compile --dir res -o build/res/res.zip
-$BT/aapt2 link -I $JAR --manifest AndroidManifest.xml -A build/assets -o build/base.apk build/res/res.zip --min-sdk-version 21 --target-sdk-version 34
-javac --release 8 -Xlint:-options -cp $JAR -d build/classes $(find src -name '*.java')
-$BT/d8 --min-api 21 --lib $JAR --output build/dex $(find build/classes -name '*.class')
+$BT/aapt2 link -I $JAR --manifest AndroidManifest.xml -A build/assets -o build/base.apk build/res/res.zip --min-sdk-version 21 --target-sdk-version 28
+# stubs/ (com.rockstargames.gtasa.GTASA) only compile against: the real class comes from the installed GTA SA at run time
+mkdir -p build/stubs
+javac --release 8 -Xlint:-options -cp $JAR -d build/stubs $(find stubs -name '*.java')
+javac --release 8 -Xlint:-options -cp $JAR:build/stubs -d build/classes $(find src -name '*.java')
+$BT/d8 --min-api 21 --lib $JAR --classpath build/stubs --output build/dex $(find build/classes -name '*.class')
 cp build/base.apk build/unsigned.apk
 (cd build/dex && zip -q ../unsigned.apk classes.dex)
 $BT/zipalign -f -p 4 build/unsigned.apk build/aligned.apk

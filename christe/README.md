@@ -1,5 +1,14 @@
 # Christe Multiplayer (com.christe.mp)
 
+**1.1:** GTA SA runs **inside Christe**, so Join no longer switches to the GTA SA app.
+- The `com.christe.mp.Game` activity runs in the `:game` process with its own task. It extends the installed AML GTA SA's `com.rockstargames.gtasa.GTASA`, which is loaded from that APK at run time: `ChristeFactory` on Android 9+, `ChristeApp` on Android 5–8.
+- It uses the game's resources and assets, Christe's own OBB (`Android/obb/com.christe.mp/main.8.com.christe.mp.obb` + `patch.8…`) and Christe's AML folders (`Android/data/com.christe.mp/mods` gets the bundled libMP, plus `files`, `configs`).
+- Get the OBB in Storage & OBB: **Copy** from GTA SA, **Import** the .obb files, or **Allow access** on Android 11+. **Download** gets the full MP files into `files/TYFMC/MP`.
+- Christe needs a GTA SA build that matches the phone's CPU: 2.10 for 64-bit, 2.00 for 32-bit. Otherwise, or when Settings > Game is set to "GTA SA app", it opens the installed game as 1.0 did. If the game crashes, the error is saved to `date2/logs/game_crash.txt` and shown the next time you open Christe.
+- The UI is the SA-MP 0.3.7 browser with the MP launcher look: title bar, File/View/Servers/Tools/Help, tool bar + Name:, Internet/Featured/Favorites/Lan/open.mp, the Player/Score and Rule/Value pane, Favorites/Internet/Featured/Lan/Hosted, the status line and CONNECT. Boot and game start use the MP loading screen.
+- Lan uses MP's own query (`PKT_QUERY` 14 → `PKT_INFO` 15) on ports 1922–1934, over Wi-Fi or a hotspot. MP Crossplay 24/7 [PC + Mobile] is not listed in Internet.
+- `targetSdk` is 28 so the game's code keeps working.
+
 The MP launcher for **GTA San Andreas (AML)** and **GTA Vice City** on Android: SA + VC + PC crossplay, always landscape.
 
 - **Uses the games you already have.** Play starts the installed AML GTA SA (`com.rockstargames.gtasa`) or Vice City (`com.rockstargames.gtavc`, through ViceLoader when it is installed). They keep reading their own OBB (`Android/obb/com.rockstargames.gtasa/main.8…obb` + `patch.8…obb`), so nothing is downloaded or copied twice. The OBB check also looks in `Android_unprotected/obb` and `Android_unprotected/data/<game>/obb`.
