@@ -1411,6 +1411,32 @@ static void NeonPIni(const LRow& r, float x0, float y0, float sz)
     const float fs = sz * 0.36f, w = TextW(F_CAPS, ini, fs);
     NeonPText(F_CAPS, ini, x0 + (sz - w) * 0.5f, y0 + (sz - fs) * 0.5f, fs, c);
 }
+// 5.02.78: the bg_server.jar picture of a row (like the MP launcher's CS:GO rows) instead of the initials tile: cover-cropped,
+// the right part fading out into the row so the name / gamemode text never sits on a hard picture edge
+static bool NeonPRowBg(const LRow& r, float x0, float y0, float x1, float y1, float fade, uint8_t alpha)
+{
+    using namespace NeonPaint;
+    ImVec2 uv(1, 1); void* rs = LRowPreview(r, &uv); if(!rs) rs = LRowBg(r, &uv);
+    const Tex* t = rs ? FromRaster(rs, 512, 256) : nullptr;
+    if(!t || x1 <= x0 || y1 <= y0) return false;
+    const float boxA = (x1 - x0) / (y1 - y0), imgA = 2.0f;
+    float u0 = 0, u1 = 1, v0 = 0, v1 = 1;
+    if(boxA > imgA) { const float sp = imgA / boxA; v0 = (1 - sp) * 0.5f; v1 = v0 + sp; }
+    else            { const float sp = boxA / imgA; u0 = (1 - sp) * 0.5f; u1 = u0 + sp; }
+    u0 *= uv.x; u1 *= uv.x; v0 *= uv.y; v1 *= uv.y;
+    const int N = 24; const float fx = 1.0f - fade;   // solid up to fx, then N slices to 0
+    const float xs = x0 + (x1 - x0) * fx;
+    if(fx > 0) ImgUV(t, x0, y0, xs, y1, u0, v0, u0 + (u1 - u0) * fx, v1, NC(255, 255, 255, alpha), NC(255, 255, 255, alpha));
+    for(int i = 0; i < N; ++i)
+    {
+        const float a0 = (float)i / N, a1 = (float)(i + 1) / N, k = 1.0f - (a0 + a1) * 0.5f;
+        const float sx0 = xs + (x1 - xs) * a0, sx1 = xs + (x1 - xs) * a1;
+        const float su0 = u0 + (u1 - u0) * (fx + fade * a0), su1 = u0 + (u1 - u0) * (fx + fade * a1);
+        const uint8_t aa = (uint8_t)(alpha * k * k);
+        ImgUV(t, sx0, y0, sx1, y1, su0, v0, su1, v1, NC(255, 255, 255, aa), NC(255, 255, 255, aa));
+    }
+    return true;
+}
 static void NeonPWrap(int f, const char* s, float x, float y, float px, float maxw, float lh, int maxLines, NeonPaint::Col c)
 {   // word wrap, the last line ends with "..." when the text is longer
     std::string line, word; int lines = 0; const char* p = s ? s : "";
@@ -1564,10 +1590,13 @@ static void NeonPBrowse(float W, float H)
         Quad(rx, ry0, rxe, ry1, sel ? NB_BLUE(34) : NC(255, 255, 255, (j & 1) ? 7 : 3));
         if(Held(rx, ry0, rxe, ry1) && !Dragging()) Quad(rx, ry0, rxe, ry1, NC(255, 255, 255, 18));
         if(sel) { NeonPFrame(rx, ry0, rxe, ry1, 1.6f * u, NB_BLUE()); Quad(rx, ry0, rx + 3 * u, ry1, NB_BLUE()); }
-        NeonPIni(r, rx + 12 * u, ry0 + 7 * u, rh - 20 * u);
+        // 5.02.78: the row's bg_server picture (left, fading right) instead of the logo / initials tile
+        const bool rowBg = NeonPRowBg(r, rx + 3 * u, ry0 + 1 * u, rx + 3 * u + (cFlag - rx) * 0.62f, ry1 - 1 * u, 0.55f, 150);
+        if(rowBg) Quad(rx, ry0, cFlag - 8 * u, ry1, NC(0, 0, 0, 40));   // keeps the white name readable
+        else NeonPIni(r, rx + 12 * u, ry0 + 7 * u, rh - 20 * u);
         // name (caps) + NEON FEATURED, the description under it
         char nm[64]; NeonPAscii(nm, sizeof(nm), r.name, true);
-        const float nx = lx0 + 86 * u, nameMax = cFlag - nx - 14 * u;
+        const float nx = rowBg ? rx + 18 * u : lx0 + 86 * u, nameMax = cFlag - nx - 14 * u;
         float bw = 0;
         if(NeonFeatured(r)) bw = TextW(F_CAPS, "NEON FEATURED", 8 * u, 1.2f * u) + 12 * u;
         std::string nf = NeonFit(F_CAPS, nm, 14 * u, nameMax - (bw > 0 ? bw + 10 * u : 0), 1.4f * u);
@@ -1632,7 +1661,8 @@ static void NeonPBrowse(float W, float H)
     if(n > 0)
     {
         const LRow& r = s_NTRows[idx[s_nNTSel]];
-        NeonPIni(r, px, tY0 + 18 * u, 60 * u);
+        if(!NeonPRowBg(r, px, tY0 + 18 * u, px + 60 * u, tY0 + 78 * u, 0.0f, 255)) NeonPIni(r, px, tY0 + 18 * u, 60 * u);
+        else NeonPFrame(px, tY0 + 18 * u, px + 60 * u, tY0 + 78 * u, 1.0f * u, NB_BLUE(160));
         NeonPText(F_CAPS, "SELECTED SERVER", px + 74 * u, tY0 + 24 * u, 10 * u, NB_BLUE_LT(), 1.8f * u);
         char nm[64]; NeonPAscii(nm, sizeof(nm), r.name, true);
         float ns = 19 * u; while(ns > 11 * u && TextW(F_CAPS, nm, ns, 1.6f * u) > pw - 74 * u) ns -= 1 * u;

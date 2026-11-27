@@ -282,6 +282,18 @@ const NeonPaint::Tex* NeonPaint::T(const char* name)
     return nullptr;
 }
 
+// 5.02.78: the server browser rows draw the bg_server.jar pictures (HUD::Texture rasters), wrapped once in an RwTexture
+const NeonPaint::Tex* NeonPaint::FromRaster(void* raster, int w, int h)
+{
+    struct RT { void* r; Tex t; };
+    static RT s_R[96]; static int s_nR = 0;
+    if(!raster || !fnTexCreate) return nullptr;
+    for(int i = 0; i < s_nR; ++i) if(s_R[i].r == raster) return s_R[i].t.t ? &s_R[i].t : nullptr;
+    if(s_nR >= (int)(sizeof(s_R) / sizeof(s_R[0]))) return nullptr;
+    RT& e = s_R[s_nR++]; e.r = raster; e.t.t = fnTexCreate(raster); e.t.w = w; e.t.h = h;
+    return e.t.t ? &e.t : nullptr;
+}
+
 void NeonPaint::Begin()
 {
     fnRenderState(RS_ZTEST, (void*)0);

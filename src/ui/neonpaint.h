@@ -21,6 +21,7 @@ namespace NeonPaint
     float H();
 
     const Tex* T(const char* name);        // a loaded texture of neon/ by file name ("art.png"), null = missing
+    const Tex* FromRaster(void* raster, int w, int h);   // 5.02.78: an RwRaster of HUD::Texture (bg_server.jar) as a neon texture
     void Begin();                          // render states for 2D (call once per paint)
     void End();
     void Quad(float x0, float y0, float x1, float y1, Col c);
