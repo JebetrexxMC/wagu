@@ -12,7 +12,9 @@ LOCAL_SRC_FILES := \
     $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/coopfusion/world/*.cpp)) \
     $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/coopfusion/diagnostics/*.cpp)) \
     $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/coopfusion/platform/mod/*.cpp)) \
-    $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/imgui/*.cpp))
+    $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/imgui/*.cpp)) \
+    $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/imgui/backends/*.cpp)) \
+    $(patsubst $(LOCAL_PATH)/%,%,$(wildcard $(LOCAL_PATH)/imgui/RW/*.cpp))
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH) \
