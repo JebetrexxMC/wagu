@@ -1,13 +1,7 @@
 import net from "node:net";
 import readline from "node:readline";
-import dgram from "node:dgram";
 
 const port = Number(process.env.PORT || 6767);
-// AML Multiplayer 1.3: server list name / size, INFO query (TCP "INFO\n") and LAN discovery (UDP port + 1)
-const serverName = String(process.env.NAME || "CoopFusion Server").replace(/[|\r\n]/g, "_").slice(0, 40);
-const maxPlayers = Number(process.env.MAX_PLAYERS || 64);
-const serverVersion = "1.1";
-function playerCount() { let n = 0; for (const r of rooms.values()) n += r.size; return n; }
 const rooms = new Map();
 let nextId = 1;
 let nextNpcId = 1;
@@ -242,14 +236,12 @@ const server = net.createServer(socket => {
  if (!line || line.length > 4096) continue;
  const [type, ...parts] = line.split("|");
 
- if (type === "INFO" && !player) { send(socket, `INFO|${serverName}|${playerCount()}|${maxPlayers}|${serverVersion}\n`); socket.end(); return; }
  if (type === "JOIN" && !player) {
  const blockedUntil = blockedAddresses.get(address) || 0;
  if (blockedUntil > Date.now()) { socket.destroy(); continue; }
  if (blockedUntil) blockedAddresses.delete(address);
 	 const room = roomFor("default"); room.vehicles ??= new Map(); room.vehicleKeys ??= new Map();
- if (playerCount() >= maxPlayers) { socket.destroy(); continue; }
- player = { id: nextId++, kills: 0, deaths: 0, lastDeathMs: 0, name: (parts[0] || "CJ").slice(0, 14), color: color(parts[1]),
+ player = { id: nextId++, name: (parts[0] || "CJ").slice(0, 14), color: color(parts[1]),
  x: 0, y: 0, z: 3, heading: 0, vx: 0, vy: 0, vz: 0, areaCode: 0, wanted: 0, health: 100, armour: 0, weapon: 0,
  modelId: 7, specialModelName: "", animationState: 1, vehicleId: 0, vehicleSeat: 0,
  socket, address, room, removed: false,
@@ -586,17 +578,6 @@ const server = net.createServer(socket => {
    if(!(Number.isInteger(group)&&group>0&&group<=0xFFFF&&(anim===224||anim===225))){group=0;anim=0;}
    broadcast(player.room,`SHOTX|${player.id}|${kind}|${w}|${kind===2?vehicleId:0}|${values.map(v=>v.toFixed(3)).join("|")}|${group}|${anim}\n`,player.id);
   }
- } else if (type === "DEATH" && parts.length === 2) {
-  // AML Multiplayer 1.3 combat sync: the victim reports its death (killer = last remote attacker or 0)
-  const killerId = Number(parts[0]), w = Number(parts[1]), now = Date.now();
-  if (Number.isInteger(killerId) && killerId >= 0 && Number.isInteger(w) && w >= 0 && w <= 255 && now - player.lastDeathMs >= 1500) {
-   player.lastDeathMs = now; player.deaths++;
-   const killer = killerId && killerId !== player.id ? player.room.get(killerId) : null;
-   if (killer) killer.kills++;
-   const nm = p => String(p.name).replace(/[|\r\n]/g, "_").slice(0, 14);
-   broadcast(player.room, `KILL|${killer ? killer.id : 0}|${killer ? nm(killer) : ""}|${player.id}|${nm(player)}|${killer ? w : 255}\n`);
-   console.log(`KILL killer=${killer ? killer.id : 0} victim=${player.id} weapon=${w}`);
-  }
  } else if (type === "SHOT" && (parts.length === 7 || parts.length === 9)) {
  const w = weapon(parts[0]); const values = parts.slice(1, 7).map(Number); const fireAnim = parts.length === 9 ? fireAnimationFields(parts[7], parts[8]) : "";
  if (values.every(Number.isFinite)) {
@@ -636,7 +617,3 @@ console.log("Admin commands enabled: /help");
 let lastVehicleBroadcast = 0;
 setInterval(() => { const now=Date.now(); for (const room of rooms.values()) { for (const player of room.values()) for (const other of room.values()) if (other.id !== player.id) send(other.socket, snapshot(player)); if (room.npcs) for (const n of room.npcs.values()) for (const other of room.values()) if (other.id !== n.ownerId) send(other.socket, npcSnapshot(n)); if (now-lastVehicleBroadcast>=25 && room.vehicles) for (const v of room.vehicles.values()) for (const other of room.values()) if (other.id !== v.ownerId) send(other.socket,vehicleSnapshot(v)); } if(now-lastVehicleBroadcast>=25) lastVehicleBroadcast=now; }, 15);
 server.listen(port, "0.0.0.0", () => console.log(`CoopFusion32 server listening on ${port}`));
-const lan = dgram.createSocket({ type: "udp4", reuseAddr: true });
-lan.on("message", (msg, rinfo) => { if (msg.toString().startsWith("COOP_DISCOVER")) lan.send(`COOP_HERE|${serverName}|${port}|${playerCount()}|${maxPlayers}|${serverVersion}\n`, rinfo.port, rinfo.address); });
-lan.on("error", e => console.error(`LAN discovery: ${e.code || e.message}`));
-lan.bind(port + 1, () => { try { lan.setBroadcast(true); } catch (e) {} console.log(`LAN discovery on udp ${port + 1}`); });

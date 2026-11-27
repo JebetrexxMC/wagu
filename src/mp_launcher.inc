@@ -875,7 +875,7 @@ static bool LAlreadyOn(const LRow& r)
     SysMsg(COL_SYSTEM, client.GetState() == NET_CONNECTED ? "You are already connected to %s." : "Already connecting to %s...", r.name[0] ? r.name : "this server");
     return true;
 }
-static void LLeave(const LRow& r) { if(r.kind == 8) { StopPcJoin("Left the PC server."); return; } if(r.kind == 0) { if(IsOnDefault()) LeaveServer("Disconnected from the server."); } else LeaveServer("Left the server."); }
+static void LLeave(const LRow& r) { if(r.kind == 9) { StopCoopJoin("Left the co-op server."); return; } if(r.kind == 8) { StopPcJoin("Left the PC server."); return; } if(r.kind == 0) { if(IsOnDefault()) LeaveServer("Disconnected from the server."); } else LeaveServer("Left the server."); }
 // 4.13.2: the "server in development" notice comes from the server itself (MP_SRVF_DEVSTAGE in the
 // welcome packet: the owner's Add server > Development stage switch, mp_server --dev). A finished
 // server sends no flag, so no notice. It no longer opens before joining over the black connection
@@ -947,6 +947,7 @@ static void LJoinNow(const LRow& r)
     if(r.kind == 5) { if(!MP::IsOnRp()) LeaveServer(nullptr); MP::JoinRp(); return; }     // 3.25
     if(r.kind == 6) { if(!MP::IsOnDz()) LeaveServer(nullptr); MP::JoinDz(); return; }     // 3.58
     if(r.kind == 7) { if(!MP::IsOnLg()) LeaveServer(nullptr); MP::JoinLg(); return; }     // 4.13.4
+    if(r.kind == 9) { StartCoopJoin(r.ip, r.port, r.name); return; }   // 5.02.78: a CoopFusion32 co-op server (AML Multiplayer > Co-op)
     if(r.kind == 8)
     {   // 5.02.01: an open.mp / SA-MP PC server (open.mp tab): crossplay join
         // 5.02.39: (the ReSA tab used this too; it is removed)

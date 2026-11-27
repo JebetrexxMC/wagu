@@ -117,7 +117,7 @@ public:
     // each phone player here becomes an open.mp NPC there. All calls lock m_Mutex (any thread).
     struct BridgePeer { int slot; char name[MP_NAME_LEN]; uint16_t skin; bool hasSync; SyncData d; bool hasAnim; AnimSync anim; };   // 5.02.27: + strongest anim (SA-MP AnimationID)
     void BridgeEnable(bool on) { m_bBridge = on; }
-    int  BridgeAdd(const char* name, uint32_t color, uint16_t skin);   // -1 = full
+    int  BridgeAdd(const char* name, uint32_t color, uint16_t skin, const char* tag = " (PC)");   // -1 = full (5.02.79: tag after the name)
     void BridgeSync(int slot, const SyncData& d, const SyncExt* ext = nullptr);   // 5.02.27: + anims (PC player's ApplyAnimation)
     void BridgeChat(int slot, const char* text);
     void BridgeRemove(int slot);
@@ -127,6 +127,13 @@ public:
     // PKT_SAMP and dialog answers first (hooks), and drives the phones with these (slot -1 = every real player).
     // All of them lock m_Mutex (any thread).
     void SetGate(class SampGate* g);
+    // 5.02.79: CoopFusion32 crossplay (net/coopgate.cpp): a copy of the phone's damage / shot / death packets, and
+    // damage / deaths put in from the co-op server. OnPhonePkt is called while the server holds its mutex: queue only.
+    struct PhoneHook { virtual void OnPhonePkt(int slot, const uint8_t* data, int len) = 0; virtual ~PhoneHook() {} };
+    void SetPhoneHook(PhoneHook* h);
+    void SetGhostFullSync(bool on) { m_bGhostFullSync = on; }   // every ghost sync goes straight to the phone (localhost)
+    void GateDamage(int fromSlot, int target, uint8_t weapon, float amount);   // like a PKT_DAMAGE from fromSlot
+    void GateDeath(int victim, int killer, uint8_t weapon);                     // a PKT_DEATH of a ghost (kill feed)
     class SampGate* GetGate() const { return m_pGate; }
     void GateAct(int slot, uint8_t act, int a = 0, int b = 0, int32_t val = 0, const float* pos = nullptr, float h = 0, const char* text = nullptr);
     void GateOp(int slot, uint8_t op, uint8_t a, uint8_t b, int32_t val, const float* f = nullptr, const char* text = nullptr);
@@ -357,6 +364,8 @@ private:
     std::atomic<uint8_t> m_nGame{0};   // 4.13.35
     std::atomic<bool> m_bBridge{false};                       // 4.12
     class SampGate* m_pGate = nullptr;                        // 5.02 (set / cleared under m_Mutex)
+    PhoneHook* m_pPhoneHook = nullptr;                        // 5.02.79 (set / cleared under m_Mutex)
+    std::atomic<bool> m_bGhostFullSync{false};                // 5.02.79
     std::vector<std::pair<int, std::string>> m_BridgeChatOut;   // 4.12 (under m_Mutex)
     uint32_t m_nBridgeSeq = 1;
     void SetPermsLocked(uint8_t perms);                                         // 2.37, m_Mutex held

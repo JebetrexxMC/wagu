@@ -8,6 +8,30 @@ void MPServer::SetGate(SampGate* g)
     m_pGate = g;
 }
 
+// 5.02.79: CoopFusion32 crossplay (net/coopgate.cpp)
+void MPServer::SetPhoneHook(PhoneHook* h)
+{
+    std::lock_guard<std::mutex> lk(m_Mutex);
+    m_pPhoneHook = h;
+}
+void MPServer::GateDamage(int fromSlot, int target, uint8_t weapon, float amount)
+{   // a co-op player hurt the phone: the same packet a phone gets when another phone hits it (the kill is credited)
+    std::lock_guard<std::mutex> lk(m_Mutex);
+    if(target < 0 || target >= MP_MAX_PLAYERS || !m_Slots[target].used || m_Slots[target].ghost || !(amount > 0)) return;
+    PktDamage p; memset(&p, 0, sizeof(p)); p.type = PKT_DAMAGE;
+    p.from = (uint8_t)((fromSlot >= 0 && fromSlot < MP_MAX_PLAYERS && m_Slots[fromSlot].used) ? fromSlot : MP_INVALID_ID);
+    p.target = (uint8_t)target; p.weapon = weapon; p.amount = amount;
+    SendTo(target, &p, sizeof(p));
+}
+void MPServer::GateDeath(int victim, int killer, uint8_t weapon)
+{   // a co-op player died: the kill feed on the phone
+    std::lock_guard<std::mutex> lk(m_Mutex);
+    if(victim < 0 || victim >= MP_MAX_PLAYERS || !m_Slots[victim].used || !m_Slots[victim].ghost) return;
+    PktDeath p; p.type = PKT_DEATH; p.victim = (uint8_t)victim; p.weapon = weapon;
+    p.killer = (uint8_t)((killer >= 0 && killer < MP_MAX_PLAYERS && m_Slots[killer].used) ? killer : MP_INVALID_ID);
+    Broadcast(&p, sizeof(p));
+}
+
 #define GATE_EACH(slot, body) \
     for(int i_ = 0; i_ < MP_MAX_PLAYERS; ++i_) { if(!m_Slots[i_].used || m_Slots[i_].ghost || (slot >= 0 && i_ != slot)) continue; const int to = i_; (void)to; body; }
 

@@ -116,15 +116,6 @@ struct RemotePlayerVitals {
     uint16_t armour = 0;
 };
 
-// AML Multiplayer 1.3 combat sync: KILL|killerId|killerName|victimId|victimName|weapon (killerId 0 = died)
-struct RemoteKill {
-    uint16_t killerId = 0;
-    uint16_t victimId = 0;
-    uint8_t weapon = 255;
-    char killerName[15]{};
-    char victimName[15]{};
-};
-
 struct RemotePlayerHit {
     uint16_t attackerId = 0;
     uint8_t weapon = 0;
@@ -245,7 +236,6 @@ public:
     void SendPlayerHit(uint16_t targetId, uint8_t weapon, uint16_t damage,
                        uint8_t piece, uint8_t direction, uint8_t fightSet, uint8_t fightMove);
     void SendNpcRemove(uint32_t localRef);
-    void SendDeath(uint16_t killerId, uint8_t weapon);
     void SendMissionMarker(uint16_t sourceSlot, uint8_t type, uint8_t display,
                            uint8_t sprite, uint16_t scale, uint32_t color,
                            float x, float y, float z, float radius);
@@ -302,13 +292,6 @@ public:
         std::scoped_lock lock(m_mutex);
         auto events = std::move(m_playerVitals);
         m_playerVitals.clear();
-        return events;
-    }
-
-    std::vector<RemoteKill> DrainKills() {
-        std::scoped_lock lock(m_mutex);
-        auto events = std::move(m_kills);
-        m_kills.clear();
         return events;
     }
 
@@ -370,7 +353,6 @@ private:
     std::vector<RemoteNpcVitals> m_npcVitals;
     std::vector<RemotePlayerVitals> m_playerVitals;
     std::vector<RemotePlayerHit> m_playerHits;
-    std::vector<RemoteKill> m_kills;
     std::vector<RemoteMissionMarker> m_remoteMissionMarkers;
     std::vector<uint32_t> m_removedMissionMarkers;
 

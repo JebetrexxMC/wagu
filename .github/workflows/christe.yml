@@ -16,7 +16,6 @@ on:
       - '.github/workflows/christe.yml'
       - 'bin/libMP32.so'
       - 'bin/libMP64.so'
-      - 'bin/libCoopFusion32.so'
 permissions:
   contents: write
 jobs:

@@ -327,7 +327,7 @@ void MPServer::RelaySync(int slot, const void* pkt, int len, bool important)
         // only the players streamed in near us. The distance tiers below measured from the phone's spot - in class
         // selection / the login camera that is far away, so PC players moved once every 1-2 s (frozen, then jumping).
         // Everything stays on this phone (localhost), so every PC sync goes straight through.
-        if(!send && s.ghost && m_pGate && m_pGate->IsRemote()) send = true;
+        if(!send && s.ghost && ((m_pGate && m_pGate->IsRemote()) || m_bGhostFullSync)) send = true;   // 5.02.79: + co-op ghosts
         if(!send)
         {
             float dx = s.pos[0] - r.pos[0], dy = s.pos[1] - r.pos[1];
@@ -1492,6 +1492,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             PktDeath p = *(const PktDeath*)data;
             p.victim = (uint8_t)slot;
             if(p.killer >= MP_MAX_PLAYERS || !m_Slots[p.killer].used) p.killer = MP_INVALID_ID;
+            if(m_pPhoneHook && !m_Slots[slot].ghost) m_pPhoneHook->OnPhonePkt(slot, data, len);   // 5.02.79: CoopFusion32 crossplay
             AcDeath(slot, p);   // 3.50: fake kill -> no kill credit
             if(!m_Slots[slot].used) return;
             BcwOnDeath(slot, p.killer == MP_INVALID_ID ? -1 : p.killer);   // 3.04
@@ -1509,6 +1510,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             PktDamage p = *(const PktDamage*)data;
             p.from = (uint8_t)slot;
             if(m_pGate && !m_Slots[slot].ghost) m_pGate->OnPhonePkt(slot, data, len);   // 5.02.25: OnPlayerGiveDamage on a PC server
+            if(m_pPhoneHook && !m_Slots[slot].ghost) m_pPhoneHook->OnPhonePkt(slot, data, len);   // 5.02.79: CoopFusion32 crossplay
             if(!AcDamage(slot, p)) return;   // 3.50: pro aim
             // paused players and players on a mission / in a cutscene can't be hurt (or hurt others)
             // 2.19: mission-sync partners share one story world: they can hurt each other on a mission
@@ -1635,6 +1637,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             if(!m.count) return;
             m.id = (uint8_t)slot;
             if(m_pGate && !m_Slots[slot].ghost) m_pGate->OnPhonePkt(slot, data, len);   // 5.02.25: OnPlayerWeaponShot
+            if(m_pPhoneHook && !m_Slots[slot].ghost) m_pPhoneHook->OnPhonePkt(slot, data, len);   // 5.02.79
             if(!AcShot(slot, m)) return;   // 3.50: rapid fire, no reload
             float sp[3]; memcpy(sp, m.e[0].a, sizeof(sp));       // aligned copy (see PKT_EXPLOSION)
             RelayNearOrPartner(slot, sp, &m, MP_PKT_SHOT_HDR + m.count * (int)sizeof(ShotEntry));

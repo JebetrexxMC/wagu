@@ -838,6 +838,14 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.79 / AML Multiplayer 1.3.1
+- CoopFusion32 is back exactly as our collaborator uploaded it (`coopfusion/CoopFusion32` matches `research/CoopFusion32-main.zip`). The 5.02.78 edits to the mod are undone, and its workflow and `bin/libCoopFusion32.so` are removed. MP doesn't build or ship the mod.
+- Co-op crossplay now lives in **libMP** (`src/net/coopgate.cpp`, `src/mp_coopfusion.inc`). MP joins a stock CoopFusion32 server (`node index.mjs`, port 6767) as a normal co-op player, using the mod's own protocol, through a private MP server on 127.0.0.1 (the same idea as the open.mp crossplay). Co-op players show up as "Name (Co-op)", cars and passengers included, and the MP player shows up on the co-op server under their MP name.
+- Combat sync with co-op players: MP hits are sent as `PLAYER_HEALTH` (plus `PLAYER_HIT` for melee), and MP gunshots are sent as `SHOTX` so the bullets replay on the co-op side. Co-op `PLAYER_HIT`, `PLAYER_VITALS` and `SHOT` turn into MP damage with the right attacker and weapon. Killing a co-op player counts for the MP player who hit them. Tested against the original `server/index.mjs` with a stand-in co-op client.
+- Launcher join: `coop|host|port|name`, the same path as open.mp. Leaving goes back to the default server.
+- **AML Multiplayer 1.3.1**: Co-op Connect starts GTA SA with libMP as usual and passes the co-op server to MP. It no longer copies CoopFusion32, writes its ini or turns libMP off. Co-op now works on 64-bit phones too. The 1.3 leftovers (`libCoopFusion32.so`, `libMP.so.coop`) are cleaned up. A stock co-op server doesn't report its player count, so the Co-op list shows whether it's reachable and its ping.
+- Not touched: the loading screens, the neon join and < Spawn >.
+
 ### 5.02.78 / AML Multiplayer 1.3 / CoopFusion32 1.1
 - Neon main menu, Browse servers: the rows of "Choose your server" and the SELECTED SERVER card no longer draw a logo tile with the server's initials. They draw the server's `bg_server.jar` picture (the same pictures as the MP launcher rows), cover-cropped, with a soft fade on the right edge so the name and gamemode text stay readable. The initials tile is only a fallback while a picture is still loading.
 - **CoopFusion32** (`coopfusion/CoopFusion32`, by our new collaborator) is now part of MP: an AML co-op mod for GTA SA 2.00 32-bit (`net.coopfusion32.mobile`, needs SAUtils 1.6). Built by the **CoopFusion32** workflow (`.github/workflows/coopfusion.yml`, NDK r27), shipped as `bin/libCoopFusion32.so`. 1.1 adds:

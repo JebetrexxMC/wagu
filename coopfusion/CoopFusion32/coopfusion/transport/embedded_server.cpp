@@ -78,7 +78,6 @@ struct HealthReport {
 
 struct Client {
     int fd = -1;
-    uint16_t kills = 0, deaths = 0;   // AML Multiplayer 1.3: combat sync (DEATH / KILL)
     uint16_t id = 0;
     bool joined = false;
     std::string rx;
@@ -147,8 +146,6 @@ struct MissionMarker {
 };
 
 std::mutex g_serverMutex;
-std::string g_serverName = "CoopFusion LAN";
-constexpr const char* kServerVersion = "1.1";
 std::vector<Client> g_clients;
 std::unordered_map<uint64_t, Npc> g_npcs;
 std::unordered_map<uint64_t, MissionMarker> g_missionMarkers;
@@ -1388,33 +1385,6 @@ void HandleClothes(Client& c, const Parts& p) {
     Broadcast(ClothesSnapshot(c.id, c.clothes), c.id);
 }
 
-size_t JoinedCount() { size_t n = 0; for (const auto& c : g_clients) if (c.joined) ++n; return n; }
-
-std::string InfoLine(const char* kind, uint16_t port) {
-    char b[192];
-    if (port) std::snprintf(b, sizeof(b), "%s|%s|%u|%zu|%u|%s\n", kind, SafeName(g_serverName).c_str(), port, JoinedCount(), kMaxPlayers, kServerVersion);
-    else std::snprintf(b, sizeof(b), "%s|%s|%zu|%u|%s\n", kind, SafeName(g_serverName).c_str(), JoinedCount(), kMaxPlayers, kServerVersion);
-    return b;
-}
-
-// AML Multiplayer 1.3: DEATH|killerId|weapon from the victim -> KILL|killerId|killerName|victimId|victimName|weapon to everyone
-void HandleDeath(Client& c, const Parts& p) {
-    if (p.size() != 2) return;
-    long long killer = 0, weapon = 255;
-    if (!ParseInteger(p[0].c_str(), killer) || !ParseInteger(p[1].c_str(), weapon)) return;
-    if (killer < 0 || killer > 0xFFFF || weapon < 0 || weapon > 255) return;
-    const uint64_t now = MonotonicMilliseconds();
-    static std::unordered_map<uint16_t, uint64_t> lastDeath;
-    if (now - lastDeath[c.id] < 1500) return;   // one death per respawn
-    lastDeath[c.id] = now;
-    Client* k = killer && killer != c.id ? FindClient(static_cast<uint16_t>(killer)) : nullptr;
-    ++c.deaths;
-    if (k) ++k->kills;
-    char b[160];
-    std::snprintf(b, sizeof(b), "KILL|%u|%s|%u|%s|%u\n", k ? k->id : 0, k ? k->name.c_str() : "", c.id, c.name.c_str(), k ? static_cast<unsigned>(weapon) : 255u);
-    Broadcast(b);
-}
-
 void HandleLine(Client& c, const std::string& raw) {
 
     const size_t first = raw.find_first_not_of(" \t\r\n");
@@ -1429,11 +1399,6 @@ void HandleLine(Client& c, const std::string& raw) {
 
     if (type == "JOIN") {
         if (!c.joined) HandleJoin(c, p);
-        return;
-    }
-    if (type == "INFO" && !c.joined) {   // AML Multiplayer 1.3: the launcher's server list query
-        Send(c, InfoLine("INFO", 0));
-        if (c.fd >= 0) shutdown(c.fd, SHUT_WR);
         return;
     }
     if (!c.joined) return;
@@ -1464,11 +1429,8 @@ void HandleLine(Client& c, const std::string& raw) {
     else if (type == "SHOT") HandleShot(c, p);
     else if (type == "EXPX") HandleExplosionX(c, p);
     else if (type == "SHOTX") HandleShotX(c, p);
-    else if (type == "DEATH") HandleDeath(c, p);
 }
 }
-
-void EmbeddedServer::SetName(const std::string& name) { std::scoped_lock lock(g_serverMutex); if (!name.empty()) g_serverName = name; }
 
 EmbeddedServer::EmbeddedServer() = default;
 EmbeddedServer::~EmbeddedServer() { Stop(); }
@@ -1494,14 +1456,6 @@ bool EmbeddedServer::Start(uint16_t port) {
         return false;
     }
     m_port = port;
-    m_udpSocket = socket(AF_INET, SOCK_DGRAM, 0);
-    if (m_udpSocket >= 0) {
-        setsockopt(m_udpSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
-        setsockopt(m_udpSocket, SOL_SOCKET, SO_BROADCAST, &yes, sizeof(yes));
-        sockaddr_in u{}; u.sin_family = AF_INET; u.sin_addr.s_addr = htonl(INADDR_ANY); u.sin_port = htons(static_cast<uint16_t>(port + 1));
-        if (bind(m_udpSocket, reinterpret_cast<sockaddr*>(&u), sizeof(u)) < 0) { close(m_udpSocket); m_udpSocket = -1; }
-        else fcntl(m_udpSocket, F_SETFL, O_NONBLOCK);
-    }
     m_running = true;
     m_thread = std::thread(&EmbeddedServer::Run, this);
     __android_log_print(ANDROID_LOG_INFO, kTag, "Native server started on port %u", port);
@@ -1516,7 +1470,6 @@ void EmbeddedServer::Stop() {
         m_listenSocket = -1;
     }
     if (m_thread.joinable()) m_thread.join();
-    if (m_udpSocket >= 0) { close(m_udpSocket); m_udpSocket = -1; }
     CloseClients();
 }
 
@@ -1553,21 +1506,8 @@ void EmbeddedServer::Run() {
                 polledFds.push_back(c.fd);
             }
         }
-        const size_t udpIndex = pfds.size();
-        if (m_udpSocket >= 0) pfds.push_back({m_udpSocket, POLLIN, 0});
         poll(pfds.data(), pfds.size(), 15);
         std::scoped_lock lock(g_serverMutex);
-        if (m_udpSocket >= 0 && (pfds[udpIndex].revents & POLLIN)) {
-            char q[64]; sockaddr_in from{}; socklen_t fl = sizeof(from);
-            const ssize_t qn = recvfrom(m_udpSocket, q, sizeof(q) - 1, 0, reinterpret_cast<sockaddr*>(&from), &fl);
-            if (qn > 0) {
-                q[qn] = 0;
-                if (std::strncmp(q, "COOP_DISCOVER", 13) == 0) {
-                    const std::string a = InfoLine("COOP_HERE", m_port);
-                    sendto(m_udpSocket, a.data(), a.size(), 0, reinterpret_cast<sockaddr*>(&from), fl);
-                }
-            }
-        }
 
 
 

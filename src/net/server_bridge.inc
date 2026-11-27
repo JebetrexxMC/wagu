@@ -5,7 +5,7 @@
 // A ghost slot has no address (sin_port 0): SendRaw() skips it, the timeout never drops it,
 // everything else (player list, sync relay, chat, join/leave) treats it like a real player.
 
-int MPServer::BridgeAdd(const char* name, uint32_t color, uint16_t skin)
+int MPServer::BridgeAdd(const char* name, uint32_t color, uint16_t skin, const char* tag)
 {
     std::lock_guard<std::mutex> lk(m_Mutex);
     for(int i = 0; i < MP_MAX_PLAYERS; ++i)
@@ -18,7 +18,8 @@ int MPServer::BridgeAdd(const char* name, uint32_t color, uint16_t skin)
         s.lastSeen = s.joinedMs = MP_NowMs();
         s.pair = s.pairReq = MP_INVALID_ID;
         char nm[MP_NAME_LEN];
-        snprintf(nm, sizeof(nm), "%.*s (PC)", MP_NAME_LEN - 6, name && *name ? name : "Player");
+        if(!tag) tag = "";
+        snprintf(nm, sizeof(nm), "%.*s%s", (int)(MP_NAME_LEN - 1 - strlen(tag)), name && *name ? name : "Player", tag);
         MP_CopyStr(s.name, nm, MP_NAME_LEN);
         s.color = color ? color : 0xFFFFFFFF;
         s.skin = skin;

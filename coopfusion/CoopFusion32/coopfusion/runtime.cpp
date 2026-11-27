@@ -26,7 +26,6 @@
 #include "world/game_hooks.h"
 #include "diagnostics/weapon_log.h"
 #include "ui/fx.h"
-#include "ui/ui_common.h"
 
 namespace CoopFusion {
 namespace {
@@ -182,7 +181,6 @@ void HostLan() {
     int activePort = 0;
     for (int candidate = configuredPort;
          candidate <= std::min(65535, configuredPort + 5); ++candidate) {
-        EmbeddedServer::SetName(std::string(g_name) + "'s co-op");
         if (g_embeddedServer.Start(static_cast<uint16_t>(candidate))) {
             activePort = candidate;
             break;
@@ -532,52 +530,6 @@ void DrawConnectionPanel() {
 }
 }
 
-// AML Multiplayer 1.3: kill feed (combat sync KILL packets), top right under the COOPFUSION button
-struct FeedLine { std::string text; std::chrono::steady_clock::time_point at; bool mine; };
-std::vector<FeedLine> g_killFeed;
-
-const char* WeaponName(unsigned w) {
-    static const char* n[] = { "Fist", "Brass Knuckles", "Golf Club", "Nightstick", "Knife", "Bat", "Shovel", "Pool Cue",
-        "Katana", "Chainsaw", "Dildo", "Dildo", "Vibrator", "Vibrator", "Flowers", "Cane", "Grenade", "Tear Gas",
-        "Molotov", "Rocket", "Rocket", "Jetpack", "9mm", "Silenced 9mm", "Desert Eagle", "Shotgun", "Sawn-off",
-        "Combat Shotgun", "Micro SMG", "MP5", "AK-47", "M4", "Tec-9", "Rifle", "Sniper", "RPG", "Heat-Seeker",
-        "Flamethrower", "Minigun", "Satchel", "Detonator", "Spray Can", "Extinguisher", "Camera", "Night Vision",
-        "Thermal", "Parachute" };
-    return w < sizeof(n) / sizeof(n[0]) ? n[w] : "";
-}
-
-void DrawKillFeed(ImDrawList* drawList) {
-    const auto now = std::chrono::steady_clock::now();
-    for (const auto& k : g_client.DrainKills()) {
-        FeedLine f;
-        const bool byPlayer = k.killerId && k.killerName[0];
-        const char* w = WeaponName(k.weapon);
-        f.text = byPlayer ? std::string(k.killerName) + "  [" + (w[0] ? w : "kill") + "]  " + k.victimName
-                          : std::string(k.victimName) + " died";
-        f.mine = k.killerId == g_client.LocalId() || k.victimId == g_client.LocalId();
-        f.at = now;
-        g_killFeed.push_back(f);
-        if (g_killFeed.size() > 5) g_killFeed.erase(g_killFeed.begin());
-    }
-    g_killFeed.erase(std::remove_if(g_killFeed.begin(), g_killFeed.end(), [&](const FeedLine& f) {
-        return now - f.at > std::chrono::seconds(7); }), g_killFeed.end());
-    if (!drawList || g_killFeed.empty()) return;
-    const ImVec2 display = ImGui::GetIO().DisplaySize;
-    float y = 78.0f;
-    for (const auto& f : g_killFeed) {
-        const ImVec2 sz = ImGui::CalcTextSize(f.text.c_str());
-        const float x = display.x - sz.x - 22.0f;
-        drawList->AddRectFilled(ImVec2(x - 8.0f, y - 3.0f), ImVec2(display.x - 12.0f, y + sz.y + 3.0f),
-                                f.mine ? IM_COL32(120, 20, 20, 170) : IM_COL32(0, 0, 0, 150), 4.0f);
-        drawList->AddText(ImVec2(x, y), IM_COL32(255, 255, 255, 235), f.text.c_str());
-        y += sz.y + 8.0f;
-    }
-}
-
-// AML Multiplayer 1.3: the launcher writes AutoConnect=1 (+ ServerHost / ServerPort / Nickname) for a Co-op join
-std::atomic<bool> g_autoConnect{false};
-std::thread g_autoThread;
-
 bool Init(uintptr_t gameLibrary) {
     if (g_initialized.load()) return true;
     if (cfg) {
@@ -589,7 +541,6 @@ bool Init(uintptr_t gameLibrary) {
         const int port = cfg->GetInt("ServerPort", 6767, "CoopFusion");
         std::snprintf(g_portText, sizeof(g_portText), "%d",
                       std::max(1, std::min(65535, port)));
-        g_autoConnect.store(cfg->GetInt("AutoConnect", 0, "CoopFusion") != 0);
     }
 
     g_saUtils = static_cast<ISAUtils*>(GetInterface("SAUtils"));
@@ -608,17 +559,6 @@ bool Init(uintptr_t gameLibrary) {
     SetRemoteNameTagScale(0.70f);
     g_initialized.store(true);
     SetStatus("Ready. Connect to a server or host a LAN session.");
-    if (g_autoConnect.load()) {
-        SetStatus("AML Multiplayer: joining the co-op server...");
-        g_autoThread = std::thread([] {
-            // wait until the game world is up (the player exists), then connect once
-            for (int i = 0; i < 240 && !(g_saUtils && g_saUtils->IsGameInitialised()); ++i)
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            std::this_thread::sleep_for(std::chrono::seconds(3));
-            if (!IsConnected()) StartClient(g_host, PortValue());
-        });
-        g_autoThread.detach();
-    }
     return true;
 }
 
@@ -639,7 +579,6 @@ void DrawHud(ImDrawList* drawList) {
     if (!IsConnected() || g_menuOpen.load()) return;
     DrawRemoteWeaponIcons();
     RenderRemotePlayerNameTags(drawList);
-    DrawKillFeed(drawList);
 }
 
 void RenderConnectionUI() {

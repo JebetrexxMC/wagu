@@ -60,7 +60,6 @@ namespace
 {
 
 uint64_t SteadyNowMs();
-static VehicleExtendedState CaptureVehicleExtendedState(CVehicle* vehicle);   // used before its definition (vehicle sync)
 
 constexpr bool kBonePoseSyncEnabled = false;
 
@@ -1371,43 +1370,9 @@ void HookDoBulletImpact(void* weaponSelf, void* owner, void* victim, ShotVec3* s
     if (g_originalDoBulletImpact) g_originalDoBulletImpact(weaponSelf,owner,victim,start,end,colPoint,impactFlags);
 }
 
-// AML Multiplayer 1.3 combat sync: who hurt the local player last (a remote player's ped, by gun replay or melee),
-// so the death is reported with its killer: DEATH|killer|weapon -> KILL to everyone (kill feed, kills / deaths)
-uint16_t g_lastAttackerId = 0;
-uint8_t g_lastAttackWeapon = 255;
-uint64_t g_lastAttackMs = 0;
-bool g_localDead = false;
-
-void NoteLocalAttacker(CEntity* creator, int weapon)
-{
-    if (!creator) return;
-    for (const auto& remote : g_remotePeds) {
-        if (static_cast<CEntity*>(remote.second) != creator) continue;
-        g_lastAttackerId = remote.first;
-        g_lastAttackWeapon = static_cast<uint8_t>(weapon >= 0 && weapon <= 255 ? weapon : 255);
-        g_lastAttackMs = SteadyNowMs();
-        return;
-    }
-}
-
-void UpdateLocalDeath()
-{
-    CPlayerPed* localPlayer = FindPlayerPed(-1);
-    if (!g_client || !localPlayer || !g_client->IsConnected()) { g_localDead = false; return; }
-    const bool dead = localPlayer->m_fHealth <= 0.0f;
-    if (dead && !g_localDead) {
-        const bool recent = g_lastAttackerId && SteadyNowMs() - g_lastAttackMs < 10000;
-        g_client->SendDeath(recent ? g_lastAttackerId : 0, recent ? g_lastAttackWeapon : 255);
-        WeaponFileLog("LOCAL_DEATH killer=%u weapon=%u", recent ? g_lastAttackerId : 0, recent ? g_lastAttackWeapon : 255);
-        g_lastAttackerId = 0;
-    }
-    g_localDead = dead;
-}
-
 bool HookGenerateDamageEvent(CPed* victim, CEntity* creator, int weapon, int damage, int piece, int direction)
 {
     CPlayerPed* localPlayer = FindPlayerPed(-1);
-    if (localPlayer && victim == static_cast<CPed*>(localPlayer) && creator && damage > 0) NoteLocalAttacker(creator, weapon);
     if (g_client && localPlayer && victim && creator == static_cast<CEntity*>(localPlayer) &&
         weapon >= 0 && weapon <= 15 && damage > 0) {
         for (const auto& remote : g_remotePeds) {
@@ -1485,7 +1450,6 @@ void ApplyPendingRemotePlayerHits()
         if (!original) { ++it; continue; }
         {
             RemoteFightAs fight(attacker, it->hit.fightSet, it->hit.fightMove);
-            NoteLocalAttacker(static_cast<CEntity*>(attacker), it->hit.weapon);
             const bool accepted = original(localPlayer, attacker, it->hit.weapon, it->hit.damage,
                                            it->hit.piece, it->hit.direction);
             WeaponFileLog("PLAYER_MELEE_HIT_APPLY attacker=%u weapon=%u damage=%u piece=%u direction=%u accepted=%d fight=%u/%u",
@@ -5526,7 +5490,6 @@ void UpdateRemotePlayers()
 
 
     ApplyPendingRemotePlayerHits();
-    UpdateLocalDeath();
 
     const uint64_t carjackNowMs = NowSteadyMs();
     for (auto eventIt = g_pendingRemoteVehicleEnters.begin(); eventIt != g_pendingRemoteVehicleEnters.end();) {

@@ -31,6 +31,7 @@ extern "C" unsigned long crc32(unsigned long crc, const unsigned char* buf, unsi
 #include "net/lan.h"
 #include "net/online.h"
 #include "net/sampgate.h"   // 5.02: open.mp / SA-MP crossplay
+#include "net/coopgate.h"   // 5.02.79: CoopFusion32 crossplay
 #include <atomic>
 #include <thread>
 #include "net/authclient.h"   // 3.21.6: login system
@@ -171,6 +172,7 @@ static int  s_nFeatWaitTries = 0;   // 3.53
 static bool DupFallBack();    // 3.23.5
 static void ProcessLan(uint64_t now);
 static void CrossplayTick(uint64_t now);   // 5.02 (mp_crossplay.inc)
+static void CoopFusionTick(uint64_t now);  // 5.02.79 (mp_coopfusion.inc)
 static void OfflineTick(uint64_t now); static bool OfflineCommand(const char* cmd, const char* arg); static float OfflineCard(float w); static bool OffNoInternet();   // 5.02.40 (mp_offline.inc)
 static void RunHostRequest();   // 3.21.2: host / stop from the Add server page, run on the game frame
 
@@ -5946,6 +5948,7 @@ static void ProcessLan(uint64_t now)
     RunHostRequest();
     ProcessBrokerStandby(now);
     CrossplayTick(now);   // 5.02: open.mp / SA-MP crossplay
+    CoopFusionTick(now);  // 5.02.79: CoopFusion32 crossplay
     OfflineTick(now);     // 5.02.40: offline hotspot play
     // online lobby: announce the server this phone hosts (player count refreshed every 0.5 s)
     {
@@ -7474,6 +7477,7 @@ static void ServerDetailsEditor()
 }
 
 #include "mp_crossplay.inc"   // 5.02
+#include "mp_coopfusion.inc"  // 5.02.79: CoopFusion32 crossplay (co-op servers)
 #include "mp_offline.inc"     // 5.02.40: offline play (hotspot / same Wi-Fi, no internet)
 
 static void SectionAddServer(void*)

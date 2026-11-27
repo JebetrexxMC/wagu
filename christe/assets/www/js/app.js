@@ -1,4 +1,4 @@
-/* AML Multiplayer 1.3 (was Christe Multiplayer) - launcher UI (landscape). Talks to Android through window.Christe (MainActivity.Bridge).
+/* AML Multiplayer 1.3.1 (was Christe Multiplayer) - launcher UI (landscape). Talks to Android through window.Christe (MainActivity.Bridge).
    The layout is the SA-MP 0.3.7 browser (File/View/Servers/Tools/Help, tool bar + Name:, HostName/Players/Ping/Mode/
    Language, Player/Score + Rule/Value, Favorites/Internet/Hosted tabs, "Servers: N players" line) in the MP launcher skin.
    Lists: Internet = MP lobby (live-status/status.json) + open.mp (api.open.mp/servers), Featured = MP's own servers,
@@ -7,7 +7,7 @@
 (function (G, D) {
   'use strict';
   var $ = function (s, r) { return (r || D).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || D).querySelectorAll(s)); };
-  var VERSION = '1.3.0', MPVER = '5.02.78';
+  var VERSION = '1.3.1', MPVER = '5.02.79';
   var URLS = {
     lobby: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/live-status/status.json',
     f247: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/mp247-data/omp247.json',
@@ -168,7 +168,7 @@
   }
   function allRows() { return S.rows.concat(S.lan, S.coop); }
 
-  // ---------- 1.3 Co-op: CoopFusion32 servers (story-mode co-op, GTA SA 2.00 32-bit) ----------
+  // ---------- Co-op: CoopFusion32 servers. libMP joins them itself (crossplay, 1.3.1), 32-bit and 64-bit ----------
   function coopRow(o, src) {
     var r = { kind: 'coop', src: src, name: o.name || (o.host + ':' + o.port), host: o.host, port: (o.port | 0) || 6767, players: o.players | 0, max: o.max | 0, mode: 'Co-op (story)', lang: o.lang || '-', cc: o.cc || 'global', game: 'sa', ping: -1, ver: o.ver || '', locked: false };
     r.key = rowKey(r); return r;
@@ -250,7 +250,7 @@
     rows.forEach(function (r) { pl += r.players | 0; slots += Math.max(0, (r.max | 0) - (r.players | 0)); });
     var t = S.loading && !S.loaded ? 'Loading servers...' : 'Servers: ' + pl + ' players, playing on ' + rows.length + ' servers. (' + slots + ' player slots available)';
     if (S.page === 'lan' && S.lanBusy) t = 'Searching this Wi-Fi / hotspot for MP servers...';
-    if (S.page === 'coop') t = S.coopBusy ? 'Looking for CoopFusion32 co-op servers...' : 'Co-op: ' + pl + ' players on ' + rows.length + ' CoopFusion32 server' + (rows.length === 1 ? '' : 's') + '. Story-mode co-op, GTA SA 2.00 (32-bit).';
+    if (S.page === 'coop') t = S.coopBusy ? 'Looking for CoopFusion32 co-op servers...' : 'Co-op: ' + pl + ' players on ' + rows.length + ' CoopFusion32 server' + (rows.length === 1 ? '' : 's') + '. Crossplay through MP, on every phone.';
     $('#statusLine').textContent = t;
     var sel = rowBy(S.sel); $('#connectBtn').disabled = !(LISTS[S.page] && sel);
   }
@@ -272,10 +272,10 @@
     game: function () { return '<div class="ph"><h1>Play</h1><span class="sub">GTA San Andreas runs inside AML Multiplayer</span></div><div class="hero">' + gameCard('sa') + gameCard('vc') + '</div>' + addGameCard() + obbCard() + engineCard(); },
     about: function () {
       return '<div class="ph"><h1>AML Multiplayer</h1><span class="sub">v' + esc(INFO.version || VERSION) + '</span></div>' +
-        '<div class="card"><h3>The launcher</h3><p style="margin:0 0 6px;color:#c3c7d2">AML Multiplayer is the MP launcher for GTA San Andreas (AML) and GTA Vice City on Android, with SA + VC + PC crossplay and CoopFusion32 story co-op. GTA SA runs inside AML Multiplayer (its own game screen, not the GTA SA app), and MP joins the server you picked from the title screen.</p>' +
-        '<div class="kv"><span>MP mod</span><span>libMP ' + MPVER + ' (bundled, copied to Android/data/com.christe.mp/mods)</span><span>GTA SA code</span><span>' + esc(INFO.saPkg || 'com.rockstargames.gtasa') + ' (AML) - 2.10 on 64-bit, 2.00 on 32-bit</span><span>Game files</span><span>' + (hasObb() ? 'ready' : 'not added yet (Settings > Storage)') + '</span><span>Co-op</span><span>CoopFusion32 1.1 (GTA SA 2.00, 32-bit)</span><span>Vice City</span><span>com.rockstargames.gtavc + ViceLoader (127.0.0.1:47790)</span><span>CPU</span><span>' + esc(INFO.deviceAbi || '') + '</span><span>Own files</span><span>' + esc(INFO.date2 || '') + '</span></div></div>' +
+        '<div class="card"><h3>The launcher</h3><p style="margin:0 0 6px;color:#c3c7d2">AML Multiplayer is the MP launcher for GTA San Andreas (AML) and GTA Vice City on Android, with SA + VC + PC crossplay and crossplay with CoopFusion32 co-op servers. GTA SA runs inside AML Multiplayer (its own game screen, not the GTA SA app), and MP joins the server you picked from the title screen.</p>' +
+        '<div class="kv"><span>MP mod</span><span>libMP ' + MPVER + ' (bundled, copied to Android/data/com.christe.mp/mods)</span><span>GTA SA code</span><span>' + esc(INFO.saPkg || 'com.rockstargames.gtasa') + ' (AML) - 2.10 on 64-bit, 2.00 on 32-bit</span><span>Game files</span><span>' + (hasObb() ? 'ready' : 'not added yet (Settings > Storage)') + '</span><span>Co-op</span><span>CoopFusion32 servers, joined through libMP (32-bit and 64-bit)</span><span>Vice City</span><span>com.rockstargames.gtavc + ViceLoader (127.0.0.1:47790)</span><span>CPU</span><span>' + esc(INFO.deviceAbi || '') + '</span><span>Own files</span><span>' + esc(INFO.date2 || '') + '</span></div></div>' +
         '<div class="card"><h3>From the MP mod</h3><div class="kv"><span>Mod</span><span>MP (Multiplayer for GTA SA Android) by ThirtyFoxMC</span><span>Discord</span><span><a data-open-url="' + esc(DISCORD) + '">MP Discord server</a></span><span>Latest MP release</span><span>' + esc(S.relTag || '-') + '</span></div></div>' +
-        '<div class="card"><h3>Open source used</h3><div class="kv"><span>Layout</span><span>SA-MP 0.3.7 server browser</span><span>Skin</span><span>MP launcher (libMP): ui_bg.jpg, title.png, icons, flags (lipis/flag-icons, MIT)</span><span>Skeleton loaders</span><span>idea from SkeletonView (Juanpe)</span><span>Server list</span><span>open.mp API, MP lobby (HiveMQ)</span><span>Co-op</span><span>CoopFusion32 by our collaborator (crossplay + combat sync with MP)</span><span>Communities</span><span>MP Social (the same as the game and Moquil)</span></div></div>';
+        '<div class="card"><h3>Open source used</h3><div class="kv"><span>Layout</span><span>SA-MP 0.3.7 server browser</span><span>Skin</span><span>MP launcher (libMP): ui_bg.jpg, title.png, icons, flags (lipis/flag-icons, MIT)</span><span>Skeleton loaders</span><span>idea from SkeletonView (Juanpe)</span><span>Server list</span><span>open.mp API, MP lobby (HiveMQ)</span><span>Co-op</span><span>CoopFusion32 by our collaborator (MP crossplays with its servers; the mod itself is unchanged)</span><span>Communities</span><span>MP Social (the same as the game and Moquil)</span></div></div>';
     },
     settings: function () { return '<div class="ph"><h1>Settings</h1></div>' + (SET[S.setTab] || SET.account)(); }
   };
@@ -396,7 +396,7 @@
     var sel = rows.filter(function (r) { return r.key === S.sel; })[0] || rows[0];
     S.sel = sel ? sel.key : null;
     function th(k, t) { return '<span class="' + (S.sort === k ? 'sorted' : '') + '" data-sort="' + k + '">' + t + (S.sort === k ? (S.sortDir < 0 ? ' &#9662;' : ' &#9652;') : '') + '</span>'; }
-    var empty = S.page === 'favorites' ? 'No favourite servers yet. Select a server and tap the star.' : S.page === 'lan' ? (S.lanBusy ? 'Searching this Wi-Fi / hotspot for MP servers...' : 'No MP server on this Wi-Fi / hotspot. Start one in the game (Host) or tap Search again.') : S.page === 'coop' ? (S.coopBusy ? 'Looking for co-op servers...' : 'No CoopFusion32 co-op server online right now. Host one in the game (COOPFUSION > Host LAN), run the CoopFusion server, or tap Add server.') : 'No servers match.';
+    var empty = S.page === 'favorites' ? 'No favourite servers yet. Select a server and tap the star.' : S.page === 'lan' ? (S.lanBusy ? 'Searching this Wi-Fi / hotspot for MP servers...' : 'No MP server on this Wi-Fi / hotspot. Start one in the game (Host) or tap Search again.') : S.page === 'coop' ? (S.coopBusy ? 'Looking for co-op servers...' : 'No CoopFusion32 co-op server online right now. Run the CoopFusion32 server, ask a friend for theirs, or tap Add server.') : 'No servers match.';
     var body = (!S.loaded && S.page !== 'lan' && S.page !== 'favorites' && S.page !== 'coop') || (S.page === 'coop' && S.coopBusy && !rows.length) || (S.page === 'lan' && S.lanBusy && !rows.length) ? skelRows(10) : rows.length ? rows.slice(0, 500).map(function (r) {
       return '<div class="trow' + (sel && r.key === sel.key ? ' sel' : '') + '" data-key="' + esc(r.key) + '"><i class="rbg" style="background-image:url(' + bgOf(r) + ')"></i><span class="lk' + (r.locked ? '' : ' n') + '">' + ic(r.locked ? 'lock' : 'unlock') + '</span>' +
         '<span class="nm"><span class="t">' + esc(r.name) + '</span></span><span class="md">' + esc(r.mode || '-') + '</span><span class="pl">' + r.players + '<span> / ' + r.max + '</span></span><span class="pg ' + pcls(r.kind === 'mp' ? 0 : r.ping) + '">' + ptxt(r) + '</span><span class="lg">' + esc(r.lang || '-') + '</span><span class="loc">' + flag(r.cc || ccFromLang(r.lang)) + '</span></div>';
@@ -404,7 +404,7 @@
     return '<div class="thead"><span>' + ic('lock') + '</span>' + th('name', 'HostName') + th('mode', 'Gamemode') + th('players', 'Players') + th('ping', 'Ping') + th('lang', 'Language') + '<span class="lc">Loc.</span></div><div class="tbody">' + body + '</div>';
   }
   function rulesOf(r) {
-    if (r.kind === 'coop') return { mod: 'CoopFusion32' + (r.ver ? ' ' + r.ver : ''), mode: 'Co-op (story, missions)', game: 'GTA SA 2.00 (32-bit AML)', combat: 'Shots, melee, kills / deaths synced', crossplay: 'AML Multiplayer + AML GTA SA with CoopFusion32', address: r.host + ':' + r.port };
+    if (r.kind === 'coop') return { mod: 'CoopFusion32 server' + (r.ver ? ' ' + r.ver : ''), mode: 'Co-op', game: 'GTA SA (AML), 32-bit and 64-bit', combat: 'Shots, melee, health and kills synced', crossplay: 'MP (libMP) players + CoopFusion32 players', address: r.host + ':' + r.port };
     if (r.kind === 'omp') { var x = S.rules[r.key]; if (x) return x; fetchRules(r); return null; }
     return { lagcomp: 'On', mapname: 'San Andreas', version: 'MP ' + MPVER, region: REGIONS[r.region] || 'Auto', gamemode: r.mode, weather: '10', worldtime: '12:00', weburl: 'mpsamp-open.github.io' };
   }
@@ -559,7 +559,7 @@
       setTimeout(function () { clearInterval(t); L.remove(); }, 1800);
       if (String(r).indexOf('nocoop:') === 0) {
         clearInterval(t); L.remove();
-        dialog('Co-op can\'t start here', '<p>' + esc(r.slice(7)) + '</p><p>Players on 32-bit phones (GTA SA 2.00 AML) can join co-op servers from AML Multiplayer or from AML GTA SA with CoopFusion32; MP servers work on every phone.</p>', [['OK', 'go']]);
+        dialog('Co-op can\'t start here', '<p>' + esc(r.slice(7)) + '</p>', [['OK', 'go']]);
         return;
       }
       if (String(r).indexOf('noinapp:') === 0) {

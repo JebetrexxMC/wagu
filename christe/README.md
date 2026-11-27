@@ -1,9 +1,14 @@
 # AML Multiplayer (com.christe.mp, was Christe Multiplayer)
 
+**1.3.1:**
+- Co-op Connect goes through libMP (MP 5.02.79 crossplay with stock CoopFusion32 servers): the join is `coop|host|port|name`, like open.mp. The collaborator's CoopFusion32 mod is not copied, changed or switched in, and libMP stays on. Works on 32-bit and 64-bit.
+- Cleans up 1.3's `libCoopFusion32.so` and `libMP.so.coop` in `Android/data/com.christe.mp/mods`.
+- The Co-op list checks whether a server is reachable and shows its ping. A stock server doesn't report players.
+
 **1.3:**
 - **Add GTA SA** (Storage): the GTA SA APK can be added to AML Multiplayer, then Replace / Remove.
 - OBB fix like the GTA SA Mobile AML loaders: fastman92 settings in the manifest point the game to AML Multiplayer's own storage. "Storage & OBB" is now **Storage**; no OBB wording.
-- **Co-op** tab after open.mp: CoopFusion32 servers (`coopfusion/servers.json`, + Add, LAN discovery on 6768–6771). Connect installs `libCoopFusion32.so` in `Android/data/com.christe.mp/mods`, writes `configs/net.coopfusion32.mobile.ini` (`ServerHost`, `ServerPort`, `Nickname`, `AutoConnect=1`) and starts GTA SA without libMP. 32-bit (GTA SA 2.00) only; needs SAUtils 1.6 in mods.
+- **Co-op** tab after open.mp: CoopFusion32 servers (`coopfusion/servers.json`, + Add, LAN discovery on 6768–6771). (1.3's Connect swapped in a modified CoopFusion32; replaced in 1.3.1.)
 - **Communities** = MP Social channels and posts, Join / Leave, composer.
 - Server row pictures fade on the right and stop before the Gamemode text.
 - About has no source GitHub link.

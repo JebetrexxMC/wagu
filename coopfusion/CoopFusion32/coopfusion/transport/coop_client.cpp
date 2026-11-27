@@ -452,7 +452,6 @@ void CoopClient::SendPlayerHit(uint16_t targetId, uint8_t weapon, uint16_t damag
  std::snprintf(p, sizeof(p), "PLAYER_HIT|%u|%u|%u|%u|%u|%u|%u\n", targetId, weapon, damage, piece, direction, fightSet, fightMove);
  SendLine(p);
 }
-void CoopClient::SendDeath(uint16_t killerId, uint8_t weapon) { char p[64]; std::snprintf(p, sizeof(p), "DEATH|%u|%u\n", killerId, weapon); SendLine(p); }
 void CoopClient::SendNpcRemove(uint32_t localRef) { SendLine("NPC_REMOVE|" + std::to_string(localRef) + "\n"); }
 void CoopClient::SendMissionMarker(uint16_t sourceSlot, uint8_t type, uint8_t display, uint8_t sprite,
                                     uint16_t scale, uint32_t color, float x, float y, float z, float radius) {
@@ -780,21 +779,6 @@ void CoopClient::ParseLine(const std::string& line) {
        it->aimX=temp.aimX; it->aimY=temp.aimY; it->aimZ=temp.aimZ;
        it->receivedAtMs=static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
      }
-   }
-   return;
- }
- if (line.rfind("KILL|", 0) == 0) {
-   std::vector<std::string> f; size_t b = 5;
-   while (b <= line.size()) { size_t e = line.find('|', b); if (e == std::string::npos) e = line.size(); f.emplace_back(line.substr(b, e - b)); if (e == line.size()) break; b = e + 1; }
-   if (f.size() == 5) {
-     RemoteKill k{};
-     k.killerId = static_cast<uint16_t>(std::strtoul(f[0].c_str(), nullptr, 10));
-     k.victimId = static_cast<uint16_t>(std::strtoul(f[2].c_str(), nullptr, 10));
-     const unsigned long w = std::strtoul(f[4].c_str(), nullptr, 10);
-     k.weapon = static_cast<uint8_t>(w > 255 ? 255 : w);
-     std::snprintf(k.killerName, sizeof(k.killerName), "%s", f[1].c_str());
-     std::snprintf(k.victimName, sizeof(k.victimName), "%s", f[3].c_str());
-     if (k.victimId) { std::scoped_lock l(m_mutex); if (m_kills.size() < 32) m_kills.push_back(k); }
    }
    return;
  }

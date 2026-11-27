@@ -2549,6 +2549,7 @@ void MP::NeonTouch(int kind, int finger, float x, float y)   // 4.13.30
 // 5.02.76: Christe Multiplayer (com.christe.mp) starts GTA SA with the server you picked there as Intent extras:
 //   christe_join = "mp|<name>|<port>|<host>"   (an MP server; host empty = found in the lobby by name)
 //                  "omp|<host>|<port>|<name>"  (an open.mp / SA-MP PC server: crossplay)
+//                  "coop|<host>|<port>|<name>" (5.02.78: a CoopFusion32 co-op server: crossplay, mp_coopfusion.inc)
 //   christe_nick = your MP name (optional)
 // Read once from the game's activity on the title screen (no file in Android/data: Android 11+ blocks that for
 // other apps), the extras are removed after that so a resume never joins again. The join is the neon join.
@@ -2592,11 +2593,12 @@ static void ChristeIntentTick()
     const int port = atoi(f[2].c_str());
     if(port <= 0 || port > 65535) { logger->Info("Christe Multiplayer: bad join request \"%s\"", join.c_str()); return; }
     r.port = port;
-    if(f[0] == "omp") { r.kind = 8; MP_CopyStr(r.ip, f[1].c_str(), sizeof(r.ip)); MP_CopyStr(r.name, f[3].empty() ? f[1].c_str() : f[3].c_str(), sizeof(r.name)); }
+    if(f[0] == "coop") { r.kind = 9; MP_CopyStr(r.ip, f[1].c_str(), sizeof(r.ip)); MP_CopyStr(r.name, f[3].empty() ? f[1].c_str() : f[3].c_str(), sizeof(r.name)); }
+    else if(f[0] == "omp") { r.kind = 8; MP_CopyStr(r.ip, f[1].c_str(), sizeof(r.ip)); MP_CopyStr(r.name, f[3].empty() ? f[1].c_str() : f[3].c_str(), sizeof(r.name)); }
     else { r.kind = 1; MP_CopyStr(r.name, f[1].c_str(), sizeof(r.name)); MP_CopyStr(r.ip, f[3].c_str(), sizeof(r.ip)); if(!r.name[0]) MP_CopyStr(r.name, r.ip, sizeof(r.name)); }
-    if(r.kind == 8 && !r.ip[0]) return;
+    if((r.kind == 8 || r.kind == 9) && !r.ip[0]) return;
     if(r.kind == 1 && !r.name[0]) return;
-    logger->Info("Christe Multiplayer: join %s (%s, port %d) from the launcher", r.name, r.kind == 8 ? "open.mp" : "MP", r.port);
+    logger->Info("Christe Multiplayer: join %s (%s, port %d) from the launcher", r.name, r.kind == 9 ? "CoopFusion32 co-op" : (r.kind == 8 ? "open.mp" : "MP"), r.port);
     NeonMusicStop();
     s_bMenuMpViaApi = true;   // works with MainMenuMultiplayer = 0 too (like PCMenu's MPMultiplayer)
     NeonJoinRow(r);

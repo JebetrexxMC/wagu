@@ -393,9 +393,8 @@ public class MainActivity extends Activity {
                 return r;
             }
             String pkg = prefs.getString("sa_pkg", SA);
-            if (join != null && join.startsWith("coop|")) {   // 1.3: Co-op always runs in-app (CoopFusion32 instead of libMP)
-                String why = coopProblem(); if (why.length() > 0) return "nocoop:" + why;
-                why = inAppProblem(pkg); if (why.length() > 0) return "noinapp:" + why;
+            if (join != null && join.startsWith("coop|")) {   // Co-op runs in-app: libMP joins the CoopFusion32 server (1.3.1)
+                String why = inAppProblem(pkg); if (why.length() > 0) return "noinapp:" + why;
                 return launchInApp(pkg, join, nick);
             }
             if (!"app".equals(prefs.getString("engine", "christe"))) {
@@ -589,52 +588,14 @@ public class MainActivity extends Activity {
             return "ok";
         } catch (Exception e) { log("in-app start failed: " + e); return "error: " + e.getMessage(); }
     }
-    // ---- 1.3 Co-op: CoopFusion32 (by our collaborator) for GTA SA 2.00, 32-bit; libMP sits out for that session ----
-    static final String COOP_LIB = "libCoopFusion32.so", COOP_INI = "net.coopfusion32.mobile.ini";
-    boolean hasAsset(String a) { try { getAssets().open(a).close(); return true; } catch (Exception e) { return false; } }
-    String coopProblem() {
-        if (proc64()) return "Co-op (CoopFusion32) is made for GTA SA 2.00 32-bit. This phone runs the 64-bit GTA SA 2.10, so it can't load it yet.";
-        if (!hasAsset("libs/" + COOP_LIB)) return "This build of AML Multiplayer has no CoopFusion32 inside.";
-        return "";
-    }
+    // ---- Co-op (CoopFusion32 servers): libMP joins them itself (crossplay, 1.3.1), on 32-bit and 64-bit GTA SA.
+    // The collaborator's CoopFusion32 mod is not copied, changed or switched in; only 1.3 leftovers are cleaned up.
+    String coopProblem() { return ""; }
     void setupCoop(File mods, String join, String nick) {
-        File coop = new File(mods, COOP_LIB), mp = new File(mods, "libMP.so"), off = new File(mods, "libMP.so.coop");
-        File ini = new File(new File(gameData(), "configs"), COOP_INI);
-        if (join == null || !join.startsWith("coop|")) {   // normal MP join: CoopFusion out, libMP in
-            if (coop.isFile()) coop.delete();
-            if (ini.isFile()) updateIni(ini, "AutoConnect", "0");
-            return;
-        }
-        String[] f = join.split("\\|", -1);
-        try { copy(getAssets().open("libs/" + COOP_LIB), new FileOutputStream(coop)); } catch (Exception e) { log("coop copy: " + e); }
-        if (mp.isFile()) { off.delete(); mp.renameTo(off); }
-        new File(gameData(), "configs").mkdirs();
-        String n = nick == null || nick.length() == 0 ? "Player" : nick.replaceAll("[|\\r\\n]", "_");
-        updateIni(ini, "ServerHost", f.length > 1 ? f[1] : "127.0.0.1");
-        updateIni(ini, "ServerPort", f.length > 2 ? f[2] : "6767");
-        updateIni(ini, "Nickname", n.length() > 14 ? n.substring(0, 14) : n);
-        updateIni(ini, "AutoConnect", "1");
-        boolean sau = false; File[] l = mods.listFiles(); if (l != null) for (File x : l) if (x.getName().toLowerCase().contains("sautils")) sau = true;
-        if (!sau) toast("Co-op needs SAUtils 1.6 in GTA SA's AML mods folder");
-        log("co-op session: " + join);
-    }
-    // keeps the mod's other settings (Theme, ...): only the given key in [CoopFusion] changes
-    void updateIni(File ini, String key, String val) {
-        StringBuilder out = new StringBuilder(); boolean inSec = false, done = false, hadSec = false;
-        try {
-            if (ini.isFile()) {
-                java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(ini)); String line;
-                while ((line = r.readLine()) != null) {
-                    String t = line.trim();
-                    if (t.startsWith("[")) { if (inSec && !done) { out.append(key).append(" = ").append(val).append("\n"); done = true; } inSec = t.equalsIgnoreCase("[CoopFusion]"); hadSec |= inSec; }
-                    else if (inSec && t.contains("=") && t.substring(0, t.indexOf('=')).trim().equalsIgnoreCase(key)) { if (!done) out.append(key).append(" = ").append(val).append("\n"); done = true; continue; }
-                    out.append(line).append("\n");
-                }
-                r.close();
-            }
-            if (!done) { if (!hadSec) out.append("[CoopFusion]\n"); else if (!inSec) out.append("[CoopFusion]\n"); out.append(key).append(" = ").append(val).append("\n"); }
-            write(ini, out.toString());
-        } catch (Exception e) { log("coop ini: " + e); }
+        File old = new File(mods, "libCoopFusion32.so"), mp = new File(mods, "libMP.so"), off = new File(mods, "libMP.so.coop");
+        if (old.isFile() && prefs.getBoolean("coop13", true)) { old.delete(); prefs.edit().putBoolean("coop13", false).apply(); }   // the copy AML Multiplayer 1.3 put there
+        if (off.isFile()) { if (!mp.isFile()) off.renameTo(mp); else off.delete(); }
+        if (join != null && join.startsWith("coop|")) log("co-op session through libMP: " + join);
     }
     JSONObject coopQuery(String host, int port) {
         JSONObject o = new JSONObject();
@@ -644,13 +605,15 @@ public class MainActivity extends Activity {
             java.net.Socket so = new java.net.Socket(); so.connect(new java.net.InetSocketAddress(host, port), 2500); so.setSoTimeout(2500);
             so.getOutputStream().write("INFO\n".getBytes("UTF-8")); so.getOutputStream().flush();
             java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(so.getInputStream(), "UTF-8"));
-            String line = r.readLine(); so.close();
+            String line = null; so.setSoTimeout(700);
+            try { line = r.readLine(); } catch (Exception e) {}   // a stock CoopFusion32 server answers nothing to INFO: being reachable is enough
+            so.close();
             o.put("ms", (int) ((System.nanoTime() - t0) / 1000000L));
             if (line != null && line.startsWith("INFO|")) {
                 String[] f = line.split("\\|", -1);
                 o.put("ok", true); o.put("name", f.length > 1 ? f[1] : host);
                 o.put("players", f.length > 2 ? parse(f[2]) : 0); o.put("max", f.length > 3 ? parse(f[3]) : 0); o.put("ver", f.length > 4 ? f[4] : "");
-            } else { o.put("ok", true); o.put("name", host); o.put("ver", "1.0"); }   // a CoopFusion 1.0 server answers nothing to INFO but is there
+            } else { o.put("ok", true); o.put("name", host); o.put("ver", ""); }
         } catch (Exception e) { try { o.put("err", String.valueOf(e.getMessage())); } catch (Exception x) {} }
         return o;
     }
