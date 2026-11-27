@@ -1,5 +1,10 @@
 # AML Multiplayer (com.christe.mp, was Christe Multiplayer)
 
+**1.4:**
+- Two editions of the same app: `AMLMultiplayer.apk` (64-bit on 64-bit phones, GTA SA 2.10 arm64-v8a) and `AMLMultiplayer-32bit.apk` (`EDITION=32`, libMP32 in `lib/armeabi-v7a`, runs GTA SA 2.00 armeabi-v7a on 64-bit phones).
+- Add GTA SA accepts a GTA SA with no arm64-v8a and offers to switch. The app downloads the other edition from the `aml-multiplayer-<version>` release and installs it over itself (PackageInstaller); data stays.
+- Settings > Storage > Edition: the current edition, the added game's CPU, Switch to 32-bit / 64-bit.
+
 **1.3.1:**
 - Co-op Connect goes through libMP (MP 5.02.79 crossplay with stock CoopFusion32 servers): the join is `coop|host|port|name`, like open.mp. The collaborator's CoopFusion32 mod is not copied, changed or switched in, and libMP stays on. Works on 32-bit and 64-bit.
 - Cleans up 1.3's `libCoopFusion32.so` and `libMP.so.coop` in `Android/data/com.christe.mp/mods`.

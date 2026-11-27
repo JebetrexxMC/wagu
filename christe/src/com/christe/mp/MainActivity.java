@@ -19,6 +19,7 @@ import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.app.PendingIntent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -66,6 +67,7 @@ public class MainActivity extends Activity {
     BroadcastReceiver netRx;
     boolean lastOnline = true;
 
+    @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); installStatus(i); }   // 1.4: edition switch
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         prefs = getSharedPreferences("christe", MODE_PRIVATE);
@@ -225,7 +227,7 @@ public class MainActivity extends Activity {
             if (!out.isFile() || have != ver) {
                 try {
                     out.getParentFile().mkdirs();
-                    copy(getAssets().open("libs/" + lib), new FileOutputStream(out));
+                    copy(mpLib(lib.equals("libMP64.so")), new FileOutputStream(out));
                     prefs.edit().putLong("lib_" + abi, ver).apply();
                     r.put("lib", "installed");
                 } catch (Exception e) { r.put("lib", "not in this APK"); }
@@ -393,6 +395,7 @@ public class MainActivity extends Activity {
                 return r;
             }
             String pkg = prefs.getString("sa_pkg", SA);
+            { String need = editionNeed(pkg); if (need.length() > 0) return "edition:" + need + ":" + editionText(need); }
             if (join != null && join.startsWith("coop|")) {   // Co-op runs in-app: libMP joins the CoopFusion32 server (1.3.1)
                 String why = inAppProblem(pkg); if (why.length() > 0) return "noinapp:" + why;
                 return launchInApp(pkg, join, nick);
@@ -410,6 +413,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void obbImport(String id) { importId = id; pickObb(); }
         @JavascriptInterface public void obbAccess() { askObbAccess(); }
         @JavascriptInterface public void gameAdd(String id) { importId = id; pickApk(); }
+        @JavascriptInterface public void editionSwitch(String id, String to) { switchEdition(id, "32".equals(to) ? "32" : "64"); }
         @JavascriptInterface public void gameRemove() { File f = importedApk(); f.setWritable(true); f.delete(); prefs.edit().putString("gamelib_stamp", "").apply(); }
         @JavascriptInterface public void mpFiles(final String id) { new Thread(new Runnable() { public void run() { downloadMpFiles(id); } }).start(); }
         @JavascriptInterface public String engine() {
@@ -449,7 +453,104 @@ public class MainActivity extends Activity {
     File gameData() { File f = getExternalFilesDir(null); return f != null ? f.getParentFile() : getFilesDir(); }   // Android/data/com.christe.mp
     static boolean proc64() {
         if (Build.VERSION.SDK_INT >= 23) return android.os.Process.is64Bit();
-        return false;
+        String a = System.getProperty("os.arch", ""); return a.contains("64");
+    }
+    // ---- 1.4: editions. Android fixes one CPU mode per app: the normal AML Multiplayer runs 64-bit on a 64-bit phone
+    // (GTA SA 2.10, arm64-v8a), AML Multiplayer 32-bit (same app, lib/armeabi-v7a inside) runs 32-bit (GTA SA 2.00).
+    // A GTA SA with no arm64-v8a is still added; the app then offers to switch to the 32-bit edition (and back).
+    static final String ED_URL = "https://github.com/JebetrexxMC/wagu/releases/download/aml-multiplayer-%s/%s";
+    static boolean has32() { return Build.VERSION.SDK_INT >= 21 && Build.SUPPORTED_32_BIT_ABIS != null && Build.SUPPORTED_32_BIT_ABIS.length > 0; }
+    static boolean has64() { return Build.VERSION.SDK_INT >= 21 && Build.SUPPORTED_64_BIT_ABIS != null && Build.SUPPORTED_64_BIT_ABIS.length > 0; }
+    static String procAbi() { return proc64() ? "arm64-v8a" : "armeabi-v7a"; }
+    String edition() { return proc64() ? "64" : (has64() ? "32" : "32only"); }   // 32only = a 32-bit phone (one edition fits)
+    // which game CPUs a GTA SA has: "64", "32", "both" or ""
+    static String apkAbis(java.util.List<String> apks) {
+        boolean a64 = false, a32 = false;
+        for (String a : apks) { a64 |= zipHas(a, "lib/arm64-v8a/libGTASA.so"); a32 |= zipHas(a, "lib/armeabi-v7a/libGTASA.so"); }
+        return a64 && a32 ? "both" : a64 ? "64" : a32 ? "32" : "";
+    }
+    // "" = this edition runs the added GTA SA, "32" / "64" = switch to that edition, "no32" / "no64" = this phone can't
+    String editionNeed(String pkg) {
+        ApplicationInfo ai = gameAi(pkg); if (ai == null) return "";
+        String g = apkAbis(apks(ai));
+        if (g.length() == 0 && !isImported(ai)) { String a = gameAbi(pkg); g = a.startsWith("arm64") ? "64" : a.startsWith("armeabi") ? "32" : ""; }
+        if (g.length() == 0 || "both".equals(g) || g.equals(proc64() ? "64" : "32")) return "";
+        if ("32".equals(g)) return has32() ? "32" : "no32";
+        return has64() ? "64" : "no64";
+    }
+    static String editionText(String need) {
+        if ("32".equals(need)) return "This GTA SA is 32-bit only (no arm64-v8a, GTA SA 2.00). Switch to AML Multiplayer 32-bit to play it. Your settings, game files and the added GTA SA stay.";
+        if ("64".equals(need)) return "This GTA SA is 64-bit only (arm64-v8a, GTA SA 2.10). Switch back to the normal AML Multiplayer (64-bit) to play it.";
+        if ("no32".equals(need)) return "This GTA SA is 32-bit only, and this phone can't run 32-bit apps at all. Add GTA SA 2.10 (64-bit, arm64-v8a).";
+        if ("no64".equals(need)) return "This GTA SA is 64-bit only, and this phone is 32-bit. Add GTA SA 2.00 (32-bit, armeabi-v7a).";
+        return "";
+    }
+    // downloads the other edition from the AML Multiplayer release and installs it over this one (same app, data kept)
+    void switchEdition(final String id, final String to) {
+        new Thread(new Runnable() { public void run() {
+            String file = "32".equals(to) ? "AMLMultiplayer-32bit.apk" : "AMLMultiplayer.apk";
+            String ver = ""; try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName.replaceAll("\\.0$", ""); } catch (Exception e) {}   // 1.4.0 -> release aml-multiplayer-1.4
+            File apk = new File(getExternalCacheDir() != null ? getExternalCacheDir() : getCacheDir(), file), tmp = new File(apk.getPath() + ".part");
+            long done = 0, total = 0;
+            try {
+                String[] urls = { String.format(ED_URL, ver, file), "https://github.com/JebetrexxMC/wagu/releases/latest/download/" + file };
+                HttpURLConnection c = null;
+                for (String u : urls) {
+                    c = (HttpURLConnection) new URL(u).openConnection(); c.setInstanceFollowRedirects(true); c.setConnectTimeout(15000); c.setReadTimeout(30000);
+                    if (c.getResponseCode() == 200) break; c.disconnect(); c = null;
+                }
+                if (c == null) { progress(id, "error", 0, 0, "The " + ("32".equals(to) ? "32-bit" : "64-bit") + " edition isn't online yet"); return; }
+                total = c.getContentLength();
+                InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(tmp);
+                byte[] b = new byte[1 << 16]; int n; long last = 0;
+                while ((n = in.read(b)) > 0) { out.write(b, 0, n); done += n; if (done - last > (2 << 20)) { last = done; progress(id, "copy", done, total, "AML Multiplayer " + ("32".equals(to) ? "32-bit" : "64-bit")); } }
+                in.close(); out.close(); apk.delete(); tmp.renameTo(apk);
+                PackageInfo pi = getPackageManager().getPackageArchiveInfo(apk.getAbsolutePath(), 0);
+                if (pi == null || !getPackageName().equals(pi.packageName)) { apk.delete(); progress(id, "error", 0, 0, "The download is not AML Multiplayer"); return; }
+                prefs.edit().putString("edition_to", to).commit();
+                progress(id, "done", done, done, "Installing AML Multiplayer " + ("32".equals(to) ? "32-bit" : "64-bit") + "...");
+                installApk(apk);
+            } catch (Exception e) { tmp.delete(); progress(id, "error", done, total, String.valueOf(e.getMessage())); }
+        }}).start();
+    }
+    static final String ACT_INSTALLED = "com.christe.mp.INSTALL_STATUS";
+    void installApk(File apk) throws Exception {
+        if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+            toast("Allow AML Multiplayer to install apps, then tap Switch again");
+            startActivity(new Intent("android.settings.MANAGE_UNKNOWN_APP_SOURCES", Uri.parse("package:" + getPackageName())));
+            return;
+        }
+        android.content.pm.PackageInstaller pk = getPackageManager().getPackageInstaller();
+        android.content.pm.PackageInstaller.SessionParams sp = new android.content.pm.PackageInstaller.SessionParams(android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+        sp.setAppPackageName(getPackageName()); sp.setSize(apk.length());
+        int sid = pk.createSession(sp);
+        android.content.pm.PackageInstaller.Session se = pk.openSession(sid);
+        InputStream in = new FileInputStream(apk); OutputStream out = se.openWrite("base.apk", 0, apk.length());
+        byte[] b = new byte[1 << 16]; int n; while ((n = in.read(b)) > 0) out.write(b, 0, n);
+        se.fsync(out); in.close(); out.close();
+        Intent i = new Intent(this, MainActivity.class).setAction(ACT_INSTALLED).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? (1 << 25) : 0);   // FLAG_MUTABLE: the installer adds its status
+        se.commit(PendingIntent.getActivity(this, sid, i, fl).getIntentSender());
+        se.close();
+    }
+    // the installer's answer (singleTask: onNewIntent)
+    boolean installStatus(Intent i) {
+        if (i == null || !ACT_INSTALLED.equals(i.getAction())) return false;
+        int st = i.getIntExtra(android.content.pm.PackageInstaller.EXTRA_STATUS, -999);
+        if (st == android.content.pm.PackageInstaller.STATUS_PENDING_USER_ACTION) {
+            Intent c = (Intent) i.getParcelableExtra(Intent.EXTRA_INTENT); if (c != null) { c.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(c); }
+        } else if (st != android.content.pm.PackageInstaller.STATUS_SUCCESS) {
+            String m = i.getStringExtra(android.content.pm.PackageInstaller.EXTRA_STATUS_MESSAGE);
+            toast("The switch didn't install" + (m != null ? ": " + m : ""));
+            log("edition install failed: " + st + " " + m);
+        }
+        return true;
+    }
+    // the MP library for this process: assets/libs (normal edition) or lib/armeabi-v7a (32-bit edition)
+    InputStream mpLib(boolean is64) throws Exception {
+        String n = is64 ? "libMP64.so" : "libMP32.so";
+        try { return getAssets().open("libs/" + n); } catch (Exception e) {}
+        return new FileInputStream(new File(getApplicationInfo().nativeLibraryDir, n));
     }
     // "" = the installed GTA SA can run inside AML Multiplayer, else why not (1.2: only real blockers)
     String inAppProblem(String pkg) {
@@ -459,7 +560,8 @@ public class MainActivity extends Activity {
         if (new File(gameLibDir(abi), "libGTASA.so").isFile()) return "";
         if (!isImported(ai) && ai.nativeLibraryDir != null && new File(ai.nativeLibraryDir, "libGTASA.so").isFile() && gameAbi(pkg).startsWith(proc64() ? "arm64" : "armeabi")) return "";
         for (String apk : apks(ai)) if (zipHas(apk, "lib/" + abi + "/libGTASA.so")) return "";
-        return "this GTA SA has no " + abi + " game (" + (proc64() ? "this phone needs GTA SA 2.10, 64-bit" : "this phone needs GTA SA 2.00, 32-bit") + ")";
+        String need = editionNeed(pkg); if (need.length() > 0) return editionText(need);
+        return "this GTA SA has no " + abi + " game (" + (proc64() ? "this edition needs GTA SA 2.10, 64-bit" : "this edition needs GTA SA 2.00, 32-bit") + ")";
     }
     static java.util.List<String> apks(ApplicationInfo ai) {
         java.util.List<String> l = new java.util.ArrayList<String>(); l.add(ai.sourceDir);
@@ -567,11 +669,11 @@ public class MainActivity extends Activity {
             // AML in Christe reads Android/data/com.christe.mp/mods: libMP for this CPU goes there
             File mods = new File(gameData(), "mods"); mods.mkdirs();
             File lib = new File(mods, "libMP.so");
-            String asset = proc64() ? "libs/libMP64.so" : "libs/libMP32.so";
+
             int ver = 0; try { ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; } catch (Exception e) {}
             File off = new File(mods, "libMP.so.coop");
             if (off.isFile() && !lib.isFile()) off.renameTo(lib);
-            if (!lib.isFile() || prefs.getInt("modlib", 0) != ver) { try { copy(getAssets().open(asset), new FileOutputStream(lib)); prefs.edit().putInt("modlib", ver).apply(); } catch (Exception e) { log("libMP copy: " + e); } }
+            if (!lib.isFile() || prefs.getInt("modlib", 0) != ver || !procAbi().equals(prefs.getString("modlib_abi", ""))) { try { copy(mpLib(proc64()), new FileOutputStream(lib)); prefs.edit().putInt("modlib", ver).putString("modlib_abi", procAbi()).apply(); } catch (Exception e) { log("libMP copy: " + e); } }
             copyGameMods(pkg, mods);
             setupCoop(mods, join, nick);
             new File(gameData(), "files").mkdirs(); new File(gameData(), "configs").mkdirs();
@@ -692,7 +794,10 @@ public class MainActivity extends Activity {
             ApplicationInfo ai = gameAi(prefs.getString("sa_pkg", SA));
             o.put("gameAdded", ai != null); o.put("gameImported", isImported(ai));
             if (ai != null) { File a = new File(ai.sourceDir); o.put("gameSize", a.length()); }
-            o.put("gameNeed", proc64() ? "GTA SA 2.10 AML (64-bit)" : "GTA SA 2.00 AML (32-bit)");
+            o.put("gameNeed", proc64() ? "GTA SA 2.10 AML (64-bit, arm64-v8a)" + (has32() ? " - a 32-bit GTA SA 2.00 works with AML Multiplayer 32-bit" : "") : has64() ? "GTA SA 2.00 AML (32-bit, armeabi-v7a) - a 64-bit GTA SA 2.10 works with the normal AML Multiplayer" : "GTA SA 2.00 AML (32-bit)");
+            String pk = prefs.getString("sa_pkg", SA); String need = editionNeed(pk);
+            o.put("edition", edition()); o.put("has32", has32()); o.put("editionNeed", need); o.put("editionText", editionText(need));
+            if (ai != null) { String g = apkAbis(apks(ai)); o.put("gameAbi", "both".equals(g) ? "32-bit + 64-bit" : "64".equals(g) ? "64-bit (arm64-v8a)" : "32".equals(g) ? "32-bit only (armeabi-v7a)" : ""); }
         } catch (Exception e) {}
         return o;
     }
@@ -740,7 +845,12 @@ public class MainActivity extends Activity {
                 String abi = proc64() ? "arm64-v8a" : "armeabi-v7a";
                 PackageInfo pi = getPackageManager().getPackageArchiveInfo(tmp.getAbsolutePath(), 0);
                 if (pi == null) { tmp.delete(); progress(id, "error", 0, 0, "That file is not an APK"); return; }
-                if (!zipHas(tmp.getAbsolutePath(), "lib/" + abi + "/libGTASA.so")) { tmp.delete(); progress(id, "error", 0, 0, "This GTA SA has no " + abi + " game. This phone needs " + (proc64() ? "GTA SA 2.10 AML (64-bit)" : "GTA SA 2.00 AML (32-bit)")); return; }
+                java.util.List<String> one = new java.util.ArrayList<String>(); one.add(tmp.getAbsolutePath());
+                String g = apkAbis(one);
+                if (g.length() == 0) { tmp.delete(); progress(id, "error", 0, 0, "This APK has no GTA SA game inside (no lib/arm64-v8a or lib/armeabi-v7a libGTASA.so)"); return; }
+                if ("32".equals(g) && !has32()) { tmp.delete(); progress(id, "error", 0, 0, editionText("no32")); return; }
+                if ("64".equals(g) && !has64()) { tmp.delete(); progress(id, "error", 0, 0, editionText("no64")); return; }
+                if (!g.equals("both") && !g.equals(proc64() ? "64" : "32")) log("GTA SA added for the other edition: " + g + "-bit (no " + abi + ")");
                 if (!dexHas(tmp.getAbsolutePath(), "com/fastman92/main_activity_launcher")) log("imported APK has no fastman92 launcher code: " + pi.packageName);
                 if (to.isFile()) { to.setWritable(true); to.delete(); }
                 tmp.renameTo(to); to.setReadOnly();

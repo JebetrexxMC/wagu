@@ -53,16 +53,20 @@ jobs:
         run: |
           SDK=$ANDROID_HOME OBB=1 bash christe/build.sh
           mv christe/AMLMultiplayer.apk christe/main.*.com.christe.mp.obb .
+          SDK=$ANDROID_HOME EDITION=32 OUT=AMLMultiplayer-32bit.apk bash christe/build.sh
+          mv christe/AMLMultiplayer-32bit.apk .
           unzip -l AMLMultiplayer.apk | grep -E "classes.dex|assets/www/index.html|assets/libs"
+          unzip -l AMLMultiplayer-32bit.apk | grep -E "classes.dex|lib/armeabi-v7a|assets/libs" || true
       - uses: actions/upload-artifact@v4
         with:
           name: AMLMultiplayer
           path: |
             AMLMultiplayer.apk
+            AMLMultiplayer-32bit.apk
             main.*.com.christe.mp.obb
           if-no-files-found: error
       - name: Attach to the release
         if: inputs.release != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ inputs.release }}" AMLMultiplayer.apk --clobber
+        run: gh release upload "${{ inputs.release }}" AMLMultiplayer.apk AMLMultiplayer-32bit.apk --clobber

@@ -838,6 +838,15 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### AML Multiplayer 1.4
+- **AML Multiplayer 32-bit**: a GTA SA with no arm64-v8a (32-bit only, GTA SA 2.00) can now be added on a 64-bit phone too. Android gives an app one CPU mode, so AML Multiplayer now comes in two editions of the same app (`com.christe.mp`): the normal one (64-bit on 64-bit phones, GTA SA 2.10) and `AMLMultiplayer-32bit.apk` (libMP32 in `lib/armeabi-v7a`, so the whole app and the game run 32-bit).
+- Add GTA SA no longer turns down an APK built for the other CPU. It checks what the APK has (`lib/arm64-v8a`, `lib/armeabi-v7a` or both), keeps it, and offers **Switch to 32-bit** (or back to 64-bit).
+- Switching happens inside the app. AML Multiplayer downloads the other edition from its release and installs it over itself with Android's package installer, and asks for "install unknown apps" if needed. Settings, the added GTA SA and the game files stay.
+- Connect with a GTA SA for the other edition opens the same Switch dialog. A phone that can't run 32-bit apps at all, or a 32-bit phone given a 64-bit-only GTA SA, gets a clear message.
+- Settings > Storage has a new **Edition** card: this edition, the added GTA SA's CPU and the Switch button. libMP is re-copied after a switch, and the game libraries are unpacked for the new CPU.
+- `christe/build.sh`: `EDITION=32 OUT=AMLMultiplayer-32bit.apk`. The AML Multiplayer workflow builds and uploads both APKs.
+- Not touched: the loading screens, the neon join and < Spawn >.
+
 ### 5.02.79 / AML Multiplayer 1.3.1
 - CoopFusion32 is back exactly as our collaborator uploaded it (`coopfusion/CoopFusion32` matches `research/CoopFusion32-main.zip`). The 5.02.78 edits to the mod are undone, and its workflow and `bin/libCoopFusion32.so` are removed. MP doesn't build or ship the mod.
 - Co-op crossplay now lives in **libMP** (`src/net/coopgate.cpp`, `src/mp_coopfusion.inc`). MP joins a stock CoopFusion32 server (`node index.mjs`, port 6767) as a normal co-op player, using the mod's own protocol, through a private MP server on 127.0.0.1 (the same idea as the open.mp crossplay). Co-op players show up as "Name (Co-op)", cars and passengers included, and the MP player shows up on the co-op server under their MP name.
