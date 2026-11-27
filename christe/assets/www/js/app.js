@@ -349,7 +349,7 @@
     if (!c.joined && c.ownerId !== Soc.id) Soc.joinCommunity(S.soc, true);
     Promise.resolve(Soc.post(S.soc, t, { ch: S.socCh })).then(function (ok) { if (ok) { i.value = ''; var b = $('#socPosts'); if (b) b.innerHTML = socPostsHtml(S.soc); } else toast('Could not send (slow mode or no permission)'); });
   }
-  function saReady() { return !!((INFO.sa && INFO.sa.installed) || OBB.gameAdded); }
+  function saReady() { return !!OBB.gameAdded; }   // 1.4: only the GTA SA added to AML Multiplayer
   // 1.4: AML Multiplayer 32-bit. Android gives an app one CPU mode, so a GTA SA without arm64-v8a (2.00, 32-bit)
   // runs in the 32-bit edition of AML Multiplayer (same app, installed over this one; settings and files stay).
   function edName(e) { return e === '32' ? 'AML Multiplayer 32-bit' : 'AML Multiplayer (64-bit)'; }
@@ -371,17 +371,17 @@
   }
   function addGameCard() {
     var j = S.job && S.job.kind === 'game-add' ? S.job : null;
-    var st = OBB.gameImported ? '<span class="st-ok">Added to AML Multiplayer' + (OBB.gameSize ? ' (' + gb(OBB.gameSize) + ')' : '') + '</span>' : (INFO.sa && INFO.sa.installed) ? '<span class="st-ok">Uses the installed GTA SA (' + esc((INFO.sa || {}).version || '?') + ')</span>' : '<span class="st-bad">Not added yet</span>';
-    return '<div class="card"><h3>GTA SA game</h3>' + opt('GTA San Andreas', st + '<br>This phone needs ' + esc(OBB.gameNeed || 'GTA SA AML') + '. Pick your own GTA SA .apk once: AML Multiplayer keeps a copy and runs it inside, the GTA SA app is not needed after that. (Rockstar\'s game is not shipped with AML Multiplayer, you add the copy you own.)' +
+    var st = OBB.gameImported ? '<span class="st-ok">Added to AML Multiplayer' + (OBB.gameVersion ? ' v' + esc(OBB.gameVersion) : '') + (OBB.gameSize ? ' (' + gb(OBB.gameSize) + ')' : '') + '</span>' : '<span class="st-bad">Not added yet</span>';
+    return '<div class="card"><h3>GTA SA game</h3>' + opt('GTA San Andreas', st + '<br>This phone needs ' + esc(OBB.gameNeed || 'GTA SA AML') + '. Pick your own GTA SA .apk once: AML Multiplayer keeps its own copy and always runs that one inside; it never opens or uses the GTA SA app. (Rockstar\'s game is not shipped with AML Multiplayer, you add the copy you own.)' +
       (j ? '<div class="prog"><i style="width:' + (j.total ? Math.round(j.done * 100 / j.total) : 0) + '%"></i></div><span id="jobMsg">' + esc(j.msg || '') + '</span>' : ''),
       '<button class="btn sm go" data-act="game-add"' + (S.job ? ' disabled' : '') + '>' + ic('plus') + (OBB.gameImported ? 'Replace' : 'Add GTA SA') + '</button>' + (OBB.gameImported ? '<button class="btn sm red" data-act="game-remove">Remove</button>' : '')) + '</div>';
   }
   function hasObb() { return OBB.ready || (OBB.main && (OBB.main.own > 0 || OBB.main.game > 0)); }
   function gameCard(g) {
     var sa = g === 'sa', inf = sa ? INFO.sa || {} : INFO.vc || {}, vl = INFO.vl || {};
-    var abi = sa ? (INFO.abi || 'armeabi-v7a') : '';
-    var ver = inf.installed ? 'v' + esc(inf.version || '?') : sa && OBB.gameAdded ? '<span class="st-ok">added</span>' : '<span class="st-bad">' + (sa ? 'not added' : 'not installed') + '</span>';
-    var how = sa ? (ENG.mode === 'app' ? 'Opens the GTA SA app' : ENG.problem ? '<span class="st-mid">Opens the GTA SA app: ' + esc(ENG.problem) + '</span>' : '<span class="st-ok">Runs inside AML Multiplayer</span>') : (vl.installed ? 'ViceLoader' : 'Opens Vice City');
+    var ga = OBB.gameAbi || '', abi = sa ? (/32-bit only/.test(ga) ? 'armeabi-v7a' : /^64/.test(ga) ? 'arm64-v8a' : /\+/.test(ga) ? '32 + 64-bit' : (INFO.abi || 'armeabi-v7a')) : '';
+    var ver = sa ? (OBB.gameAdded ? '<span class="st-ok">added' + (OBB.gameVersion ? ' v' + esc(OBB.gameVersion) : '') + '</span>' : '<span class="st-bad">not added</span>') : inf.installed ? 'v' + esc(inf.version || '?') : '<span class="st-bad">not installed</span>';
+    var how = sa ? (ENG.problem ? '<span class="st-mid">' + esc(ENG.problem) + '</span>' : '<span class="st-ok">Runs inside AML Multiplayer</span>') : (vl.installed ? 'ViceLoader' : 'Opens Vice City');
     return '<div class="gcard ' + g + '" style="background:url(img/bg/bg_' + (sa ? 'default' : '7') + '.jpg)"><div class="gt">GRAND THEFT AUTO</div>' +
       '<h2>' + (sa ? 'San Andreas' : 'Vice City') + '</h2>' +
       '<div class="gi"><span>' + (sa ? 'AML' : 'VC') + ' ' + ver + '</span>' + (sa ? '<span class="chip mob">' + esc(abi) + '</span>' : '') + '</div>' +
@@ -455,10 +455,8 @@
     },
     game: function () {
       var sa = INFO.sa || {};
-      return '<div class="card"><h3>GTA San Andreas (AML)</h3>' + opt('Game', esc(INFO.saPkg || 'com.rockstargames.gtasa') + ' &middot; ' + (sa.installed ? 'v' + esc(sa.version) + ' (' + esc(sa.abi || '?') + ')' : '<span class="st-bad">not installed</span>'), '') +
-        opt('Run GTA SA', ENG.problem ? '<span class="st-mid">Inside AML Multiplayer is not possible here: ' + esc(ENG.problem) + '</span>' : 'Inside AML Multiplayer: its own game screen, game files and MP files. GTA SA app: open the installed game instead.',
-          '<select class="dd" id="engSel"><option value="christe">Inside AML Multiplayer</option><option value="app">GTA SA app</option></select>') +
-        opt('Game package', 'Change only for a renamed AML GTA SA', '<input class="inp" id="saPkg" style="width:200px" value="' + esc(INFO.saPkg || 'com.rockstargames.gtasa') + '">') +
+      return '<div class="card"><h3>GTA San Andreas (AML)</h3>' + opt('Game', OBB.gameAdded ? '<span class="st-ok">Added to AML Multiplayer' + (OBB.gameVersion ? ' v' + esc(OBB.gameVersion) : '') + (OBB.gameAbi ? ' (' + esc(OBB.gameAbi) + ')' : '') + '</span>' : '<span class="st-bad">not added yet</span>', '<button class="btn sm go" data-act="go-storage">' + (OBB.gameAdded ? 'Storage' : 'Add GTA SA') + '</button>') +
+        opt('Run GTA SA', ENG.problem ? '<span class="st-mid">' + esc(ENG.problem) + '</span>' : 'Always inside AML Multiplayer, with the GTA SA added to it: its own game screen, game files and MP files. The GTA SA app is never opened or used.', '') +
         opt('CPU / MP build', 'arm64-v8a = GTA SA 2.10, armeabi-v7a = GTA SA 2.00. Inside AML Multiplayer always uses this phone\'s CPU (' + (ENG.proc64 ? '64-bit' : '32-bit') + ')',
           '<select class="dd" id="abiSel"><option value="auto">Auto (' + esc(INFO.abi || '') + ')</option><option value="arm64-v8a">arm64-v8a (2.10)</option><option value="armeabi-v7a">armeabi-v7a (2.00)</option></select>') +
         opt('Join from the title screen', 'MP joins the server you picked as soon as the title menu is up', sw('autoJoin', ls('autoJoin') !== false)) + '</div>' +
@@ -506,7 +504,7 @@
     var ni = $('#nickInp', P); if (ni) ni.onchange = function () { setNick(ni.value); toast('Name saved'); };
     var sp = $('#saPkg', P); if (sp) sp.onchange = function () { X.set('sa_pkg', sp.value.trim() || 'com.rockstargames.gtasa'); readInfo(); toast('Game package saved'); };
     var ab = $('#abiSel', P); if (ab) { ab.value = INFO.abiMode || 'auto'; ab.onchange = function () { X.set('abi', ab.value); setTimeout(function () { readInfo(); render(); }, 400); }; }
-    var en = $('#engSel', P); if (en) { en.value = ENG.mode === 'app' ? 'app' : 'christe'; en.onchange = function () { X.set('engine', en.value); readInfo(); render(); }; }
+    
     var rg = $('#regSel', P); if (rg) rg.onchange = function () { setRegion(rg.value | 0); };
   }
   function go(p, set) { S.page = p; if (p !== 'community') S.comm = null; if (set) S.setTab = set; render(); if (LISTS[p]) pingVisible(); }
@@ -530,6 +528,7 @@
     else if (a === 'auth') showAuth('login');
     else if (a === 'lan-scan') scanLan();
     else if (a === 'obb-copy' || a === 'obb-import' || a === 'mp-files' || a === 'game-add') job(a);
+    else if (a === 'go-storage') go('settings', 'storage');
     else if (a === 'edition') { var ot = OBB.edition === '32' ? '64' : '32'; if (OBB.editionNeed === ot) job('edition', ot); else confirmDlg('Switch edition', 'Install ' + edName(ot) + ' over this one? Your settings, game files and the added GTA SA stay. ' + (ot === '32' ? 'It runs 32-bit GTA SA 2.00 only.' : 'It runs 64-bit GTA SA 2.10.'), 'Switch', function () { job('edition', ot); }); }
     else if (a === 'game-remove') confirmDlg('Remove GTA SA', 'Remove the GTA SA copy that was added to AML Multiplayer? Your game files and saves stay.', 'Remove', function () { call('gameRemove'); readInfo(); render(); });
     else if (a === 'coop-scan') loadCoop();
@@ -549,7 +548,7 @@
   }
 
   // ---------- play / join (the MP loading screen while it starts) ----------
-  function inApp() { return ENG.mode !== 'app' && !ENG.problem; }
+  function inApp() { return !ENG.problem; }
   function play(game, row, pass) {
     readInfo();
     var inf = game === 'vc' ? INFO.vc : INFO.sa;
@@ -585,8 +584,8 @@
       }
       if (String(r).indexOf('noinapp:') === 0) {
         clearInterval(t); L.remove();
-        dialog('GTA SA can\'t run inside AML Multiplayer', '<p>' + esc(r.slice(8)) + '.</p><p>AML Multiplayer runs the game in its own screen. Add the GTA SA (AML) build for this phone in Settings > Storage, then tap Connect again.</p>', [['OK', 'go'], ['Use the GTA SA app once', '']], function (i) {
-          if (i === 1) { var r2 = X.playApp ? X.playApp(ls('autoJoin') === false ? '' : spec, nick()) : 'old'; if (r2 !== 'ok') toast('Could not open the GTA SA app'); }
+        dialog('GTA SA can\'t start yet', '<p>' + esc(r.slice(8)) + '.</p><p>AML Multiplayer only runs the GTA SA added to it. Add your GTA SA (AML) .apk in Settings > Storage, then tap Connect again.</p>', [['Later', ''], ['Add GTA SA', 'go']], function (i) {
+          if (i === 1) { go('settings', 'storage'); job('game-add'); }
         });
         return;
       }
@@ -816,7 +815,7 @@
     };
     $('#gearBtn').onclick = function () {
       pop(this, '<div class="ph2">QUICK SETTINGS</div>' +
-        '<div class="pi" data-q="engine">' + ic('play') + 'GTA SA: ' + (ENG.mode === 'app' ? 'GTA SA app' : 'inside AML Multiplayer') + '</div>' +
+        '<div class="pi" data-q="engine">' + ic('play') + 'GTA SA: inside AML Multiplayer' + '</div>' +
         '<div class="pi" data-q="region">' + ic('pin') + 'Region: ' + REGIONS[S.region] + '</div>' +
         '<div class="pi' + (S.autoRefresh ? ' on' : '') + '" data-q="auto">' + ic('refresh') + 'Auto refresh</div>' +
         '<div class="pi' + (ls('autoJoin') !== false ? ' on' : '') + '" data-q="join">' + ic('play') + 'Join from the title</div>' +
@@ -853,7 +852,7 @@
   function crashCheck() {
     if (!ENG.crash) return;
     var c = ENG.crash; ENG.crash = ''; call('crashSeen');
-    dialog('GTA SA stopped', '<p>GTA SA inside AML Multiplayer closed with an error. Send this to the MP Discord so it can be fixed.</p><pre style="max-height:120px;overflow:auto;font-size:10px;white-space:pre-wrap;background:#0b0d11;padding:6px">' + esc(c) + '</pre>', [['OK', ''], ['Use the GTA SA app', 'go']], function (i) { if (i === 1) { X.set('engine', 'app'); readInfo(); render(); } });
+    dialog('GTA SA stopped', '<p>GTA SA inside AML Multiplayer closed with an error. Send this to the MP Discord so it can be fixed.</p><pre style="max-height:120px;overflow:auto;font-size:10px;white-space:pre-wrap;background:#0b0d11;padding:6px">' + esc(c) + '</pre>', [['OK', 'go']]);
   }
   G.CX_resume = function () { readInfo(); if (!LISTS[S.page]) render(); crashCheck(); };
   G.CX_back = function () {

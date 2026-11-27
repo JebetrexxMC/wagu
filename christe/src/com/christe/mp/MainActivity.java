@@ -400,13 +400,10 @@ public class MainActivity extends Activity {
                 String why = inAppProblem(pkg); if (why.length() > 0) return "noinapp:" + why;
                 return launchInApp(pkg, join, nick);
             }
-            if (!"app".equals(prefs.getString("engine", "christe"))) {
-                String why = inAppProblem(pkg);
-                if (why.length() == 0) return launchInApp(pkg, join, nick);
-                log("in-app GTA SA not possible: " + why);
-                return "noinapp:" + why;   // 1.2: never a silent switch to the GTA SA app (the launcher asks)
-            }
-            return launch(pkg, join, nick);
+            String why = inAppProblem(pkg);   // 1.4: always the GTA SA added to AML Multiplayer, never the GTA SA app
+            if (why.length() == 0) return launchInApp(pkg, join, nick);
+            log("in-app GTA SA not possible: " + why);
+            return "noinapp:" + why;
         }
         @JavascriptInterface public String obb() { return obbStatus().toString(); }
         @JavascriptInterface public void obbCopy(final String id) { new Thread(new Runnable() { public void run() { copyGameObb(id); } }).start(); }
@@ -420,7 +417,7 @@ public class MainActivity extends Activity {
             try {
                 JSONObject o = new JSONObject();
                 String pkg = prefs.getString("sa_pkg", SA);
-                o.put("mode", prefs.getString("engine", "christe")); o.put("problem", inAppProblem(pkg));
+                o.put("mode", "christe"); o.put("problem", inAppProblem(pkg));
                 o.put("proc64", proc64()); o.put("mpFiles", new File(gameData(), "files/TYFMC/MP").isDirectory());
                 o.put("mods", new File(gameData(), "mods").getAbsolutePath());
                 File c = new File(date2(), "logs/game_crash.txt");
@@ -434,7 +431,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void coopLan(final String id) { new Thread(new Runnable() { public void run() { js("window.CX_coopLan && CX_coopLan(" + q(id) + "," + coopDiscover().toString() + ")"); } }).start(); }
         @JavascriptInterface public String coopReady() { return coopProblem(); }
         @JavascriptInterface public void lan(final String id) { new Thread(new Runnable() { public void run() { lanScan(id); } }).start(); }
-        @JavascriptInterface public String playApp(String join, String nick) { return launch(prefs.getString("sa_pkg", SA), join, nick); }
+        @JavascriptInterface public String playApp(String join, String nick) { return "off"; }   // 1.4: no hand-off to the GTA SA app
         @JavascriptInterface public boolean openApp(String pkg) { return "ok".equals(launch(pkg, "", "")); }
         @JavascriptInterface public void open(String url) { openLink(url); }
         @JavascriptInterface public void toast(String t) { MainActivity.this.toast(t); }
@@ -555,7 +552,7 @@ public class MainActivity extends Activity {
     // "" = the installed GTA SA can run inside AML Multiplayer, else why not (1.2: only real blockers)
     String inAppProblem(String pkg) {
         ApplicationInfo ai = gameAi(pkg);
-        if (ai == null) return "GTA SA is not added yet (Add GTA SA in Storage, or install the AML GTA SA)";
+        if (ai == null) return "GTA SA is not added to AML Multiplayer yet (Settings > Storage > Add GTA SA)";
         String abi = proc64() ? "arm64-v8a" : "armeabi-v7a";
         if (new File(gameLibDir(abi), "libGTASA.so").isFile()) return "";
         if (!isImported(ai) && ai.nativeLibraryDir != null && new File(ai.nativeLibraryDir, "libGTASA.so").isFile() && gameAbi(pkg).startsWith(proc64() ? "arm64" : "armeabi")) return "";
@@ -574,13 +571,12 @@ public class MainActivity extends Activity {
     boolean isImported(ApplicationInfo ai) { return ai != null && importedApk().getAbsolutePath().equals(ai.sourceDir); }
     ApplicationInfo gameAi(String pkg) {
         File imp = importedApk();
-        if (imp.isFile() && !"installed".equals(prefs.getString("game_src", ""))) {
+        if (imp.isFile()) {   // 1.4: only the GTA SA added to AML Multiplayer, never the installed GTA SA app
             try {
                 PackageInfo pi = getPackageManager().getPackageArchiveInfo(imp.getAbsolutePath(), 0);
                 if (pi != null) { ApplicationInfo ai = pi.applicationInfo; ai.sourceDir = ai.publicSourceDir = imp.getAbsolutePath(); ai.splitSourceDirs = null; ai.nativeLibraryDir = null; return ai; }
             } catch (Exception e) {}
         }
-        try { return getPackageManager().getApplicationInfo(pkg, 0); } catch (Exception e) {}
         return null;
     }
     // 1.3: the game files folder for the fastman92 settings, relative to Android/obb (see GameEnv)
@@ -793,7 +789,7 @@ public class MainActivity extends Activity {
             o.put("canAsk", Build.VERSION.SDK_INT >= 23);
             ApplicationInfo ai = gameAi(prefs.getString("sa_pkg", SA));
             o.put("gameAdded", ai != null); o.put("gameImported", isImported(ai));
-            if (ai != null) { File a = new File(ai.sourceDir); o.put("gameSize", a.length()); }
+            if (ai != null) { File a = new File(ai.sourceDir); o.put("gameSize", a.length()); try { PackageInfo gp = getPackageManager().getPackageArchiveInfo(a.getAbsolutePath(), 0); if (gp != null && gp.versionName != null) o.put("gameVersion", gp.versionName); } catch (Exception e) {} }
             o.put("gameNeed", proc64() ? "GTA SA 2.10 AML (64-bit, arm64-v8a)" + (has32() ? " - a 32-bit GTA SA 2.00 works with AML Multiplayer 32-bit" : "") : has64() ? "GTA SA 2.00 AML (32-bit, armeabi-v7a) - a 64-bit GTA SA 2.10 works with the normal AML Multiplayer" : "GTA SA 2.00 AML (32-bit)");
             String pk = prefs.getString("sa_pkg", SA); String need = editionNeed(pk);
             o.put("edition", edition()); o.put("has32", has32()); o.put("editionNeed", need); o.put("editionText", editionText(need));

@@ -844,6 +844,7 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 - Switching happens inside the app. AML Multiplayer downloads the other edition from its release and installs it over itself with Android's package installer, and asks for "install unknown apps" if needed. Settings, the added GTA SA and the game files stay.
 - Connect with a GTA SA for the other edition opens the same Switch dialog. A phone that can't run 32-bit apps at all, or a 32-bit phone given a 64-bit-only GTA SA, gets a clear message.
 - Settings > Storage has a new **Edition** card: this edition, the added GTA SA's CPU and the Switch button. libMP is re-copied after a switch, and the game libraries are unpacked for the new CPU.
+- GTA SA comes only from the copy added to AML Multiplayer. The app no longer falls back to the installed GTA SA AML app, and it never opens it: the "GTA SA app" engine option, "Use the GTA SA app once" and the crash dialog's "Use the GTA SA app" button are gone. Connect without an added GTA SA opens Add GTA SA.
 - `christe/build.sh`: `EDITION=32 OUT=AMLMultiplayer-32bit.apk`. The AML Multiplayer workflow builds and uploads both APKs.
 - Not touched: the loading screens, the neon join and < Spawn >.
 
