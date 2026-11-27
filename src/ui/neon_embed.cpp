@@ -124,3 +124,29 @@ std::string Builtin(const std::string& dir, const char* name)
     return std::string();
 }
 }
+
+// 5.02.77: the MP languages built into libMP (src/embed/i18n_blob.S, made by tools/i18n/gen_blobs.py): every table
+// (assets/MP/lang/<code>.lng) and the neon menu letters of each (assets/MP/neon/intl/<code>.png + .txt)
+#include "../embed/i18n_blobs.h"
+namespace NeonIntl
+{
+static const MpLangBlob* Of(const char* code)
+{
+    if(!code) return nullptr;
+    for(const MpLangBlob& b : kMpLangBlobs) if(!strcmp(b.code, code)) return &b;
+    return nullptr;
+}
+bool Find(const char* code, const unsigned char** png, size_t* pngN, const unsigned char** txt, size_t* txtN)
+{
+    const MpLangBlob* b = Of(code); if(!b) return false;
+    *png = b->png; *pngN = (size_t)(b->pngEnd - b->png); *txt = b->txt; *txtN = (size_t)(b->txtEnd - b->txt);
+    return *pngN > 16 && *txtN > 8;
+}
+bool Table(const char* code, const char** data, size_t* n)
+{
+    const MpLangBlob* b = Of(code); if(!b) return false;
+    *data = (const char*)b->lng; *n = (size_t)(b->lngEnd - b->lng);
+    return *n > 0;
+}
+}
+bool MP_LangBuiltin(const char* code, const char** data, size_t* n) { return NeonIntl::Table(code, data, n); }

@@ -69,14 +69,17 @@ def run_lang(L, strings):
     batch, size = [], 0
     def flush(b):
         if not b: return
-        prot = [protect(s) for s in b]
+        # 5.02.77: words in CAPITALS translate badly ("JOIN" -> a name): sent as "Join", the answer put back in capitals
+        caps = [bool(re.search(r'[A-Z]{2}', s)) and not re.search(r'[a-z]', s) for s in b]
+        prot = [protect(s.capitalize() if c else s) for s, c in zip(b, caps)]
         out = gtx('\n'.join(p for p, _ in prot), tl).split('\n')
         if len(out) != len(b):
             if len(b) == 1: out = [' '.join(out)]
             else:
                 h = len(b) // 2; flush(b[:h]); flush(b[h:]); return
-        for s, (p, toks), t in zip(b, prot, out):
+        for s, (p, toks), t, c in zip(b, prot, out, caps):
             r = restore(t.strip(), toks)
+            if r and c: r = r.upper()
             if r is not None and r:
                 lead = s[:len(s) - len(s.lstrip())]; trail = s[len(s.rstrip()):]
                 r = lead + r.strip() + trail
@@ -115,7 +118,7 @@ def write_lng(L, strings, cache):
     code, tl, native, eng, font, rtl = L
     os.makedirs(os.path.join(root, 'assets', 'MP', 'lang'), exist_ok=True)
     with open(os.path.join(root, 'assets', 'MP', 'lang', code + '.lng'), 'w', encoding='utf-8', newline='\n') as f:
-        f.write('#mp-lang 1\n#code=%s\n#name=%s\n#english=%s\n#font=%s\n#rtl=%d\n' % (code, native if not rtl else visual_ar(native), eng, font, rtl))
+        f.write('#mp-lang 1\n#build=%d\n#code=%s\n#name=%s\n#english=%s\n#font=%s\n#rtl=%d\n' % (BUILD, code, native if not rtl else visual_ar(native), eng, font, rtl))
         for s in strings:
             t = cache.get(s, s)
             if t == s or specs(t) != specs(s): continue   # a format must keep its specs in order (printf safety)
@@ -125,6 +128,7 @@ def write_lng(L, strings, cache):
                 if specs(t) != specs(s): continue
             f.write(s + '\t' + t + '\n')
 
+BUILD = 50277   # 5.02.77: libMP writes its built-in tables over files/TYFMC/MP/lang/ ones with a lower #build
 OFFLINE = '--offline' in sys.argv
 ZH_TW_FROM_CN = '--zh-tw-from-cn' in sys.argv   # Traditional Chinese = OpenCC s2twp of the Simplified cache
 

@@ -27,7 +27,9 @@ def strip_comments(t):
             out.append(c); i += 1
     return ''.join(out)
 
-def want(s):
+def want(s, neon=False):
+    # 5.02.77: the neon title menu draws its words in capitals ("SETTINGS", "JOIN"): keep those too
+    if neon and re.fullmatch(r"[A-Z][A-Z'&!?.]{2,}", s) and not re.fullmatch(r'[A-Z]{1,3}\d*', s): return True
     if not re.search(r'[A-Za-z]{2}', s): return False
     if s.startswith('_Z') or s.startswith('_ZN'): return False                       # C++ symbols
     if ' ' not in s.strip() and re.search(r'[a-z][A-Z]|[A-Za-z]\d|\d[A-Za-z]', s): return False   # CamelCase / code names
@@ -50,7 +52,7 @@ for f in files:
             parts = LIT.findall(grp.group(0))
             s = ''.join(parts)
             s = re.sub(r'##.*$', '', s)            # ImGui ids: only the part before ## is shown
-            if want(s): seen.setdefault(s, os.path.relpath(f, root))
+            if want(s, f.endswith('mp_neon.inc')): seen.setdefault(s, os.path.relpath(f, root))
             # dialog lists / tables: every line and every column is drawn on its own too
             if '\\n' in s or '\\t' in s:
                 for piece in re.split(r'\\[nt]', s):

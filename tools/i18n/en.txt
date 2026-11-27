@@ -1,8 +1,145 @@
+clump loader
+atomic loader
+big model loader
+ped SetClump
+DzModels: the game closed while loading model %d last time - it stays GTA now
+ (mirror)
+ (MP)
+bad file
+cache full?
+DzModels: %d (%s) not downloaded: %s
+DzModels: %d / %d models ready
+DzModels: world textures: %d in the index (%d aliases, %d files)
+DzModels: world textures: %d of %d files downloaded - GTA textures stay
+Project Day Z
+model list: 
+DzModels: %d models in the list, %d wanted (%d MB)
+DzModels: %d of %d textures decoded for %d (%s)
+buffer swap
+DzModels: model %d did not go through the clump/atomic loader - next load uses the buffer swap
+DzModels: model %d (%s) is in the game now (MTA dff via %s, %d textures from our txd)
+DzModels: the game could not read %s for model %d via %s (try %d)
+DzModels: model %d (%s) did not load - GTA model kept
+DzModels: engine check - %d loaded models with their txd at 20000+, %d without
+DzModels: the txd pool did not look right (size %d)
+DzModels: world texture %s could not be read
+DzModels: world textures in the game: %d (last %s)
+DzModels: world textures off - %d GTA textures put back
+DzModels: world textures on - %d loaded GTA textures checked, %d swapped
+DzModels: model %d waits - the game is using it (refs %d, state %d)
+DzModels: model %d switched to the MTA files (txd slot %d)
+DzModels: model %d gets the base building collision (%d boxes)
+DzModels: no Day Z model pack on this phone - no engine hooks (custom modpacks untouched)
+DzModels: world texture hooks destroy %s gtaread %s read %s
+DzModels: loader hooks clump %s atomic %s ped %s texdb %s
+DzModels: hook %s, txd %s, rw %s, big models %s, cache %s
+model pack downloaded - restart the game to use it
+DzModels: pack ready, used after a game restart
+engine check failed (
+DzModels: engine check %d - models stay GTA
+DzModels: engine ok
+MP - Project Day Z Legacy MTA model loader log (send this file if the models stay GTA)\n
+MP - Project Day Z Legacy MTA model loader log (send this file if the models stay GTA)
+DzModels: reset - every model is tried again
+raw.githubusercontent.com (wagu)
+Could not get the file list: 
+Download finished: %d of %d files failed (%s).
+Download finished: %d files on the phone.
+DzModels: cloud page %s
+Deleted %d files. %d models are in use on the Day Z server - leave it to delete them.
+Deleted %d files. Download again here or join the Day Z server.
 no (script fallback)
 GTASAsf%d.b
+after a teleport
+after a spawn
+NOT found - off
+not used
+SAUtils
+Player info (all)
+Health bar
+Armor bar
+Breath bar
+Weapon icon
+Ammo
+Money
+Money change
+Clock
+Wanted stars
+Radar
+Vehicle name
+Area name
+Radio station
+Subtitles
+Game default
+Compact
+PC small
+%s_Show
+%s_Size
+%s_Width
+%s_Height
+%s_Alpha
+the game closed during the ball swap once (delete lgball_off.txt to try again)
+engine functions missing
+no box collision
+collision pointer not found in the model info
+draw distance check failed
+model is not an atomic
+texture could not be made
+memory stream
+the ball dff did not read
+the loaded ball does not look like ours
+LoadAtomicFile failed
+another mod (LDR.W PC patch)
+another mod (B.W patch)
+another mod (LDR PC patch)
+no save function found (the game saves its settings when you leave its own Options)
+Lib
+Steering
+Steering sensitivity
+Bike controls
+Targeting
+Tilt steering
+Touch layout
+Invert look
+Look sensitivity X
+Look sensitivity Y
+Mouse sensitivity X
+Mouse sensitivity Y
+Controller scheme
+Vibration
+Auto climb
+Camera height
+Cinematic camera
+Language
+Visual quality
+Resolution
+Draw distance
+Shadows
+Car reflections
+Traffic density
+Brightness
+Frame limiter
+Sound effects volume
+Radio volume
+Radio auto tune
+Default radio station
+3D audio (HRTF)
+MODS SETTINGS
+MOD TAB %d
+%d OPTION%s
+MODS FOLDER
+%d FILE%s
 , its ImGui is not exported: still blocked from every server
 renamed, found by its CheatMenu label
 Fire
+(I)Landroid/view/View;
+android/app/Activity
+android/view/Window
+android/view/View
+()Landroid/view/Window;
+()Landroid/view/View;
+(I)Ljava/lang/Object;
+Landroid/app/Activity;
 past the map edge, moved back inside
 skipped: position is NaN / inf
 skipped: broken bounding box
@@ -13,6 +150,7 @@ boxes
 lines 
 MP command
 that script is stopped there
+Usually libCLEO_ImGui.so: update or remove it if keys stop working.
 Rose
 Paul
 Cesar
@@ -31,10 +169,26 @@ T-Bone
 Jethro
 Zero
 Andre
+MP load
+pointer inside: %s) - this crashed the game (fault address 0x6C)
+, table not trusted on this game
+first game frame
 CEspray
 CNspray
-A tap   B close   Back cursor
+neon loading
+neon check + textures
+neon paint
+A select   B back   X cursor   LB/RB page   LT/RT scroll   Start close
+A tap   B close   X highlight mode   Back cursor
 MPMenu
+MPMultiplayer
+none (std::terminate called directly)
+An old separate libmonetloader.so was moved out of the mods folder: MonetLoader for MP 4.0.0-mp is built into MP. Restart the game once.
+PCMenu is installed
+another mod already hooked it
+another menu mod is installed
+no slot
+all mods loaded
 server_combat system
 server_player sync
 server_vehicle sync
@@ -213,9 +367,25 @@ server_controller support
 server_loading screen
 server_welcome message
  resources
-Connected successfully!
-{FFFFFF}Welcome to {38BDF8}%s
+{name}
+{server}
 the server
+*** %s joined the server.
+*** %s left the server. (%s)
+*** %s left the server.
+{reason}
+Quit
+{9ACD32}#{808080}{{FFFF00}%s{808080}} {FF0000}<{FFA500}!{FF0000}> {808080}%s the server{FFFFFF}!%s%s%s
+Connected to
+Disconnected from
+Connected successfully!
+{FFFFFF}%s
+{FF3030}\xE2\x9D\xA4 {FFFFFF}Welcome to {DC2626}Broker {C08454}MQQ {FF3030}\xE2\x9D\xA4
+{C8C8C8}We hope you enjoy your stay, {FFFFFF}%s{C8C8C8}...
+{FFFF00}Free roam, Deathmatch and Bounty Hunter - all in one server.
+{33CC33}Please type /help if you need help, /bounty for the Bounty Hunter commands.
+{FFFFFF}Connected to {DC2626}%s{FFFFFF}.
+{FFFFFF}Welcome to {38BDF8}%s
 Receiving Server Info...
 Receiving Resources...
 Receiving Player Info...
@@ -223,7 +393,7 @@ Receiving Vehicle Info...
 Receiving Weapon Info...
 Receiving World Data...
 Connecting
-Please Wait, Loading Server Data...
+PLEASE WAIT, LOADING SERVER DATA...
 Done - joining %s
 Receiving Resources... %s
 Connecting to %s...
@@ -347,12 +517,13 @@ The Chiliad Challenge
 Stunt Challenge
 Buy Property
 a mission
-*** %s: other players are hidden until it ends. Your Mission sync group (%d players) stays with you.
-*** %s: other players are hidden until it ends. %s (Mission sync) stays with you.
+*** %s: other players are hidden until it ends. Your Mission sync group (%d players) stays with you, cutscenes too.
+*** %s: other players are hidden until it ends. %s (Mission sync) stays with you, cutscenes too.
 your partner
 *** %s: other players are hidden until it ends (your own story).
 Cutscene
 *** %s is on a mission: %s
+*** %s failed their mission.
 *** %s finished their mission.
 %s set by the server - change blocked.
 Time and weather are
@@ -375,6 +546,7 @@ You can still hear the others without it.
 The server was closed by its host.
 Your MP version is too old. Download MP %s: %s
 This server runs an old MP version (it lets cheaters in). Ask the host to update to MP %s.
+This server is for the other game (GTA San Andreas / GTA Vice City servers are separate).
 Wrong server password. Edit the server and type the right one (max 16 characters).
 This server runs an old MP (before 3.23.6) - trying your old admin key on it...
 This server didn't take your first admin key - trying your other key from administrator.txt...
@@ -387,11 +559,8 @@ You were kicked from the server!
 Server is full.
 Server uses a different MP version.
 Could not connect to %s (no response).
-Lost connection to the server. (Timeout)
-*** %s joined the server.
-*** %s left the server.%s
- (Timeout)
- (Kicked)
+Could not reconnect to the server.
+Kicked
 *** Cheats were disabled on this server (MP cheats).
 *** The host allowed cheats again.
 *** The host turned off Mission sync.
@@ -419,16 +588,21 @@ Animations: %d of %d players near you send their full animations.
 Players on an older MP version only send walk / run / basic moves.
 %d player%s shown as story characters.
 Server modes stay on here - only the server owner, [ADMIN] or [MOD] can change them.
+Reconnecting to the server... (everything stays loaded)
+Still reconnecting to the server... (%llu s)
+Reconnected to the server successfully.
 Trailers like the Tug Stairs can't be driven in MP (they fly off). Use the Tug to pull it.
-You are offline. Turn on Wi-Fi or mobile data.
+You are offline. Turn on Wi-Fi, mobile data or your Mobile Hotspot (offline play: /offline).
 this server
 Sorry, this server doesn't allow cheat menus. %s is loaded in your game: remove it from your mods folder and restart the game.
 That online server is gone. Tap Connect / Join again.
 Invalid server address.
 SERVER RULES
-%s is hosted by the 24/7 bot - waiting for it (only the admin / moderators can host it).
+%s is hosted by the 24/7 bot 
+ only - waiting for it.
+Loading the SA-MP gamemode of %s ...
 Could not start the server on port %d
-Plugins: %d textdraws from files/MP/%s/
+Plugins: %d textdraws from files/TYFMC/MP/%s/
 Disconnected. Your server stays online for the others.
 Disconnected from the server.
 Please wait...
@@ -438,18 +612,27 @@ Already connecting to %s...
 Player
 Server name: \"%s\" (change it in Host your own server).
 Port %d is the default server's, your server uses port %d.
+Localhost: \"%s\" runs on this phone at 127.0.0.1:%d (no network needed).
 Server stopped.
 Reconnecting to \"%s\" (host: 
 The other copy of \"%s\" did not answer - you host it again.
+\"%s\" restarts on its 24/7 console (
+) - rejoining by itself...
 The host left - moving to the 24/7 server (you keep playing)...
 Connection to \"%s\" lost - you host it now (nobody else was on it)...
 The host left - moving to the new host...
+\"%s\" is offline right now: its 24/7 console (
+) is not running. Try again in a few minutes.
+\"%s\" is hosted 24/7 by 
+ - waiting for it to come online...
 \"%s\" is already online on another phone - joining it. Pick another name to host your own.
 Your server \"%s\" is online (port %d).
 Looking for the 24/7 server again...
 \"%s\" isn't online and uses port %d (reserved for the default server). Edit it to port %d or higher.
 Same server on another phone - moving there (you stay connected).
 *** Broker standby #%d/%d: \"%s\" was offline - this phone hosts it in the background until the 24/7 host is back.
++bounty
++bounty hunter
 Region set to %s (lowest ping, %d ms). Change it in the Server menu.
 You are online again.
 The 24/7 server is online - moving there (you keep playing).
@@ -465,6 +648,8 @@ Actors
 Team
 /Android_unprotected/
 /Android/
+/storage/emulated/0/Android/data/%s/files/TYFMC/MP/admin.txt
+/storage/emulated/0/Android_unprotected/data/%s/files/TYFMC/MP/admin.txt
 /storage/emulated/0/Android/data/%s/files/MP/admin.txt
 /storage/emulated/0/Android_unprotected/data/%s/files/MP/admin.txt
 /storage/emulated/0/Android/media/%s/MP/admin.txt
@@ -500,20 +685,24 @@ Russian
 Spanish
 Portuguese
 Arabic
-%s  %d ms\n%d online
+%s\n%s\nsame as %s
+same as %s
+%s  %d ms\n%s\n%d online
 %d online
-%s\n%d online
+%s\n%s\n%d online
 Lobby: lowest ping region
 Lobby broker: %s%s. Servers of other regions are joined through their own broker.
  (auto)
 Lobby broker: public (regional brokers not reachable)
-Server icon (tap it for the next one)
-Default (main_df_icon.png)
-Custom icon
+Server background (tap it for the next one)
+Default (no background)
+Background %d / %d
 Default
-The default MP LAN Server always shows the default icon.
-Your own pictures: icon_1.png ... icon_250.png inside files/MP/Icons.jar (or loose in files/MP, max 256x256).
+The default server (Broker MQQ) always shows the default icon.
+Backgrounds: bg_1.jpg ... bg_250.jpg inside files/TYFMC/MP/bg_server.jar (or a loose icon_N.png in files/TYFMC/MP, max 512x512).
 Offline: turn on Wi-Fi or mobile data
+Connected  |  %d/%d  |  %d ms  |  loss %d%%  jitter %d ms%s
+  |  weak link: x2
 Connected  |  %d/%d  |  %d ms
 Online  |  host: 
 Online at %s  |  %d/%d  |  %d ms
@@ -532,10 +721,11 @@ Custom server permissions
 Mission sync with somebody
 On: two players can sync up: they see each other on missions and share their mission markers.
 Off: everyone is alone on missions; running mission syncs end.
-Cheat Menu
-On: players may use Cheat Menu (libCheatMenu.so / libCheatMenu64.so) on your server.
-Off: players with Cheat Menu (libCheatMenu.so / libCheatMenu64.so) can't join.
+Cheat Menu + MonetLoader cheats
+On: players may use Cheat Menu (libCheatMenu.so / libCheatMenu64.so) and MonetLoader cheat mods (HG menu) on your server.
+Off: players with Cheat Menu can't join, MonetLoader cheat mods (HG menu) stop.
 Never on the default server. \"Disable cheats\" (Settings > Cheats) switches it off too.
+HG menu on by default for new custom servers
 AFK (too long without moving)
 On: after 3 minutes without moving players get an AFK tag; after 20 minutes their seat is freed.
 Off: nobody is marked AFK on your server.
@@ -594,8 +784,10 @@ Tap a server to select it, tap Join to play on it.
 Custom servers are always active: if nobody runs it, Join hosts it.
 Gamemodes
 \"%s\" (the default server): every gamemode is ON (fixed).
+Bounty Hunter
 The default server has all of them. A custom server starts with none: turn on the ones you want.
 Map icons and Chat bubbles are each player's own switches: Settings > Display / Chat.
+Bounty Hunter %s on \"%s\".
 All on
 All off
 Only for a NEW server you create (Host). Servers that already exist keep their gamemodes - the one you are on is not changed.
@@ -604,7 +796,7 @@ every gamemode
 no gamemodes
 24/7 server (mp_server): --gamemodes %s
 Anti-cheat
-Nex-AC checks on the server. Always on (every check) on the default server, Mega Vil Futuristic, Brief Case War and MW3.
+Nex-AC checks on the server. Always OFF on the default server; always on (every check) on Mega Vil Futuristic, Brief Case War and MW3.
 Staff (you, admins, moderators) only get the warning. Checks marked (cheat) are skipped while menu cheats are allowed.
 Anti-cheat on my custom server
  (cheat)
@@ -623,13 +815,68 @@ Title
 Rules title
 Rule %d
 Colours work like SA-MP: {FF0000}red {FFFF00}yellow {33CC55}green. Empty lines are skipped.
+Max 8 tags.
+Server location
+Server location: %s
+not set
+Close
+Customize
+Clear
+Find country
+Search (e.g. Philippines)
+No country matches.
+Gamemode (shown in the list)
+e.g. Freeroam, Deathmatch, Race
+Freeroam
+Deathmatch
+Team DM
+Race
+Stunt
+Drift
+Roleplay
+Zombies
+Cops & Robbers
+Gang War
+Minigames
+Gamemode colour
+More gamemodes (shown next to the first one, your own names are fine)
+Third gamemode
+Second gamemode
+e.g. Zombies (line 2)
+e.g. Bounty Hunter
+Tags (%d/8) - tap to add / remove
+no rules
+Custom tag
+Type a tag and press Done
+Server description
+What is your server about?
+Preview image (JPG / PNG)
+Loading...
+No preview image: the list shows your server background.
+Preview image saved.
+Waiting for the Files app...
+Upload preview image (opens Files)
+Install MP Voice (MP-Voice.apk from the release): it opens the Files app for the game.
+No picture came back (cancelled, or not a JPG / PNG).
+Remove preview image
+Shown in the server details (internet lobby + this phone). It is resized to 512x256.
+Server title logo (PNG / JPG)
+No title logo: the default Broker MQTT title is shown.
+Title logo saved - everyone on your server sees it on top of the screen.
+Import title logo (opens Files)
+Install MP Voice 4.07 (MP-Voice.apk from the release): it opens the Files app for the game.
+No picture came back (cancelled, or not a PNG / JPG).
+Remove title logo
+Title logo position (X, Y) and size (Z)
+Z size (%)
+Reset logo position
+PNG keeps transparency. Max 1024x256, 200 KB. The host can hide it: /settings > Textdraw > Logo Server.
 Custom server  -  %s
 Server name
 Host / IP  (empty = host it on this phone)
 e.g. ggwar or net.ggwar.org
 Password (optional, max 16)
 Password (max 16)
-Language
 Language (e.g. English)
 Max players
 %d players
@@ -641,6 +888,8 @@ Add server  (host on this phone)
 Brief Case War is a private gamemode server - it is always in the Internet list, just tap it.
 Modern Warfare 3 is a 24/7 featured server - it is always in the Internet list, just tap it.
 Mega Vil Futuristic is a 24/7 featured Roleplay server - it is always in the Internet list, just tap it.
+Project Day Z Legacy is a 24/7 featured server - it is in Internet > Featured, just tap it.
+Rocket League is a 24/7 featured server - it is in Internet > Featured, just tap it.
 Port %d is for the default server. Use %d or higher for a custom server.
 Port %d is taken - it needs a new port. Free port: %d (tap \"Use free port %d\").
 Port %d is taken - type another port.
@@ -668,6 +917,36 @@ Disconnect
 Same Wi-Fi / hotspot: type the host's local IP and port, then Connect.
 This phone: %s - port %d
 Hotspot: turn on your phone hotspot, host a server, friends join 192.168.43.1.
+Connection screen
+Cinematic Join Camera
+Cinematic Join Camera %s on \"%s\" (players who join from now on).
+On: once a player is connected, the camera glides over Los Santos (the beach, the airport, Vinewood, downtown, Grove Street) in one continuous move, behind the spawn picker.
+Off: the classic black connection screen.
+The default server and Mega Vil Futuristic Roleplay always have it.
+Development stage
+Server in development notice
+Development notice %s on \"%s\" (players who join from now on).
+On: players who join see \"This server is in development\" after they are connected and spawned. Turn it off when your server is finished.
+Off: the server is finished, no notice.
+BrowserFormat Join/Leave
+BrowserFormat Join/Leave %s on \"%s\" (players who join from now on).
+Join format
+Join line, e.g. {33CC33}+ {FFFFFF}{name} joined {server}
+Leave format
+Leave line, e.g. {FF3030}- {FFFFFF}{name} left ({reason})
+Reset to the browser format
+{name} = the player, {server} = your server, {reason} = why they left (Timeout, Kicked...), {RRGGBB} = a colour. Empty = the browser format.
+your server
+Disconnected from the server
+Connected to the server
+On: join / leave lines in the chat use this browser format on your server.
+Off: the classic \"*** name joined the server.\" lines. The default server (Broker MQQ) always uses the browser format.
+Welcome message
+Custom welcome message
+Custom welcome message %s on \"%s\" (players who join from now on).
+e.g. Welcome to {server}, {name}!
+On: players who join your server see this message after \"Connected successfully!\". {name} = their name, {server} = the server name, {FF0000} colours work.
+Off: the normal \"Welcome to <your server>\" message.
 Authentication system
 Login with Discord
 Login system %s on \"%s\" (players who join from now on).
@@ -675,7 +954,19 @@ On: a new player gets a code, types /gen CODE in #verification on Discord, then 
 Off: players spawn right away (no account).
 Discord: %s  (accounts are kept by the MP bot, never by the host, never shown to the others)
 The default server and Brief Case War always use it. Needs MP %s or newer on every phone.
+IN DEVELOPMENT: this server login system is on the developing stage. We are updating it on the MP website (mpsamp-open.github.io) - players who join will see this notice first.
 \"%s\": login %s
+Switch region
+Now: %s%s
+Auto - 
+not connected to a lobby yet
+Auto (lowest ping)%s%s
+public lobby
+%s  -  same server as %s
+%s  -  %d ms
+standby (public lobby in use)
+-- ms
+Also on the launcher: the region icon at the top.
 administrator.txt OK - this is how everyone sees you (name tag, chat, kill feed).
 Connect  -  %s (default)
 Connecting...  (tap to cancel)
@@ -685,10 +976,29 @@ On \"%s\"  (%s)
 internet, direct UDP
 IP hidden
 Offline: turn on Wi-Fi or mobile data to play.
+Waiting for the 24/7 host of \"%s\"...
 Host left - reconnecting to \"%s\"...
 Connect = the default server, always online.
 Custom servers: Servers tab -> Join.
 Players online: %d/%d
+Solo: %s
+Test
+MP volume
+Every MP sound at once. Changes right away, also while something plays.
+Host media player
+Solo (Host/Media/solo.m4a, 1:01:40) - streamed from the media host, played to the end.
+Play Solo when I join Broker MQQ
+Restart Solo
+Play Solo
+Stop
+(Solo volume)
+Host Media sounds
+Every sound from the media host (Host/Media). 100 %% = normal, 0 = muted, up to 150 %%.
+Server audio streams
+(SA-MP / open.mp / MP servers)
+MP folder sounds (files/TYFMC/MP)
+No other mp3 / m4a in the MP folder.
+Reset every volume to 100 %
 Sound effects
 Hitsound effect
 Enabled: a hit sound plays when you hit a player (guns, fists, melee, drive-by, cars).
@@ -698,6 +1008,9 @@ sound_010.mp3 is missing from the MP folder (assets/MP).
 Voice chat
 Voice chat (hear players near you)
 Only on a server. Turn your mic on/off with the mic button next to Chat at the top. Players within 40 m hear you: louder up close, quieter further away.
+SampVoice on PC servers
+On: on PC servers with SampVoice (Life of Player, RP servers) you hear the PC players and they hear you when your mic is on.
+Off: on PC servers you don't hear SampVoice and nobody there hears you. The server still sees the voice plugin, so you can join.
 Voice volume
 Microphone boost
 Voice pitch (how the others hear you)
@@ -727,6 +1040,47 @@ Hear myself (test the pitch, use earphones)
 Muted in the player list: %d
 Unmute all
 Like real life: players right next to you are loud, further away they get quieter, past %d m you can't hear them. Walk closer to hear someone.
+Example text
+GTA HUD
+Advanced Settings (libAdvancedSettings.SA.so) is installed, so it draws the HUD. MP puts its Compact HUD (clock right above the money, health and armor bars right under it, next to the weapon icon) into Advanced Settings' own settings file.
+HUD layout
+HUD written to Advanced Settings. It changes in a moment (restart the game if it does not).
+Could not write the Advanced Settings ini (see the MP log).
+HUD size
+HUD size written to Advanced Settings.
+Could not write the Advanced Settings ini.
+PC small: a small clock, money and bars in the top right corner and the radar down in the bottom left, like the PC game.
+Custom GTA HUD (Advanced Settings)
+Compact HUD written to Advanced Settings. It changes in a moment (restart the game if it does not).
+Your own Advanced Settings ini is back.
+Apply again
+HUD written to Advanced Settings.
+Restore my ini
+No backup to restore.
+File: %s
+Custom GTA HUD
+On: the game's HUD uses the values below.
+On: change a value to apply it.
+Off: the game's own HUD (nothing is changed).
+Compact (default): the clock right above the money, the health and armor bars right under it, next to the weapon icon. PC small: the same, smaller, in the top right corner, and the radar in the bottom left. Fine-tune below.
+HUD part
+Show
+X (left / right)
+Y (up / down)
+Z (zoom)
+Size
+Width
+Height
+Alpha
+Reset this part
+Reset all
+Default (the game's menu)
+MP (Multiplayer button)
+Neon (new main menu)
+Main menu
+[MultiPlayer] button on the game's menu: always on
+Restart the game to see it (the menu hook could not be added now).
+Shown on the game's title menu (before a game is loaded).
 Name tag size
 Name tag distance
 Name tag: show yourself
@@ -742,15 +1096,30 @@ Text effect
 Font scale
 UI scale
 No camera shake
+Keyboard
+MP keyboard
+Phone keyboard
+Phone keyboard: chat and text boxes open your phone's own keyboard (Gboard, SwiftKey...) in a small box - OK sends.
+MP keyboard: MP's own on-screen keyboard with emojis, GIFs and paste (default).
 Health bars
 Player radar icons
 Chat
+Chat fade
+Fade out after
+%d seconds
+Chat lines fade away after the time above.
+Chat fade is off: the chat lines stay on the screen.
+Server chat color
+Default (the server's own colors)
+Server and system messages (welcome, rules, jobs, kills ...). Default keeps the colors the server sends.
+Player chat color
+Default (white)
+The text players type (their name keeps its own color). Only on your screen.
 Kill feed
 Server modes are locked on this server (only the owner, [ADMIN] or [MOD]).
 Sync player animations
 Sync explosions, fire, weapons
 Sync NPCs (people + traffic)
-Broker standby #%d/100 (host offline featured servers)
 Open world (cities, shops, food, gyms, garages)
 Girlfriend houses (optional)
 [Race] / [DM] / [Job] tips in the chat
@@ -763,6 +1132,8 @@ Game radar
 Google map 2D
 Google map 3D
 MW3: PUBG compass on top
+Day Z: MTA DayZ models (download)
+Day Z: GTA V world textures (129 MB download)
 Chat position + chat box
 Show chat background (strip behind the lines)
 Show chat box background
@@ -786,13 +1157,16 @@ Lines shown (0 = only while typing)
 Text size
 Width (long lines wrap)
 %d %% of the screen
-Fade out after
-%d seconds
 Chat bubbles (text over the head)
+Stretch server textdraws (PC style)
 Small chat (4 lines, 70 %)
 Reset chat layout
 Clear chat
 Chat commands: /chatscale /pagesize /fontsize /chatwidth /chatfade /chatbg /clearchat
+Menus, the launcher, the HUD and server messages change at once. Player chat stays as it was typed.
+%s is not installed: files/TYFMC/MP/lang/%s.lng is missing (it comes with the MP full / client zip).
+Loading the font for %s... (the game keeps running)
+Machine translated (%d texts). Chinese, Japanese, Korean and Thai use your phone's own font.
 Name color
 Shows on your name tag, chat, kill feed and radar icon.
 Custom color (R / G / B)
@@ -824,11 +1198,13 @@ Da Nang 3
 Country cop
 Biker cop
 Army
-Show my real model (skin mods, story characters, CJ's clothes)
+Show my real model (skin mods, story characters)
+Sync CJ's clothes (same game files only)
+Leave it off when you and your friends use different modpacks (custom skins / cars / clothes).
 Others see you as: %s
 Others see you as: ped model %d
 Teleport to Grove Street
-100% progress on the default server
+100%% progress on the default server: removed in 4.13.15 (your own progress everywhere)
 All missions done while you play on the default server. Leaving it loads your own latest save again (your saves are backed up and put back). Custom servers always use your own progress.
 Connection
 Servers
@@ -836,38 +1212,123 @@ Display
 Sound
 Voice
 Cheats
+Screen recording is locked on MP. To record, DM JebetrexxMC on Discord (discord.gg/QSdtut3SWV) for your src_Access.txt, put it in the MP folder and restart the game.
+[id] [reason]
+kick a player
+ban a player (moderators kick on BCW / MW3 / Mega Vil)
+[number|name]
+unban (see /bans)
+list the banned players
+warn a player (3 warnings = kick)
+[id]
+mute the player's chat (/unmute [id])
+[id] [0-100]
+set health
+set armour
+[id] [amount] [reason]
+take money from a player
+[id] [amount]
+give money to a player
+[id] [minutes]
+block /report for a player (0 = allow again, default 30)
+go to a player
+bring a player to you
+[id] [1|0]
+give / take the [VIP] tag
+give / take moderator rights [MOD]
+reset money, weapons and server stats of a player
+give a player a cookie
+embed: logo: message: timer: start: end:
+pop-up notification for everyone (/notify clear)
+everyone: give your own money to a player
+Staff commands (id = number from the player list, or part of the name):
+You are not on a server.
+/report [id] [what happened]  -  sends it to the [ADMIN] / [MOD] online.
+More than one player matches \"%s\" - use the id.
+No player \"%s\".
+/pay [id] [amount]  -  gives your money to a player ($1 - $1,000,000).
+/pay: at most $1,000,000 at a time.
+You don't have $%lld (you have $%d).
+/%s is for [ADMIN], [MOD] and the server owner.
+/unban [number|name]  -  /bans shows the list.
+Usage: /%s %s
+%s set your health to %d.
+%s set your armour to %d.
+%s gave you $%d.
+%s fined you $%d.
+You gave $%d to %s.
+Teleported to %s.
+Your stats were reset by %s.
+WARNING %d/3 from %s: %s
+the staff
+One more warning and you are kicked.
+%s gave you a cookie. You have %d cookie%s.
 User
 Password
 Age
+New password
+Confirm
 Male
 Female
 Other
-# the game logs you in by itself. Delete it (or log out) to use another account.\nuser=%s\n
+/storage/emulated/0/Android/data
+/storage/emulated/0/Android_unprotected/data
+updated=%lld\n
+updated=%lld
+# MP login service (5.00.05): keeps this phone logged in (game, Moquil, MP Textdraw Editor).\n
+# MP login service (5.00.05): keeps this phone logged in (game, Moquil, MP Textdraw Editor).
+# No password in here. Don't share this file. Deleted? Open the game: it is made again.\n
+# No password in here. Don't share this file. Deleted? Open the game: it is made again.
+dev=
+\nuser=
+user=
+\nlogin=
+login=
+\ndiscord=
+discord=
+\nusers=
+users=
+# MP login: random id of this phone (keeps a Discord /gen across a game restart)\ndev=
+# MP login: random id of this phone (keeps a Discord /gen across a game restart)
+# MP login: the account on this phone (no password is kept). Keep this file when you update the mod:\n
+# MP login: the account on this phone (no password is kept). Keep this file when you update the mod:
+# the game logs you in by itself. Delete it (or log out) to use another account.\nuser=
 # the game logs you in by itself. Delete it (or log out) to use another account.
-user=%s
+# MP accounts on this phone (max %d, newest first, no passwords)\n
+# MP accounts on this phone (max %d, newest first, no passwords)
+Logged out. Join a login server and tap \"New account\" to make another account (max %d per Discord).
+Switched to %s. Join a server and log in.
+Logged out%s%s.
+ of 
+The login system is off on this server.
 Your account was created successfully. Welcome, %s.
 Logged in as %s.
-user=
-discord=
 tap to type
 your account
 Logging in as %s
 Connecting to the login server
+Forgot username
+Forgot password
 Code authentication
 Welcome
 Login
+PROJECT DAY Z  |  
 MEGA VIL FUTURISTIC  |  
 MODERN WARFARE 3  |  
 BRIEF CASE WAR  |  
 MP  |  
 Logging in
+Forgot your username? Prove the Discord of your account:
+Forgot your password? Prove the Discord of your account:
 This server uses accounts. Verify with Discord first:
 1.  Join the Discord server:
 2.  In the #verification channel type:
 /gen %s
 Waiting for /gen...  (code works %d:%02d more)
+Or on Discord: /forgotuser shows it, /resetpass sets a new password.
 Open Discord
 New code
+Back to Login
 I have an account: Login
 Leave server
 Discord verified: %s
@@ -876,7 +1337,12 @@ User 3-20 letters / numbers / _   Password 6-32   Age 10-24
 Create
 Age must be 10-24.
 Welcome back. Log in to play.
+Forgot username?
+Forgot password?
 New account (Discord code)
+Password 6-32. Your other phones get logged out.
+Save & Login
+Password must be 6-32 characters.
 Your account was created successfully
 Welcome, %s
 Login failed.
@@ -884,7 +1350,6 @@ Try again
 Log in first.
 No account here: this server has no login system (the default server and Brief Case War have it).
 My account  (only you see this)
-Loading...
 Could not load your account.
 Discord
 Created
@@ -892,7 +1357,6 @@ Logins
 Last login
 Score here
 Server
-Close
  [Leader]
 %s STOLE THE %s BRIEFCASE
 %s stole the %s briefcase!
@@ -914,7 +1378,7 @@ WAR! STEAL THE ENEMY BRIEFCASE
 Brief Case War started on %s. Steal the enemy briefcase and bring it to your base.
 NEXT MAP: %s
 Next map: %s. Pick your team.
-Put war_ambient.mp3 in files/MP to hear the war music.
+No internet for the war music (or put war_ambient.mp3 in files/TYFMC/MP).
 You are in %s. Steal the %s briefcase!
 Schelapz
 Gustav
@@ -969,6 +1433,134 @@ Rhino (tank)
 Hunter (fighter helicopter)
 Vehicle
 Left Brief Case War.
+Bounty Hunter (Blood Deathmatch): a bounty on every head (+$100 per kill in a row), kill rewards, multi kills 
+(Killing Spree, Double Kill, Triple Kill ... within 45 s), duels (/duel id), K / D / Ratio / Duel / Level under the radar. 
+Always on on Broker MQQ.
+Fist
+Explosion
+Drowned
+Fall
+Rpg
+Tec-9
+Weapon
+{DC2626}>> {C08454}The duel between {FFFFFF}%s {C08454}and {FFFFFF}%s {C08454}has begun!
+{DC2626}>> {FFFFFF}%s {C08454}joined the {DC2626}Blood Deathmatch {C08454}for the first time. Welcome!
+{DC2626}>> {FFFFFF}%s {C08454}challenges you to a duel! {FFFFFF}/accept {C08454}or {FFFFFF}/decline
+{DC2626}>> {FFFFFF}%s {C08454}declined your duel.
+{DC2626}>> {C08454}Your duel is over: the other player left.
+Killing Spree!
+Double Kill!
+Triple Kill!
+Quadruple Kill!
+Mania!
+Savage!
+Rampage!
+Unstoppable!
+Godlike!
+Legendary!
+is now part of the fog
+rests in pieces
+was swallowed by the fog
+bled out
+%s {DC2626}%s
+{DC2626}>> {FFFFFF}%s {C08454}%s
+{DC2626}>> {FFFFFF}%s {C08454}is on a %d kill streak! Bounty: {33CC55}$%d
+{DC2626}>> {FFFFFF}%s {C08454}won the duel against {FFFFFF}%s{C08454}!
+World
+{5A0A0A}\xE2\x96\x84\xE2\x96\x84\xE2\x96\x84 {8B0000}\xE2\x98\xA0 {DC2626}B L O O D   D E A T H M A T C H {8B0000}\xE2\x98\xA0 {5A0A0A}\xE2\x96\x84\xE2\x96\x84\xE2\x96\x84
+{8B0000}\xE2\x89\x88\xE2\x89\x88 {FFFFFF}B O U N T Y   {DC2626}H U N T E R {8B0000}\xE2\x89\x88\xE2\x89\x88
+{C08454}Kills in a row raise your bounty. {FFFFFF}/bounty {C08454}help, {FFFFFF}/duel id {C08454}challenge.
+{DC2626}Broker MQQ: {FFFFFF}cheats are not allowed on this server.
+{DC2626}Broker MQQ: {FFFFFF}unlimited health is not allowed.
+{DC2626}Broker MQQ rule: {FFFFFF}unlimited money is blocked here. {FF4444}-$%d
+{DC2626}>> {FFFFFF}Bounty Hunter {C08454}(Blood Deathmatch)
+{C08454}Your bounty: {33CC55}$%d {C08454}| streak %d | level %d
+{FFFFFF}/duel id {C08454}challenge  {FFFFFF}/accept  /decline  /bstats  /bwelcome text|on|off
+{C08454}Most wanted: {FFFFFF}%s {33CC55}$%d
+Usage: /duel [player id]
+{DC2626}>> {C08454}You challenged {FFFFFF}%s {C08454}to a duel.
+{C08454}Duel declined.
+{DC2626}K: %d  D: %d  Ratio: %.2f  Duel: %d  Level: %d (%d xp)
+{C08454}Welcome: %s
+Bounty Hunter welcome saved.
+K: %d  D: %d  Ratio: %.2f  Duel: %d  Level: %d
+Duel vs %s
+Death by the Fog!
+Bloody welcome (logo + message)
+Your welcome message ({name} = player, {server} = server, {RRGGBB} = colour, symbols like \xE2\x98\xA0 \xE2\x9D\xA4 \xE2\x9C\x93 \xCF\x80 \xE2\x88\x9A are fine)
+Bounty Hunter welcome
+Kill sound (sound_010.mp3)
+My Vehicles is full (%d) - the car could not be added.
+%s added to My Vehicles (/mv).
+Car
+{FFA500}EDITOR: {FFFFFF}model %d - move it with the bar, SAVE keeps it on the server.
+{FFFFFF}%s%s\n{AAAAAA}/exit
+{FFFFFF}%s%s
+{AAAAAA}/exit
+{FFD700}%s {AAAAAA}(%s)\n{33CC55}For sale: ${FFFFFF}%d  {AAAAAA}level %d\n/buybiz  -  /enter%s
+{FFD700}%s {AAAAAA}(%s)
+{33CC55}For sale: ${FFFFFF}%d  {AAAAAA}level %d
+/buybiz  -  /enter%s
+{FFD700}%s {AAAAAA}(%s)\n{FFFFFF}Owner: %s\n{AAAAAA}/enter%s
+{FFFFFF}Owner: %s
+{AAAAAA}/enter%s
+{FFD700}Garage %d\n{33CC55}For sale: ${FFFFFF}%d\n{AAAAAA}/buygarage%s
+{FFD700}Garage %d
+{33CC55}For sale: ${FFFFFF}%d
+{AAAAAA}/buygarage%s
+{FFD700}Garage %d\n{FFFFFF}Owner: %s\n{AAAAAA}/enter (in your car)%s
+{AAAAAA}/enter (in your car)%s
+{FFD700}%s%s\n{FFFFFF}Room: $%d a payday\n{AAAAAA}/rentroom  -  /enter%s
+{FFFFFF}Room: $%d a payday
+{AAAAAA}/rentroom  -  /enter%s
+{AAAAAA}/atm
+{33CCFF}Map Box\n{AAAAAA}/buymap ($25)  -  /viewmap
+{33CCFF}Map Box
+{AAAAAA}/buymap ($25)  -  /viewmap
+{FFD700}%s\n{FFFFFF}%s HQ\n{AAAAAA}/enter%s
+{FFFFFF}%s HQ
+Headquarters
+Family
+Faction
+Information
+{FFD700}OOC Shop\n{AAAAAA}/oocshop (gold bars)
+{FFD700}OOC Shop
+{AAAAAA}/oocshop (gold bars)
+{AAAAAA}/refuel
+{FFA500}%s\n{AAAAAA}/order (in a car)
+{AAAAAA}/order (in a car)
+{33CC55}Money Bag\n{FFFFFF}$%d
+{33CC55}Money Bag
+{FFFFFF}$%d
+{FF66CC}Gift Box\n{AAAAAA}/getgift
+{FF66CC}Gift Box
+{AAAAAA}/getgift
+{FFD700}%s\n{FFFFFF}Owner: %s\n{AAAAAA}/capture
+{AAAAAA}/capture
+{33CC55}House for sale\n{FFFFFF}%s\n{AAAAAA}$%d
+{33CC55}House for sale
+{AAAAAA}$%d
+{FFD700}%s vehicle\n{FFFFFF}%s%s\n{AAAAAA}/getcar
+{FFD700}%s vehicle
+{AAAAAA}/getcar
+Personal
+Public
+{FF4444}Speed camera %d\n{AAAAAA}%d km/h, fine $%d
+{FF4444}Speed camera %d
+{AAAAAA}%d km/h, fine $%d
+{AAAAAA}%s %d (%d)
+~g~Checkpoint
+~g~GO!
+EDITOR: model %d could not be made here.
+%s %d  model %d   %.1f %.1f %.1f   rot %.0f %.0f %.0f   step %.1f
+Object
+New object
+Step
+Turn -
+Turn +
+Tilt
+Here
+Delete
 teleport, e.g. /tp :grove_street
 name tags through walls, any distance (on foot + in a car)
 no fall damage, soft landings (on foot + in a car)
@@ -1008,11 +1600,18 @@ Going behind %s
 No player to go behind%s.
  (wrong id)
 Usage: /tp :place  -  %s
-Teleported to %s.
 No player with id %d.
 Unknown place \"%s\". Type /tp to list them.
+{DC2626}[Broker MQQ] {FFFFFF}/%s is not allowed on the default server (no unlimited health / money / cheats).
+Chat fade: %s
+off (the lines stay)
 Gravity: %.2f%s
  (normal)
+Memory: %ld MB
+/%s is a PC (samp.exe) setting - the phone game sets this in its own menu (Settings).
+Staff: /acmds lists the admin / moderator commands.
+/report [id] [what happened]  -  tell the staff
+/pay [id] [amount]  -  give your money to a player
 Unknown command /%s. Type /help.
 Mission sync request
 wants to Mission sync with you: you see each other on missions and share the mission.
@@ -1031,6 +1630,8 @@ Mission sync
 Player list
 Not connected
 Players: %d
+Everyone on the PC server (%d)
+ (you)
 Not connected. Server > Connect, or join a custom server.
 %s: on mission %s
 %s: in a cutscene
@@ -1057,6 +1658,162 @@ Games (2.21)
 Teleports everybody sees: /ls /sf /lv /chiliad /lsairport /sfairport /lvairport /desert /beach /strip /dam /area51 /pizza /burger /cluckin /barber /tattoo /gym /gymsf /gymlv /clothes /prolaps /victim /ammu /spray /transfender /locolow /waa /school /flightschool /boatschool /truck /quarry /emmet /home /gf /casino
 Open world: /unlock (all cities, shops, food, gyms, barbers, tattoo, clothes, Ammu-Nation, Pay 'n' Spray, mod garages, schools, safe houses), /girlfriends
 Places for /tp :place
+Script Manager: can't write %s
+# Scripts switched off in MP's Script Manager (moon icon). One path per line, inside moonloader/.\n
+# Scripts switched off in MP's Script Manager (moon icon). One path per line, inside moonloader/.
+/lua_scripts/Hasslehud
+this MonetLoader build has no shell
+error: 
+started by a script
+Download failed: 
+no answer
+Can't write 
+/Hasslehud
+no Hasslehud folder in the zip
+HassleHUD saved in moonloader/lua_scripts/Hasslehud - it starts in a few seconds, /hasslehud opens it.
+Unpacking failed: 
+lua_scripts_loader.lua is missing in moonloader/ - restart the game once (MP puts it back), or copy it from MP's zip.
+lua_scripts_loader.lua is switched off: nothing in lua_scripts/ starts. Switch it on (Settings tab).
+lua_scripts_loader.lua is not running: nothing in lua_scripts/ starts.
+Its error: %s
+Start lua_scripts_loader.lua
+ / 57 MB
+HassleHUD: unpacking...
+HassleHUD Android is not on this phone (moonloader/lua_scripts/Hasslehud).
+Download HassleHUD (57 MB)
+Find...
+Find script
+Reload all
+MonetLoader: reloading every script
+Refresh list
+No scripts
+Pick a script. The switch next to a name turns it on or off - it stays that way after a restart or a rejoin.
+Path: %s
+Runs through: %s
+Status:
+Running
+Stopped (error - see Last crashes)
+Crashed
+Not loaded (lua_scripts_loader.lua starts it within 5 s)
+Not loaded (lua_scripts_loader.lua is not running)
+Not loaded
+ - switched off
+Name: %s
+Version: %s
+Authors: %s
+Error: %s
+Mod folder: its lib/, config/ and resource/ stay inside its own folder.
+Cheat script: runs only where the server allows MonetLoader cheats.
+Starts every script in lua_scripts/. Off = none of them run.
+Starts every script in mods/. Off = none of them run.
+Switch on
+Switch off
+Load
+Unload
+Reload
+Open in Shell
+Commands (%d)
+This script has no chat commands.
+No commands found - start the script to see the ones it registers.
+Tap one to run it.
+Found in the file. Tap one to run it (the script has to be running).
+(no moonloader.log yet)
+This MonetLoader build keeps no crash list (a separate libmonetloader.so in the mods folder?). See the Log tab.
+No script crashed since the game started.
+(no error text)
+This MonetLoader build has no shell.
+Runs Lua inside: %s
+(no running script)
+Other script
+Type Lua...
+Lua (return x shows x)
+Example: return thisScript().name   or   sampAddChatMessage('hi', -1)
+Switches are saved in moonloader/config/mp_scripts_off.txt and stay after a restart or a rejoin.
+Lua scripts folder (moonloader/lua_scripts/)
+Mods folder (moonloader/mods/)
+%d script(s) switched off
+Switch every script on
+lua_scripts/: drop .lua / .luac / .zip there. A folder with its own lib/ (like lua_scripts/Hasslehud) keeps all its files inside itself.
+Hasslehud
+HassleHUD Android.luac
+' || c == '\\') { o += '\\'; o += c; } else if(c == '\n') o += 
+' || c == '\\') { o += '\\'; o += c; } else if(c == '
+; else if(c == '\r') o += 
+; else if(c == 0) o += 
+-- made by lua_scripts_loader.lua (MP): runs lua_scripts/
+. Do not edit.\nlocal __mp_src = 
+. Do not edit.
+local __mp_src = 
+local __mp_pkg = 
+name x y size
+bad self ... cannot convert 'table'
+    __mp_hhcall('stamina', staminaped)\n    if savePend
+    __mp_hhcall('stamina', staminaped)
+    if savePend
+    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n    return mx >= x
+    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y
+    return mx >= x
+    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n    if __mp_hhmouse then mx, my = __mp_hhmouse(mx, my) end\n    return mx >= x
+    if __mp_hhmouse then mx, my = __mp_hhmouse(mx, my) end
+    if not st2[0] then\n        sprCircle(DL,x,y,r,pol)\n        wep1(DL,x,y,r,sM,gIdx,wid)\n    else\n        wep2(DL,x,y,gIdx,wid)\n    end\n    bars(DL,x,y,r,sM)\n
+    if not st2[0] then
+    else
+    end
+    local __sdl = __mp_hhdl(DL, x, y)\n    if not st2[0] then\n        __mp_hhel('circle') __mp_hhcall('circle', sprCircle, __sdl,x,y,r,pol)\n        __mp_hhel('weapon') __mp_hhcall('weapon', wep1, __sdl,x,y,r,sM,gIdx,wid)\n    else\n        __mp_hhel('weapon') __mp_hhcall('weapon', wep2, __sdl,x,y,gIdx,wid)\n    end\n    __mp_hhel(nil) __mp_hhcall('bars', bars, __sdl,x,y,r,sM)\n    __mp_hhel(nil)\n
+    local __sdl = __mp_hhdl(DL, x, y)
+        __mp_hhel('circle') __mp_hhcall('circle', sprCircle, __sdl,x,y,r,pol)
+        __mp_hhel('weapon') __mp_hhcall('weapon', wep1, __sdl,x,y,r,sM,gIdx,wid)
+        __mp_hhel('weapon') __mp_hhcall('weapon', wep2, __sdl,x,y,gIdx,wid)
+    __mp_hhel(nil) __mp_hhcall('bars', bars, __sdl,x,y,r,sM)
+    __mp_hhel(nil)
+        if imgui.IsItemClicked() then hsz[0] = i-1; qSave() end\n    end\n    imgui.Spacing()\n
+        if imgui.IsItemClicked() then hsz[0] = i-1; qSave() end
+    imgui.Spacing()
+        if imgui.IsItemClicked() then hsz[0] = i-1; qSave() end\n    end\n    imgui.Spacing()\n    if __mp_hhscaleUI then __mp_hhscaleUI(SF) end\n
+    if __mp_hhscaleUI then __mp_hhscaleUI(SF) end
+    __mp_hhel('hp')\n    bar(bXB - r - ofL[1] - l1, bYB - alt/2,
+    __mp_hhel('hp')
+    bar(bXB - r - ofL[1] - l1, bYB - alt/2,
+    __mp_hhel('armour')\n    if ap > 0 or hpe[0] then\n
+    __mp_hhel('armour')
+    if ap > 0 or hpe[0] then
+    __mp_hhel('stamina')\n    if mfl[0] then\n        bar(
+    __mp_hhel('stamina')
+    if mfl[0] then
+        bar(
+    __mp_hhel('money')\n    imgui.PushFont(fDin)\n
+    __mp_hhel('money')
+    __mp_hhel('ammo')\n    if ma[0] then\n        local cur
+    __mp_hhel('ammo')
+    if ma[0] then
+        local cur
+    __mp_hhel('stars')\n    local ss = te[0]\n
+    __mp_hhel('stars')
+    local ss = te[0]
+HassleHUD Android
+missing declaration
+%s: %s - /%s opens it as soon as it is running.
+%s needs MonetLoader for MP: it is not running ([MP] MonetLoader = 0 in TYFMC.MP.ini, or GTA Vice City - MonetLoader and %s are San Andreas only).
+still downloading (moon icon shows the progress)
+%s: moonloader/lua_scripts/%s has no \"%s\" - downloading it again.
+not on this phone (moonloader/lua_scripts/Hasslehud) - downloading it now (57 MB)
+was switched off in the Script Manager - switched on
+is still starting (it waits for the game)
+%s stopped with an error: %s
+%s: this MonetLoader can't start scripts from MP - update MP.
+starting it now
+loading it again
+%s did not open: the mod is running but has not added the command yet - moon icon > Log shows what it is doing.
+%s did not start: %s
+%s stopped: %s
+Moon icon > Last crashes has the full error.
+Script Manager for MonetLoader %s
+MonetLoader is not running ([MP] MonetLoader = 0 in TYFMC.MP.ini?) - switches still save.
+Older MonetLoader build: load / unload / shell need MonetLoader for MP 5.02 (switches still save).
+Scripts
+Log
+Last crashes
+Shell
 Say
 /tp 
 /tp :
@@ -1069,7 +1826,404 @@ Say
 /gravity 
 Tap to chat  -  type / for commands
 Chat button to type  -  / for commands
-Spawn
+Co-op: you have no save yet - save once (a save house) so your partner can load your story.
+slot %d
+Co-op: sending your save timed out (it tries again after your next save).
+Co-op: the host's save arrived broken - asking again.
+the other player
+*** %s invites you to Co-op story (2 players, their story).
+*** %s is already in a Co-op story.
+*** Co-op story is not possible with %s (Mission sync off on this server, or they run an older MP).
+*** %s declined Co-op story.
+*** Co-op story with %s: you are the HOST - your save is the story. Start missions, your partner comes along.
+*** Co-op story with %s: you are the PARTNER - you get the host's mission progress (your own saves are kept and come back).
+*** Co-op story ended.
+*** %s now has your story progress.
+*** Co-op: %s started %s - you're in it together.
+*** Co-op: mission passed - the new progress comes with the host's next save.
+*** Co-op: the mission is over.
+*** Co-op reward: $%u
+*** Co-op story ended (your partner left).
+*** Co-op: you have the host's story progress now (your place, money and weapons kept).
+*** Co-op: %s is in a cutscene - you're standing with them.
+No such player.
+Co-op story needs Mission sync on this server.
+This server runs an older MP: no Co-op story yet.
+You're already in a Co-op story (/coop end first).
+*** Asked %s for Co-op story (you host: your save is the story). Waiting...
+End Co-op story
+Accept Co-op story
+In a Co-op story
+Co-op asked...
+Co-op story (2 players)
+Co-op story request (2 players)
+wants to play the story with you. Their save is the story: your mission progress becomes theirs until the co-op ends (your own saves are backed up and come back). Your place, money and weapons stay yours.
+/coop invite <id> - Co-op story with one player (you host).  /coop accept  /coop decline  /coop end
+/coop sync - send your save again (host).  /coop tp - go to your co-op partner.
+Co-op story with %s (%s).
+you host
+/coop invite <id>
+Nobody invited you.
+You're not in a Co-op story.
+Co-op: sending your save to %s...
+Only the host sends the story.
+/coop help
+Type the PC server as IP:port (e.g. 51.89.1.2:7777).
+Closing the last PC connection, then joining %s:%u ...
+open.mp %s:%u
+Could not open the local crossplay port.
+Could not start the open.mp connection.
+Joining the PC server %s:%u (open.mp / SA-MP) as %s ...
+The last open.mp connection is still closing - PC joins wait for it.
+PC server: %s
+Left the PC server.
+Your server already uses port %d - pick another SA-MP port for PC players.
+PC players can join \"%s\" with SA-MP 0.3.7 / open.mp on UDP port %d.
+SA-MP port %d is busy - PC crossplay is off for now.
+open.mp / SA-MP  (PC crossplay)
+Join PC servers (SA-MP 0.3.7 / open.mp) from the phone, or let PC players join your server.
+PC server  (IP:port)
+PC server password (optional)
+Name on PC servers (RP servers: Firstname_Lastname)
+empty = your MP name
+Asking the server...
+Server info
+No answer from %s (offline, or the query port is blocked).
+%s  |  %d/%d players  |  ping %d  |  %s%s
+  |  password
+Leave the PC server
+Join PC server
+Let PC players join my server (SA-MP port %d)
+SA-MP port (UDP)
+SA-MP port
+Starts with the server you host on this phone.
+PC players add  your-IP:%d  in SA-MP 0.3.7 or the open.mp launcher (same Wi-Fi, or forward the UDP port).
+MTA DayZ models ready (%d).
+MTA DayZ models: %d of %d downloaded.
+streamer hook missing
+no cache folder
+engine ok
+engine check waiting
+engine check FAILED
+MTA models: %s (%d) - models stay GTA. See files/TYFMC/MP/dzmodels_log.txt
+MTA models: %s | %d/%d downloaded | %d in game (%d loaded) | %d waiting (in use) | %d failed%s
+ | some without textures
+ | world textures %s (%d GTA textures replaced)
+not downloaded
+[Day Z] MTA models: skipped models reset - they are tried again.
+[Day Z] %s
+[Day Z] The MTA models setting is OFF (Day Z panel / MP settings).
+Get out of the vehicle to pick it up.
+You need the gun for that ammo.
+No Man's Land | Metro / S.T.A.L.K.E.R Atmospheric Playlist
+Lemuria
+[Day Z] Ambient music: no 
+[Day Z] Ambient music can't play: %s (see files/TYFMC/MP/dz_music_log.txt)
+Ambient music off.
+Ambient music on.
+[Day Z] Ambient music stopped: %s (see files/TYFMC/MP/dz_music_log.txt)
+NOW PLAYING  -  DAY Z AMBIENT
+No Man's Land | Metro / S.T.A.L.K.E.R
+by %s  -  %s
+Picked up: %s%s
+ (x several)
+No vehicle near you - the canister is wasted.
+Fuel canister poured: tank %d%%
+YOU ARE DEAD
+%d DAMAGE INFLICTED
+ZOMBIE KILLED
+The tank is full.
+Out of fuel - find a fuel canister or a gas station.
+You were stuck - moved a bit.
+You don't have that.
+You don't have %s.
+Unstuck.
+Refueling... stay still.
+Points (level %d):
+To next level:
+Murders:
+Zombies killed:
+Bandits killed:
+Headshots:
+Humanity:
+Blood:
+FPS: %d | PING: %d | LOSS: %d%%
+USE GPS
+TO UNLOCK MAP
+SPD: %d
+FUEL %d%%
+PICK UP  %s
+%.2f / %.2f KG
+NEARBY / GROUND
+Empty. Loot houses, gas stations and military bases.
+Nothing on the ground here.
+PICK UP
+{FF4444}No cheating{FFFFFF}: no CLEO, mod menus, aimbots, speed / fly hacks (libCheatMenu is blocked).
+{FF4444}ANTI-RELOG{FFFFFF}: leaving the game during combat = {FF4444}your survivor dies{FFFFFF}.
+{FFFF00}No bug abuse{FFFFFF}: no glitching into walls or under the map - report it to an {33CC55}admin{FFFFFF}.
+{FFFF00}No spawn killing{FFFFFF} at the 15 spawn points or on fresh survivors.
+{FFFF00}Parties{FFFFFF}: max 4 survivors. Don't pretend to be another party.
+{FFFF00}Respect everyone{FFFFFF}: no insults, racism, threats or harassment.
+{FFFF00}No spam{FFFFFF}: no flooding, caps lock or advertising other servers.
+{FFFF00}Don't pretend to be staff{FFFFFF} (admin, moderator or the bot {00BFFF}Broker{FFFFFF}).
+{FFFF00}Listen to the {33CC55}admins{FFFFFF}: a kick waits {FF9900}4:29{FFFFFF}, 3 fly / teleport kicks = {FF4444}permanent ban{FFFFFF}.
+{33CC55}Survive, loot, trust no one{FFFFFF} - and have fun.
+{FFFF00}%d ) {FFFFFF}%s\n
+{FFFF00}%d ) {FFFFFF}%s
+{FFFFFF}PROJECT DAY Z LEGACY - RULES
+PROJECT DAY Z  -  CONTROL PANEL
+Level %d  -  %d points  (%d to the next level)
+Alive: %u min   Blood: %d / 12000   Hunger: %d%%   Thirst: %d%%
+Zombies killed: %d   Bandits killed: %d   Murders: %d   Headshots: %d
+Humanity: %d (%s)
+INFECTED - find Antibiotics (/cure).
+Carry: %.2f / %.2f KG   Bag level %d   GPS: %s
+TOP SURVIVORS
+Your party: %d / 4 members
+You are solo.
+Invite a survivor:
+/pinvite %d
+Tap a command to run it (44+). Commands that need a name / text: type them in the chat.
+FPS | PING
+Damage numbers
+Compass
+Blood screen + drops
+Title logo
+3D radar (GPS)
+Ambient music (No Man's Land - Lemuria)
+MTA DayZ models
+Retry skipped models
+Project Day Z Legacy - gamemode Proper DAYZ. Based on Project DayZ SA-MP, made for MP by JebetrexxMC.
+Ambient music: No Man's Land | Metro / S.T.A.L.K.E.R Atmospheric Playlist by Lemuria - youtu.be/aVTcVx1570w (streamed from the MP media host over Wi-Fi / mobile data; a copy at files/TYFMC/MP/dz_ambient.mp3 is used instead if you have one).
+Global network (4.05): libks, signalwire-c, FreeSWITCH (SignalWire), Eclipse Mosquitto, EMQX, MQTTX, Mainflux, awesome-mqtt, vps-hosting-providers, Sidekick, Aeon-MLTB, whmcs-vps-reseller.
+Download progress
+Connecting to GitHub - getting the resource list...
+Downloading resource 'dayz' (Project Day Z Legacy) - %d files
+From: %s
+File %d / %d:  %s
+%s / %s   -   %.0f KB/s   -   %d:%02d left
+%d failed
+DOWNLOAD IN BACKGROUND
+Saved on the phone - next time it is instant.
+MTA DayZ models %d%%
+Survive. Loot. Trust no one.
+Gamemode: Proper DAYZ  |  Broker 24/7
+Downloading...
+Play
+Credits
+Left Project Day Z Legacy.
+Back
+Project Day Z Legacy (Proper DAYZ) for MP
+Original Project DayZ SA-MP gamemode - github.com/JebetrexxMC/Project-DayZ-SAMP
+MP, the Broker 24/7 servers, the HUD and the cabin - JebetrexxMC
+Psdk / AML mod loader - the AndroidModLoader team
+Ambient music: No Man's Land | Metro / S.T.A.L.K.E.R Atmospheric Playlist - Lemuria (youtube.com/@lemurian.archives, youtu.be/aVTcVx1570w)
+Global network (4.05): signalwire/libks, signalwire/signalwire-c, signalwire/freeswitch, eclipse-mosquitto/mosquitto, emqx/emqx, emqx/MQTTX, mainflux/mainflux, awesome-mqtt/awesome-mqtt, qfft560/vps-hosting-providers, MightyMoud/sidekick, AeonOrg/Aeon-MLTB, Rad-Web-Hosting/whmcs-vps-reseller (github.com)
+Thanks to every survivor testing the server.
+Title logo in game
+Press PLAY: you wake up at 1 of 15 random places (or where you logged out alive).
+Your gear stays on your body. A new survivor wakes up soon.
+SPAWN: %s
+Weapon - %d rounds per magazine
+Melee weapon
+%d rounds for the %s
+Restores %d%% hunger
+Restores %d%% thirst
+Heals %d blood - stops the bleeding
+Heals %d blood - stops the pain (camera sway)
+Heals %d blood - stops bleeding + pain
+Cures the infection
+Backpack - carry %d KG
++%d armour - stops headshots
++%d armour
+Unlocks the map (key 7)
++%d%% fuel for the car next to you
+Revives a downed party member (+%d%% HP) - fixes bones
+Revives a downed party member (+%d%% HP)
+Clothes - almost invisible when still
+Clothes - harder to see
+Clothes - change your skin
+Trash - collect 5 cans: Litterbug
+Warms you up (+3 C), cures the cold
+Fixes the tyres of the car next to you
++400 engine health (needs a Toolbox)
++200 vehicle health (needs a Toolbox)
+Fill it at a petrol station or SIPHON a car
+Area 69 + the carrier: the alarm stays silent
+Look far (tap USE to toggle)
+Shows the distance to what you aim at
+Repairs: needed for engines and scrap metal
+The compass (key 8)
+A paper map of San Andreas
+Shows the time
+Item
+You are DOWN - wait for your party to revive you.
+Your helmet stopped a headshot.
+You need a medicine: Morphine, Epinephrine or a Blood bag.
+You lose blood: BLEEDING - use a Bandage.
+You lose blood: you are COLD - get in a car, sprint or use a Heat Pack.
+You lose blood: you are starving or THIRSTY - eat and drink.
+You lose blood: you are INFECTED - find Antibiotics.
+You broke your legs - Morphine fixes them.
+You are BLEEDING - use a Bandage (it stops by itself after a minute).
+Fractured arm - Morphine fixes it.
+The bleeding stopped.
+KNOCKED DOWN
+%s is DOWN - revive them with a medicine.
+%s revived you.
+You revived %s (+150 humanity).
+bleeding stopped 
+pain gone 
+bones fixed 
+warm 
+The tank is full. %s
+ALARM - %s: the zombies are coming!
+No vehicle next to you - %s wasted.
+Tyres fixed.
+%s fitted: vehicle health %d.
+[DayZAdmin] The vehicles were respawned.
+Body of %s
+TAP AGAIN TO GIVE UP
+GIVE UP
+REVIVE  %s
+CHECK BODY
+REVIVING %s
+YOU ARE DOWN
+Bleeding out in %d:%02d
+Wait for your party: Morphine, Epinephrine or a Blood bag gets you up (+50% HP).
+You have no party - nobody can revive you.
+%s  -  %dm
+DOWN  %dm
+GPS OFF (7)
+RANGE %.0f m
+RANGE ---
+ACHIEVEMENT UNLOCKED
+DISCONNECT = DEATH
+Military rucksack
+Assault pack
+Small backpack
+Pockets
+(%d) Inventory
+Tap an item to see what it does.
+FOOD / DRINKS
+TREAT %s
+This vehicle has not enough fuel to siphon.
+GROUND (%d)
+BAG (%d)
+Empty. Loot houses, petrol stations and bases.
+Body of %s  -  CHECK BODY
+* tap an item to open its options (right mouse button on PC)
+Party
+Nick
+Level
+Kills
+Zombies killed
+Alive time
+Ping
+  [DOWN]
+  [lobby]
+TAB - close the list.  Tap a row to select a player.  Red names = bandits.
+DEBUG MONITOR
+Veteran
+Hardcore
+Blood
+Food
+Water
+Temperature
+Humanity
+%d (%d pts)
+Headshots
+Murders
+Bandits killed
+Confirmed kills
+Revives
+Alive (h:m)
+Bleeding 
+Pain 
+Legs 
+Arm 
+Infected
+Condition
+Healthy
+Difficulty
+%d | %d ms
+FPS | Ping
+%d / %d unlocked
+Skill points: %d   (1 per level)
+SELECT YOUR SPAWN
+Black
+White
+Silver
+Red
+Blue
+Navy
+Green
+Yellow
+Pink
+Mega Vil // Cardealer
+Broker MQQ // Cardealer
+%s - receptionist
+(Sell Vehicle)
+Select
+Sell Vehicle
+The dealer pays half of the price.
+Sell %s
+Sell %s - $%d
+[DEALER] Sold your %s for $%d.
+No vehicles in your garage.
+My Vehicles is empty (/savecar keeps a car, or buy one here).
+[DEALER] %s costs $%d - not enough money (cash + bank).
+[DEALER] Your garage is full - sell one first (Sell Vehicle).
+[DEALER] %s costs $%d - you have $%d.
+[DEALER] Paid $%d - your %s (%s) is in My Vehicles (%d/%d), /mv.
+[DEALER] Paid $%d - enjoy your %s. (My Vehicles is full: /mv to make room, then /savecar.)
+%u Kg Trunk Capacity
+Cardealer
+Access Showroom
+Only on the default server and Mega Vil.
+[DEALER] Spots reset to their original positions (no wall check). /dealerspot auto to check them again.
+[DEALER] Wall check on: the spots are checked again when you are near a dealership.
+/dealerspot - show the spots, /dealerspot reset - original positions, /dealerspot auto - wall check again
+[DEALER] Mode: %s. (/dealerspot reset | auto)
+original positions
+wall check
+%s: not checked yet (go there).
+%s: receptionist %.1f %.1f %.1f%s, car %.1f %.1f %.1f%s
+ (moved off a wall)
+ (original)
+No ground here
+The ground is too steep
+Too close to another foundation
+Look at the edge of a foundation or a ceiling
+A ceiling needs walls under it (or another ceiling)
+Stand next to a doorway without a door
+You need a Toolbox in your bag
+Can't build here
+Window
+Rotate
+Remove
+Door
+Look at one of your pieces to remove it.
+No door near you.
+CLOSE DOOR
+OPEN DOOR
+Turn on the Day Z models in the settings to build.
+Building needs a Toolbox in your bag (gas stations).
+Build mode: pick a piece, look where it goes, PLACE.
+dynamic mapping catalog
+tags+desc
+Loading the model catalog...
+%u  %s  (txd %s)%s%s%s
+  [SA-MP]
+%d models match \"%s\" (%d shown). /mapping add <id> puts one in front of you.
+No model matches \"%s\".
+find 
+search 
+add 
+Loading the model catalog - try again in a moment (or use the id).
+Unknown model. /mapping find <name> lists the ids.
+Model %d is not in this game (SA-MP object?) - others with the pack will see it.
+/mapping add %d %.2f %.2f %.2f %.1f
 You are back (not AFK any more).
 You are AFK (3 minutes without moving). Move to come back.
 AFK: you leave the server in 1 minute if you don't move.
@@ -1188,7 +2342,6 @@ Bike
 Mountain Bike
 Beagle
 Cropduster
-Stunt
 Tanker
 Roadtrain
 Nebula
@@ -1270,7 +2423,6 @@ Police SFPD
 Police LVPD
 Police Ranger
 Picador
-Alpha
 Phoenix
 Glendale Shit
 Sadler Shit
@@ -1373,7 +2525,6 @@ Best
 Start
 %s is inside the stadium (interior %d): the race takes you there.
 %s start is marked on your radar for 90 seconds.
-Race
 Where
 {FFE14D}GTA SA races - /race to queue (%d players)
 Mark
@@ -1434,7 +2585,6 @@ DEATHMATCH: %s has %d kills in a row in %s!
 [Spawn] Type /spawn infernus (or any id 400 - 611) for a vehicle, /w all for weapons.
 [Teleport] /ls /sf /lv /chiliad /desert /beach /pizza /gym /ammu /emmet /home ... (/t for all)
 [World] All cities, shops, gyms, barbers, tattoo, clothes, Pay 'n' Spray and mod garages are open.
-~g~GO!
 Race over: you died.
 Get back in your vehicle within 20 seconds.
 Left the vehicle: race over.
@@ -1464,7 +2614,7 @@ Gate
 Area 69 North Gate
 Area 69 East Gate
 gates.txt line:  %.2f %.2f %.2f %.0f 11 My Gate
-Stand in the middle of the gate, facing through it. Put the line in files/MP/gates.txt, then /gates reload.
+Stand in the middle of the gate, facing through it. Put the line in files/TYFMC/MP/gates.txt, then /gates reload.
 %d gate teleport(s):
 No house called \"%s\" (/houses lists them).
 Stand at a house (or type its name).
@@ -1494,17 +2644,13 @@ Enter
 ~g~House created
 {00BFFF}[H:%u]\n{FFFF00}Owner: {FFFFFF}%s\n{FFFFFF}%s\n{33CC55}For sale: ${FFFFFF}%d {A9C4E4}/buyhouse
 {FFFF00}Owner: {FFFFFF}%s
-{FFFFFF}%s
 {33CC55}For sale: ${FFFFFF}%d {A9C4E4}/buyhouse
 {00BFFF}[H:%u]\n{FFFF00}Owner: {FFFFFF}%s\n{FFFFFF}%s%s
-{FFFFFF}%s%s
 {FFFFFF}Exit
 Setup %s: pick the slot size (1x1 - 16x16, each square 2x2 m). Tap a square to light it on the ground. Green = fine, red = over the limit / taken.
 Red squares: make the slot 16x16 or smaller and keep it off other houses.
 SETUP  [H:%u] %s
 Each square = %.0fx%.0f m. Limit %dx%d.
-Width
-Height
 Turn -15
 Turn +15
 Move here
@@ -1525,7 +2671,6 @@ Go inside
 Add in front of me
 No object picked
 Turn
-Delete
 Door here
 Pick an interior first (/edithouseinteriors).
 Furniture on its way - move it with /edithouseinteriors.
@@ -1567,6 +2712,60 @@ No object of your house within 6 m.
 Use it at (or in) your house: /furnish <low|med|swank>
 Buildings: %s0 = none
 Use it at your house: /%s <player id>
+You own this server: /mapedit opens the map editor (add, move, turn and delete objects).
+Join your server first.
+The map editor is only for custom servers.
+This server runs an older MP: it can't keep map objects yet.
+Only the host owner of this server can edit its map.
+Unknown model id.
+Model %d is not in this game.
+The object was successfully created at your position.
+No map objects yet - Create one first.
+Traffic cone
+Explosive barrel
+Dock barrier
+Jump ramp
+Big ramp
+Water ramp
+Chainlink fence
+Electric fence
+Small fence
+Bollard light
+Picnic table
+Street lamp
+Spotlight tower
+Overhead sign frame
+Speed bump (SA-MP pack)
+MAP EDITOR
+%d objects on this server
+model in this game
+not in this game
+Create in front of me
+Nearest
+#%u  model %u
+Tap an object to select it
+Move
+%.2g m / %.0f\xC2\xB0
+Rot X
+Rot Y
+Rot Z
+Snap to ground
+Duplicate
+Solid (collision)
+Deselect
+Tap again: delete ALL objects
+Clear all
+Drag the X / Y / Z handles on the object. Tap an object to select it.
+Map editor: Create an object, or tap one to select it. You now are able to edit your object.
+/mapedit - open / close the editor.  /mapedit add <id|name>  /mapedit model <id>  /mapedit find <name>
+/mapedit select (nearest)  /mapedit delete  /mapedit count.  Only the host owner of a custom server can edit.
+%d map objects on this server (%d shown near you).
+model 
+Unknown model. /mapedit find <name> lists the ids.
+Map editor model: %d.
+Please select the object you'd like to edit - #%u picked.
+Select an object first.
+/mapedit help
 Southern San Andreas Super Autos
 Legendary Motorsport
 Pedal and Metal
@@ -1600,6 +2799,73 @@ Hotel room
 Going to your room...
 Leave room
 Computer
+This server runs MP %s: the HUD settings work once it runs 4.07 (only you see them until then).
+(old)
+Logo Position X: 0 = left, 50 = centre, 100 = right (now %d)
+Logo Position Y: 0 = top, 100 = bottom (now %d)
+Logo Size Z: 10 - 250 %%, 100 = normal (now %d)
+{FFFFFF}Server Logo Position
+Set
+Account: %s (id %d) on %s
+Server Logo: MP Launcher > + Add server > scroll down > Import title logo (opens Files) - a PNG (transparent) or JPG. Hide / show it in Textdraw > Logo Server.
+This server has no rules window (Server settings > Rules window).
+Only the host owner can open /settings.
+Status
+{FFFFFF}Account\t{AAAAAA}%s\n
+{FFFFFF}Account
+{AAAAAA}%s
+{FFFFFF}Textdraw
+{FFFFFF}Entering Door\t{FFFFFF}%d second(s)\n
+{FFFFFF}Entering Door
+{FFFFFF}%d second(s)
+{FFFFFF}Server Logo\t%s\n
+{FFFFFF}Server Logo
+{FFFFFF}Server settings (gamemodes / permissions)\t{FFD700}>>\n
+{FFFFFF}Server settings (gamemodes / permissions)
+{FFFFFF}Server rules\t{FFD700}>>\n
+{FFFFFF}Server rules
+{AAAAAA}Not set >>
+{FFFFFF}Settings Menu
+HUD Player was removed in 4.12.5 - your name and id are no longer drawn on the HUD.
+Ammo Info is off on the default server.
+{FFFFFF}HUD Variant - %d
+{FFFFFF}HUD Mode\t%s\n
+{FFFFFF}HUD Mode
+{FFFFFF}Dollar Cent\t%s\n
+{FFFFFF}Dollar Cent
+{FFFFFF}HUD Player\t%s\n
+{FFFFFF}HUD Player
+{FFFFFF}Ammo Info\t%s\n
+{FFFFFF}Ammo Info
+{FFFFFF}Logo Server\t%s\n
+{FFFFFF}Logo Server
+{FFFFFF}Logo Position X\t{FFFFFF}%d%%\n
+{FFFFFF}Logo Position X
+{FFFFFF}%d%%
+{FFFFFF}Logo Position Y\t{FFFFFF}%d%%\n
+{FFFFFF}Logo Position Y
+{FFFFFF}Logo Size Z\t{FFFFFF}%d%%\n
+{FFFFFF}Logo Size Z
+{AAAAAA}Removed
+{AAAAAA}Off (default server)
+{FFFFFF}Settings Menu >> Textdraw
+HUD Variant %d (%s) for everyone on this server.
+The server HUD is off for everyone on this server.
+%sHUD Variant - %d {AAAAAA}(%s)\n
+%sHUD Variant - %d {AAAAAA}(%s)
+{FFFFFF}
+{FFFFFF}Hud Mode
+Change
+Join a server first.
+Day Z model pack moved into the MP folder. Restart the game once so the normal models come back.
+Disabled
+Mega Vil blue
+Violet
+Emerald
+Crimson
+Gold
+Broker MQQ red
+AMMO %d
 Grove Street
 Ganton
 Idlewood
@@ -1631,33 +2897,102 @@ Las Venturas Hospital
 LV Airport
 Emerald Isle
 V-Rock Hotel
+right after < Spawn >
+not near a spawn
+Still connecting - you can move meanwhile. On a hotspot: the host should keep the game open and the screen on.
 Spawned at %s.
+freeroam,deathmatch,bounty,duels,missions,jobs,24/7
+Broker MQQ - the main MP server, always online. Free roam, Deathmatch and Bounty Hunter (kill streaks, bounties, duels) with everyone: missions, races, jobs and events.
+Brief Case War
+bcw,team,pvp,objective,24/7
+Two teams fight over the briefcase. Grab it, carry it home and hold the line.
+Call Of Duty: Modern Warfare 3 in San Andreas: classes, killstreaks, ranked matches.
+rp,roleplay,jobs,houses,futuristic,24/7
+Mega Vil Futuristic roleplay: jobs, houses, cars and a city that never sleeps.
+Day Z
+dayz,zombies,survival,loot,pvp,24/7
+Project Day Z Legacy: survive the zombies, find loot, build a camp, trust nobody.
+Rocket Soccer
+rocketleague,soccar,cars,ranked,mmr,24/7
+Rocket League: car soccer in San Andreas on a floating pitch high above the Los Santos skyscrapers. Pick a car at Grove Street, boost, jump and score - ranked MMR from Bronze to Supersonic Legend.
+no servers in the answer
+PC server %s:%d (%s). Joins through MP crossplay.
+SA-MP 0.3.7
+Could not read the open.mp list (%s). It tries again in a moment.
+No open.mp server matches this filter.
+Reading the open.mp server list...
 All
 briefcase war
 modern warfare
 mega vil
+day z
+SERVER IN DEVELOPMENT
+%s is still in development.
+This server
+The owner is still working on it, so some features may not work yet. You can keep playing.
+Updates: mpsamp-open.github.io  |  Discord: %s
+Password for %s
 Region: Auto (lowest ping)%s%s. All regions are listed.
 Region: %s (%d ms). The lobby moves to the %s broker; only %s servers are listed.
 Region: %s. Only %s servers are listed.
+Oceania
+standby - public lobby  |  888
 Auto
 %s  |  %d servers
+public lobby  |  %d servers
 lowest ping  |  %d
+same server as %s  |  %d
 %d ms  |  %d servers
--- ms
+standby - public lobby
+Names hidden: over 100 players
+(same on the PC launcher)
+Join: Player list shows all
+Gamemode
 Players
-Ping
-Mode
+Map
+Loc
+Tags
+Refreshing the open.mp list... (%d servers now)
+Could not read the open.mp list%s - tap Refresh
+ (showing the last one)
+%d servers on open.mp (%d shown%s)  -  updated %us ago
+, with a password
+, no password
+open.mp server list
+Password only
+Search open.mp
+Search open.mp servers
+All servers
+No password
   (default)
-  (gamemode)
-  (Roleplay 24/7)
   (yours)
-Freeroam %s%s
-(all)
- (LAN)
-Brief Case War
-MW3 Team DM
+Bone County
+Mega Vil
+SA Wasteland
+LS Sky Pitch
+SA Warzone
+San Andreas
+Server Description
+No description.
+IP: %s:%d
+IP: %s:%d (Wi-Fi)
+IP: %s:%d (open.mp, PC crossplay)
+IP: 24/7 internet lobby, port %d
+IP: internet lobby, port %d
+IP: hidden, port %d
+Favorite
+All players (%d)
++%d more
+Join to see who is playing.
+Nobody inside yet.
+No preview
+Ping stability
+avg %d ms   jitter %d ms
+no ping yet
 No server matches \"%s\".
-No favourite servers yet. Tap + to add one.
+No favourite servers yet. Tap a server and press Favorite, or tap + to add one.
+No Wi-Fi servers on this network yet. Host: tap Host offline server. Friend: Find host and join.
+No internet. Offline play: open the Lan tab (hotspot / same Wi-Fi).
   Nobody on your server yet.
   Join to see who is playing.
   Select a server.
@@ -1666,9 +3001,22 @@ Value
 default (always on)
 internet lobby
 always active
-San Andreas
 MP 3.04
 server synced
+24/7 featured (Broker bot, GitHub Actions)
+Grove Street at night - pick a car
+Sky Pitch above Los Santos
+5:00, golden goal overtime
+MMR, Bronze .. Supersonic Legend
+Octane, Fennec, Dominus, Breakout, Merc, Backfire
+MP 4.13.4
+15 random places
+houses, 19 gas stations, 10 military bases
+everywhere (more at night / in the fog)
+max 4, unique colours
+disconnect in combat = death
+off (MP + CLEO + CheatMenu)
+MP 3.58
 24/7 featured (always on, VPS + Broker)
 Roleplay RP (only)
 Mega Vil (Los Santos of the future)
@@ -1691,6 +3039,48 @@ Bone County, San Fierro Bay
 not allowed
 war_ambient.mp3 (45%)
 MP 3.04.6
+Server Management
+Hosted by: 
+ (24/7 bot)  &  [MOD] Trunk (moderator)  &  [ADMIN] SENJI (admin)
+Online 24/7 on the MP console - it never needs a player to start it.
+Hosted by: you (this phone is the host owner)
+Hosted by: the host owner's phone / VPS
+Players: %d/%d     Ping: %d ms     Loss: %d%%     Jitter: %d ms%s
+     (weak link: syncs sent twice)
+Language: All  (fixed - nobody can change it on the featured servers)
+Language: %s
+You can change these settings (%s).
+host owner
+This server runs an old MP: view only until it updates.
+View only - %s.
+only the admin and the moderators change the featured servers
+only the host owner changes this server
+moderator.txt was not accepted here - type /modcheck in the chat to see why.
+This featured server runs only its own gamemode.
+Rules window after the login
+MONETLOADER - HG MENU
+HG menu: OFF - never on the MP LAN server, the default server and the featured servers.
+HG menu on this server: %s  (/hg opens it)
+OFF (Disable cheats is on)
+OFF (the host switched MonetLoader cheats off)
+HG menu on by default for my custom servers
+HG menu on for \"%s\" (Allow CheatMenu + MonetLoader cheats).
+On: every new custom server you host starts with \"Allow CheatMenu + MonetLoader cheats\" on, so /hg works there.
+Off: new custom servers start with MonetLoader cheats off (switch them on per server above).
+Switching \"Allow CheatMenu + MonetLoader cheats\" off above (or Disable cheats) stops HG for everyone on the server.
+Anti-cheat gamemode
+Anti-cheat %s on \"%s\".
+Always OFF on the default server.
+Always ON on Brief Case War, MW3 and Mega Vil.
+Checks: teleport, airbreak, fly (on foot only - helicopters, jets and cars in the air are fine),
+speed, rapid fire, infinite ammo, packet flood. Floating / teleporting: kick, 3 kicks = permanent ban
+(only [ADMIN] / [MOD] can unban). CLEO menus and libCheatMenu.so / libCheatMenu64.so are blocked.
+Login system (authentication)
+Off by default. When it is on, new players log in first. It turns off by itself when the
+last [ADMIN] / [MOD] leaves this server - join again and turn it back on if you need it.
+Map editor (add / move / delete objects)
+Players (kick / ban / spectate)
+Ban list
 This server   |   Moderator: 
 Default server   |   Administrator: 
   Nobody else on the default server right now.
@@ -1705,8 +3095,15 @@ Kick
 Ban
 Mute
 Unmute
-Tap a player, pick a reason, then Kick / Ban / Mute. The 24/7 server keeps its ban list.
-Server settings (gamemodes / permissions / rules)
+Warn
+Go to
+Get here
+Heal
+Tap a player, pick a reason, then Kick / Ban / Mute / Warn. The 24/7 server keeps its ban list.
+Chat: /acmds lists every staff command (/sethealth /givecash /fine /makevip /makeadmin /unban ...).
+Everyone on the PC server: %d players
+Tap a name = OnPlayerClickPlayer (like the PC Tab list). The players near you also show up in the game.
+Server Management (gamemodes / permissions / rules)
 moderator.txt has the MP moderator key, but this server didn't give you [MOD] (older MP copy). Type /modcheck, then rejoin.
 Player management
 The default server has one administrator: [ADMIN] SENJI. Joining first (or hosting it) doesn't make you the host.
@@ -1726,30 +3123,134 @@ Ban %s
 Banned %s.
 That is you (the administrator).
 Tap a player, type or pick a reason, then Kick or Ban. Banned players see the date, you as administrator and the reason.
+Bans of the server you are on
+This server is not hosted by your phone: bans and unbans go to the server itself.
+Online players: Players page -> tap -> Ban. Offline players / any name: here.
+Only [ADMIN], [MOD] or the owner of this server can ban here.
+Show the ban list (chat)
+The ban list is in the chat.
+Ban a name (online = kicked at once, or when they join)
+Player name
+Ban name
+Ban sent for %s.
+Unban this name
 Ban list  (%d)   |   Administrator: %s
-Saved in files/MP/bans.txt, used by every server this phone hosts.
+Saved in files/TYFMC/MP/bans.txt, used by every server this phone hosts.
 Ban date
 Administrator
   Nobody is banned.
 Unban selected
 Ban a name (also when that player is offline)
-Player name
-Ban name
-Banned the name %s.
+Banned the name %s (kicked if online).
 %s is already banned.
+/sdcard/Android/data/com.rockstargames.gtasa/files
+no ProjectDayZ folder in that zip
+ -> files/TYFMC/MP/dayz/ProjectDayZ
+DAY Z MODEL PACK
+The Project Day Z models (123 models, textures as PNG, about 50 MB), kept in your MP folder: files/TYFMC/MP/dayz/ProjectDayZ. 
+It never changes the game's models on other servers.
+Saved in the MP folder.
+Files app: %s
+could not open the file
+Copying... %.1f MB
+ MB
+Unpacking...
+Download the pack again
+Download pack (into files/TYFMC/MP/dayz)
+Import pack (zip) - opens Files
+application/zip,application/x-zip-compressed,application/x-zip,application/octet-stream
+The Files app is already open.
+CLOUD STORAGE
+Server resources from the MP website downloads. They are kept in the game cache.
+No writable cache folder on this phone - nothing can be downloaded.
+Project Day Z Legacy model pack   %s of %s on this phone   (%d / %d files, %d models)
+Getting the file list from GitHub...
+No file list yet.
+The Day Z server download is running - wait for it to finish.
+Downloading %s: %s / %s  (%d / %d files)
+%d models are in the game right now (Day Z server) - those are kept when you delete.
+Tap again to delete
+%s  -  %d models
+%s / %s on the phone  (%d / %d files)
+Downloaded
+Download
+Download everything
+Refresh the file list
+Files: mpsamp-open.github.io  Host/DayZ/models
+OPEN.MP DEVELOPMENT (CROSSPLAY)
+MP joins open.mp / SA-MP PC servers and the MP server runs open.mp Pawn gamemodes. 
+These %d repositories (compiler, includes, plugins, SDKs, gamemodes and tools) are what scripts for both 
+sides are built with. Tap a category to open it, tap a name to open its page.
+MP Multiplayer
+Version %s   -   created by JebetrexxMC
+Multiplayer for GTA San Andreas and GTA Vice City on Android
+YOUTUBE  @thirtyfoxmc
+DISCORD SERVER
+OFFICIAL WEBSITE
+Website: %s     YouTube: %s     Discord: %s
+ABOUT THIS MOD
+MP Multiplayer is an independent, non-commercial project designed, programmed and maintained by one developer, 
+JebetrexxMC. Every part of it - the networking and sync, the server browser and launcher, the game modes, the 
+dedicated server, the TV Player, the Moquil social app and the tools behind them - is the result of many months 
+of daily work, testing on real phones and fixing problems reported by the community.
+The mod is offered for free so that players can enjoy San Andreas and Vice City together. Updates, fixes and 
+announcements are published only through the official channels above.
+AUTHORSHIP AND CREDIT
+MP Multiplayer, its code, its interface, its artwork and its name are the original work of JebetrexxMC. 
+All rights are reserved by the author.
+You may share the official download link and make videos, streams and reviews of the mod, as long as the author is credited.
+Re-uploading the mod or any part of it (libMP, scripts, assets, server files) to another site, channel, group or store requires the author's permission and visible credit to JebetrexxMC with a link to the official source.
+Removing or changing the author's name, claiming the mod as your own, renaming it and presenting it as a new project, or selling it or putting it behind paid links or ad walls is not allowed.
+Edited versions and ports must clearly say they are based on MP Multiplayer by JebetrexxMC.
+A NOTE ON RE-UPLOADS
+This project has been copied and re-uploaded by others without permission and without any credit to the person 
+who built it. That takes away the recognition for hundreds of hours of unpaid work and often spreads old, broken 
+or modified files under someone else's name. Re-uploads like that are copyright infringement, and they will be 
+reported to the hosting platform (YouTube, file hosts, app stores and similar) with a takedown request.
+If you downloaded MP from somewhere else, please get it from the official source instead - it is always the 
+newest and safest version - and let the author know where you found the copy on Discord. Thank you for 
+respecting the work and supporting the original creator.
+THIRD-PARTY COMPONENTS
+GTA San Andreas and GTA Vice City are the property of Rockstar Games; MP is a fan-made mod and is not affiliated 
+with or endorsed by Rockstar Games or Take-Two Interactive. MP uses AndroidModLoader, MonetLoader (OSS), Dear ImGui, 
+mbedTLS, Opus, SQLite and other open-source libraries under their own licences; their authors keep full credit 
+for their work.
+(c) JebetrexxMC. All rights reserved.
+MP Launcher  v
 Guest
 Not logged in
 Logged in
 Log in on a server
-MP Launcher
 powered by HiveMQ/JebetrexxMC
-MP Launcher  v
-Search server
-Nickname
+No internet - Lan tab: offline play over your hotspot / Wi-Fi (/offline help).
 Internet
+Featured
 Favorites
+Lan
 Add server
+Cloud Storage
 Bans
+Friends
+Chats
+Communities
+Inbox
+Moquil
+About
+Search
+Search server
+%d server%s   %d player%s%s
+   searching...
+Connected
+Nickname
+Switch account
+   (this one)
++ Add account  (%d/%d)
+Logout
+MP Launcher v
+GTA San Andreas multiplayer mod by JebetrexxMC
+Servers: internet lobby (HiveMQ / public MQTT brokers), Wi-Fi (Lan) and saved servers. 
+Logins and Discord verification: the MP Discord bot (max %d game accounts per Discord).
+Server backgrounds: Wikimedia Commons photos (see ICONS_CREDITS.txt). Flags: flag-icons (MIT).
 Server:
 Ban date:
 Kick date:
@@ -1766,6 +3267,35 @@ Cheat Menu works only on custom servers whose host turned on \"Cheat Menu\" (Add
 For the default server, remove it from your AML mods folder and restart the game - once it is not loaded any more you can join right away.
 We check this every time you join, so it can't be switched off while playing.
 Got it
+%s SCORED
+%s  -  %d km/h
+SAVE!  %s
+Shot on Goal  +20
+MVP  %s  (%d)
+%s  %s%d MMR
+GOAL!
+into the orange net
+into the blue net
+BUILDING THE ARENA
+FREE PLAY
+%s \xC2\xB7 BALL %d KM/H
+LS SKY PITCH
+LV AIRPORT
+GOAL REPLAY
+MATCH OVER
+[MVP] 
+YOUR RANK  %s %s  \xC2\xB7  %d MMR  \xC2\xB7  %u W / %u games
+ROCKET LEAGUE
+Choose a car.  Settings: /team  /stats  /top  /help
+Choose a car, then your game mode and arena
+%s %s  \xC2\xB7  %d MMR
+Game mode  \xC2\xB7  Arena: Sky Pitch above Los Santos
+RANKED SOCCAR   (up to 8v8)
+FREE PLAY   (you and the ball)
+ANOTHER CAR
+BOOST: hold  \xC2\xB7  JUMP: tap, tap again in the air = dodge  \xC2\xB7  SCORES  \xC2\xB7  /team blue|orange  \xC2\xB7  /ff
+MP %s - Rocket League
+Left Rocket League.
 JOB: %s
 /job %s
 DERBY: %s
@@ -1777,6 +3307,25 @@ GET BACK IN YOUR CAR
 BACK INTO THE ARENA
 BACK INTO THE DM ZONE  %d
 GET BACK IN YOUR VEHICLE  %d
+the neon title menu, no [MultiPlayer] button
+back to ServerBrowserMode from TYFMC.MP.ini
+ (restart the game to see it)
+neon_mode.txt is in the MP folder: the neon menu stays until you delete it.
+No Wi-Fi / mobile data - playing offline (single player). Turn a network on and open the MP menu to join a server.
+Tip: tap a server twice to join it
+Tip: featured servers are online 24/7
+Tip: hold the chat bubble to talk (voice chat)
+Tip: Settings > Servers keeps your favourite servers
+Tip: /help lists the commands of the server you are on
+GAMEPLAY TIP
+LOADING WORLD
+CONNECTING TO MULTIPLAYER
+Multiplayer
+Still connecting to %s...
+The game is loaded. Pick a server, or play single player.
+Cancel + servers
+Single player
+Pick a server to play, or go back to single player.
 Wanted players can't join the police.
 You are a COP: /cuff <id> and /arrest <id> wanted players ($500 a star).
 You are a ROBBER: /rob <id> players for cash (it makes you wanted).
@@ -1836,14 +3385,28 @@ Thirst %d%%.
 ~y~Weapon
 ~w~Armour
 THIRST %d%%  KILLS %d
+/storage/emulated/0/Android/data/
+/sdcard/Android/data/
+/storage/emulated/0/AMLMods/
+/sdcard/AMLMods/
+script_version('
+script_name('MP Lua Scripts Loader')
+script_name('MP Mods Loader')
+-- mp_zip 
+-- mp_pcpaths 
+-- mp_sfcompat 
+-- mp_mimgui 
+mimgui._VERSION = '2.0.1'
+-- mp_moonloader 
+Copyright (c) 2016, BlastHack Team
+# Scripts MP has met (a new one starts switched off). Delete this file to switch every script off again.\n
+# Scripts MP has met (a new one starts switched off). Delete this file to switch every script off again.
 My Vehicles is empty: sit in a car and type /savecar (up to %d).
 #\tVehicle Model\tStatus\tDistance\n
 Vehicle Model
-Status
 Distance
 {FFFFFF}%c%d:
 {FFFFFF}My Vehicles (%d/%d):
-Select
 Could not spawn the %s here (try again near it).
 Your %s is spawned (%.0f m away).
 Somebody is driving it.
@@ -1855,7 +3418,6 @@ Parking spot saved.
 %s\n%s\n{FFFF00}Locate\n{FFFFFF}Park here\n{FF3333}Remove
 {FFFFFF}Park here
 {FFFFFF}Unlock
-Back
 Sit in the car you want to keep, then /savecar.
 It is already in My Vehicles.
 My Vehicles is full (%d) - /mv > Remove one first.
@@ -1890,7 +3452,6 @@ Kill 2+ players within 6 s for a badge. Every 5 kills = a killing spree bonus.
 Rank
 {3CFF6A}MW3 - Ranks
 Class
-{FFFFFF}
 {3CFF6A}MW3 - Classes
 {FFFFFF}Rank: {3CFF6A}%s (%d){FFFFFF}\nScore: %d   Next rank: %s\nXP: %d\nCash: $%d\n\nKills: %d\nDeaths: %d\nRatio: %.2f\nZone captures: %d\nDeagle kills: %d\nBest killing spree: %d\nKilling spree now: %d
 {FFFFFF}Rank: {3CFF6A}%s (%d){FFFFFF}
@@ -1913,6 +3474,7 @@ Only the Pilot class can fly.
 Only in your own base.
 Next vehicle in %d s.
 {3CFF6A}MW3 - Aircraft
+Spawn
 Leave the arena / event / duel first.
 /%s is not available on Modern Warfare 3. Type /help.
 %s capturing  %d%%
@@ -1942,6 +3504,9 @@ Rank %d
 Your rank: %s (%d)  -  score %d
 < TEAM
 Left Modern Warfare 3.
+{FFA500}FUEL: {FFFFFF}Out of fuel - the engine stopped. Push it to a gas station and /refuel.
+{FFA500}FUEL: {FFFFFF}Low fuel (%d%%) - /refuel at a gas station.
+{FFA500}GAS STATION: {FFFFFF}/refuel  ($1 a %%, fuel %d%%)
 You slept well: energy 100%%.
 You are hungry: /eat ($25 a meal).
 You are tired: stand still to rest, or /sleep in your house.
@@ -1949,8 +3514,330 @@ You are not hungry.
 A meal is $25.
 You ate a meal ($25). Hunger %d%%.
 Resting... (move to stop)
+Drive a vehicle first.
+A bike has no engine.
+{FFA500}ENGINE: {FFFFFF}Off.
+{FFA500}ENGINE: {FFFFFF}No fuel - /refuel at a gas station.
+{FFA500}ENGINE: {FFFFFF}On.
+Drive your vehicle to a gas station first.
+A bike needs no fuel.
+{FFA500}FUEL: {FFFFFF}You are not at a gas station.
+{FFA500}FUEL: {FFFFFF}The tank is full.
+{FFA500}FUEL: {FFFFFF}$1 a %% - you have no money.
+{FFA500}FUEL: {FFFFFF}Refueled for $%d - fuel %d%%.%s
+  /engine to start it.
 Hunger %d%%  Energy %d%%  (/eat, /sleep, /rest)
-Your progress is back: your place, $%d, %d weapon%s, health and hunger.
+%d mph
+MP NEON NETWORK
+choose your server
+%d SERVERS
+%d PLAYERS ONLINE
+BACK TO MAIN MENU
+NEON SERVERS
+FEATURED
+FAVORITES
+WI-FI / LAN
+SEARCH SERVERS OR ENTER AN ADDRESS
+Search servers or enter an address (ip:port)
+CONNECT
+FILTERS
+SERVERS
+PLAYERS
+PING
+SEARCHING FOR SERVERS...
+NO SERVER MATCHES THE SEARCH
+NO SERVERS ONLINE RIGHT NOW
+NEON FEATURED
+- MS
+SELECTED SERVER
+%s on MP. %s%s Tap JOIN SERVER to play.
+Language: 
+SERVER LINK
+COPIED
+COPY LINK
+MODE
+REGIONS & LANGUAGES
+ASIA
+EUROPE
+NORTH AMERICA
+OCEANIA
+Global
+PLAYING: 
+CONNECTING
+JOIN SERVER
+NAVIGATE
+HIDE FULL
+HIDE EMPTY
+HIDE LOCKED
+Game settings
+on screen
+not shown
+ENGLISH
+ESPAÑOL
+PORTUGUÊS
+FRANÇAIS
+DEUTSCH
+TÜRKÇE
+INDONESIA
+FILIPINO
+TIẾNG VIỆT
+ITALIANO
+POLSKI
+neon logo
+neon items
+Resume
+New game
+Browse servers
+Quick connect
+Quit game
+Quick connect: ip:port (empty = the best featured server)
+FIND A WORLD AND JOIN THE STREETS OF SAN\nANDREAS.
+FIND A WORLD AND JOIN THE STREETS OF SAN
+neon featured
+Neon featured
+%s - %d / %d players
+Play now
+Looking for featured servers...
+neon footer
+V%s \xE2\x80\x94 NEON PREVIEW
+SELECT
+CONFIRM
+NEON MENU
+neon backdrop
+neon main
+neon main done
+MP Multiplayer %s for GTA San Andreas (Android, AML).\nby JebetrexxMC - mpsamp-open.github.io\nDiscord: %s\n\n
+MP Multiplayer %s for GTA San Andreas (Android, AML).
+by JebetrexxMC - mpsamp-open.github.io
+Discord: %s
+Neon menu art: San Andreas fan art (GTA V style). Fonts: UnifrakturMaguntia, Cinzel (SIL OFL 1.1).
+CLOSE
+Close GTA San Andreas now? Unsaved progress is lost.
+QUIT
+CANCEL
+the title menu has not been drawn yet
+mode is default (no neon_mode.txt, ServerBrowserMode = default)
+the title menu crashed (caught) - see mp_log.txt \"CRASHED\"
+painted (the Multiplayer loading cover)
+the game's main menu is not on screen
+in game (not the title screen)
+the MP server list is open
+this game build lacks the drawing functions MP uses
+files/TYFMC/MP/neon/ textures could not be read
+painted (the NEON MENU pill - Game settings was tapped)
+, carrying on
+Choose your server
+%d SERVER%s
+%d PLAYER%s ONLINE
+ALL SERVERS
+FAVOURITES
+WITH PLAYERS
+NOT FULL
+LOW PING
+REFRESH
+TAP TO PASTE A SERVER LINK OR ADDRESS
+SERVER
+REGION
+Online now
+Saved server
+LOCKED - 
+WI-FI - 
+LOOKING FOR SERVERS...
+NO SERVER MATCHES THE FILTER
+NO FAVOURITE SERVERS YET
+NO SERVERS ON THIS WI-FI
+NO SERVERS FOUND - CHECK YOUR INTERNET
+All languages
+LANGUAGE: %s%s%s
+   REGION: 
+SELECT A SERVER
+SWIPE
+DOUBLE TAP
+BACK
+MAIN MENU
+CONTROLS
+GAME
+DISPLAY
+AUDIO
+MODS
+MULTIPLAYER
+Menu music
+Menu music volume
+Server region
+AUTO
+CONTROLS - GAME - DISPLAY - AUDIO - MODS - MULTIPLAYER
+Mod option
+NO MOD SETTINGS - MODS ADD THEM THROUGH SAUTILS
+NO MODS FOUND - INSTALL SAUTILS FOR MOD SETTINGS
+NOTHING TO SET HERE
+THE GAME'S SETTINGS COULD NOT BE READ
+GAME OPTIONS
+LB RB
+CHANGE
+BLOCK
+SAVED GAME
+Game
+START A NEW STORY
+LOAD A SAVED GAME - YOUR STORY PROGRESS
+LOAD GAME
+NEW GAME
+SAVED GAMES
+PROGRESS
+EMPTY SLOT
+SAVE
+IN THE BEGINNING
+Start the story from the first mission: Los Santos, 1992. Your saved games stay in their slots - pick LOAD GAME any time to carry on.
+SLOT %d  -  %s
+Nothing saved here yet. Save in the game to fill it, or start a NEW GAME.
+LAST MISSION
+SAVED
+FILE
+COMPLETION
+START NEW GAME
+Pick a saved game, or NEW GAME
+Fonts: UnifrakturMaguntia, Cinzel, Fredoka (SIL OFL 1.1).
+Start a new game from the first mission?
+Your saved games stay in their slots.
+START
+RESUME
+BROWSE SERVERS
+QUICK CONNECT
+SETTINGS
+ABOUT
+QUIT GAME
+FIND A WORLD AND JOIN THE STREETS OF SAN ANDREAS
+Neon account connected%s%s
+DISCORD CONNECTED
+MP V%s
+CONNECTING TO MULTIPLAYER%s
+CONNECTING TO MULTIPLAYER...
+Find a world and join the streets of San Andreas.
+android/content/Intent
+()Landroid/content/Intent;
+(Ljava/lang/String;)Ljava/lang/String;
+(Ljava/lang/String;)V
+MP %s - neon_mode.txt status (MP rewrites this file, delete it any time)\n
+MP %s - neon_mode.txt status (MP rewrites this file, delete it any time)
+neon_mode.txt   : %s%s\n
+neon_mode.txt   : %s%s
+menu mode       : %s\n
+menu mode       : %s
+title hook      : %s\n
+title hook      : %s
+drawing         : %s\n
+drawing         : %s
+textures        : %s%s%s\n
+textures        : %s%s%s
+title frames    : %d checked, %d painted\n
+title frames    : %d checked, %d painted
+now             : %s\n
+now             : %s
+found at 
+not found (put it in files/TYFMC/MP/)
+OFF (MobileMenu::Render could not be hooked - mp_log.txt \"Main menu:\" lines say why)
+game functions missing
+FAILED
+not loaded yet
+ - missing / unreadable: 
+i - news, information
+! - warning, rules
+heart - health, healing
+car - vehicles, rentals, races
+trophy - events, prizes, levels
+drop - effects, drugs, water
+star - VIP, specials
+money - pay, bonus, shop
+shield - police, safe zone, protection
+clock - timer, schedule, restart
+bell - reminder
+skull - deathmatch, danger, zombies
+gift - giveaway, Christmas
+megaphone - announcement
+BROKER MQQ
+/notify is for the [ADMIN] and [MOD] of the default server.
+/notify is for the host owner and the staff of this server.
+The notification system is off on this server (the host owner turns it on: Add server > Gamemodes > Notification system).
+Notification \"%s\" is set for %s.
+Notification
+the title of the notification
+pick the icon (info, warning, heart, car, trophy ...)
+the text everybody reads
+seconds on screen (3 - 600, default 10)
+when it pops up (AM / PM time picker, or now)
+when it goes away (AM / PM time picker)
+This featured server has no notification system.
+The notification system is off on this server (Add server > Gamemodes > Notification system).
+Notifications cleared for everyone.
+/notify embed:<title> logo:<icon> message:<text> timer:<seconds> start:<time> end:<time>
+e.g. /notify embed:Double pay logo:money message:Every job pays x2 start:2:00 PM end:3:00 PM
+logo: %s  -  /notify clear takes them all off.
+/notify: type embed: (title) or message: (text).
+/notify: no logo \"%s\" - pick one from the list under the chat box.
+/notify: start:\"%s\" is no time (e.g. start:2:30 PM, start:14:30, start:now, start:+10m).
+/notify: end:\"%s\" is no time (e.g. end:3:00 PM).
+/notify: at most 24 hours on screen.
+This server runs an older MP (it updates itself in ~10 minutes) - notifications need MP %s.
+/notify 
+embed: logo: message: timer: start: end:  -  pop-up for everyone
+/notify clear
+take every notification off
+ seconds on screen
+now 
+right away
+in about %d min
+%d min on screen
+Start time - when it pops up
+End time - when it goes away
+Now
+%s%s%s  -  until %s
+Turn on your Mobile Hotspot first (mobile data can stay off), then host.
+You already host \"%s\". Friends on your hotspot join %s:%d (Lan tab > Find host and join).
+Offline server on your hotspot: friends connect their Wi-Fi to it and join %s:%d.
+Server on this Wi-Fi: friends on the same Wi-Fi join %s:%d.
+You already play on localhost: \"%s\" (127.0.0.1:%d).
+Joining your own server on localhost (127.0.0.1:%d)...
+Localhost server: you play at 127.0.0.1:%d. People on the same Wi-Fi / your hotspot can join %s:%d.
+Localhost server: you play at 127.0.0.1:%d - private, only this phone (no Wi-Fi / hotspot on).
+Connect your Wi-Fi to the host phone's hotspot first (mobile data can stay off).
+Looking for the host on this network (%s)...
+Wi-Fi
+The host runs another MP version. Both phones need the same MP version (
+No MP server on this network yet. On the host phone: hotspot on, then Lan tab > Host offline server (or /offline host).
+\"%s\" (%s:%d) has a password: tap it in the Lan list and type it.
+%d servers on this network - joining \"%s\" (the others are in the Lan list).
+Found \"%s\" at %s:%d - joining (no internet used).
+The search did not finish. Tap Find host and join again.
+{FFA500}Offline play{FFFFFF} - no internet, no mobile data, no router needed:
+1. Host phone: Mobile data OFF, Mobile Hotspot ON. In GTA: Lan tab > Host offline server (/offline host).
+2. Friend: Mobile data OFF, Wi-Fi ON, connect to the host's hotspot. Lan tab > Find host and join (/offline join).
+3. Not found? /offline join 192.168.43.1 (the host's IP, shown on its Lan tab). Same MP version on both phones.
+Alone / no network: Lan tab > Play on localhost (/localhost) - your server on this phone at 127.0.0.1.
+Keep the host's screen on. The default and featured servers need internet (Discord login); your own server does not.
+No Wi-Fi or hotspot is on%s.
+ (only mobile data)
+Hotspot ON (%s): this phone is the host network, your IP %s.
+Wi-Fi (%s): your IP %s, the hotspot / router is %s.
+Internet: %s (not needed for your own server).
+You host \"%s\" on %s:%d (%d players).
+/offline host | local | join [ip[:port]] | stop | help   (/localhost = play on 127.0.0.1)
+OFFLINE PLAY  -  hotspot / same Wi-Fi, no internet needed      Internet: %s
+No Wi-Fi / hotspot. Host: Mobile Hotspot ON. Friend: Wi-Fi ON and connect to it. Mobile data can be off.
+You host \"%s\": friends join %s:%d  (%d players)%s
+  - hotspot ON
+Hotspot ON (%s) - your IP %s. Tap Host offline server, friends then tap Find host and join.
+Wi-Fi (%s) - your IP %s, host phone %s. Tap Find host and join.
+LOCALHOST  127.0.0.1:%d  -  you play on this phone%s
+; same Wi-Fi / hotspot can join too
+ (private, no network)
+LOCALHOST  127.0.0.1:%d  -  your server on this phone, no Wi-Fi / hotspot / data needed
+Host offline server
+Find host and join
+How to (chat)
+Playing on localhost
+Play on localhost
+Join 127.0.0.1:%d
+Your progress is back: %s$%d, %d weapon%s, health and hunger.
+your place, 
 Log in first - your progress is saved to your account.
 This server can't save progress (it needs MP 3.39.1).
 Your saved progress is still loading...
@@ -1960,6 +3847,7 @@ Name Tag: Show Yourself
 Damage Indicator
 Kill Feed
 Chat Bubble
+Stretch Textdraws (PC)
 Voice Chat
 Hit Sound
 Chat Timestamp
@@ -1967,6 +3855,7 @@ Radar Player Icons
 Global Chat (OOC)
 Google Map Radar
 PUBG Compass
+Day Z Models (GitHub)
 Username
 Not linked (verify on Discord)
 Enable
@@ -2001,6 +3890,67 @@ Heli Hell
 8-Track
 Stadium
 Dirt Track
+{\"v\":1,\"s\":\"%s\",\"h\":\"%s\",\"a\":%d,\"g\":\"%s\",\"t\":%ld}
+You left Broker MQQ (not registered).
+The password needs at least 4 characters.
+Type your age (7 - 99).
+Could not write register.txt in the MP folder.
+{33CC55}Logged in. {FFFFFF}Welcome back, {FFFF00}%s{FFFFFF}!
+Wrong password 5 times. Use Options > Forgot password next time.
+Wrong password (%d of 5).
+You left Broker MQQ.
+{33CC55}Your new password is saved. {FFFFFF}Logged in as {FFFF00}%s{FFFFFF}.
+%s%s%s{FFFFFF}Welcome to {DC2626}Broker MQQ{FFFFFF}, {FFFF00}%s{FFFFFF}!\nThis name is not registered.\n\n{A9C4E4}Create a password for your account:
+%s%s%s{FFFFFF}Welcome to {DC2626}Broker MQQ{FFFFFF}, {FFFF00}%s{FFFFFF}!
+This name is not registered.
+{A9C4E4}Create a password for your account:
+{FFFFFF}Registering...
+Register
+%s%s%s{FFFFFF}How old are you?\n\n{A9C4E4}Type your age:
+%s%s%s{FFFFFF}How old are you?
+{A9C4E4}Type your age:
+{FFFFFF}Registering... (age)
+Next
+{FFFFFF}Registering... (gender)
+Done
+{33CC55}Your account is registered!\n\n{FFFFFF}Name: {FFFF00}%s\n{FFFFFF}Age: {FFFF00}%d\n{FFFFFF}Gender: {FFFF00}%s\n\n{A9C4E4}Saved in the MP folder (register.txt).\nNext time you join you log in with this password.
+{33CC55}Your account is registered!
+{FFFFFF}Name: {FFFF00}%s
+{FFFFFF}Age: {FFFF00}%d
+{FFFFFF}Gender: {FFFF00}%s
+{A9C4E4}Saved in the MP folder (register.txt).
+Next time you join you log in with this password.
+{FFFFFF}Registered
+%s%s%s{FFFFFF}Welcome back to {DC2626}Broker MQQ{FFFFFF}, {FFFF00}%s{FFFFFF}!\nThis account is registered.\n\n{A9C4E4}Type your password to log in:
+%s%s%s{FFFFFF}Welcome back to {DC2626}Broker MQQ{FFFFFF}, {FFFF00}%s{FFFFFF}!
+This account is registered.
+{A9C4E4}Type your password to log in:
+{FFFFFF}Logging in...
+Options
+{FFFFFF}Logging in... (options)
+Forgot password\nCreate new account\nQuit
+Create new account
+%s%s%s{FFFFFF}Forgot your password?\n\n{A9C4E4}Type the username of this account:
+%s%s%s{FFFFFF}Forgot your password?
+{A9C4E4}Type the username of this account:
+{FFFFFF}Forgot password
+%s%s%s{FFFFFF}Create a new password for {FFFF00}%s{FFFFFF}:
+{FFFFFF}Forgot password (new password)
+{FFFFFF}Forgot password (confirm)
+{FFFFFF}Type the same new password again:
+{FFFFFF}Create a new account?\n\n{FF4444}The account {FFFF00}%s {FF4444}in register.txt is replaced\n{FF4444}by a new one for {FFFF00}%s{FF4444}.
+{FFFFFF}Create a new account?
+{FF4444}The account {FFFF00}%s {FF4444}in register.txt is replaced
+{FF4444}by a new one for {FFFF00}%s{FF4444}.
+{FFFFFF}Create new account
+loading feed
+join screen
+MP login screen
+another dialog is open
+no player yet
+3 s in the world
+connection screen
+game screen
 Citizen
 New Citizen - %s
 %s%s - Lv %d
@@ -2058,6 +4008,7 @@ Call ended.
 [MECHANIC] Vehicle repaired.
 Sit in the vehicle to get it repaired.
 JAILED  -  %d:%02d
+[DEALER] Your new %s is here.
 [GARAGE] Your %s is here.
 [MEGA VIL] You woke up at home.
 [MEGA VIL] Weapons are for on-duty police and soldiers only. Mega Vil is peaceful.
@@ -2139,9 +4090,12 @@ Your id: %d
 %s: id %d, phone %d
 MEGA VIL FUTURISTIC - Roleplay 24/7, %d citizens max. The future awaits.
 /%s is not available on Mega Vil Futuristic (no cheats / other gamemodes). /help
-Mega Vil
 Futuristic
-%d  |  Lv %d
+%s : #%d  -  Lv %d
+ID : #%d  -  Lv %d
+Cash %s
+Bank %s
+ - On duty
 Payday in %d:%02d
 VOICE: %s%s
 PHONE CALL
@@ -2237,7 +4191,6 @@ Heals %d health
 Repairs the car you sit in
 Opens your phone
 Starter pack  -  open it to unpack
-Item
 MEGA VIL QUICK MENU
 [MOD] 
 PLAYER ID
@@ -2295,6 +4248,19 @@ PANEL button: bag, documents
 Welcome to Mega Vil Futuristic Roleplay Server
 24/7 roleplay city - stay in character, no DM, no cheats
 /jobs work  -  /gps places  -  /phone  -  PANEL: bag + documents  -  /rules
+Roleplay at all times. Out of character only in /b or /ooc.
+No deathmatch (DM): no random killing, the city is peaceful.
+No cheats, hacks, mod menus, CLEO or bug abuse.
+Respect every citizen - new players too. Help them in /n.
+No powergaming: no unrealistic actions others can't react to.
+No metagaming: your character only knows what it saw in game.
+Greenzones (green squares on the radar) are safe for everyone.
+Police / military / medics use their powers only on duty.
+No car ramming, no stealing job / faction vehicles without RP.
+Don't pretend to be staff (admin, moderator or the Broker bot).
+Listen to admins and moderators. Kick = 4:29 wait, ban = permanent.
+MEGA VIL  -  CITY RULES
+I AGREE - CLOSE
 ________ Welcome to Mega Vil Futuristic Roleplay ________
 Hello %s, you are a citizen of Mega Vil now. This is a 24/7 roleplay city: stay in character.
 Start: /jobs for work, the PANEL button for your bag + documents, /phone, /gps for every place.
@@ -2311,9 +4277,9 @@ ______ MEGA VIL RULES ______
 [TAXI] Passenger: \"Thanks, keep the change.\"
 [TAXI] A passenger is waiting (yellow marker). Stop next to them, then drive to the fare marker.
 [TAXI] Your passenger got hurt - a new one is waiting.
+[TAXI] Passenger in. Drive to the fare marker and stop there.
 [TAXI] Your car is full.
 [TAXI] Passenger: \"Where is your taxi?\" (get in a car)
-[TAXI] Passenger in. Drive to the fare marker and stop there.
 [TAXI] Your passenger is out of the car - pick them up again.
 Home
 Contacts
@@ -2337,7 +4303,6 @@ Tic-Tac-Toe
  wins
 Score %d   Best %d%s
    GAME OVER
-Play
 Tap to play  -  best %d
 %s   Wins %d
 You win!
@@ -2449,16 +4414,13 @@ Taxi drivers get your location.
 Call a taxi
 {FF4444}No cheating{FFFFFF}: no hacks, aimbots, mod menus or speed / fly mods.
 {FF4444}No NSFW{FFFFFF}: no adult names, chat, skins or pictures.
-{FFFF00}Respect everyone{FFFFFF}: no insults, racism, threats or harassment.
 {FFFF00}No spam{FFFFFF}: no flooding the chat, caps lock or advertising other servers.
 {FFFF00}No bug abuse{FFFFFF}: report glitches to an {33CC55}admin{FFFFFF}, don't use them.
 {FFFF00}No spawn killing{FFFFFF} or griefing other players at spawns and safe zones.
-{FFFF00}Don't pretend to be staff{FFFFFF} (admin, moderator or the bot {00BFFF}Broker{FFFFFF}).
 {FFFF00}Keep the chat friendly{FFFFFF} and in a language the others understand.
 {FFFF00}Listen to the {33CC55}admins{FFFF00} and {33CC55}moderators{FFFFFF}: a kick waits {FF9900}4:29{FFFFFF}, a ban is {FF4444}permanent{FFFFFF}.
+{FF4444}No unlimited money{FFFFFF}: money cheats / trainers are blocked and the money is taken back.
 {33CC55}Have fun{FFFFFF} and play fair.
-{FFFF00}%d ) {FFFFFF}%s\n
-{FFFF00}%d ) {FFFFFF}%s
 This server has no rules set.
 SAFE ZONE: %s - nobody can hurt you here, weapons are put away.
 You left the safe zone - you can be hurt again.
@@ -2472,7 +4434,6 @@ Races
 /race queue: 14 players race a GTA SA race
 Derbies
 /derby: last car standing
-Deathmatch
 /dm: deathmatch zones with weapons
 /job: trucking, quarry, pizza, taxi, medic ...
 3D text labels
@@ -2488,23 +4449,114 @@ Attack / Defend
 /ad: attackers take the base checkpoint, defenders hold it (5 min rounds, /vote, /spec)
 Stunt freeroam
 /ramp, /jump, /chiliad, /lv, /sf, /ls, /n nitro, /fix, stunt bonus
-Drift
 /drift: drift points + combo, /drifttop (RogueDrifterZ style)
 Timber (lumberjack)
 /timber: cut trees with a chainsaw, load the logs in the pickup, /unloadtimber at the Timber Storage
+Notification system
+/notify embed: logo: message: timer: start: end: - pop-up notifications from the admin / moderators / host owner (notify.mp3)
 That gamemode
 %s is off on this server. Its host turns gamemodes on in MP Launcher > Add server > Gamemodes.
+This server runs the SA-MP gamemode \"%s\" - every /command goes to it.
+Could not play the server's audio stream.
+This server spawns you after its login - answer its window (password / register). There is no Spawn button on it, on PC too.
+Pick
+RZ+
+[Social] %s  (MP Launcher > Inbox)
+Online on Moquil
+Offline
+Remove?
+IN PARTY
+You: %s  #%s   %s
+- online
+- connecting...
+Search player ID or name
+Search player (ID or name)
+SEARCH RESULTS
+Nobody found. Type the 8 digit ID (like #12345678) or part of the player name. Players show up after they open MP 3.63 once.
+FRIEND REQUESTS
+SENT REQUESTS
+FRIENDS  %d ONLINE
+No friends yet. Search a player above and tap ADD (+). When they accept, you can chat, make group chats and invite them to your party.
+Friends from Moquil? Link Moquil with this game (Social > Moquil > link code). Your Moquil friends and chats then show here too.
+%s  -  %d members, %d online
+Group chat
+Sure?
+Add
+No messages yet. Say hi. Messages are end-to-end encrypted and wait for your friends while they are offline.
+Type a message...
+You are not friends any more
+NEW GROUP CHAT
+No chats yet. Open Friends and tap Chat on a friend. Chats from a linked Moquil show here after a few seconds online.
+[PARTY] 
+[GROUP] 
+You: 
+pick friends, then Create
+Group name (optional)
+Group name
+CREATE GROUP
+ADD TO GROUP
+TAP A FRIEND TO ADD
+Pick a chat on the left, or tap Chat on a friend.
+up to 5 friends, party chat
+CREATE PARTY
+Make a party and invite up to 4 friends. Everyone in the party gets the party chat. Invites need an accept (they show in the Inbox).
+Leave party
+INVITE FRIENDS
+ONLY THE LEADER INVITES
+Invite
+PARTY CHAT
+CREATE COMMUNITY
+YOUR COMMUNITIES
+Join or follow one below.
+Nothing new yet.
+Connecting...
+  - joined
+  - following
+everyone can find it, join or follow it
+Community name
+What is it about? (optional)
+Description
+by %s  #%s   -   %d members   -   %d followers
+Unfollow
+Follow
+Delete?
+Members: %s
+Write a post to the community...
+Post
+Join to post. Follow to get its new posts in your Inbox.
+No posts yet.
+No communities yet. Make the first one.
+Pick a community on the left.
+%d new
+Mark all read
+Nothing here yet. Friend requests, messages, party invites and community posts show up here.
+Open
+Your MP friends, chats, communities and voice on your phone (portrait or landscape) and in any browser.
+Log in to Moquil with your MP account. To be the same player there (same #ID, the same friends see you), make a link code here and type it in Moquil > Settings > Connections.
+Link code - %d:%02d left. Don't show it to anyone: it is your player key.
+Copy
+Link Moquil with this game
+A code works for 10 minutes and only once.
+Connecting to the social server...
+MAKE LINK CODE
+GET MOQUIL (ANDROID)
+OPEN MOQUIL ON THE WEB
+YOUR MOQUIL PROFILE
+Status: %s
+Member since %s
+After linking, your Moquil bio, pronouns and status show here and next to your name in your friends' lists.
 Block menu cheats
-Allow CheatMenu
+Allow CheatMenu + MonetLoader cheats
 AFK tag
 Show player ids
 Only %s can change these settings.
 the admin and moderators
 the server owner
-The featured servers keep their gamemodes.
-Join a server first.
+The notification system is always on here (the admin and moderators send /notify).
+This server is older than MP 3.58 (anti-cheat state unknown).
+The anti-cheat is always off on the default server.
+The anti-cheat always runs on Brief Case War, MW3 and Mega Vil.
 This server still runs MP %s: settings are view only until it updates to 3.39 (the 24/7 servers update by themselves).
-(old)
 Setting
 State
 {FFFFFF}Gamemode: %s\t%s\n
@@ -2513,6 +4565,15 @@ State
 {FFFFFF}Permission: %s
 {FFFFFF}Rules window\t%s\n
 {FFFFFF}Rules window
+{FFFFFF}Gamemode: Anti-cheat\t{AAAAAA}?\n
+{FFFFFF}Gamemode: Anti-cheat
+{AAAAAA}?
+{FFFFFF}Gamemode: Anti-cheat%s\t%s\n
+{FFFFFF}Gamemode: Anti-cheat%s
+ {AAAAAA}(always on)
+ {AAAAAA}(always off)
+{FFFFFF}Login system (authentication)\t%s\n
+{FFFFFF}Login system (authentication)
 {FFFFFF}Server settings %s
 {33CC55}(you can change them)
 {AAAAAA}(view only)
@@ -2534,8 +4595,8 @@ moderator.txt: this key is not the MP moderator key and this server's owner hasn
 {FFD84A}[TDE]{FFFFFF} %s
 Nothing to redo.
 Nothing to undo.
-Could not save files/MP/tde/projects/%s.mptd
-Saved files/MP/tde/projects/%s.mptd (%d textdraws). Add it to your server: Add server > Plugins > Textdraw.
+Could not save files/TYFMC/MP/tde/projects/%s.mptd
+Saved files/TYFMC/MP/tde/projects/%s.mptd (%d textdraws). Add it to your server: Add server > Plugins > Textdraw.
 New project %s.
 Editing %s. Tap a textdraw to select it, drag to move. /tde close (saves) - /tde help.
 Editor closed (saved %s.mptd).
@@ -2560,7 +4621,6 @@ Use
 New textdraw
 Model id (skins 0-311, objects, vehicles 400-611). Now: %d
 Preview model
-Set
 Rotation X Y Z and zoom. Now: %.0f %.0f %.0f %.2f
 Preview rotation
 Vehicle colours: colour1 colour2 (-1 = random). Now: %d %d
@@ -2581,11 +4641,10 @@ New project name
 No saved projects yet.
 Open project
 Delete project
-Open
 Save as
-Exported files/MP/tde/export/%s%s.pwn
+Exported files/TYFMC/MP/tde/export/%s%s.pwn
 Could not write %s
-Put a .mptd, .pwn or .txt export in files/MP/tde/import/ first.
+Put a .mptd, .pwn or .txt export in files/TYFMC/MP/tde/import/ first.
 Import textdraws
 Import
 Projects - %s%s
@@ -2611,7 +4670,6 @@ Fine drag
 Hide the tool bar (tap the corner to show)
 On
 Off
-Change
 Select a textdraw first (tap it, or List).
 Textdraw text (~n~ new line, ~r~ red, _ = space)
 Textsize
@@ -2623,27 +4681,43 @@ Background / outline colour
 Box colour
 Colour RRGGBBAA (hex)
 /tde [project] opens the editor, /tde close, /tde save, /tde new <name>, /tde open <name>, /tde export [openmp].
-Files: files/MP/tde/projects/*.mptd - put it on your server with Add server > Plugins > Textdraw > Import file.
+Files: files/TYFMC/MP/tde/projects/*.mptd - put it on your server with Add server > Plugins > Textdraw > Import file.
 Open the editor first (/tde).
 Model %d
 Could not read the file.
 Not a textdraw file (
 Could not write to 
-%s.mptd added to files/MP/%s/ (%d textdraws)%s
+%s.mptd added to files/TYFMC/MP/%s/ (%d textdraws)%s
  - live on your server now
 /sdcard/Download/MP Textdraws
 /storage/emulated/0/Download/MP Textdraws
 /sdcard/Download
+/storage/emulated/0/Download
+/sdcard/Download/MP Gamemodes
+Importing %s ... (big servers take a minute)
+Gamemode imported: %s. Start (or restart) your server to run it.
+Import failed: %s
+SA-MP gamemode: the PC server in one .rar / .zip (server.cfg, gamemodes/*.amx, filterscripts/, scriptfiles/), or one compiled .amx. 
+Importing...
+Import (zip, rar) - opens Files
+Or pick from Download / files/TYFMC/MP/import
+No .rar / .zip / .amx found. Put it in Download or files/TYFMC/MP/import/.
+Import a SA-MP gamemode
+No gamemode on this server yet (a normal MP server).
+Gamemode: %s
+Gamemode removed - restart your server.
+Host tools in game: /mpsamp sql <query> | report | info. Missing natives: mp_samp_report.txt in the gamemode folder.
+.pwn files are source code: compile them with pawncc on a PC first.
 Plugins
-Files for your custom server go to files/MP/%s/.
+Files for your custom server go to files/TYFMC/MP/%s/.
+Gamemode (zip, rar)
 This plugin type is not available yet.
 Textdraw: a .mptd saved by /tde (in game) or the MP Textdraw Editor app. Every player on your server sees them.
 Import file
-No .mptd files found. Save one with /tde, or put it in Download/MP Textdraws or files/MP/import/.
+No .mptd files found. Save one with /tde, or put it in Download/MP Textdraws or files/TYFMC/MP/import/.
 Import a textdraw file
 No textdraw files on this server yet.
-Remove
-Make one: /tde in game (files/MP/tde/projects/), or the MP Textdraw Editor app.
+Make one: /tde in game (files/TYFMC/MP/tde/projects/), or the MP Textdraw Editor app.
 Birch Tree
 Oak Tree
 Yew Tree
@@ -2655,7 +4729,8 @@ Trees
 {FFA500}JOBINFO: {FFFFFF}Mission trees done. Bring the %d timber to the Timber Storage and /unloadtimber.
 {FFA500}GPSINFO: {FFFFFF}Tree %d/%d: a %s%s{FFFFFF} is marked on your radar.
 {FFA500}Timber job: {FFFFFF}/timber (start, teleports you to the Timber Storage)  /quitjob  /fixjob  /timbergps
-{FFFFFF}/cut (or hold CUT with the chainsaw)  /loadtimber (at the fallen tree)  /unloadtimber (Timber Storage)
+{FFFFFF}/cut (or hold CUT with the chainsaw)  /pickuplog (PICK UP, 1-3 logs in your arms)  /putlogs (or CROUCH at the back of the pickup)
+{FFFFFF}/unloadtimber (Timber Storage)  /timbercar bobcat | sadler (your job pickup: 422 Bobcat or 543 Sadler)
 {FFFFFF}/mysalary  /collectsalary (at the storage)  /timberskill  /checkjobcooldown  /timberhelp
 You cannot cut trees right now - you are on a cooldown (%d s, /checkjobcooldown).
 {FFA500}LUMBERJACK: {FFFFFF}Tree %d/%d, timber %d/%d, paycheck $%.2f. /quitjob to stop.
@@ -2673,6 +4748,11 @@ Mission complete: %d trees. +$150.00 bonus on your paycheck.
 Paycheck (not collected): {33CC55}$%.2f{FFFFFF}   Earned in total: $%.2f
 Timber sold: %d   Trees cut: %d   Woodcutting level %d (%d xp)
 Collect it with /collectsalary at the Timber Storage.
+{FFA500}LUMBERJACK: {FFFFFF}Your job pickup: %s. Use /timbercar bobcat | sadler (you can also drive your own Bobcat / Sadler / Walton / Yosemite).
+Bobcat (422)
+Sadler (543)
+{FFA500}LUMBERJACK: {FFFFFF}Your next job pickup is a %s.%s
+ (/quitjob and /timber to get it now)
 {FFA500}Woodcutting: {FFFFFF}level %d, %d xp%s.
  (oak trees at 20 xp)
  (yew trees at 60 xp)
@@ -2690,20 +4770,24 @@ Job state fixed (animation stopped, chainsaw back).
 {FFA500}LUMBERJACK: {FFFFFF}You can now sell lumbers again!
 {FFA500}LUMBERJACK: {FFFFFF}You died - the Timber job stopped.
 Your pickup is gone (the %d timber too). /quitjob and /timber for a new one.
+{FFA500}LUMBERJACK: {FFFFFF}This %s is your timber pickup now.
 {FFA500}GPSINFO: {FFFFFF}You have arrived!
 You need the chainsaw in your hands (it comes back by itself).
 {C2A2DA}* %s seizes his chainsaw from behind body, then cut the tree.
 You have chopped down a %s%s{FFFFFF}. TIMBER!
 ~y~TIMBER!
-Stand next to the fallen tree.
-Get out of the car to load the timber.
-You need your pickup here (/quitjob, /timber for a new one).
-Bring the pickup closer (within 18 m of the log).
-{C2A2DA}AME: {FFFFFF}loads timber in the back of the pickup truck
-{FFA500}JOBINFO: {FFFFFF}You've successfully loaded the timber into the car! (total timber: %d/%d)
+{FFA500}JOBINFO: {FFFFFF}The tree broke into 3 logs. PICK UP (1-%d in your arms), stand at the back of the pickup and CROUCH to load them.
+{C2A2DA}* %s lifts a log with both hands (%d/%d in the arms).
+{C2A2DA}AME: {FFFFFF}puts %d log%s in the back of the pickup truck
+{FFA500}JOBINFO: {FFFFFF}You've loaded the timber into the car! (logs: %d/%d)
 Woodcutting level %d: %s.
 you can cut oak trees now
 you can cut yew trees now
+You dropped the logs - you cannot drive with logs in your arms.
+Stand next to a log to pick it up.
+Your arms are full (%d logs). Bring them to the back of the pickup and crouch.
+Stand at the back of your pickup (the tailgate) and crouch to put the logs in.
+The pickup is full (%d/%d). Sell at the Timber Storage, the rest of the logs stay here.
 Timber Storage
 use '/unloadtimber' to sell collected timber
 Lumberjack
@@ -2711,8 +4795,11 @@ Lumberjack
 type '/timber' to start the job
 TIMBER %d/%d  TREE %d/%d
 Health: %d
+PUT IN
+Carrying %d/%d log%s - back of the pickup + CROUCH to load
+Picking up the log
+Loading the logs
 Cutting tree
-Loading timber
 Broker
 {4DD2FF}%s\n{FFFFFF}/job %s  {33CC55}$%d
 {FFFFFF}/job %s  {33CC55}$%d
@@ -2753,19 +4840,54 @@ The host turned this gamemode off.
 MP Server
 Bad login ticket.
 Login ticket not signed by the MP bot.
+the last admin / moderator left
+%s is reconnecting to the server...
+Always team up with your friends - Mission sync lets two players share a mission.
+Remember to report hackers and rule breakers: /report [id] [reason].
+Read the server rules any time with /rules - breaking them can get you kicked or banned.
+Need help? /help lists the commands, /cmds the short list.
+Your progress is saved on this server: money, place, weapons, health.
+Chat fading off or on: Settings > Display > Chat fade (or /chatfade).
+My Vehicles: sit in a car and type /savecar, /mv to spawn it again.
+Buy a car from the receptionist at Coutt and Schutz (Jefferson, LS) or Otto's Autos (San Fierro).
+Always roleplay - stay in character, no random deathmatch (RDM) and no car ramming (VDM).
+Get a job at the Job Centre (GPS), then go on duty to earn money every pay day.
+Keep your money safe: deposit it at Mega Bank or any ATM.
+Buy a car from the receptionist at the Budget Car Dealership (Coutt and Schutz, GPS).
+Hungry or thirsty? Eat and drink at the shops - PANEL > Bag to use items.
+The rules are at the info points in the Mega Vil Plaza - read them before you play.
+{38BDF8}[INFO]{FFFFFF} * %s
+[INFO] * %s
+%s reconnected to the server successfully
 admin key
 moderator key
-%s %s cheats for everyone.
-%s was %s by %s
+[VIP] %.17s
 You are muted by the administrator.
 %s Administrator: %s  Reason: %s
 {FFFFFF}[{FFFF00}SERVER{FFFFFF}]: %s got %s by %s
 no reason
 [SERVER]: %s got %s by %s
 TURF: %s took %s from %s!
+android/content/Context
+(Ljava/lang/String;)Ljava/lang/Object;
+MP chat
+java/lang/Object
+()Ljava/lang/String;
+<init>
+()Ljava/io/File;
+java/io/File
+(Ljava/lang/String;)Ljava/lang/Class;
+no activity
+could not load the picker
+(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;)V
+could not load the keyboard helper
+(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;IZZ)V
+Ljava/lang/String;
 Section
 Tap to type
-Arial (MP)
+window '%s' (hovered id %08x, active id %08x)
+[gif:
+MP (GTA style)
 Pricedown (GTA)
 Roboto
 Roboto Condensed
@@ -2774,13 +4896,69 @@ Mono
 Coming Soon
 Dancing Script
 Carrois Gothic
+Arial (old MP font)
+mi lan
+Your phone's font has only part of this language: some texts stay English.
+Your phone has no font for this language, so the texts stay English. Install a Chinese / Japanese / Korean / Thai system font (or Google's Noto CJK) and pick it again.
 Vehicle_%d.png
+GIF loading...
 scrolled up - drag down for new messages
 MP: Connected to %s  |  %s  |  Players: %d/%d  |  Ping: %d ms%s
   |  Host: 
   |  Hosting
 MP: Connecting ...
 MP: Disconnected%s
+global click
+%s + 0x%lX (%s + %lu)
+%s + 0x%lX
+font texture + new frame
+neon menu
+floating menu
+end frame
+Español
+Bahasa Indonesia
+Português (Brasil)
+Portuguese (Brazil)
+Korean
+Chinese (Simplified)
+Tiếng Việt
+Vietnamese
+Japanese
+Français
+French
+Deutsch
+German
+Italiano
+Italian
+Türkçe
+Turkish
+Polski
+Polish
+Thai
+Bahasa Melayu
+Malay
+Ukrainian
+Nederlands
+Dutch
+Chinese (Traditional)
+missing %s
+bad file %s
+can't read %s
+unknown language %s
+game reader
+game reader, relative path
+MP decoder
+ (built-in)
+the dialog failed
+Phone keyboard unavailable: 
+< BACK
+Search GIFs: type a word (cat, dance, lol...)_
+Search GIFs (tap to type)
+Loading GIFs...
+Type to search all GIFs
+No GIFs found - try another word
+No GIFs here
+[gif:%d]
 Shift
 Space
 <- Del

@@ -10,6 +10,8 @@
 #include <string>
 #include <sys/stat.h>
 #include "neonpaint.h"
+#include "i18n.h"
+#include <unordered_map>
 #define STBI_NO_STDIO
 #include "../../imgui/stb_image.h"   // 5.01.08: declarations only (the code is in hud.cpp)
 
@@ -35,6 +37,8 @@ namespace
     RasterFromImgFn  fnRasterFromImg = nullptr;
     TexCreateFn      fnTexCreate = nullptr;
     ImgDestroyFn     fnImgDestroy = nullptr;
+    typedef int   (*TexDestroyFn)(void* tex);
+    TexDestroyFn     fnTexDestroy = nullptr;   // 5.02.77: the last language's letters are let go
     typedef void* (*ImgCreateFn)(int w, int h, int d);
     typedef void* (*ImgAllocFn)(void* img);
     ImgCreateFn      fnImgCreate = nullptr;   // 5.01.08: MP's own PNG decoder (stb_image) -> RwImage
@@ -45,11 +49,14 @@ namespace
     enum { RS_TEXADDRESS = 2, RS_ZTEST = 6, RS_ZWRITE = 8, RS_TEXFILTER = 9, RS_SRCBLEND = 10, RS_DESTBLEND = 11, RS_VERTEXALPHA = 12 };
 
     struct NamedTex { char name[32]; NeonPaint::Tex t; };
-    NamedTex s_Tex[48]; int s_nTex = 0;
+    NamedTex s_Tex[80]; int s_nTex = 0;
 
     struct Glyph { float u0, v0, u1, v1; int w, h, xo, yo; float adv; bool ok; };
     struct Atlas { const NeonPaint::Tex* tex = nullptr; int size = 64, asc = 50; Glyph g[128]; };
     Atlas s_Font[NeonPaint::F_COUNT];
+    // 5.02.77: the letters of the MP language (src/embed/neonintl_blob.S): ASCII + what its table uses, one font
+    struct IntlAtlas { const NeonPaint::Tex* tex = nullptr; int size = 40, asc = 40; std::unordered_map<uint32_t, Glyph> g; std::string code; bool tried = false; };
+    IntlAtlas s_Intl; uint32_t s_nIntlGen = 0xFFFFFFFFu;
 
     // touches
     std::mutex s_TouchMx;
@@ -212,6 +219,7 @@ bool NeonPaint::Init(void* h)
     *(void**)&fnImgDestroy    = (void*)aml->GetSym(h, "_Z14RwImageDestroyP7RwImage");
     *(void**)&fnImgCreate     = (void*)aml->GetSym(h, "_Z13RwImageCreateiii");
     *(void**)&fnImgAlloc      = (void*)aml->GetSym(h, "_Z21RwImageAllocatePixelsP7RwImage");
+    *(void**)&fnTexDestroy    = (void*)aml->GetSym(h, "_Z16RwTextureDestroyP9RwTexture");
     s_pRsGlobal = (int*)aml->GetSym(h, "RsGlobal");
     s_bInit = fnDrawSprite && fnDrawQuad && fnRenderState && fnPngRead && fnFindRasterFmt && fnRasterCreate && fnRasterFromImg && fnTexCreate && fnImgDestroy && s_pRsGlobal;
     logger->Info("Neon menu: PCMenu-style drawing %s", s_bInit ? "ready (game sprites + PNG textures)" : "NOT available (game functions missing)");
@@ -306,13 +314,108 @@ void NeonPaint::ImgUV(const Tex* t, float x0, float y0, float x1, float y1, floa
 }
 void NeonPaint::Img(const Tex* t, float x0, float y0, float x1, float y1, Col c) { ImgUV(t, x0, y0, x1, y1, 0, 0, 1, 1, c, c); }
 
+// ---- 5.02.77: the MP language ----
+namespace NeonIntl { bool Find(const char* code, const unsigned char** png, size_t* pngN, const unsigned char** txt, size_t* txtN); }   // neon_embed.cpp
+namespace
+{
+    void DropTex(const char* name)
+    {
+        for(int i = 0; i < s_nTex; ++i) if(!strcmp(s_Tex[i].name, name))
+        {
+            if(fnTexDestroy && s_Tex[i].t.t) fnTexDestroy(s_Tex[i].t.t);
+            for(int j = i + 1; j < s_nTex; ++j) s_Tex[j - 1] = s_Tex[j];
+            --s_nTex; return;
+        }
+    }
+    // the atlas of the language in use (loaded on the render thread the first time a text is drawn after a change)
+    const IntlAtlas* Intl()
+    {
+        const uint32_t gen = I18n::Generation();
+        if(gen != s_nIntlGen)
+        {
+            s_nIntlGen = gen;
+            const char* code = I18n::CurrentCode();
+            if(s_Intl.code != code)
+            {
+                if(s_Intl.tex) { char old[40]; snprintf(old, sizeof(old), "intl_%s.png", s_Intl.code.c_str()); DropTex(old); }
+                s_Intl.tex = nullptr; s_Intl.g.clear(); s_Intl.code = code; s_Intl.tried = false;
+            }
+        }
+        if(s_Intl.tex) return &s_Intl;
+        if(s_Intl.tried || I18n::Current() == 0 || !s_bInit) return nullptr;
+        s_Intl.tried = true;
+        const unsigned char *png = nullptr, *txt = nullptr; size_t pn = 0, tn = 0;
+        if(!NeonIntl::Find(s_Intl.code.c_str(), &png, &pn, &txt, &tn)) { logger->Info("Neon menu: no letters built in for %s (ASCII only)", s_Intl.code.c_str()); return nullptr; }
+        std::string t((const char*)txt, tn); int size = 0, asc = 0, desc = 0, cap = 0, aw = 0, ah = 0;
+        size_t at = t.find('\n');
+        if(at == std::string::npos || sscanf(t.c_str(), "FONT %d %d %d %d %d %d", &size, &asc, &desc, &cap, &aw, &ah) != 6 || aw <= 0 || ah <= 0) return nullptr;
+        s_Intl.size = size; s_Intl.asc = asc;
+        while(at != std::string::npos && at + 1 < t.size())
+        {
+            const size_t nx = t.find('\n', at + 1);
+            unsigned code; int x, y, w, h, xo, yo; float adv;
+            if(sscanf(t.c_str() + at + 1, "G %u %d %d %d %d %d %d %f", &code, &x, &y, &w, &h, &xo, &yo, &adv) == 8)
+            {
+                Glyph g; g.u0 = (float)x / aw; g.v0 = (float)y / ah; g.u1 = (float)(x + w) / aw; g.v1 = (float)(y + h) / ah;
+                g.w = w; g.h = h; g.xo = xo; g.yo = yo; g.adv = adv; g.ok = true; s_Intl.g[code] = g;
+            }
+            at = nx;
+        }
+        char nm[40]; snprintf(nm, sizeof(nm), "intl_%s.png", s_Intl.code.c_str());
+        if(!LoadMem(nm, png, pn)) { logger->Error("Neon menu: the %s letters did not load", s_Intl.code.c_str()); return nullptr; }
+        s_Intl.tex = NeonPaint::T(nm);
+        logger->Info("Neon menu: %s letters loaded (%d)", s_Intl.code.c_str(), (int)s_Intl.g.size());
+        return s_Intl.tex ? &s_Intl : nullptr;
+    }
+    bool HighBytes(const char* s) { for(; *s; ++s) if((unsigned char)*s >= 0x80) return true; return false; }
+    // one UTF-8 letter at p -> its code point, p moved on (a broken byte = '?')
+    uint32_t NextCp(const unsigned char*& p)
+    {
+        uint32_t c = *p;
+        if(c < 0x80) { ++p; return c; }
+        int n = c >= 0xF0 ? 3 : c >= 0xE0 ? 2 : c >= 0xC0 ? 1 : -1;
+        if(n < 0) { ++p; return '?'; }
+        c &= (0x3F >> n); ++p;
+        for(int i = 0; i < n; ++i) { if((*p & 0xC0) != 0x80) return '?'; c = (c << 6) | (*p++ & 0x3F); }
+        return c;
+    }
+    const Glyph* IntlGlyph(const IntlAtlas* in, uint32_t c)
+    {
+        auto it = in->g.find(c); if(it != in->g.end()) return &it->second;
+        it = in->g.find('?'); return it != in->g.end() ? &it->second : nullptr;
+    }
+}
+const char* NeonPaint::Tr(const char* s)
+{
+    if(!s || !*s || I18n::Current() == 0) return s;
+    const char* e = nullptr;
+    const char* r = I18n::TextAny(nullptr, s, nullptr, &e);
+    if(r == s) return s;
+    // the result is a table string (0-terminated) or the ring buffer (0-terminated too)
+    return r;
+}
+
 float NeonPaint::TextW(int font, const char* s, float px, float track)
 {
     if(font < 0 || font >= F_COUNT || !s) return 0;
-    const Atlas& a = s_Font[font]; const float sc = px / (float)a.size;
+    s = Tr(s);
+    const Atlas& a = s_Font[font];
+    if(HighBytes(s))
+        if(const IntlAtlas* in = Intl())
+        {
+            const float sc = px / (float)in->size; float w = 0; int n = 0;
+            for(const unsigned char* p = (const unsigned char*)s; *p; ++n)
+            {
+                const uint32_t c = NextCp(p);
+                if(const Glyph* g = IntlGlyph(in, c)) w += g->adv * sc + (g->adv > 0 ? track : 0);
+            }
+            return n ? w - track : 0;
+        }
+    const float sc = px / (float)a.size;
     float w = 0; int n = 0;
     for(const unsigned char* p = (const unsigned char*)s; *p; ++p, ++n)
     {
+        if(*p >= 0x80 && (*p & 0xC0) == 0x80) { --n; continue; }   // one '?' per letter, not per byte
         unsigned c = *p; if(c < 32 || c > 126 || !a.g[c].ok) c = '?';
         w += a.g[c].adv * sc + track;
     }
@@ -321,11 +424,30 @@ float NeonPaint::TextW(int font, const char* s, float px, float track)
 void NeonPaint::Text(int font, const char* s, float x, float y, float px, Col top, Col bottom, float track)
 {
     if(font < 0 || font >= F_COUNT || !s) return;
+    s = Tr(s);
     const Atlas& a = s_Font[font]; if(!a.tex) return;
     const float sc = px / (float)a.size, base = y + a.asc * sc;
     float pen = x;
+    if(HighBytes(s))
+        if(const IntlAtlas* in = Intl())
+        {   // the language's own letters (one font), on the same baseline as the ASCII font
+            const float s2 = px / (float)in->size;
+            for(const unsigned char* p = (const unsigned char*)s; *p;)
+            {
+                const uint32_t c = NextCp(p);
+                const Glyph* g = IntlGlyph(in, c); if(!g) continue;
+                if(g->w > 0 && g->h > 0)
+                {
+                    const float gx = pen + g->xo * s2, gy = base + g->yo * s2, gx1 = gx + g->w * s2, gy1 = gy + g->h * s2;
+                    ImgUV(in->tex, gx, gy, gx1, gy1, g->u0, g->v0, g->u1, g->v1, Lerp(top, bottom, (gy - y) / px), Lerp(top, bottom, (gy1 - y) / px));
+                }
+                pen += g->adv * s2 + (g->adv > 0 ? track : 0);   // a combining mark (Thai, Vietnamese) adds no space
+            }
+            return;
+        }
     for(const unsigned char* p = (const unsigned char*)s; *p; ++p)
     {
+        if(*p >= 0x80 && (*p & 0xC0) == 0x80) continue;
         unsigned c = *p; if(c < 32 || c > 126 || !a.g[c].ok) c = '?';
         const Glyph& g = a.g[c];
         if(g.w > 0 && g.h > 0)

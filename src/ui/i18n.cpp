@@ -111,6 +111,8 @@ struct Table
     std::unordered_multimap<uint32_t, uint32_t> tplByPrefix;   // first 4 bytes of the first literal
     std::vector<uint32_t> tplNoPrefix;
     std::string glyphs;
+    // 5.02.77: the CAPITALS index (keys in ASCII capitals -> entry; numbers as \x01 too) + the values in capitals
+    std::vector<std::string> ukeys, unkeys, uvals; std::vector<uint32_t> uslots, unslots, unent; uint32_t umask = 0, unmask = 0;
     mutable std::vector<std::pair<const ImFont*, int8_t>> fontOk;   // per entry: can this font draw it (render thread)
 };
 std::atomic<Table*> g_Table{ nullptr };
@@ -236,15 +238,51 @@ bool MatchTpl(const Tpl& t, const char* p, const char* e, size_t i, std::vector<
     return false;
 }
 
+uint32_t UpCp(uint32_t c)
+{
+    if(c < 0x80) return (c >= 'a' && c <= 'z') ? c - 32 : c;
+    if(c >= 0xE0 && c <= 0xFE && c != 0xF7) return c - 0x20;
+    if(c == 0xFF) return 0x178;
+    if(c == 0x131) return 'I';
+    if(c >= 0x100 && c <= 0x137) return c & ~1u;
+    if((c >= 0x139 && c <= 0x148) || (c >= 0x179 && c <= 0x17E)) return (c & 1) ? c : c - 1;
+    if(c >= 0x14A && c <= 0x177) return c & ~1u;
+    if(c == 0x1A1 || c == 0x1B0) return c - 1;   // Vietnamese o / u with horn
+    if(c >= 0x3B1 && c <= 0x3C9) return c == 0x3C2 ? 0x3A3 : c - 0x20;
+    if(c >= 0x430 && c <= 0x44F) return c - 0x20;
+    if(c >= 0x450 && c <= 0x45F) return c - 0x50;
+    if((c >= 0x460 && c <= 0x4FF) || (c >= 0x1E00 && c <= 0x1EFF)) return c & ~1u;
+    return c;
+}
+void PutUtf8(std::string& o, uint32_t c)
+{
+    if(c < 0x80) o += (char)c;
+    else if(c < 0x800) { o += (char)(0xC0 | (c >> 6)); o += (char)(0x80 | (c & 63)); }
+    else if(c < 0x10000) { o += (char)(0xE0 | (c >> 12)); o += (char)(0x80 | ((c >> 6) & 63)); o += (char)(0x80 | (c & 63)); }
+    else { o += (char)(0xF0 | (c >> 18)); o += (char)(0x80 | ((c >> 12) & 63)); o += (char)(0x80 | ((c >> 6) & 63)); o += (char)(0x80 | (c & 63)); }
+}
+std::string AsciiUp(const std::string& k) { std::string o(k); for(auto& ch : o) if(ch >= 'a' && ch <= 'z') ch -= 32; return o; }
+
+// 5.02.77: libMP has every table built in (src/embed/i18n_blob.S). files/TYFMC/MP/lang/<code>.lng is used when it is
+// there and not older (#build=) than the built-in one - an old MP folder no longer leaves new texts in English
+bool (*g_Builtin)(const char* code, const char** b, size_t* n) = nullptr;
+int BuildNo(const std::string& d) { size_t p = d.find("#build="); return (p != std::string::npos && p < 64) ? atoi(d.c_str() + p + 7) : 0; }
 Table* Build(const char* path, const char* code, char* err, size_t errN)
 {
-    FILE* f = fopen(path, "rb");
-    if(!f) { snprintf(err, errN, "missing %s", path); return nullptr; }
-    fseek(f, 0, SEEK_END); long len = ftell(f); fseek(f, 0, SEEK_SET);
-    if(len <= 0 || len > 16 * 1024 * 1024) { fclose(f); snprintf(err, errN, "bad file %s", path); return nullptr; }
-    std::string data((size_t)len, '\0');
-    if(fread(&data[0], 1, (size_t)len, f) != (size_t)len) { fclose(f); snprintf(err, errN, "can't read %s", path); return nullptr; }
-    fclose(f);
+    std::string data; bool have = false;
+    if(FILE* f = fopen(path, "rb"))
+    {
+        fseek(f, 0, SEEK_END); long len = ftell(f); fseek(f, 0, SEEK_SET);
+        if(len > 0 && len <= 16 * 1024 * 1024) { data.assign((size_t)len, '\0'); have = fread(&data[0], 1, (size_t)len, f) == (size_t)len; }
+        fclose(f);
+    }
+    const char* bb = nullptr; size_t bn = 0;
+    if(g_Builtin && g_Builtin(code, &bb, &bn) && bn)
+    {
+        std::string b(bb, bn);
+        if(!have || BuildNo(data) < BuildNo(b)) { data.swap(b); have = true; }
+    }
+    if(!have) { snprintf(err, errN, "missing %s", path); return nullptr; }
     Table* t = new Table; t->code = code;
     const char* p = data.c_str(); const char* end = p + data.size();
     while(p < end)
@@ -297,6 +335,17 @@ Table* Build(const char* path, const char* code, char* err, size_t errN)
     }
     t->fontOk.assign(n, { nullptr, -1 });
     for(auto& v : t->vals) t->glyphs += v;
+    {   // 5.02.77: the CAPITALS index (the first entry of a key wins, the same as the exact one)
+        t->uvals.resize(n);
+        for(uint32_t i = 0; i < n; ++i) { t->ukeys.push_back(AsciiUp(t->keys[i])); t->uvals[i] = t->vals[i]; I18n::Upper(t->uvals[i]); }
+        cap = 16; while(cap < n * 2 + 2) cap <<= 1;
+        t->uslots.assign(cap, 0); t->umask = cap - 1;
+        for(uint32_t i = 0; i < n; ++i) PutSlot(t->uslots, t->umask, t->ukeys, t->ukeys[i], i);
+        for(uint32_t i = 0; i < t->nkeys.size(); ++i) { t->unkeys.push_back(AsciiUp(t->nkeys[i])); t->unent.push_back(t->nent[i]); }
+        cap = 16; while(cap < t->unkeys.size() * 2 + 2) cap <<= 1;
+        t->unslots.assign(cap, 0); t->unmask = cap - 1;
+        for(uint32_t i = 0; i < t->unkeys.size(); ++i) PutSlot(t->unslots, t->unmask, t->unkeys, t->unkeys[i], i);
+    }
     return t;
 }
 }   // namespace
@@ -316,9 +365,11 @@ const char* FontKind() { Table* t = g_Table.load(); return t ? t->font.c_str() :
 void ResetFontCache() { Table* t = g_Table.load(); if(t) t->fontOk.assign(t->fontOk.size(), { nullptr, -1 }); }   // 3.53
 
 static void PathOf(const char* code, char* out, size_t n) { snprintf(out, n, "%s/lang/%s.lng", g_szDir, code); }
+void SetBuiltin(bool (*fn)(const char*, const char**, size_t*)) { g_Builtin = fn; }
 bool FileExists(const char* code)
 {
     if(!code || !strcmp(code, "en")) return true;
+    { const char* b; size_t n; if(g_Builtin && g_Builtin(code, &b, &n)) return true; }
     char p[512]; PathOf(code, p, sizeof(p));
     FILE* f = fopen(p, "rb"); if(!f) return false; fclose(f); return true;
 }
@@ -377,6 +428,62 @@ const char* Text(const ImFont* f, const char* b, const char* e, const char** out
     if(!c.second) return b;
     FillFmt(t->vals[i], caps, out);
     return RingStore(out, outEnd);
+}
+
+void Upper(std::string& s)
+{
+    std::string o; o.reserve(s.size());
+    const char* p = s.c_str(); const char* e = p + s.size();
+    while(p < e)
+    {
+        unsigned int c = (unsigned char)*p;
+        char k; int sp = Spec(p, e, &k);
+        if(sp) { o.append(p, sp); p += sp; continue; }   // a printf spec stays as it is (%s, not %S)
+        if(c < 0x80) { o += (char)UpCp(c); ++p; continue; }
+        int n = ImTextCharFromUtf8(&c, p, e);
+        if(n <= 0) { o += *p++; continue; }
+        PutUtf8(o, UpCp(c)); p += n;
+    }
+    s.swap(o);
+}
+
+const char* TextUpper(const ImFont* f, const char* b, const char* e, const char** outEnd)
+{
+    Table* t = g_Table.load();
+    if(!e) e = b + strlen(b);
+    if(outEnd) *outEnd = e;
+    if(!t || t->uslots.empty() || e - b < 2 || e - b > 900) return b;
+    for(const char* p = b; p < e; ++p) if(*p >= 'a' && *p <= 'z') return b;   // only for texts in capitals
+    int i = FindSlot(t->uslots, t->umask, t->ukeys, b, e);
+    if(i >= 0)
+    {
+        if(f && !FontHas(f, t->uvals[i])) return b;
+        if(outEnd) *outEnd = t->uvals[i].data() + t->uvals[i].size();
+        return t->uvals[i].c_str();
+    }
+    if(t->unkeys.empty()) return b;
+    bool digit = false; for(const char* p = b; p < e; ++p) if(*p >= '0' && *p <= '9') { digit = true; break; }
+    if(!digit) return b;
+    static thread_local std::string key, out; static thread_local std::vector<std::string> caps;
+    key.clear(); caps.clear();
+    for(const char* p = b; p < e;)
+    {
+        const bool start = IsNumStart(p, e) && (p == b || !((p[-1] | 32) >= 'a' && (p[-1] | 32) <= 'z'));
+        if(start) { const char* q = NumEnd(p, e); caps.emplace_back(p, q); key += '\x01'; p = q; }
+        else key += *p++;
+    }
+    int n = FindSlot(t->unslots, t->unmask, t->unkeys, key.data(), key.data() + key.size());
+    if(n < 0) return b;
+    if(f && !FontHas(f, t->uvals[t->unent[n]])) return b;
+    FillFmt(t->uvals[t->unent[n]], caps, out);
+    return RingStore(out, outEnd);
+}
+const char* TextAny(const ImFont* f, const char* b, const char* e, const char** outEnd)
+{
+    if(!e) e = b + strlen(b);
+    const char* r = Text(f, b, e, outEnd);
+    if(r != b) return r;
+    return TextUpper(f, b, e, outEnd);
 }
 
 const char* Fmt(const char* fmt)

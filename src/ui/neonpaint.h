@@ -27,7 +27,9 @@ namespace NeonPaint
     void Img(const Tex* t, float x0, float y0, float x1, float y1, Col c = {255, 255, 255, 255});
     void ImgUV(const Tex* t, float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1, Col top, Col bottom);
     // text: px = the font size (line height like ImGui's), y = the top of the line; track = extra space between letters
+    // 5.02.77: both draw the text in the MP language (I18n), with the letters of that language (assets/MP/neon/intl)
     float TextW(int font, const char* s, float px, float track = 0);
+    const char* Tr(const char* s);         // the text as Text() draws it (the translation, or s)
     void Text(int font, const char* s, float x, float y, float px, Col top, Col bottom, float track = 0);
     inline void Text(int font, const char* s, float x, float y, float px, Col c, float track = 0) { Text(font, s, x, y, px, c, c, track); }
 

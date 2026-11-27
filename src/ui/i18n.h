@@ -18,11 +18,17 @@ namespace I18n
     int  Entries();                        // strings in the loaded table
     const char* LastError();
     void SetDataDir(const char* dir);
+    void SetBuiltin(bool (*fn)(const char* code, const char** b, size_t* n));   // 5.02.77: the tables built into libMP
 
     // a text as it is drawn: [b, e) -> the translation (or b itself). Exact texts, and texts that only
     // differ in their numbers ("Players: 12" from "Players: %d"). f = the font it is drawn with: a
     // translation that font can't show (no glyphs) stays English.
     const char* Text(const ImFont* f, const char* b, const char* e, const char** outEnd);
+    // 5.02.77: the same for a text drawn in CAPITALS (the neon menu: NeonUpper("Settings") = "SETTINGS"): looked up
+    // without case, the translation comes back in capitals too. b itself = none
+    const char* TextUpper(const ImFont* f, const char* b, const char* e, const char** outEnd);
+    const char* TextAny(const ImFont* f, const char* b, const char* e, const char** outEnd);   // Text, else TextUpper
+    void Upper(std::string& s);            // UTF-8 capitals: Latin (+ Vietnamese, Turkish), Greek, Cyrillic
     const char* Fmt(const char* fmt);      // a printf format -> its translated format (same specs, same order)
     bool Message(const std::string& in, std::string& out);   // a finished chat / server line ("%s joined", ...)
 

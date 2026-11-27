@@ -33,8 +33,13 @@ static const ImU32 kNGrey = IM_COL32(141, 143, 149, 255), kNText = IM_COL32(226,
 static const ImU32 kNPanel = IM_COL32(14, 15, 18, 236), kNLine = IM_COL32(38, 40, 45, 255);
 static const ImU32 kNBlue = IM_COL32(159, 194, 255, 255);
 // letter-spaced text (the tracked small caps labels of the reference)
+// 5.02.77: spaced-out texts are drawn a letter at a time - translated first, as a whole (then not again per letter)
+static const char* NeonTrIm(ImFont* f, const char* t) { if(!t || !GImTrText || GImTrSuspend) return t; const char* e; return GImTrText(f, t, t + strlen(t), &e); }
+struct NeonTrOff { NeonTrOff() { ++GImTrSuspend; } ~NeonTrOff() { --GImTrSuspend; } };
 static float NeonTextW(ImFont* f, float fs, const char* t, float sp)
 {
+    if(sp <= 0.01f) return f->CalcTextSizeA(fs, FLT_MAX, 0, t).x;
+    t = NeonTrIm(f, t); NeonTrOff off;
     float w = 0; const char* p = t;
     while(*p) { unsigned int c = 0; int k = ImTextCharFromUtf8(&c, p, nullptr); if(k <= 0) break;
                 w += f->CalcTextSizeA(fs, FLT_MAX, 0, p, p + k).x + sp; p += k; }
@@ -48,6 +53,7 @@ static void NeonText(ImDrawList* dl, ImFont* f, float fs, ImVec2 at, ImU32 col, 
         if(shadow) dl->AddText(f, fs, ImVec2(at.x + fs * 0.04f, at.y + fs * 0.06f), IM_COL32(0, 0, 0, 200), t);
         dl->AddText(f, fs, at, col, t); return;
     }
+    t = NeonTrIm(f, t); NeonTrOff off;
     const char* p = t; float x = at.x;
     while(*p)
     {
@@ -1301,9 +1307,11 @@ static void NeonMusicMenuTick(uint64_t now)
 // ---- shared helpers ----
 static std::string NeonFit(int font, const char* s, float px, float maxw, float track = 0)
 {
-    std::string t = s ? s : "";
+    std::string t = s ? NeonPaint::Tr(s) : "";   // 5.02.77: the translation is what gets cut (not the English)
     if(NeonPaint::TextW(font, t.c_str(), px, track) <= maxw) return t;
-    while(!t.empty() && NeonPaint::TextW(font, (t + "...").c_str(), px, track) > maxw) t.pop_back();
+    // a whole letter at a time (UTF-8)
+    while(!t.empty() && NeonPaint::TextW(font, (t + "...").c_str(), px, track) > maxw)
+    { while(!t.empty() && ((unsigned char)t.back() & 0xC0) == 0x80) t.pop_back(); if(!t.empty()) t.pop_back(); }
     return t + "...";
 }
 static void NeonPAscii(char* o, size_t n, const char* s, bool upper)

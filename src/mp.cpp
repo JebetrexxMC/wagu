@@ -8837,6 +8837,7 @@ static void MP_MediaFetchStart()
     }).detach();
 }
 
+bool MP_LangBuiltin(const char* code, const char** data, size_t* n);   // 5.02.77: src/ui/neon_embed.cpp
 void MP::Init(const char* dataDir)
 {
     MP_CopyStr(s_szDataDir, dataDir, sizeof(s_szDataDir));
@@ -8844,7 +8845,8 @@ void MP::Init(const char* dataDir)
     LoadConfig();
     SoundVolLoad();   // 5.02.31: Settings > Sound > Host Media volumes
     I18n::SetDataDir(s_szDataDir);   // 3.52: languages
-    GImTrText = I18n::Text; GImTrFmt = I18n::Fmt;
+    I18n::SetBuiltin(MP_LangBuiltin);   // 5.02.77: + the tables built into libMP (src/embed/i18n_blob.S)
+    GImTrText = I18n::TextAny; GImTrFmt = I18n::Fmt;
     if(strcmp(settings.uiLanguage, "en") && !I18n::Set(settings.uiLanguage)) logger->Info("Language %s: %s", settings.uiLanguage, I18n::LastError());
     Game::SetEnvCallbacks(OnLocalExplosion, OnLocalFire, OnForeignEnv);   // 2.13
     Game::SetShotCallback(OnLocalShot);        // 2.17: every bullet / rocket

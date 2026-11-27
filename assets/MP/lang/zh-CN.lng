@@ -1,13 +1,140 @@
 #mp-lang 1
+#build=50277
 #code=zh-CN
 #name=简体中文
 #english=Chinese (Simplified)
 #font=cjk-sc
 #rtl=0
+clump loader	团块装载机
+atomic loader	原子加载器
+big model loader	大型装载机
+DzModels: the game closed while loading model %d last time - it stays GTA now	DzModels：上次加载模型 %d 时游戏崩溃了 - 现在仍然是 GTA
+ (mirror)	 （镜子）
+ (MP)	 （MP）
+bad file	文件错误
+cache full?	缓存已满？
+DzModels: %d (%s) not downloaded: %s	DzModels：%d（%s）未下载：%s
+DzModels: %d / %d models ready	DzModels：%d / %d 个模型已准备就绪
+DzModels: world textures: %d in the index (%d aliases, %d files)	DzModels：世界纹理：索引中的 %d（%d 个别名，%d 个文件）
+DzModels: world textures: %d of %d files downloaded - GTA textures stay	DzModels：世界纹理：已下载 %d 个文件（共 %d 个） - GTA 纹理保留
+Project Day Z	项目日Z
+model list: 	型号列表： 
+DzModels: %d models in the list, %d wanted (%d MB)	DzModels：列表中有 %d 个模型，需要 %d 个模型（%d MB）
+buffer swap	缓冲区交换
+DzModels: model %d did not go through the clump/atomic loader - next load uses the buffer swap	DzModels：模型 %d 未经过 clump/atomic 加载器 - 下次加载将使用缓冲区交换
+DzModels: model %d (%s) is in the game now (MTA dff via %s, %d textures from our txd)	DzModels：模型 %d (%s) 现已加入游戏（通过我们 txd 中的 %s、%d 纹理以 MTA dff 格式提供）
+DzModels: the game could not read %s for model %d via %s (try %d)	DzModels：游戏无法通过 %s 读取模型 %d 的 %s（请尝试 %d）
+DzModels: model %d (%s) did not load - GTA model kept	DzModels：模型 %d (%s) 未加载 - GTA 模型已保留
+DzModels: engine check - %d loaded models with their txd at 20000+, %d without	DzModels：引擎检查 - %d 个已加载模型，其 txd 值大于 20000；%d 个未加载模型。
+DzModels: the txd pool did not look right (size %d)	DzModels：交易池看起来不正确（大小 %d）
+DzModels: world texture %s could not be read	DzModels：无法读取世界纹理 %s
+DzModels: world textures in the game: %d (last %s)	DzModels：游戏中的世界纹理：%d（最后%s）
+DzModels: world textures off - %d GTA textures put back	DzModels：世界纹理已关闭 - %d GTA 纹理已恢复
+DzModels: world textures on - %d loaded GTA textures checked, %d swapped	DzModels：世界纹理已开启 - 已加载 %d 个 GTA 纹理（已检查），已交换 %d 个纹理
+DzModels: model %d waits - the game is using it (refs %d, state %d)	DzModels：模型 %d 等待 - 游戏正在使用它（引用 %d，状态 %d）
+DzModels: model %d switched to the MTA files (txd slot %d)	DzModels：模型 %d 已切换到 MTA 文件（txd 插槽 %d）
+DzModels: model %d gets the base building collision (%d boxes)	DzModels：模型 %d 获取基础建筑碰撞（%d 个盒子）
+DzModels: no Day Z model pack on this phone - no engine hooks (custom modpacks untouched)	DzModels：此手机上没有 Day Z 模型包 - 没有引擎钩子（未修改自定义模组包）
+DzModels: world texture hooks destroy %s gtaread %s read %s	DzModels：世界纹理钩子销毁%s gtaread%s 读取%s
+DzModels: loader hooks clump %s atomic %s ped %s texdb %s	DzModels：加载器钩子 clump %s atomic %s ped %s texdb %s
+DzModels: hook %s, txd %s, rw %s, big models %s, cache %s	DzModels：hook %s，txd %s，rw %s，大型模型 %s，缓存 %s
+model pack downloaded - restart the game to use it	模型包已下载 - 请重启游戏以使用。
+DzModels: pack ready, used after a game restart	DzModels：已打包，游戏重启后使用
+engine check failed (	发动机检查失败（
+DzModels: engine check %d - models stay GTA	DzModels：引擎检查 %d - 模型保持 GTA 状态
+DzModels: engine ok	DzModels：引擎正常
+MP - Project Day Z Legacy MTA model loader log (send this file if the models stay GTA)\n	MP - Project Day Z Legacy MTA 模型加载器日志（如果模型保持 GTA 风格，请发送此文件）\n
+MP - Project Day Z Legacy MTA model loader log (send this file if the models stay GTA)	MP - Project Day Z Legacy MTA 模型加载器日志（如果模型仍然保留在 GTA 中，请发送此文件）
+DzModels: reset - every model is tried again	DzModels：重置 - 每个模型都会再次尝试。
+Could not get the file list: 	无法获取文件列表： 
+Download finished: %d of %d files failed (%s).	下载完成：%d 个文件（共 %d 个）下载失败（%s）。
+Download finished: %d files on the phone.	下载完成：手机上有%d个文件。
+DzModels: cloud page %s	DzModels：云页面 %s
+Deleted %d files. %d models are in use on the Day Z server - leave it to delete them.	已删除 %d 个文件。DayZ 服务器上正在使用 %d 个模型 - 请允许将其删除。
+Deleted %d files. Download again here or join the Day Z server.	已删除 %d 个文件。请在此处重新下载或加入 DayZ 服务器。
 no (script fallback)	否（脚本后备）
+after a teleport	传送之后
+after a spawn	生成之后
+NOT found - off	未找到 - 关闭
+not used	未使用
+SAUtils	南澳公用事业公司
+Player info (all)	球员信息（全部）
+Health bar	生命值条
+Armor bar	护甲条
+Breath bar	呼吸杆
+Weapon icon	武器图标
+Ammo	弹药
+Money	钱
+Money change	零钱
+Clock	钟
+Wanted stars	通缉犯
+Radar	雷达
+Vehicle name	车辆名称
+Area name	区域名称
+Radio station	广播电台
+Subtitles	字幕
+Game default	游戏默认设置
+Compact	袖珍的
+PC small	PC小型
+%s_Show	%s_显示
+%s_Size	%s_尺寸
+%s_Width	%s_宽度
+%s_Height	%s_高度
+%s_Alpha	%s_阿尔法
+the game closed during the ball swap once (delete lgball_off.txt to try again)	游戏在换球过程中崩溃了一次（删除lgball_off.txt重试）
+engine functions missing	发动机功能缺失
+no box collision	无碰撞箱
+collision pointer not found in the model info	模型信息中未找到碰撞指针
+draw distance check failed	绘制距离检查失败
+model is not an atomic	模型不是原子性的
+texture could not be made	无法制作纹理。
+memory stream	内存流
+the ball dff did not read	球的 dff 没有读取
+the loaded ball does not look like ours	这个装弹球看起来和我们的不一样。
+LoadAtomicFile failed	LoadAtomicFile失败
+another mod (LDR.W PC patch)	另一个模组（LDR.W PC补丁）
+another mod (B.W patch)	另一个模组（BW补丁）
+another mod (LDR PC patch)	另一个模组（LDR PC补丁）
+no save function found (the game saves its settings when you leave its own Options)	未找到保存功能（游戏会在您退出游戏选项时保存设置）
+Lib	图书馆
+Steering	转向
+Steering sensitivity	转向灵敏度
+Bike controls	自行车控制
+Targeting	目标
+Tilt steering	倾斜式方向盘
+Touch layout	触摸布局
+Invert look	反转外观
+Look sensitivity X	观察灵敏度 X
+Look sensitivity Y	灵敏度 Y
+Mouse sensitivity X	小鼠敏感性 X
+Mouse sensitivity Y	小鼠灵敏度 Y
+Controller scheme	控制器方案
+Vibration	振动
+Auto climb	自动爬坡
+Camera height	摄像机高度
+Cinematic camera	电影摄影机
+Language	语言
+Visual quality	视觉质量
+Resolution	解决
+Draw distance	绘制距离
+Shadows	阴影
+Car reflections	汽车倒影
+Traffic density	交通密度
+Brightness	亮度
+Frame limiter	帧数限制器
+Sound effects volume	音效音量
+Radio volume	收音机音量
+Radio auto tune	收音机自动调谐
+Default radio station	默认电台
+3D audio (HRTF)	3D音频（HRTF）
+MODS SETTINGS	模组设置
+%d OPTION%s	%d 选项%s
+MODS FOLDER	MODS文件夹
+%d FILE%s	%d 文件%s
 , its ImGui is not exported: still blocked from every server	，其 ImGui 未导出：仍被所有服务器阻止
 renamed, found by its CheatMenu label	重命名，通过其 CheatMenu 标签找到
 Fire	火
+(I)Landroid/view/View;	（I）Landroid/view/View；
 past the map edge, moved back inside	越过地图边缘，移回内部
 skipped: position is NaN / inf	跳过：位置为 NaN / inf
 skipped: broken bounding box	跳过：损坏的边界框
@@ -18,6 +145,7 @@ boxes 	盒子
 lines 	线 
 MP command	MP命令
 that script is stopped there	该脚本停在那里
+Usually libCLEO_ImGui.so: update or remove it if keys stop working.	通常情况下，libCLEO_ImGui.so：如果按键停止工作，则更新或删除它。
 Rose	玫瑰
 Paul	保罗
 Cesar	塞萨尔
@@ -36,10 +164,26 @@ T-Bone	T 骨
 Jethro	杰思罗
 Zero	零
 Andre	安德烈
+MP load	MP负载
+pointer inside: %s) - this crashed the game (fault address 0x6C)	内部指针：%s) - 这导致游戏崩溃（故障地址 0x6C）
+, table not trusted on this game	此游戏中，该表格不受信任。
+first game frame	第一局
 CEspray	CE喷雾
 CNspray	CN喷雾
-A tap   B close   Back cursor	A 点击 B 关闭 返回光标
+neon loading	霓虹灯加载
+neon check + textures	霓虹格纹 + 纹理
+neon paint	荧光颜料
+A select   B back   X cursor   LB/RB page   LT/RT scroll   Start close	A 选择 B 返回 X 光标 LB/RB 翻页 LT/RT 滚动 开始 关闭
+A tap   B close   X highlight mode   Back cursor	A 点击 B 关闭 X 高亮模式 返回光标
 MPMenu	MP菜单
+MPMultiplayer	多人游戏
+none (std::terminate called directly)	无（直接调用 std::terminate）
+An old separate libmonetloader.so was moved out of the mods folder: MonetLoader for MP 4.0.0-mp is built into MP. Restart the game once.	旧的独立文件 libmonetloader.so 已从 mods 文件夹中移出：MP 4.0.0-mp 的 MonetLoader 已内置于 MP 中。请重启游戏一次。
+PCMenu is installed	PCMenu 已安装
+another mod already hooked it	另一个模组已经把它接入了。
+another menu mod is installed	又安装了另一个菜单模组
+no slot	无槽位
+all mods loaded	所有模组已加载
 server_combat system	服务器战斗系统
 server_player sync	服务器_玩家同步
 server_vehicle sync	服务器车辆同步
@@ -218,9 +362,24 @@ server_controller support	服务器控制器支持
 server_loading screen	服务器加载屏幕
 server_welcome message	服务器欢迎消息
  resources	 资源
-Connected successfully!	连接成功！
-{FFFFFF}Welcome to {38BDF8}%s	{FFFFFF}欢迎来到{38BDF8}%s
+{name}	{姓名}
+{server}	{服务器}
 the server	服务器
+*** %s joined the server.	*** %s 加入了服务器。
+*** %s left the server. (%s)	*** %s 已离开服务器。(%s)
+*** %s left the server.	*** %s 已离开服务器。
+{reason}	{原因}
+Quit	辞职
+{9ACD32}#{808080}{{FFFF00}%s{808080}} {FF0000}<{FFA500}!{FF0000}> {808080}%s the server{FFFFFF}!%s%s%s	{9ACD32}#{808080}{{FFFF00}%s{808080}} {FF0000}<{FFA500}!{FF0000}> {808080}%s 服务器{FFFFFF}!%s%s%s
+Connected to	已连接到
+Disconnected from	已断开连接
+Connected successfully!	连接成功！
+{FF3030}\xE2\x9D\xA4 {FFFFFF}Welcome to {DC2626}Broker {C08454}MQQ {FF3030}\xE2\x9D\xA4	{FF3030}\xE2\x9D\xA4 {FFFFFF}欢迎来到 {DC2626}经纪商 {C08454}MQQ {FF3030}\xE2\x9D\xA4
+{C8C8C8}We hope you enjoy your stay, {FFFFFF}%s{C8C8C8}...	{C8C8C8}希望您入住愉快。 {FFFFFF}%s{C8C8C8}...
+{FFFF00}Free roam, Deathmatch and Bounty Hunter - all in one server.	{FFFF00}自由漫游、死亡竞赛和赏金猎人——全部在一个服务器中。
+{33CC33}Please type /help if you need help, /bounty for the Bounty Hunter commands.	{33CC33}如果您需要帮助，请键入/help；如果您需要赏金猎人命令，请键入/bounty。
+{FFFFFF}Connected to {DC2626}%s{FFFFFF}.	{FFFFFF}连接到{DC2626}%s{FFFFFF}。
+{FFFFFF}Welcome to {38BDF8}%s	{FFFFFF}欢迎来到{38BDF8}%s
 Receiving Server Info...	正在接收服务器信息...
 Receiving Resources...	正在接收资源...
 Receiving Player Info...	正在接收玩家信息...
@@ -228,7 +387,7 @@ Receiving Vehicle Info...	正在接收车辆信息...
 Receiving Weapon Info...	正在接收武器信息...
 Receiving World Data...	接收世界数据...
 Connecting	连接中
-Please Wait, Loading Server Data...	请稍候，正在加载服务器数据...
+PLEASE WAIT, LOADING SERVER DATA...	请稍候，正在加载服务器数据……
 Done - joining %s	完成 - 加入%s
 Receiving Resources... %s	正在接收资源...%s
 Connecting to %s...	正在连接到%s...
@@ -352,12 +511,13 @@ The Chiliad Challenge	千年挑战
 Stunt Challenge	特技挑战
 Buy Property	购买房产
 a mission	一个使命
-*** %s: other players are hidden until it ends. Your Mission sync group (%d players) stays with you.	*** %s：其他玩家隐藏直到结束。您的任务同步组（%d 名玩家）将与您同在。
-*** %s: other players are hidden until it ends. %s (Mission sync) stays with you.	*** %s：其他玩家隐藏直到结束。 %s（任务同步）与您同在。
+*** %s: other players are hidden until it ends. Your Mission sync group (%d players) stays with you, cutscenes too.	*** %s：其他玩家在任务结束前处于隐藏状态。你的任务同步组（%d 名玩家）会一直与你在一起，过场动画也会同步播放。
+*** %s: other players are hidden until it ends. %s (Mission sync) stays with you, cutscenes too.	*** %s：其他玩家在任务结束前处于隐藏状态。%s（任务同步）会一直显示，过场动画也会显示。
 your partner	你的伙伴
 *** %s: other players are hidden until it ends (your own story).	*** %s：其他玩家将被隐藏，直到结束（您自己的故事）。
 Cutscene	过场动画
 *** %s is on a mission: %s	*** %s 正在执行任务：%s
+*** %s failed their mission.	*** %s 任务失败。
 *** %s finished their mission.	*** %s 完成了任务。
 %s set by the server - change blocked.	%s 由服务器设置 - 更改被阻止。
 Time and weather are	时间和天气是
@@ -380,6 +540,7 @@ You can still hear the others without it.	没有它您仍然可以听到其他�
 The server was closed by its host.	服务器已被其主机关闭。
 Your MP version is too old. Download MP %s: %s	你的MP版本太旧了。下载 MP %s：%s
 This server runs an old MP version (it lets cheaters in). Ask the host to update to MP %s.	该服务器运行旧的 MP 版本（它会让作弊者进入）。请主机更新至 MP %s。
+This server is for the other game (GTA San Andreas / GTA Vice City servers are separate).	此服务器用于另一款游戏（GTA San Andreas / GTA Vice City 服务器是独立的）。
 Wrong server password. Edit the server and type the right one (max 16 characters).	服务器密码错误。编辑服务器并输入正确的服务器（最多 16 个字符）。
 This server runs an old MP (before 3.23.6) - trying your old admin key on it...	该服务器运行旧的 MP（3.23.6 之前） - 尝试使用旧的管理密钥...
 This server didn't take your first admin key - trying your other key from administrator.txt...	此服务器未获取您的第一个管理密钥 - 正在尝试来自 administrator.txt 的其他密钥...
@@ -392,11 +553,8 @@ You were kicked from the server!	你被踢出服务器了！
 Server is full.	服务器已满。
 Server uses a different MP version.	服务器使用不同的 MP 版本。
 Could not connect to %s (no response).	无法连接到 %s（无响应）。
-Lost connection to the server. (Timeout)	与服务器的连接丢失。 （超时）
-*** %s joined the server.	*** %s 加入了服务器。
-*** %s left the server.%s	*** %s 离开了服务器。%s
- (Timeout)	 （超时）
- (Kicked)	 （踢）
+Could not reconnect to the server.	无法重新连接到服务器。
+Kicked	踢
 *** Cheats were disabled on this server (MP cheats).	*** 此服务器上已禁用作弊（MP 作弊）。
 *** The host allowed cheats again.	*** 主持人又允许作弊了。
 *** The host turned off Mission sync.	*** 主机关闭了任务同步。
@@ -424,16 +582,21 @@ Animations: %d of %d players near you send their full animations.	动画：您�
 Players on an older MP version only send walk / run / basic moves.	旧 MP 版本上的玩家仅发送走/跑/基本动作。
 %d player%s shown as story characters.	%d玩家%s显示为故事角色。
 Server modes stay on here - only the server owner, [ADMIN] or [MOD] can change them.	服务器模式保留在此处 - 只有服务器所有者 [ADMIN] 或 [MOD] 可以更改它们。
+Reconnecting to the server... (everything stays loaded)	正在重新连接服务器……（所有内容都保持加载状态）
+Still reconnecting to the server... (%llu s)	仍在重新连接服务器……（%llu s)
+Reconnected to the server successfully.	已成功重新连接到服务器。
 Trailers like the Tug Stairs can't be driven in MP (they fly off). Use the Tug to pull it.	像拖船楼梯这样的拖车不能在 MP 模式下行驶（它们会飞走）。使用拖船来拉动它。
-You are offline. Turn on Wi-Fi or mobile data.	您已离线。打开 Wi-Fi 或移动数据。
+You are offline. Turn on Wi-Fi, mobile data or your Mobile Hotspot (offline play: /offline).	您目前处于离线状态。请打开 Wi-Fi、移动数据或移动热点（离线播放：/offline）。
 this server	该服务器
 Sorry, this server doesn't allow cheat menus. %s is loaded in your game: remove it from your mods folder and restart the game.	抱歉，该服务器不允许作弊菜单。 %s 已加载到您的游戏中：将其从 mods 文件夹中删除并重新启动游戏。
 That online server is gone. Tap Connect / Join again.	那个在线服务器已经消失了。再次点击连接/加入。
 Invalid server address.	服务器地址无效。
 SERVER RULES	服务器规则
-%s is hosted by the 24/7 bot - waiting for it (only the admin / moderators can host it).	%s 由 24/7 机器人托管 - 正在等待（只有管理员/版主可以托管它）。
+%s is hosted by the 24/7 bot 	%s 由 24/7 全天候机器人托管 
+ only - waiting for it.	 只剩下等待了。
+Loading the SA-MP gamemode of %s ...	正在加载 %s 的 SA-MP 游戏模式……
 Could not start the server on port %d	无法在端口 %d 上启动服务器
-Plugins: %d textdraws from files/MP/%s/	插件：%d 来自 files/MP/%s/ 的文本绘制
+Plugins: %d textdraws from files/TYFMC/MP/%s/	插件：%d 个来自 files/TYFMC/MP/%s/ 的文本绘制
 Disconnected. Your server stays online for the others.	已断开连接。您的服务器为其他服务器保持在线状态。
 Disconnected from the server.	与服务器断开连接。
 Please wait...	请稍等...
@@ -443,18 +606,27 @@ Already connecting to %s...	已连接到 %s...
 Player	玩家
 Server name: \"%s\" (change it in Host your own server).	服务器名称：\"%s\"（在托管您自己的服务器中更改）。
 Port %d is the default server's, your server uses port %d.	端口 %d 是默认服务器的端口，您的服务器使用端口 %d。
+Localhost: \"%s\" runs on this phone at 127.0.0.1:%d (no network needed).	Localhost: \"%s\" 在此手机上运行于 127.0.0.1:%d（无需网络）。
 Server stopped.	服务器停止了。
 Reconnecting to \"%s\" (host: 	正在重新连接到 \"%s\"（主机： 
 The other copy of \"%s\" did not answer - you host it again.	\"%s\" 的另一个副本没有应答 - 您重新托管它。
+\"%s\" restarts on its 24/7 console (	\"%s\" 在其 24/7 控制台上重新启动（
+) - rejoining by itself...	) - 自行重新加入...
 The host left - moving to the 24/7 server (you keep playing)...	主机离开 - 转移到 24/7 服务器（你继续玩）...
 Connection to \"%s\" lost - you host it now (nobody else was on it)...	与 \"%s\" 的连接丢失 - 您现在托管它（没有其他人在上面）...
 The host left - moving to the new host...	主机离开 - 搬到新主机......
+\"%s\" is offline right now: its 24/7 console (	\"%s\" 目前离线：其 24/7 控制台 (
+) is not running. Try again in a few minutes.	程序未运行。请稍后再试。
+\"%s\" is hosted 24/7 by 	\"%s\" 由以下机构全天候托管 
+ - waiting for it to come online...	 ——等待它上线……
 \"%s\" is already online on another phone - joining it. Pick another name to host your own.	\"%s\" 已在另一部手机上在线 - 加入它。选择另一个名称来托管您自己的名称。
 Your server \"%s\" is online (port %d).	您的服务器 \"%s\" 已在线（端口 %d）。
 Looking for the 24/7 server again...	再次寻找 24/7 服务器...
 \"%s\" isn't online and uses port %d (reserved for the default server). Edit it to port %d or higher.	\"%s\" 未在线并使用端口 %d（为默认服务器保留）。将其编辑为端口 %d 或更高端口。
 Same server on another phone - moving there (you stay connected).	另一部手机上的同一服务器 - 移动到那里（您保持连接）。
 *** Broker standby #%d/%d: \"%s\" was offline - this phone hosts it in the background until the 24/7 host is back.	*** 代理待机 #%d/%d：\"%s\" 处于离线状态 - 此电话在后台托管它，直到 24/7 主机恢复。
++bounty	赏金
++bounty hunter	赏金猎人
 Region set to %s (lowest ping, %d ms). Change it in the Server menu.	区域设置为 %s（最低 ping，%d 毫秒）。在服务器菜单中更改它。
 You are online again.	你又上线了。
 The 24/7 server is online - moving there (you keep playing).	24/7 服务器在线 - 移动到那里（你继续玩）。
@@ -469,6 +641,8 @@ Rule%d	规则%d
 Actors	演员
 Team	团队
 /Android/	/安卓/
+/storage/emulated/0/Android_unprotected/data/%s/files/admin.txt	/storage/emulated/0/Android_unprotected/data/%s/文件/admin.txt
+/storage/emulated/0/Android/data/%s/files/admin.txt	/storage/emulated/0/Android/data/%s/文件/admin.txt
 key=	关键=
 The name SENJI is reserved for the administrator. No valid administrator.txt found.	SENJI 名称是为管理员保留的。找不到有效的 administrator.txt。
 Put administrator.txt here: %s/administrator.txt	将 administrator.txt 放在此处：%s/administrator.txt
@@ -495,20 +669,24 @@ Russian	俄语
 Spanish	西班牙语
 Portuguese	葡萄牙语
 Arabic	阿拉伯语
-%s  %d ms\n%d online	在线 %s %d 毫秒\n%d
+%s\n%s\nsame as %s	%s\n%s\n同%s
+same as %s	与 %s 相同
+%s  %d ms\n%s\n%d online	%s %d 毫秒\n%s\n%d 在线
 %d online	%d在线
-%s\n%d online	%s\n%d在线
+%s\n%s\n%d online	%s\n%s\n%d 在线
 Lobby: lowest ping region	大厅：ping值最低的区域
 Lobby broker: %s%s. Servers of other regions are joined through their own broker.	大堂经纪人：%s%s。其他地区的服务器通过自己的broker加入。
  (auto)	 （自动）
 Lobby broker: public (regional brokers not reachable)	大厅经纪人：公共（无法联系到区域经纪人）
-Server icon (tap it for the next one)	服务器图标（点击它可查看下一个）
-Default (main_df_icon.png)	默认 (main_df_icon.png)
-Custom icon	自定义图标
+Server background (tap it for the next one)	服务器背景（点击查看下一个）
+Default (no background)	默认（无背景）
+Background %d / %d	背景 %d / %d
 Default	默认
-The default MP LAN Server always shows the default icon.	默认 MP LAN 服务器始终显示默认图标。
-Your own pictures: icon_1.png ... icon_250.png inside files/MP/Icons.jar (or loose in files/MP, max 256x256).	您自己的照片：icon_1.png ... icon_250.png 在 files/MP/Icons.jar 内（或松散在 files/MP, 中，最大 256x256）。
+The default server (Broker MQQ) always shows the default icon.	默认服务器（Broker MQQ）始终显示默认图标。
+Backgrounds: bg_1.jpg ... bg_250.jpg inside files/TYFMC/MP/bg_server.jar (or a loose icon_N.png in files/TYFMC/MP, max 512x512).	背景图：bg_1.jpg ... bg_250.jpg 位于 files/TYFMC/MP/bg_server.jar 中（或者 files/TYFMC/MP 中的 icon_N.png，最大 512x512）。
 Offline: turn on Wi-Fi or mobile data	离线：打开Wi-Fi或移动数据
+Connected  |  %d/%d  |  %d ms  |  loss %d%%  jitter %d ms%s	已连接 | %d/%d | %d 毫秒 | 丢包率 %d%% 抖动 %d 毫秒%s
+  |  weak link: x2	  | 薄弱环节：x2
 Connected  |  %d/%d  |  %d ms	已连接 |  %d/%d |  %d 毫秒
 Online  |  host: 	在线 |  主持人： 
 Online at %s  |  %d/%d  |  %d ms	在线：%s |  %d/%d |  %d 毫秒
@@ -527,10 +705,11 @@ Custom server permissions	自定义服务器权限
 Mission sync with somebody	与某人同步任务
 On: two players can sync up: they see each other on missions and share their mission markers.	开启：两个玩家可以同步：他们在任务中看到对方并共享他们的任务标记。
 Off: everyone is alone on missions; running mission syncs end.	关闭：每个人都独自执行任务；运行任务同步结束。
-Cheat Menu	作弊菜单
-On: players may use Cheat Menu (libCheatMenu.so / libCheatMenu64.so) on your server.	开启：玩家可以在您的服务器上使用作弊菜单 (libCheatMenu.so / libCheatMenu64.so)。
-Off: players with Cheat Menu (libCheatMenu.so / libCheatMenu64.so) can't join.	关闭：具有作弊菜单 (libCheatMenu.so / libCheatMenu64.so) 的玩家无法加入。
+Cheat Menu + MonetLoader cheats	作弊菜单 + MonetLoader 作弊
+On: players may use Cheat Menu (libCheatMenu.so / libCheatMenu64.so) and MonetLoader cheat mods (HG menu) on your server.	开启：玩家可以在您的服务器上使用作弊菜单（libCheatMenu.so / libCheatMenu64.so）和 MonetLoader 作弊模组（HG 菜单）。
+Off: players with Cheat Menu can't join, MonetLoader cheat mods (HG menu) stop.	关闭：使用作弊菜单的玩家无法加入，MonetLoader 作弊模组（HG 菜单）停止运行。
 Never on the default server. \"Disable cheats\" (Settings > Cheats) switches it off too.	永远不要在默认服务器上。 \"禁用作弊\"（设置 > 作弊）也会将其关闭。
+HG menu on by default for new custom servers	新自定义服务器默认启用 HG 菜单
 AFK (too long without moving)	AFK（太长时间不动）
 On: after 3 minutes without moving players get an AFK tag; after 20 minutes their seat is freed.	开启：3分钟后没有移动的玩家将获得AFK标签； 20 分钟后，他们的座位就空了。
 Off: nobody is marked AFK on your server.	关闭：您的服务器上没有人被标记为 AFK。
@@ -589,8 +768,10 @@ Tap a server to select it, tap Join to play on it.	点击服务器将其选中�
 Custom servers are always active: if nobody runs it, Join hosts it.	自定义服务器始终处于活动状态：如果没有人运行它，Join 会托管它。
 Gamemodes	游戏模式
 \"%s\" (the default server): every gamemode is ON (fixed).	\"%s\"（默认服务器）：每个游戏模式均处于开启状态（已修复）。
+Bounty Hunter	赏金猎人
 The default server has all of them. A custom server starts with none: turn on the ones you want.	默认服务器拥有所有这些。自定义服务器从无开始：打开您想要的服务器。
 Map icons and Chat bubbles are each player's own switches: Settings > Display / Chat.	地图图标和聊天气泡是每个玩家自己的开关：设置>显示/聊天。
+Bounty Hunter %s on \"%s\".	赏金猎人 %s 在 \"%s\"。
 All on	全部开启
 All off	全部关闭
 Only for a NEW server you create (Host). Servers that already exist keep their gamemodes - the one you are on is not changed.	仅适用于您创建的新服务器（主机）。已存在的服务器保留其游戏模式 - 您所在的服务器不会更改。
@@ -599,7 +780,7 @@ every gamemode	每个游戏模式
 no gamemodes	没有游戏模式
 24/7 server (mp_server): --gamemodes %s	24/7 服务器 (mp_server): --gamemodes %s
 Anti-cheat	反作弊
-Nex-AC checks on the server. Always on (every check) on the default server, Mega Vil Futuristic, Brief Case War and MW3.	Nex-AC 检查服务器。在默认服务器、Mega Vil Futuristic、Brief Case War 和 MW3 上始终开启（每次检查）。
+Nex-AC checks on the server. Always OFF on the default server; always on (every check) on Mega Vil Futuristic, Brief Case War and MW3.	Nex-AC 会在服务器上进行检查。在默认服务器上始终关闭；在 Mega Vil Futuristic、Brief Case War 和 MW3 服务器上始终开启（每次检查都会开启）。
 Staff (you, admins, moderators) only get the warning. Checks marked (cheat) are skipped while menu cheats are allowed.	工作人员（您、管理员、版主）只会收到警告。当允许菜单作弊时，会跳过标记为（作弊）的检查。
 Anti-cheat on my custom server	我的自定义服务器上的反作弊
  (cheat)	 （作弊）
@@ -618,13 +799,68 @@ Title	标题
 Rules title	规则标题
 Rule %d	规则%d
 Colours work like SA-MP: {FF0000}red {FFFF00}yellow {33CC55}green. Empty lines are skipped.	颜色的工作方式类似于 SA-MP：{FF0000}红色{FFFF00}黄色{33CC55}绿色。空行将被跳过。
+Max 8 tags.	最多 8 个标签。
+Server location	服务器位置
+Server location: %s	服务器位置：%s
+not set	未设置
+Close	关闭
+Customize	定制
+Clear	清除
+Find country	查找国家/地区
+Search (e.g. Philippines)	搜索（例如菲律宾）
+No country matches.	没有国家匹配。
+Gamemode (shown in the list)	游戏模式（显示在列表中）
+e.g. Freeroam, Deathmatch, Race	例如：自由漫游、死亡竞赛、竞速
+Freeroam	自由漫游
+Deathmatch	死斗
+Team DM	团队DM
+Race	竞赛
+Stunt	特技
+Drift	漂移
+Roleplay	角色扮演
+Zombies	僵尸
+Cops & Robbers	警察与强盗
+Gang War	打群架
+Minigames	小游戏
+Gamemode colour	游戏模式颜色
+More gamemodes (shown next to the first one, your own names are fine)	更多游戏模式（显示在第一个模式旁边，您可以自定义名称）
+Third gamemode	第三种游戏模式
+Second gamemode	第二游戏模式
+e.g. Zombies (line 2)	例如：僵尸（第 2 行）
+e.g. Bounty Hunter	例如赏金猎人
+Tags (%d/8) - tap to add / remove	标签（%d/8）- 点击添加/移除
+no rules	没有规则
+Custom tag	自定义标签
+Type a tag and press Done	输入标签并按完成。
+Server description	服务器描述
+What is your server about?	你的服务器是做什么的？
+Preview image (JPG / PNG)	预览图（JPG / PNG）
+Loading...	正在加载...
+No preview image: the list shows your server background.	没有预览图：列表显示的是您的服务器背景。
+Preview image saved.	预览图像已保存。
+Waiting for the Files app...	正在等待“文件”应用……
+Upload preview image (opens Files)	上传预览图（打开文件）
+Install MP Voice (MP-Voice.apk from the release): it opens the Files app for the game.	安装 MP Voice（MP-Voice.apk 来自发行版）：它会打开游戏的“文件”应用。
+No picture came back (cancelled, or not a JPG / PNG).	没有返回图片（已取消，或不是 JPG / PNG 格式）。
+Remove preview image	移除预览图
+Shown in the server details (internet lobby + this phone). It is resized to 512x256.	显示在服务器详情中（互联网大厅 + 此手机）。图片尺寸已调整为 512x256。
+Server title logo (PNG / JPG)	服务器标题徽标（PNG / JPG）
+No title logo: the default Broker MQTT title is shown.	无标题徽标：显示默认的 Broker MQTT 标题。
+Title logo saved - everyone on your server sees it on top of the screen.	标题徽标已保存 - 服务器上的每个人都能在屏幕顶部看到它。
+Import title logo (opens Files)	导入标题徽标（打开文件）
+Install MP Voice 4.07 (MP-Voice.apk from the release): it opens the Files app for the game.	安装 MP Voice 4.07（MP-Voice.apk 来自发布版本）：它会打开游戏的“文件”应用程序。
+No picture came back (cancelled, or not a PNG / JPG).	没有返回图片（已取消，或不是 PNG / JPG 格式）。
+Remove title logo	移除标题标志
+Title logo position (X, Y) and size (Z)	标题标志位置（X，Y）和大小（Z）
+Z size (%)	Z 尺寸 (%)
+Reset logo position	重置徽标位置
+PNG keeps transparency. Max 1024x256, 200 KB. The host can hide it: /settings > Textdraw > Logo Server.	PNG 格式保持透明度。最大尺寸 1024x256，200 KB。主机可以隐藏它：/settings > Textdraw > Logo Server。
 Custom server  -  %s	自定义服务器 - %s
 Server name	服务器名称
 Host / IP  (empty = host it on this phone)	主机/IP（空=在此手机上托管）
 e.g. ggwar or net.ggwar.org	例如ggwar 或 net.ggwar.org
 Password (optional, max 16)	密码（可选，最多 16 个）
 Password (max 16)	密码（最多 16 个）
-Language	语言
 Language (e.g. English)	语言（例如英语）
 Max players	最大玩家数
 %d players	%d 名玩家
@@ -636,6 +872,8 @@ Add server  (host on this phone)	添加服务器（此手机上的主机）
 Brief Case War is a private gamemode server - it is always in the Internet list, just tap it.	Brief Case War 是一个私人游戏模式服务器 - 它始终在互联网列表中，只需点击它即可。
 Modern Warfare 3 is a 24/7 featured server - it is always in the Internet list, just tap it.	现代战争 3 是一个 24/7 特色服务器 - 它总是在互联网列表中，只需点击它即可。
 Mega Vil Futuristic is a 24/7 featured Roleplay server - it is always in the Internet list, just tap it.	Mega Vil Futuristic 是一个 24/7 特色角色扮演服务器 - 它总是在互联网列表中，只需点击它即可。
+Project Day Z Legacy is a 24/7 featured server - it is in Internet > Featured, just tap it.	Project Day Z Legacy 是一个全天候 24/7 的特色服务器 - 它位于“互联网 > 特色”中，点击即可。
+Rocket League is a 24/7 featured server - it is in Internet > Featured, just tap it.	Rocket League 是一个全天候 24/7 的特色服务器 - 它位于“互联网 > 特色”中，点击即可。
 Port %d is for the default server. Use %d or higher for a custom server.	端口 %d 用于默认服务器。对于自定义服务器，请使用 %d 或更高版本。
 Port %d is taken - it needs a new port. Free port: %d (tap \"Use free port %d\").	端口 %d 已被占用 - 它需要一个新端口。自由端口：%d（点按\"使用自由端口%d\"）。
 Port %d is taken - type another port.	端口 %d 已被占用 - 输入另一个端口。
@@ -663,6 +901,36 @@ Disconnect	断开连接
 Same Wi-Fi / hotspot: type the host's local IP and port, then Connect.	相同 Wi-Fi/热点：输入主机的本地 IP 和端口，然后连接。
 This phone: %s - port %d	此电话：%s - 端口 %d
 Hotspot: turn on your phone hotspot, host a server, friends join 192.168.43.1.	热点：打开手机热点，托管服务器，好友加入192.168.43.1。
+Connection screen	连接屏幕
+Cinematic Join Camera	电影式镜头切换
+Cinematic Join Camera %s on \"%s\" (players who join from now on).	电影式加入摄像机 %s 在 \"%s\" 上（从现在开始加入的玩家）。
+On: once a player is connected, the camera glides over Los Santos (the beach, the airport, Vinewood, downtown, Grove Street) in one continuous move, behind the spawn picker.	开启：一旦玩家连接，镜头就会在重生点选择器后面，以连续的移动方式滑过洛圣都（海滩、机场、好莱坞、市中心、格罗夫街）。
+Off: the classic black connection screen.	关闭：经典的黑色连接屏幕。
+The default server and Mega Vil Futuristic Roleplay always have it.	默认服务器和 Mega Vil 未来角色扮演服务器都有。
+Development stage	发展阶段
+Server in development notice	服务器开发通知
+Development notice %s on \"%s\" (players who join from now on).	开发通知 %s 于 \"%s\"（从现在开始加入的玩家）。
+On: players who join see \"This server is in development\" after they are connected and spawned. Turn it off when your server is finished.	开启：玩家加入服务器后会看到\"此服务器正在开发中\"，连接并生成后即可关闭此提示。服务器开发完成后请关闭此提示。
+Off: the server is finished, no notice.	关闭：服务器已结束，无任何通知。
+BrowserFormat Join/Leave	浏览器格式 加入/离开
+BrowserFormat Join/Leave %s on \"%s\" (players who join from now on).	BrowserFormat 加入/离开 %s 于 \"%s\"（从现在开始加入的玩家）。
+Join format	加入格式
+Join line, e.g. {33CC33}+ {FFFFFF}{name} joined {server}	连接线，例如 {33CC33}+ {FFFFFF}{name} 加入了 {server}
+Leave format	离开格式
+Leave line, e.g. {FF3030}- {FFFFFF}{name} left ({reason})	留空行，例如 {FF3030}- {FFFFFF}{name} 已离开（{reason}）
+Reset to the browser format	重置为浏览器格式
+{name} = the player, {server} = your server, {reason} = why they left (Timeout, Kicked...), {RRGGBB} = a colour. Empty = the browser format.	{name} = 玩家名称，{server} = 您的服务器，{reason} = 玩家离开的原因（超时、被踢出……），{RRGGBB} = 颜色。留空 = 浏览器格式。
+your server	您的服务器
+Disconnected from the server	已与服务器断开连接
+Connected to the server	已连接到服务器
+On: join / leave lines in the chat use this browser format on your server.	在聊天中加入/离开语音时，请使用服务器上的此浏览器格式。
+Off: the classic \"*** name joined the server.\" lines. The default server (Broker MQQ) always uses the browser format.	关闭：经典的 \"*** 名称已加入服务器。\" 行。默认服务器（Broker MQQ）始终使用浏览器格式。
+Welcome message	欢迎信息
+Custom welcome message	自定义欢迎信息
+Custom welcome message %s on \"%s\" (players who join from now on).	自定义欢迎消息 %s 在 \"%s\" 上（从现在开始加入的玩家）。
+e.g. Welcome to {server}, {name}!	例如：欢迎来到{server}，{name}！
+On: players who join your server see this message after \"Connected successfully!\". {name} = their name, {server} = the server name, {FF0000} colours work.	开启：加入您服务器的玩家在 \"连接成功！\" 后会看到此消息。{name} = 玩家名称，{server} = 服务器名称，{FF0000} 种颜色有效。
+Off: the normal \"Welcome to <your server>\" message.	关闭：正常的\"欢迎来到<您的服务器>\"消息。
 Authentication system	认证系统
 Login with Discord	使用 Discord 登录
 Login system %s on \"%s\" (players who join from now on).	于 \"%s\" 登录系统 %s（从现在开始加入的玩家）。
@@ -670,7 +938,19 @@ On: a new player gets a code, types /gen CODE in #verification on Discord, then 
 Off: players spawn right away (no account).	关闭：玩家立即生成（无帐户）。
 Discord: %s  (accounts are kept by the MP bot, never by the host, never shown to the others)	Discord：%s（帐户由 MP 机器人保存，而不是由主机保存，也不会向其他人显示）
 The default server and Brief Case War always use it. Needs MP %s or newer on every phone.	默认服务器和Brief Case War始终使用它。每部手机都需要 MP %s 或更高版本。
+IN DEVELOPMENT: this server login system is on the developing stage. We are updating it on the MP website (mpsamp-open.github.io) - players who join will see this notice first.	开发中：此服务器登录系统尚处于开发阶段。我们正在多人游戏网站 (mpsamp-open.github.io) 上进行更新——加入游戏的玩家将首先看到此通知。
 \"%s\": login %s	\"%s\"：登录%s
+Switch region	切换区域
+Now: %s%s	现在：%s%s
+Auto - 	汽车 - 
+not connected to a lobby yet	尚未连接到大厅
+Auto (lowest ping)%s%s	自动（最低延迟）%s%s
+public lobby	公众游说
+%s  -  same server as %s	%s - 与 %s 相同的服务器
+%s  -  %d ms	%s - %d 毫秒
+standby (public lobby in use)	备用（公共大厅正在使用中）
+-- ms	——女士
+Also on the launcher: the region icon at the top.	启动器顶部还有区域图标。
 administrator.txt OK - this is how everyone sees you (name tag, chat, kill feed).	administrator.txt好的 - 这就是每个人对您的看法（姓名标签、聊天、关闭动态）。
 Connect  -  %s (default)	连接 - %s（默认）
 Connecting...  (tap to cancel)	正在连接...（点击取消）
@@ -680,10 +960,29 @@ On \"%s\"  (%s)	\"%s\" (%s)
 internet, direct UDP	互联网，直接UDP
 IP hidden	IP隐藏
 Offline: turn on Wi-Fi or mobile data to play.	离线：打开Wi-Fi或移动数据即可播放。
+Waiting for the 24/7 host of \"%s\"...	等待全天候 (24/7) 的 \"%s\" 主机...
 Host left - reconnecting to \"%s\"...	主机已离开 - 正在重新连接到 \"%s\"...
 Connect = the default server, always online.	Connect = 默认服务器，始终在线。
 Custom servers: Servers tab -> Join.	自定义服务器：服务器选项卡 -> 加入。
 Players online: %d/%d	在线玩家：%d/%d
+Solo: %s	单人：%s
+Test	测试
+MP volume	MP 音量
+Every MP sound at once. Changes right away, also while something plays.	所有MP音效同时响起。即使播放内容时也会立即切换。
+Host media player	主机媒体播放器
+Solo (Host/Media/solo.m4a, 1:01:40) - streamed from the media host, played to the end.	Solo（Host/Media/solo.m4a，1:01:40）- 从媒体主机流式传输，播放到结束。
+Play Solo when I join Broker MQQ	加入经纪商 MQQ 时选择单人游戏
+Restart Solo	重新开始单人模式
+Play Solo	单人游戏
+Stop	停止
+(Solo volume)	（独奏部分）
+Host Media sounds	Host Media 的声音
+Every sound from the media host (Host/Media). 100 %% = normal, 0 = muted, up to 150 %%.	来自媒体主机（主机/媒体）的每个声音。100 %% = 正常，0 = 静音，最高 150 %%。
+Server audio streams	服务器音频流
+(SA-MP / open.mp / MP servers)	（SA-MP / open.mp / MP 服务器）
+MP folder sounds (files/TYFMC/MP)	MP文件夹声音（文件/TYFMC/MP）
+No other mp3 / m4a in the MP folder.	MP文件夹中没有其他mp3/m4a文件。
+Reset every volume to 100 %	将所有音量重置为 100%。
 Sound effects	音效
 Hitsound effect	击打音效
 Enabled: a hit sound plays when you hit a player (guns, fists, melee, drive-by, cars).	启用：当你击中玩家（枪、拳头、近战、驾车、汽车）时，会发出击中声音。
@@ -693,6 +992,9 @@ sound_010.mp3 is missing from the MP folder (assets/MP).	MP 文件夹 (assets/MP
 Voice chat	语音聊天
 Voice chat (hear players near you)	语音聊天（听到您附近的玩家的声音）
 Only on a server. Turn your mic on/off with the mic button next to Chat at the top. Players within 40 m hear you: louder up close, quieter further away.	仅在服务器上。使用顶部“聊天”旁边的麦克风按钮打开/关闭麦克风。 40 m 内的玩家可以听到您的声音：近距离声音更大，远处声音更小。
+SampVoice on PC servers	PC 服务器上的 SampVoice
+On: on PC servers with SampVoice (Life of Player, RP servers) you hear the PC players and they hear you when your mic is on.	开启：在安装了 SampVoice 的 PC 服务器上（玩家生活、角色扮演服务器），当你的麦克风打开时，你可以听到 PC 玩家的声音，他们也可以听到你的声音。
+Off: on PC servers you don't hear SampVoice and nobody there hears you. The server still sees the voice plugin, so you can join.	关闭：在PC服务器上，你听不到SampVoice的声音，其他服务器也听不到你的声音。服务器仍然能检测到语音插件，所以你可以加入游戏。
 Voice volume	语音音量
 Microphone boost	麦克风增强
 Voice pitch (how the others hear you)	音调（其他人如何听到你的声音）
@@ -722,6 +1024,46 @@ Hear myself (test the pitch, use earphones)	听听我自己的声音（测试音
 Muted in the player list: %d	在玩家列表中静音：%d
 Unmute all	全部取消静音
 Like real life: players right next to you are loud, further away they get quieter, past %d m you can't hear them. Walk closer to hear someone.	就像现实生活一样：您旁边的玩家声音很大，距离越远，他们就越安静，超过 %d 米您就听不到他们的声音。走近一点听听有人说话。
+Example text	示例文本
+Advanced Settings (libAdvancedSettings.SA.so) is installed, so it draws the HUD. MP puts its Compact HUD (clock right above the money, health and armor bars right under it, next to the weapon icon) into Advanced Settings' own settings file.	高级设置 (libAdvancedSettings.SA.so) 已安装，因此会绘制 HUD。多人游戏模式会将紧凑型 HUD（时钟位于金钱条正上方，生命值条和护甲条位于其下方，武器图标旁边）放入高级设置自身的设置文件中。
+HUD layout	HUD布局
+HUD written to Advanced Settings. It changes in a moment (restart the game if it does not).	HUD已写入高级设置。它很快就会更改（如果未更改，请重新启动游戏）。
+Could not write the Advanced Settings ini (see the MP log).	无法写入高级设置 ini 文件（请参阅 MP 日志）。
+HUD size	HUD尺寸
+HUD size written to Advanced Settings.	HUD尺寸已写入高级设置。
+Could not write the Advanced Settings ini.	无法写入高级设置ini文件。
+PC small: a small clock, money and bars in the top right corner and the radar down in the bottom left, like the PC game.	PC 小图标：右上角有一个小时钟、金钱和条形图标，左下角有一个雷达图标，就像 PC 游戏一样。
+Custom GTA HUD (Advanced Settings)	自定义 GTA HUD（高级设置）
+Compact HUD written to Advanced Settings. It changes in a moment (restart the game if it does not).	精简版HUD已写入高级设置。它会立即生效（如果未生效，请重启游戏）。
+Your own Advanced Settings ini is back.	您的高级设置ini文件已恢复。
+Apply again	再次申请
+HUD written to Advanced Settings.	HUD已写入高级设置。
+Restore my ini	恢复我的 ini 文件
+No backup to restore.	没有备份可供恢复。
+File: %s	文件：%s
+Custom GTA HUD	自定义 GTA HUD
+On: the game's HUD uses the values below.	开启：游戏的HUD使用以下数值。
+On: change a value to apply it.	开启：更改值以应用该值。
+Off: the game's own HUD (nothing is changed).	关闭：游戏自带的 HUD（没有任何变化）。
+Compact (default): the clock right above the money, the health and armor bars right under it, next to the weapon icon. PC small: the same, smaller, in the top right corner, and the radar in the bottom left. Fine-tune below.	紧凑型（默认）：时钟位于金钱图标正上方，生命值和护甲条位于其下方，武器图标旁边。PC 小尺寸：时钟位于右上角，但尺寸更小；雷达位于左下角。下方可进行微调。
+HUD part	HUD部分
+Show	展示
+X (left / right)	X（左/右）
+Y (up / down)	Y（上/下）
+Z (zoom)	Z（缩放）
+Size	尺寸
+Width	宽度
+Height	身高
+Alpha	阿尔法
+Reset this part	重置此部分
+Reset all	全部重置
+Default (the game's menu)	默认（游戏菜单）
+MP (Multiplayer button)	MP（多人游戏按钮）
+Neon (new main menu)	霓虹灯（新主菜单）
+Main menu	主菜单
+[MultiPlayer] button on the game's menu: always on	游戏菜单中的[多人游戏]按钮：始终开启
+Restart the game to see it (the menu hook could not be added now).	重新启动游戏即可查看（目前无法添加菜单钩子）。
+Shown on the game's title menu (before a game is loaded).	在游戏标题菜单中显示（游戏加载之前）。
 Name tag size	姓名牌尺寸
 Name tag distance	姓名牌距离
 Name tag: show yourself	姓名标签：展示自己
@@ -737,15 +1079,30 @@ Text effect	文字效果
 Font scale	字体比例
 UI scale	用户界面比例
 No camera shake	无相机抖动
+Keyboard	键盘
+MP keyboard	MP键盘
+Phone keyboard	电话键盘
+Phone keyboard: chat and text boxes open your phone's own keyboard (Gboard, SwiftKey...) in a small box - OK sends.	手机键盘：聊天和文本框会在一个小框中打开手机自带的键盘（Gboard、SwiftKey 等）——点击 OK 发送。
+MP keyboard: MP's own on-screen keyboard with emojis, GIFs and paste (default).	MP键盘：MP自带的屏幕键盘，带有表情符号、GIF和粘贴功能（默认）。
 Health bars	生命棒
 Player radar icons	玩家雷达图标
 Chat	聊天
+Chat fade	聊天淡出
+Fade out after	之后淡出
+%d seconds	%d 秒
+Chat lines fade away after the time above.	聊天记录会在上述时间后消失。
+Chat fade is off: the chat lines stay on the screen.	聊天淡入淡出功能已关闭：聊天文本将一直显示在屏幕上。
+Server chat color	服务器聊天颜色
+Default (the server's own colors)	默认值（服务器自身的颜色）
+Server and system messages (welcome, rules, jobs, kills ...). Default keeps the colors the server sends.	服务器和系统消息（欢迎信息、规则、任务、击杀记录……）。默认情况下保留服务器发送的颜色。
+Player chat color	玩家聊天颜色
+Default (white)	默认（白色）
+The text players type (their name keeps its own color). Only on your screen.	玩家输入的文字（他们的名字会显示不同的颜色）。仅显示在您的屏幕上。
 Kill feed	杀饲料
 Server modes are locked on this server (only the owner, [ADMIN] or [MOD]).	服务器模式在此服务器上被锁定（仅限所有者，[ADMIN] 或 [MOD]）。
 Sync player animations	同步播放器动画
 Sync explosions, fire, weapons	同步爆炸、火焰、武器
 Sync NPCs (people + traffic)	同步 NPC（人员+交通）
-Broker standby #%d/100 (host offline featured servers)	Broker 备用 #%d/100（托管离线特色服务器）
 Open world (cities, shops, food, gyms, garages)	开放世界（城市、商店、食物、健身房、车库）
 Girlfriend houses (optional)	女朋友的房子（可选）
 [Race] / [DM] / [Job] tips in the chat	聊天中的[种族]/[DM]/[工作]提示
@@ -758,6 +1115,8 @@ Game radar	游戏雷达
 Google map 2D	谷歌地图 2D
 Google map 3D	谷歌地图 3D
 MW3: PUBG compass on top	MW3：顶部的 PUBG 指南针
+Day Z: MTA DayZ models (download)	Day Z：MTA DayZ 模型（下载）
+Day Z: GTA V world textures (129 MB download)	DayZ：GTA V 世界纹理（129 MB 下载）
 Chat position + chat box	聊天位置+聊天框
 Show chat background (strip behind the lines)	显示聊天背景（线条后面的条）
 Show chat box background	显示聊天框背景
@@ -781,13 +1140,16 @@ Lines shown (0 = only while typing)	显示行数（0 = 仅在键入时）
 Text size	文字大小
 Width (long lines wrap)	宽度（长线换行）
 %d %% of the screen	屏幕的 %d %%
-Fade out after	之后淡出
-%d seconds	%d 秒
 Chat bubbles (text over the head)	聊天气泡（头上有文字）
+Stretch server textdraws (PC style)	拉伸服务器文本绘制（PC 风格）
 Small chat (4 lines, 70 %)	简短聊天（4 行，70 %）
 Reset chat layout	重置聊天布局
 Clear chat	清除聊天记录
 Chat commands: /chatscale /pagesize /fontsize /chatwidth /chatfade /chatbg /clearchat	聊天命令：/chatscale /pagesize /fontsize /chatwidth /chatfade /chatbg /clearchat
+Menus, the launcher, the HUD and server messages change at once. Player chat stays as it was typed.	菜单、启动器、HUD 和服务器消息同时发生变化。玩家聊天记录保持不变。
+%s is not installed: files/TYFMC/MP/lang/%s.lng is missing (it comes with the MP full / client zip).	%s 未安装：files/TYFMC/MP/lang/%s.lng 缺失（它随 MP 完整版/客户端 zip 一起提供）。
+Loading the font for %s... (the game keeps running)	正在加载 %s 的字体……（游戏继续运行）
+Machine translated (%d texts). Chinese, Japanese, Korean and Thai use your phone's own font.	机器翻译（%d 条文本）。中文、日文、韩文和泰文使用您手机的默认字体。
 Name color	名称颜色
 Shows on your name tag, chat, kill feed and radar icon.	显示在您的姓名标签、聊天、kill feed 和雷达图标上。
 Custom color (R / G / B)	自定义颜色（R/G/B）
@@ -819,11 +1181,12 @@ Da Nang 3	岘港 3
 Country cop	乡村警察
 Biker cop	骑自行车的警察
 Army	陆军
-Show my real model (skin mods, story characters, CJ's clothes)	展示我的真实模型（皮肤模型、故事人物、CJ 的衣服）
+Show my real model (skin mods, story characters)	展示我的真实模型（皮肤修改、故事角色）
+Sync CJ's clothes (same game files only)	同步CJ的服装（仅限相同的游戏文件）
+Leave it off when you and your friends use different modpacks (custom skins / cars / clothes).	当你和你的朋友使用不同的模组包（自定义皮肤/汽车/服装）时，请将其关闭。
 Others see you as: %s	其他人将您视为：%s
 Others see you as: ped model %d	其他人将您视为：ped 模型 %d
 Teleport to Grove Street	传送到格罗夫街
-100% progress on the default server	默认服务器上的进度为 100% p
 All missions done while you play on the default server. Leaving it loads your own latest save again (your saves are backed up and put back). Custom servers always use your own progress.	在默认服务器上玩游戏时完成的所有任务。离开它会再次加载您自己的最新保存（您的保存将被备份并放回）。自定义服务器始终使用您自己的进度。
 Connection	连接方式
 Servers	服务器
@@ -831,37 +1194,117 @@ Display	显示
 Sound	声音
 Voice	语音
 Cheats	秘籍
+Screen recording is locked on MP. To record, DM JebetrexxMC on Discord (discord.gg/QSdtut3SWV) for your src_Access.txt, put it in the MP folder and restart the game.	多人游戏模式下屏幕录制功能已锁定。如需录制，请在 Discord 上私信 JebetrexxMC (discord.gg/QSdtut3SWV) 获取您的 src_Access.txt 文件，将其放入多人游戏文件夹并重启游戏。
+[id] [reason]	[id] [原因]
+kick a player	踢球员
+ban a player (moderators kick on BCW / MW3 / Mega Vil)	封禁玩家（版主在 BCW / MW3 / Mega Vil 中踢出玩家）
+[number|name]	[数字|名称]
+unban (see /bans)	解除禁令（参见/bans）
+list the banned players	列出被禁赛的球员名单
+warn a player (3 warnings = kick)	警告一名球员（3次警告=踢出场）
+[id]	[ID]
+mute the player's chat (/unmute [id])	将玩家的聊天静音（/unmute [id]）
+set health	设置健康
+set armour	套装盔甲
+[id] [amount] [reason]	[id] [金额] [原因]
+take money from a player	从玩家那里拿钱
+[id] [amount]	[id] [金额]
+give money to a player	给玩家钱
+[id] [minutes]	[id] [分钟]
+block /report for a player (0 = allow again, default 30)	阻止玩家 /report（0 = 允许再次尝试，默认值为 30）
+go to a player	去找玩家
+bring a player to you	带一名球员来你这里
+give / take the [VIP] tag	给予/接受 [VIP] 标签
+give / take moderator rights [MOD]	授予/取消版主权限 [MOD]
+reset money, weapons and server stats of a player	重置玩家的金钱、武器和服务器统计数据
+give a player a cookie	给玩家一块饼干
+embed: logo: message: timer: start: end:	嵌入：徽标：消息：计时器：开始：结束：
+pop-up notification for everyone (/notify clear)	向所有人弹出通知（/notify 清除）
+everyone: give your own money to a player	所有人：把自己的钱捐给一名球员
+Staff commands (id = number from the player list, or part of the name):	工作人员指令（id = 球员列表中的编号，或姓名的一部分）：
+You are not on a server.	您当前不在服务器上。
+/report [id] [what happened]  -  sends it to the [ADMIN] / [MOD] online.	/report [id] [发生了什么] - 将其发送到 [ADMIN] / [MOD] 在线。
+More than one player matches \"%s\" - use the id.	有多个玩家匹配 \"%s\" - 使用 id。
+No player \"%s\".	没有玩家 \"%s\"。
+/pay [id] [amount]  -  gives your money to a player ($1 - $1,000,000).	/pay [id] [金额] - 将您的钱给玩家（1 美元 - 1,000,000 美元）。
+/pay: at most $1,000,000 at a time.	/pay：每次最多 1,000,000 美元。
+You don't have $%lld (you have $%d).	你没有 $%lld（你有 $%d）。
+/%s is for [ADMIN], [MOD] and the server owner.	/%s 是给 [ADMIN]、[MOD] 和服务器所有者的。
+/unban [number|name]  -  /bans shows the list.	/unban [数字|名称] - /bans 显示列表。
+Usage: /%s %s	用法：/%s %s
+%s set your health to %d.	%s 将您的健康值设置为 %d。
+%s set your armour to %d.	%s 将你的盔甲设置为 %d。
+%s gave you $%d.	%s 给了你 $%d。
+%s fined you $%d.	%s 罚款你$%d.
+Teleported to %s.	传送到%s。
+Your stats were reset by %s.	您的统计数据已重置为 %s。
+WARNING %d/3 from %s: %s	警告 %d/3 来自 %s：%s
+the staff	工作人员
+One more warning and you are kicked.	再警告一次就开除你。
+%s gave you a cookie. You have %d cookie%s.	%s 给了你一个 cookie。你现在有 %d 个 cookie%s。
 User	用户
 Password	密码
 Age	年龄
+New password	新密码
+Confirm	确认
 Male	男
 Female	女
 Other	其他
-# the game logs you in by itself. Delete it (or log out) to use another account.\nuser=%s\n	# 游戏会自动让您登录。删除它（或注销）以使用其他帐户。\nuser=%s\n
+/storage/emulated/0/Android_unprotected/data	/storage/emulated/0/Android_unprotected/数据
+updated=%lld\n	更新时间=%lld\n
+updated=%lld	更新时间=%lld
+# MP login service (5.00.05): keeps this phone logged in (game, Moquil, MP Textdraw Editor).\n	# MP 登录服务 (5.00.05): 保持此手机登录状态（游戏、Moquil、MP Textdraw 编辑器）。\n
+# MP login service (5.00.05): keeps this phone logged in (game, Moquil, MP Textdraw Editor).	# MP 登录服务 (5.00.05): 保持此手机登录状态（游戏、Moquil、MP Textdraw 编辑器）。
+# No password in here. Don't share this file. Deleted? Open the game: it is made again.\n	# 此处无密码。请勿分享此文件。已删除？打开游戏：它已重新生成。\n
+# No password in here. Don't share this file. Deleted? Open the game: it is made again.	# 此处无密码。请勿分享此文件。删除了？打开游戏：它已重新生成。
+dev=	开发=
+\nuser=	\n用户=
+user=	用户=
+\nlogin=	\n登录=
+login=	登录=
+discord=	不和谐=
+\nusers=	\n用户=
+users=	用户=
+# MP login: random id of this phone (keeps a Discord /gen across a game restart)\ndev=	# MP 登录：此手机的随机 ID（游戏重启后保留 Discord /gen）\ndev=
+# MP login: random id of this phone (keeps a Discord /gen across a game restart)	# MP 登录：此手机的随机 ID（游戏重启后 Discord /gen 保持不变）
+# MP login: the account on this phone (no password is kept). Keep this file when you update the mod:\n	# MP 登录：此手机上的帐户（不保存密码）。更新 mod 时请保留此文件：\n
+# MP login: the account on this phone (no password is kept). Keep this file when you update the mod:	# MP登录：此手机上的账号（不保存密码）。更新mod时请保留此文件：
+# the game logs you in by itself. Delete it (or log out) to use another account.\nuser=	# 游戏会自动登录。删除此账号（或注销）即可使用其他账号。\nuser=
 # the game logs you in by itself. Delete it (or log out) to use another account.	# 游戏会自动让您登录。删除它（或注销）以使用其他帐户。
-user=%s	用户=%s
+# MP accounts on this phone (max %d, newest first, no passwords)\n	此手机上的 MP 帐户数（最多 %d 个，最新帐户优先，无密码）\n
+# MP accounts on this phone (max %d, newest first, no passwords)	此手机上的 MP 账号数量（最多 %d 个，按最新账号排序，无密码）
+Logged out. Join a login server and tap \"New account\" to make another account (max %d per Discord).	已登出。加入登录服务器，点击\"新账号\"即可创建另一个账号（每个 Discord 服务器最多可创建%d个账号）。
+Switched to %s. Join a server and log in.	已切换至%s。加入服务器并登录。
+Logged out%s%s.	已登出%s%s。
+ of 	 的 
+The login system is off on this server.	此服务器的登录系统已关闭。
 Your account was created successfully. Welcome, %s.	您的帐户已成功创建。欢迎，%s。
 Logged in as %s.	以 %s 身份登录。
-user=	用户=
-discord=	不和谐=
 tap to type	点击输入
 your account	你的帐户
 Logging in as %s	以 %s 身份登录
 Connecting to the login server	连接到登录服务器
+Forgot username	忘记用户名
+Forgot password	忘记密码
 Code authentication	代码认证
 Welcome	欢迎
 Login	登录
+PROJECT DAY Z  |  	项目日 Z |  
 MEGA VIL FUTURISTIC  |  	MEGA VIL 未来派 |  
 MODERN WARFARE 3  |  	现代战争 3 |  
 BRIEF CASE WAR  |  	简短的案例战争|  
 MP  |  	国会议员 |  
 Logging in	正在登录
+Forgot your username? Prove the Discord of your account:	忘记用户名？请验证您的 Discord 帐户：
+Forgot your password? Prove the Discord of your account:	忘记密码？请验证您的 Discord 帐户：
 This server uses accounts. Verify with Discord first:	该服务器使用帐户。首先用 Discord 验证：
 1.  Join the Discord server:	1. 加入Discord服务器：
 2.  In the #verification channel type:	2. 在#verification 通道中输入：
 Waiting for /gen...  (code works %d:%02d more)	正在等待 /gen...（代码可运行 %d：%02d 个以上）
+Or on Discord: /forgotuser shows it, /resetpass sets a new password.	或者在 Discord 上：/forgotuser 显示密码，/resetpass 设置新密码。
 Open Discord	开放不和谐
 New code	新代码
+Back to Login	返回登录
 I have an account: Login	我有一个帐户： 登录
 Leave server	离开服务器
 Discord verified: %s	Discord 已验证：%s
@@ -870,7 +1313,12 @@ User 3-20 letters / numbers / _   Password 6-32   Age 10-24	用户 3-20 个字�
 Create	创建
 Age must be 10-24.	年龄必须为 10-24 岁。
 Welcome back. Log in to play.	欢迎回来。登录即可玩。
+Forgot username?	忘记用户名？
+Forgot password?	忘记密码？
 New account (Discord code)	新帐户（不一致代码）
+Password 6-32. Your other phones get logged out.	密码为 6-32。您的其他手机将被登出。
+Save & Login	保存并登录
+Password must be 6-32 characters.	密码长度必须为 6-32 个字符。
 Your account was created successfully	您的帐户已成功创建
 Welcome, %s	欢迎，%s
 Login failed.	登录失败。
@@ -878,7 +1326,6 @@ Try again	再试一次
 Log in first.	首先登录。
 No account here: this server has no login system (the default server and Brief Case War have it).	这里没有帐户：该服务器没有登录系统（默认服务器和Brief Case War都有）。
 My account  (only you see this)	我的帐户（只有你看到这个）
-Loading...	正在加载...
 Could not load your account.	无法加载您的帐户。
 Discord	不和谐
 Created	已创建
@@ -886,7 +1333,6 @@ Logins	登录
 Last login	上次登录
 Score here	在这里得分
 Server	服务器
-Close	关闭
  [Leader]	 [领导者]
 %s STOLE THE %s BRIEFCASE	%s偷了%s公文包
 %s stole the %s briefcase!	%s偷了%s公文包！
@@ -908,7 +1354,7 @@ WAR! STEAL THE ENEMY BRIEFCASE	战争！偷敌人的公文包
 Brief Case War started on %s. Steal the enemy briefcase and bring it to your base.	公文包大战于 %s 开始。偷走敌人的公文包并将其带到你的基地。
 NEXT MAP: %s	下一张地图：%s
 Next map: %s. Pick your team.	下一张地图：%s。选择你的团队。
-Put war_ambient.mp3 in files/MP to hear the war music.	将war_ambient.mp3放入files/MP即可听到战争音乐。
+No internet for the war music (or put war_ambient.mp3 in files/TYFMC/MP).	没有网络，无法播放战争音乐（或者将 war_ambient.mp3 放入 files/TYFMC/MP 目录）。
 You are in %s. Steal the %s briefcase!	您位于%s。偷走%s公文包！
 Schelapz	舍拉普兹
 Gustav	古斯塔夫
@@ -963,6 +1409,115 @@ Rhino (tank)	犀牛（坦克）
 Hunter (fighter helicopter)	猎人（战斗机直升机）
 Vehicle	车辆
 Left Brief Case War.	左公文包战争。
+Bounty Hunter (Blood Deathmatch): a bounty on every head (+$100 per kill in a row), kill rewards, multi kills 	赏金猎人（血腥死亡竞赛）：每杀一人都有赏金（连续击杀每增加 100 美元），击杀奖励，多次击杀 
+(Killing Spree, Double Kill, Triple Kill ... within 45 s), duels (/duel id), K / D / Ratio / Duel / Level under the radar. 	（45 秒内完成连杀、双杀、三杀……），决斗（/duel id），K / D / 比率 / 决斗 / 等级，悄无声息。 
+Always on on Broker MQQ.	始终在经纪商 MQQ 上。
+Fist	拳头
+Explosion	爆炸
+Drowned	溺水
+Fall	落下
+Rpg	角色扮演游戏
+Weapon	武器
+{DC2626}>> {C08454}The duel between {FFFFFF}%s {C08454}and {FFFFFF}%s {C08454}has begun!	{DC2626}>> {C08454}{FFFFFF}%s {C08454}与{FFFFFF}%s {C08454}之间的决斗开始了！
+{DC2626}>> {FFFFFF}%s {C08454}joined the {DC2626}Blood Deathmatch {C08454}for the first time. Welcome!	{DC2626}>> {FFFFFF}%s {C08454}首次加入{DC2626}血腥死亡竞赛{C08454}。欢迎！
+{DC2626}>> {FFFFFF}%s {C08454}challenges you to a duel! {FFFFFF}/accept {C08454}or {FFFFFF}/decline	{DC2626}>> {FFFFFF}%s {C08454}向你发起决斗挑战！{FFFFFF}/accept {C08454}或{FFFFFF}/decline
+{DC2626}>> {FFFFFF}%s {C08454}declined your duel.	{DC2626}>> {FFFFFF}%s {C08454}拒绝了你的决斗。
+{DC2626}>> {C08454}Your duel is over: the other player left.	{DC2626}>> {C08454}你的决斗结束了：对方玩家离开了。
+Killing Spree!	杀戮狂潮！
+Double Kill!	双杀！
+Triple Kill!	三杀！
+Quadruple Kill!	四杀！
+Mania!	狂热！
+Savage!	野蛮的！
+Rampage!	横冲直撞！
+Unstoppable!	势不可挡！
+Godlike!	简直像神一样！
+Legendary!	传奇！
+is now part of the fog	现在已成为雾的一部分
+rests in pieces	残骸
+was swallowed by the fog	被雾吞没了
+bled out	失血过多而死
+{DC2626}>> {FFFFFF}%s {C08454}is on a %d kill streak! Bounty: {33CC55}$%d	{DC2626}>> {FFFFFF}%s {C08454}已取得%d连杀！赏金：{33CC55}$%d
+{DC2626}>> {FFFFFF}%s {C08454}won the duel against {FFFFFF}%s{C08454}!	{DC2626}>> {FFFFFF}%s {C08454}赢得了与 {FFFFFF}%s{C08454} 的决斗！
+World	世界
+{8B0000}\xE2\x89\x88\xE2\x89\x88 {FFFFFF}B O U N T Y   {DC2626}H U N T E R {8B0000}\xE2\x89\x88\xE2\x89\x88	{8B0000}\xE2\x89\x88\xE2\x89\x88 {FFFFFF}赏金猎人 {DC2626}猎人 {8B0000}\xE2\x89\x88\xE2\x89\x88
+{C08454}Kills in a row raise your bounty. {FFFFFF}/bounty {C08454}help, {FFFFFF}/duel id {C08454}challenge.	{C08454}连续击杀可提高你的赏金。{FFFFFF}/bounty {C08454}帮助，{FFFFFF}/duel ID {C08454}挑战。
+{DC2626}Broker MQQ: {FFFFFF}cheats are not allowed on this server.	{DC2626}经纪人MQQ：{FFFFFF}本服务器不允许作弊。
+{DC2626}Broker MQQ: {FFFFFF}unlimited health is not allowed.	{DC2626}经纪人MQQ：{FFFFFF}不允许无限健康值。
+{DC2626}Broker MQQ rule: {FFFFFF}unlimited money is blocked here. {FF4444}-$%d	{DC2626}经纪商MQQ规则：{FFFFFF}此处资金无限额冻结。{FF4444}-$%d
+{DC2626}>> {FFFFFF}Bounty Hunter {C08454}(Blood Deathmatch)	{DC2626}>> {FFFFFF}赏金猎人 {C08454}（血腥死亡竞赛）
+{C08454}Your bounty: {33CC55}$%d {C08454}| streak %d | level %d	{C08454}你的赏金： {33CC55}$%d {C08454}连胜 %d | 级别 %d
+{FFFFFF}/duel id {C08454}challenge  {FFFFFF}/accept  /decline  /bstats  /bwelcome text|on|off	{FFFFFF}/duel id {C08454}挑战 {FFFFFF}/accept /decline /bstats /bwelcome 文本|开启|关闭
+{C08454}Most wanted: {FFFFFF}%s {33CC55}$%d	{C08454}最想要的：{FFFFFF}%s {33CC55}$%d
+Usage: /duel [player id]	用法：/duel [玩家 ID]
+{DC2626}>> {C08454}You challenged {FFFFFF}%s {C08454}to a duel.	{DC2626}>> {C08454}你向{FFFFFF}%s {C08454}发起了决斗挑战。
+{C08454}Duel declined.	{C08454}拒绝决斗。
+{DC2626}K: %d  D: %d  Ratio: %.2f  Duel: %d  Level: %d (%d xp)	{DC2626}K: %d D: %d 比例: %.2f 决斗: %d 等级: %d (%d 经验值)
+{C08454}Welcome: %s	{C08454}欢迎：%s
+Bounty Hunter welcome saved.	赏金猎人，欢迎保存。
+K: %d  D: %d  Ratio: %.2f  Duel: %d  Level: %d	K：%d D：%d 比例：%.2f 决斗：%d 等级：%d
+Duel vs %s	决斗 vs %s
+Death by the Fog!	死于迷雾！
+Bloody welcome (logo + message)	血腥欢迎（标志+信息）
+Your welcome message ({name} = player, {server} = server, {RRGGBB} = colour, symbols like \xE2\x98\xA0 \xE2\x9D\xA4 \xE2\x9C\x93 \xCF\x80 \xE2\x88\x9A are fine)	您的欢迎信息（{name} = 玩家，{server} = 服务器，{RRGGBB} = 颜色，符号如 \xE2\x98\xA0 \xE2\x9D\xA4 \xE2\x9C\x93 \xCF\x80 \xE2\x88\x9A 均可）
+Bounty Hunter welcome	赏金猎人欢迎
+Kill sound (sound_010.mp3)	杀戮音效（sound_010.mp3）
+My Vehicles is full (%d) - the car could not be added.	我的车辆已满 (%d) - 无法添加车辆。
+%s added to My Vehicles (/mv).	%s 已添加到我的车辆 (/mv)。
+Car	车
+{FFA500}EDITOR: {FFFFFF}model %d - move it with the bar, SAVE keeps it on the server.	{FFA500}编辑器：{FFFFFF}模型%d - 使用滑块移动它，保存将其保留在服务器上。
+{FFD700}%s {AAAAAA}(%s)\n{33CC55}For sale: ${FFFFFF}%d  {AAAAAA}level %d\n/buybiz  -  /enter%s	{FFD700}%s {AAAAAA}(%s)\n{33CC55}售价：${FFFFFF}%d  {AAAAAA}等级 %d\n/buybiz -  /enter%s
+{33CC55}For sale: ${FFFFFF}%d  {AAAAAA}level %d	{33CC55}售价：${FFFFFF}%d  {AAAAAA}等级 %d
+/buybiz  -  /enter%s	/buybiz - /enter%s
+{FFD700}%s {AAAAAA}(%s)\n{FFFFFF}Owner: %s\n{AAAAAA}/enter%s	{FFD700}%s {AAAAAA}(%s)\n{FFFFFF}所有者：%s\n{AAAAAA}/enter%s
+{FFFFFF}Owner: %s	{FFFFFF}所有者： %s
+{FFD700}Garage %d\n{33CC55}For sale: ${FFFFFF}%d\n{AAAAAA}/buygarage%s	{FFD700}车库 %d\n{33CC55}出售：${FFFFFF}%d\n{AAAAAA}/buygarage%s
+{FFD700}Garage %d	{FFD700}车库 %d
+{33CC55}For sale: ${FFFFFF}%d	{33CC55}售价：${FFFFFF}%d
+{FFD700}Garage %d\n{FFFFFF}Owner: %s\n{AAAAAA}/enter (in your car)%s	{FFD700}车库 %d\n{FFFFFF}车主：%s\n{AAAAAA}/enter（在您的车内）%s
+{AAAAAA}/enter (in your car)%s	{AAAAAA}/enter（在你的车里）%s
+{FFD700}%s%s\n{FFFFFF}Room: $%d a payday\n{AAAAAA}/rentroom  -  /enter%s	{FFD700}%s%s\n{FFFFFF}房间：$%d 发薪日\n{AAAAAA}/rentroom  -  /enter%s
+{FFFFFF}Room: $%d a payday	{FFFFFF}房间：$%d 发薪日
+{AAAAAA}/rentroom  -  /enter%s	{AAAAAA}/rentroom - /enter%s
+{33CCFF}Map Box\n{AAAAAA}/buymap ($25)  -  /viewmap	{33CCFF}地图盒\n{AAAAAA}/buymap ($25) - /viewmap
+{33CCFF}Map Box	{33CCFF}地图盒
+{AAAAAA}/buymap ($25)  -  /viewmap	{AAAAAA}/buymap ($25) - /viewmap
+{FFFFFF}%s HQ	{FFFFFF}%s 总部
+Headquarters	总部
+Family	家庭
+Faction	派
+Information	信息
+{FFD700}OOC Shop\n{AAAAAA}/oocshop (gold bars)	{FFD700}OOC商店\n{AAAAAA}/oocshop（金条）
+{FFD700}OOC Shop	{FFD700}OOC商店
+{AAAAAA}/oocshop (gold bars)	{AAAAAA}/oocshop（金条）
+{FFA500}%s\n{AAAAAA}/order (in a car)	{FFA500}%s\n{AAAAAA}/order（在车里）
+{AAAAAA}/order (in a car)	{AAAAAA}/order（在车里）
+{33CC55}Money Bag\n{FFFFFF}$%d	{33CC55}钱袋\n{FFFFFF}$%d
+{33CC55}Money Bag	{33CC55}钱袋
+{FF66CC}Gift Box\n{AAAAAA}/getgift	{FF66CC}礼盒\n{AAAAAA}/getgift
+{FF66CC}Gift Box	{FF66CC}礼盒
+{FFD700}%s\n{FFFFFF}Owner: %s\n{AAAAAA}/capture	{FFD700}%s\n{FFFFFF}所有者： %s\n{AAAAAA}/capture
+{33CC55}House for sale\n{FFFFFF}%s\n{AAAAAA}$%d	{33CC55}待售房屋\n{FFFFFF}%s\n{AAAAAA}$%d
+{33CC55}House for sale	{33CC55}待售房屋
+{FFD700}%s vehicle\n{FFFFFF}%s%s\n{AAAAAA}/getcar	{FFD700}%s 车辆\n{FFFFFF}%s%s\n{AAAAAA}/getcar
+{FFD700}%s vehicle	{FFD700}%s 车辆
+Personal	个人的
+Public	民众
+{FF4444}Speed camera %d\n{AAAAAA}%d km/h, fine $%d	{FF4444}测速摄像头%d\n{AAAAAA}%d公里/小时，罚款$%d
+{FF4444}Speed camera %d	{FF4444}测速摄像头 %d
+{AAAAAA}%d km/h, fine $%d	{AAAAAA}%d 公里/小时，罚款$%d
+~g~Checkpoint	~g~检查点
+~g~GO!	~g~出发！
+EDITOR: model %d could not be made here.	编辑：此处无法创建模型 %d。
+%s %d  model %d   %.1f %.1f %.1f   rot %.0f %.0f %.0f   step %.1f	%s %d 模型 %d %.1f %.1f %.1f 旋转 %.0f %.0f %.0f 步骤 %.1f
+Object	目的
+New object	新对象
+Step	步
+Turn -	转动 -
+Turn +	转弯 +
+Tilt	倾斜
+Here	这里
+Delete	删除
 teleport, e.g. /tp :grove_street	传送，例如/tp：格罗夫街
 name tags through walls, any distance (on foot + in a car)	穿过墙壁的姓名牌，任何距离（步行+开车）
 no fall damage, soft landings (on foot + in a car)	无坠落损坏，软着陆（步行+汽车内）
@@ -1002,11 +1557,18 @@ Going behind %s	落后于%s
 No player to go behind%s.	没有球员可以落后%s。
  (wrong id)	 （身份证号错误）
 Usage: /tp :place  -  %s	用法：/tp :地点 - %s
-Teleported to %s.	传送到%s。
 No player with id %d.	没有 ID 为 %d 的玩家。
 Unknown place \"%s\". Type /tp to list them.	未知地点\"%s\"。输入 /tp 以列出它们。
+{DC2626}[Broker MQQ] {FFFFFF}/%s is not allowed on the default server (no unlimited health / money / cheats).	{DC2626}[经纪人 MQQ] {FFFFFF}/%s 在默认服务器上不被允许（无无限生命值/金钱/作弊）。
+Chat fade: %s	聊天淡出：%s
+off (the lines stay)	关闭（线路保持）
 Gravity: %.2f%s	重力：%.2f%s
  (normal)	 （正常）
+Memory: %ld MB	内存：%ld MB
+/%s is a PC (samp.exe) setting - the phone game sets this in its own menu (Settings).	/%s 是 PC (samp.exe) 设置 - 手机游戏在其自己的菜单 (设置) 中设置此值。
+Staff: /acmds lists the admin / moderator commands.	工作人员：/acmds 列出了管理员/版主命令。
+/report [id] [what happened]  -  tell the staff	/report [id] [发生了什么事] - 告诉工作人员
+/pay [id] [amount]  -  give your money to a player	/pay [id] [金额] - 把你的钱给玩家
 Unknown command /%s. Type /help.	未知命令/%s。输入/help。
 Mission sync request	任务同步请求
 wants to Mission sync with you: you see each other on missions and share the mission.	希望与您同步任务：你们在任务中看到彼此并分享任务。
@@ -1025,6 +1587,8 @@ Mission sync	任务同步
 Player list	球员名单
 Not connected	未连接
 Players: %d	玩家：%d
+Everyone on the PC server (%d)	PC 服务器上的所有人 (%d)
+ (you)	 （你）
 Not connected. Server > Connect, or join a custom server.	未连接。服务器 > 连接，或加入自定义服务器。
 %s: on mission %s	%s：执行任务%s
 %s: in a cutscene	%s：在过场动画中
@@ -1051,11 +1615,536 @@ Games (2.21)	游戏 (2.21)
 Teleports everybody sees: /ls /sf /lv /chiliad /lsairport /sfairport /lvairport /desert /beach /strip /dam /area51 /pizza /burger /cluckin /barber /tattoo /gym /gymsf /gymlv /clothes /prolaps /victim /ammu /spray /transfender /locolow /waa /school /flightschool /boatschool /truck /quarry /emmet /home /gf /casino	传送所有人都能看到：/ls /sf /lv /chiliad /lsairport /sfairport /lvairport /desert /beach /strip /dam /area51 /pizza /burger /cluckin /barber /tattoo /gym /gymsf /gymlv /clothes /prolaps /victim /ammu /spray /transfender /locolow /waa /school /flightschool /boatschool /truck /quarry /emmet /home /gf /casino
 Open world: /unlock (all cities, shops, food, gyms, barbers, tattoo, clothes, Ammu-Nation, Pay 'n' Spray, mod garages, schools, safe houses), /girlfriends	开放世界：/unlock（所有城市、商店、食品、健身房、理发店、纹身、衣服、Ammu-Nation、Pay 'n' Spray、改装车库、学校、安全屋）、/girlfriends
 Places for /tp :place	/tp 的地点：地点
+Script Manager: can't write %s	脚本管理器：无法写入 %s
+# Scripts switched off in MP's Script Manager (moon icon). One path per line, inside moonloader/.\n	# 已在 MP 的脚本管理器（月亮图标）中关闭脚本。每行一个路径，位于 moonloader/.\n 内。
+# Scripts switched off in MP's Script Manager (moon icon). One path per line, inside moonloader/.	# 已在 MP 的脚本管理器（月亮图标）中关闭脚本。每行一个路径，位于 moonloader/ 目录下。
+/lua_scripts/Hasslehud	/lua_scripts/哈斯勒胡德
+this MonetLoader build has no shell	这个 MonetLoader 版本没有 shell
+error: 	错误： 
+started by a script	由脚本启动
+Download failed: 	下载失败： 
+no answer	没有答案
+Can't write 	不会写字 
+/Hasslehud	/哈斯勒胡德
+no Hasslehud folder in the zip	压缩包里没有 Hasslehud 文件夹。
+HassleHUD saved in moonloader/lua_scripts/Hasslehud - it starts in a few seconds, /hasslehud opens it.	HassleHUD 已保存在 moonloader/lua_scripts/Hasslehud 中 - 几秒钟后即可启动，/hasslehud 可打开它。
+Unpacking failed: 	解包失败： 
+lua_scripts_loader.lua is missing in moonloader/ - restart the game once (MP puts it back), or copy it from MP's zip.	moonloader/ 中缺少 lua_scripts_loader.lua 文件 - 重启游戏一次（多人游戏会自动恢复），或者从多人游戏的压缩包中复制该文件。
+lua_scripts_loader.lua is switched off: nothing in lua_scripts/ starts. Switch it on (Settings tab).	lua_scripts_loader.lua 已关闭：lua_scripts/ 目录下的任何程序都不会启动。请将其打开（设置选项卡）。
+lua_scripts_loader.lua is not running: nothing in lua_scripts/ starts.	lua_scripts_loader.lua 未运行：lua_scripts/ 目录下没有任何内容启动。
+Its error: %s	其错误：%s
+Start lua_scripts_loader.lua	启动 lua_scripts_loader.lua
+HassleHUD: unpacking...	HassleHUD：正在拆箱……
+HassleHUD Android is not on this phone (moonloader/lua_scripts/Hasslehud).	此手机上没有 HassleHUD Android（moonloader/lua_scripts/Hasslehud）。
+Download HassleHUD (57 MB)	下载 HassleHUD（57 MB）
+Find...	寻找...
+Find script	查找脚本
+Reload all	全部重新加载
+MonetLoader: reloading every script	MonetLoader：重新加载所有脚本
+Refresh list	刷新列表
+No scripts	没有脚本
+Pick a script. The switch next to a name turns it on or off - it stays that way after a restart or a rejoin.	选择一个脚本。脚本名称旁边的开关可以启用或禁用该脚本——重启或重新加入服务器后，该设置将保持不变。
+Path: %s	路径：%s
+Runs through: %s	运行至：%s
+Status:	地位：
+Running	跑步
+Stopped (error - see Last crashes)	已停止（错误 - 请参阅上次崩溃记录）
+Crashed	坠毁
+Not loaded (lua_scripts_loader.lua starts it within 5 s)	未加载（lua_scripts_loader.lua 将在 5 秒内启动它）
+Not loaded (lua_scripts_loader.lua is not running)	未加载（lua_scripts_loader.lua 未运行）
+Not loaded	未加载
+ - switched off	 已关闭
+Name: %s	姓名：%s
+Version: %s	版本：%s
+Authors: %s	作者：%s
+Error: %s	错误：%s
+Mod folder: its lib/, config/ and resource/ stay inside its own folder.	Mod文件夹：其lib/、config/和resource/目录都位于其自身的文件夹内。
+Cheat script: runs only where the server allows MonetLoader cheats.	作弊脚本：仅在服务器允许 MonetLoader 作弊的情况下运行。
+Starts every script in lua_scripts/. Off = none of them run.	启动 lua_scripts/ 目录下的所有脚本。关闭 = 所有脚本都不运行。
+Starts every script in mods/. Off = none of them run.	启动 mods/ 目录下的所有脚本。关闭 = 所有脚本都不运行。
+Switch on	打开
+Switch off	关闭
+Load	加载
+Unload	卸下
+Reload	重新加载
+Open in Shell	在 Shell 中打开
+Commands (%d)	命令（%d）
+This script has no chat commands.	此脚本不包含聊天命令。
+No commands found - start the script to see the ones it registers.	未找到命令 - 运行脚本以查看它注册的命令。
+Tap one to run it.	点击即可运行。
+Found in the file. Tap one to run it (the script has to be running).	已在文件中找到。点击其中一个即可运行（脚本必须正在运行）。
+(no moonloader.log yet)	（尚未生成 moonloader.log 文件）
+This MonetLoader build keeps no crash list (a separate libmonetloader.so in the mods folder?). See the Log tab.	此版本的 MonetLoader 不保存崩溃列表（mods 文件夹中可能有一个单独的 libmonetloader.so 文件？）。请查看“日志”选项卡。
+No script crashed since the game started.	游戏开始后没有脚本崩溃。
+(no error text)	（无错误信息）
+This MonetLoader build has no shell.	这个 MonetLoader 版本没有 shell。
+Runs Lua inside: %s	内部运行 Lua：%s
+(no running script)	（无运行脚本）
+Other script	其他脚本
+Type Lua...	输入 Lua...
+Lua (return x shows x)	Lua（返回 x 显示 x）
+Example: return thisScript().name   or   sampAddChatMessage('hi', -1)	例如：返回 thisScript().name 或 sampAddChatMessage('hi', -1)
+Switches are saved in moonloader/config/mp_scripts_off.txt and stay after a restart or a rejoin.	开关设置保存在 moonloader/config/mp_scripts_off.txt 中，重启或重新加入后仍然保留。
+Lua scripts folder (moonloader/lua_scripts/)	Lua脚本文件夹（moonloader/lua_scripts/）
+Mods folder (moonloader/mods/)	Mods文件夹（moonloader/mods/）
+%d script(s) switched off	已关闭 %d 个脚本
+Switch every script on	开启所有脚本
+lua_scripts/: drop .lua / .luac / .zip there. A folder with its own lib/ (like lua_scripts/Hasslehud) keeps all its files inside itself.	lua_scripts/：将 .lua / .luac / .zip 文件放入该目录。一个拥有自己 lib/ 目录的文件夹（例如 lua_scripts/Hasslehud）会将所有文件保存在其自身内部。
+Hasslehud	哈斯勒胡德
+' || c == '\\') { o += '\\'; o += c; } else if(c == '\n') o += 	如果 c 等于 '\\'，则 o += '\\'；o += c；否则如果 c 等于 '\n'，则 o += 
+; else if(c == '\r') o += 	; 否则如果(c == '\r') o += 
+; else if(c == 0) o += 	否则如果(c == 0) o += 
+-- made by lua_scripts_loader.lua (MP): runs lua_scripts/	-- 由 lua_scripts_loader.lua (MP) 生成：运行 lua_scripts/
+. Do not edit.\nlocal __mp_src = 	请勿编辑。\nlocal __mp_src = 
+. Do not edit.	请勿编辑。
+name x y size	名称 xy 尺寸
+bad self ... cannot convert 'table'	糟糕的自我……无法转换“表格”
+    __mp_hhcall('stamina', staminaped)\n    if savePend	    __mp_hhcall('stamina', staminaped)\n 如果 savePend
+    if savePend	    如果 savePend
+    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n    return mx >= x	    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n return mx >= x
+    return mx >= x	    返回 mx >= x
+    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n    if __mp_hhmouse then mx, my = __mp_hhmouse(mx, my) end\n    return mx >= x	    local mx,my = imgui.GetMousePos().x, imgui.GetMousePos().y\n if __mp_hhmouse then mx, my = __mp_hhmouse(mx, my) end\n return mx >= x
+    if __mp_hhmouse then mx, my = __mp_hhmouse(mx, my) end	    如果 __mp_hhmouse 存在，则 mx, my = __mp_hhmouse(mx, my) 结束
+    if not st2[0] then\n        sprCircle(DL,x,y,r,pol)\n        wep1(DL,x,y,r,sM,gIdx,wid)\n    else\n        wep2(DL,x,y,gIdx,wid)\n    end\n    bars(DL,x,y,r,sM)\n	    如果不是 st2[0] 则\n sprCircle(DL,x,y,r,pol)\n wep1(DL,x,y,r,sM,gIdx,wid)\n 否则\n wep2(DL,x,y,gIdx,wid)\n 结束\n bars(DL,x,y,r,sM)\n
+    if not st2[0] then	    如果不是 st2[0] 则
+    else	    别的
+    end	    结尾
+    local __sdl = __mp_hhdl(DL, x, y)\n    if not st2[0] then\n        __mp_hhel('circle') __mp_hhcall('circle', sprCircle, __sdl,x,y,r,pol)\n        __mp_hhel('weapon') __mp_hhcall('weapon', wep1, __sdl,x,y,r,sM,gIdx,wid)\n    else\n        __mp_hhel('weapon') __mp_hhcall('weapon', wep2, __sdl,x,y,gIdx,wid)\n    end\n    __mp_hhel(nil) __mp_hhcall('bars', bars, __sdl,x,y,r,sM)\n    __mp_hhel(nil)\n	    local __sdl = __mp_hhdl(DL, x, y)\n if not st2[0] then\n __mp_hhel('circle') __mp_hhcall('circle', sprCircle, __sdl,x,y,r,pol)\n __mp_hhel('weapon') __mp_hhcall('weapon', wep1, __sdl,x,y,r,sM,gIdx,wid)\n else\n __mp_hhel('weapon') __mp_hhcall('weapon', wep2, __sdl,x,y,gIdx,wid)\n end\n __mp_hhel(nil) __mp_hhcall('bars', bars, __sdl,x,y,r,sM)\n __mp_hhel(nil)\n
+    local __sdl = __mp_hhdl(DL, x, y)	    本地 __sdl = __mp_hhdl(DL, x, y)
+        if imgui.IsItemClicked() then hsz[0] = i-1; qSave() end\n    end\n    imgui.Spacing()\n	        如果 imgui.IsItemClicked() 则 hsz[0] = i-1; qSave() 结束\n 结束\n imgui.Spacing()\n
+        if imgui.IsItemClicked() then hsz[0] = i-1; qSave() end	        如果 imgui.IsItemClicked() 则 hsz[0] = i-1; qSave() 结束
+        if imgui.IsItemClicked() then hsz[0] = i-1; qSave() end\n    end\n    imgui.Spacing()\n    if __mp_hhscaleUI then __mp_hhscaleUI(SF) end\n	        如果 imgui.IsItemClicked() 则 hsz[0] = i-1; qSave() 结束\n 结束\n imgui.Spacing()\n 如果 __mp_hhscaleUI 则 __mp_hhscaleUI(SF) 结束\n
+    if __mp_hhscaleUI then __mp_hhscaleUI(SF) end	    如果 __mp_hhscaleUI 为真，则 __mp_hhscaleUI(SF) 结束
+    __mp_hhel('hp')\n    bar(bXB - r - ofL[1] - l1, bYB - alt/2,	    __mp_hhel('hp')\n bar(bXB - r - ofL[1] - l1, bYB - alt/2,
+    __mp_hhel('armour')\n    if ap > 0 or hpe[0] then\n	    __mp_hhel('armour')\n 如果 ap > 0 或 hpe[0] 则\n
+    __mp_hhel('armour')	    __mp_hhel('盔甲')
+    if ap > 0 or hpe[0] then	    如果 ap > 0 或 hpe[0] 则
+    __mp_hhel('stamina')\n    if mfl[0] then\n        bar(	    __mp_hhel('stamina')\n 如果 mfl[0] 则\n bar(
+    __mp_hhel('stamina')	    __mp_hhel('耐力')
+    if mfl[0] then	    如果 mfl[0]
+        bar(	        酒吧（
+    __mp_hhel('money')\n    imgui.PushFont(fDin)\n	    __mp_hhel('money')\n imgui.PushFont(fDin)\n
+    __mp_hhel('ammo')\n    if ma[0] then\n        local cur	    __mp_hhel('ammo')\n 如果 ma[0] 则\n 本地 cur
+    __mp_hhel('ammo')	    __mp_hhel('弹药')
+    if ma[0] then	    如果 ma[0] 则
+        local cur	        本地库
+    __mp_hhel('stars')\n    local ss = te[0]\n	    __mp_hhel('stars')\n local ss = te[0]\n
+HassleHUD Android	HassleHUD 安卓版
+missing declaration	缺少声明
+%s: %s - /%s opens it as soon as it is running.	%s: %s - /%s 一旦它开始运行就会打开它。
+%s needs MonetLoader for MP: it is not running ([MP] MonetLoader = 0 in TYFMC.MP.ini, or GTA Vice City - MonetLoader and %s are San Andreas only).	%s 需要 MonetLoader 才能进行多人游戏：它没有运行（[MP] MonetLoader = 0 在 TYFMC.MP.ini 中，或者 GTA Vice City - MonetLoader 和 %s 仅适用于 San Andreas）。
+still downloading (moon icon shows the progress)	仍在下载（月亮图标显示进度）
+%s: moonloader/lua_scripts/%s has no \"%s\" - downloading it again.	%s: moonloader/lua_scripts/%s 没有 \"%s\" - 正在重新下载。
+not on this phone (moonloader/lua_scripts/Hasslehud) - downloading it now (57 MB)	手机上没有 (moonloader/lua_scripts/Hasslehud) - 正在下载 (57 MB)
+was switched off in the Script Manager - switched on	脚本管理器中已关闭 - 已开启
+is still starting (it waits for the game)	仍在启动中（正在等待游戏开始）
+%s stopped with an error: %s	%s 停止并出现错误：%s
+%s: this MonetLoader can't start scripts from MP - update MP.	%s: 此 MonetLoader 无法从 MP 启动脚本 - 更新 MP。
+starting it now	现在就开始
+loading it again	正在加载
+%s did not open: the mod is running but has not added the command yet - moon icon > Log shows what it is doing.	%s 未打开：该模组正在运行，但尚未添加命令 - 月亮图标 > 日志显示了它正在执行的操作。
+%s did not start: %s	%s 未启动：%s
+%s stopped: %s	%s 停止: %s
+Moon icon > Last crashes has the full error.	月亮图标 > 上次崩溃显示完整错误信息。
+Script Manager for MonetLoader %s	MonetLoader 脚本管理器 %s
+MonetLoader is not running ([MP] MonetLoader = 0 in TYFMC.MP.ini?) - switches still save.	MonetLoader 未运行（[MP] MonetLoader = 0 在 TYFMC.MP.ini 中？） - 开关仍然保存。
+Older MonetLoader build: load / unload / shell need MonetLoader for MP 5.02 (switches still save).	旧版 MonetLoader 版本：加载/卸载/shell 需要适用于 MP 5.02 的 MonetLoader（开关仍然保存）。
+Scripts	脚本
+Log	日志
+Last crashes	最后崩溃
+Shell	壳
 Say	说
 /tp :	/tp：
 Tap to chat  -  type / for commands	点击聊天 - 输入 / 获取命令
 Chat button to type  -  / for commands	用于输入命令的聊天按钮 - /
-Spawn	生成
+Co-op: you have no save yet - save once (a save house) so your partner can load your story.	合作模式：你还没有存档 - 先存档一次（存档点），这样你的伙伴就可以读取你的故事了。
+slot %d	槽位 %d
+Co-op: sending your save timed out (it tries again after your next save).	合作模式：发送存档超时（下次存档后会重试）。
+Co-op: the host's save arrived broken - asking again.	合作模式：主机存档已损坏 - 请重新请求。
+the other player	另一位玩家
+*** %s invites you to Co-op story (2 players, their story).	*** %s 邀请您体验合作故事（2 名玩家，他们的故事）。
+*** %s is already in a Co-op story.	*** %s 已在合作故事中。
+*** Co-op story is not possible with %s (Mission sync off on this server, or they run an older MP).	*** 使用 %s 无法进行合作故事（此服务器上的任务同步已关闭，或者他们运行的是较旧的多人游戏版本）。
+*** %s declined Co-op story.	*** %s 拒绝了合作故事。
+*** Co-op story with %s: you are the HOST - your save is the story. Start missions, your partner comes along.	*** 与 %s 合作剧情：你是主机——你的存档就是剧情。开始任务，你的伙伴会加入。
+*** Co-op story with %s: you are the PARTNER - you get the host's mission progress (your own saves are kept and come back).	*** 与 %s 合作故事：你是伙伴 - 你可以获得主机的任务进度（你自己的存档会被保留并恢复）。
+*** Co-op story ended.	*** 合作故事结束。
+*** %s now has your story progress.	*** %s 现在记录了你的故事进度。
+*** Co-op: %s started %s - you're in it together.	*** 合作：%s 已启动 %s - 你们一起努力。
+*** Co-op: mission passed - the new progress comes with the host's next save.	*** 合作模式：任务已完成 - 新的进度将在主机下次保存时生效。
+*** Co-op: the mission is over.	*** 合作模式：任务结束。
+*** Co-op reward: $%u	*** 合作奖励：$%u
+*** Co-op story ended (your partner left).	*** 合作故事结束（你的伙伴离开了）。
+*** Co-op: you have the host's story progress now (your place, money and weapons kept).	*** 合作模式：你现在拥有主机的故事进度（你的位置、金钱和武器都会保留）。
+*** Co-op: %s is in a cutscene - you're standing with them.	*** 合作模式：%s 处于过场动画中 - 你与他们站在一起。
+No such player.	没有此玩家。
+Co-op story needs Mission sync on this server.	此服务器上的合作剧情需要任务同步。
+This server runs an older MP: no Co-op story yet.	此服务器运行的是较旧的多人游戏模式：目前还没有合作剧情模式。
+You're already in a Co-op story (/coop end first).	您已进入合作故事模式（/coop 结束）。
+*** Asked %s for Co-op story (you host: your save is the story). Waiting...	*** 已请求 %s 个合作故事模式（您担任主机：您的存档即为故事）。等待中……
+End Co-op story	合作故事结束
+Accept Co-op story	接受合作故事
+In a Co-op story	在合作故事中
+Co-op asked...	合作社问道……
+Co-op story (2 players)	合作故事模式（2名玩家）
+Co-op story request (2 players)	合作故事请求（2名玩家）
+wants to play the story with you. Their save is the story: your mission progress becomes theirs until the co-op ends (your own saves are backed up and come back). Your place, money and weapons stay yours.	他想和你一起体验这个故事。他的存档就是故事：你的任务进度会变成他的，直到合作模式结束（你自己的存档会被备份并恢复）。你的地点、金钱和武器仍然属于你。
+/coop invite <id> - Co-op story with one player (you host).  /coop accept  /coop decline  /coop end	/coop 邀请 <id> - 单人合作故事模式（由您创建）。/coop 接受 /coop 拒绝 /coop 结束
+/coop sync - send your save again (host).  /coop tp - go to your co-op partner.	/coop 同步 - 再次发送您的存档（主机）。/coop 转发 - 发送给您的合作伙伴。
+Co-op story with %s (%s).	与 %s (%s) 合作故事。
+you host	您主持
+/coop invite <id>	/coop 邀请 <id>
+Nobody invited you.	没人邀请你。
+You're not in a Co-op story.	你不在合作故事模式中。
+Co-op: sending your save to %s...	合作模式：正在将您的存档发送到 %s...
+Only the host sends the story.	只有主持人才会发送故事。
+/coop help	/coop 帮助
+Type the PC server as IP:port (e.g. 51.89.1.2:7777).	输入 PC 服务器的 IP 地址:端口号（例如 51.89.1.2:7777）。
+Closing the last PC connection, then joining %s:%u ...	关闭最后一个 PC 连接，然后加入 %s:%u ...
+Could not open the local crossplay port.	无法打开本地跨平台游戏端口。
+Could not start the open.mp connection.	无法启动 open.mp 连接。
+Joining the PC server %s:%u (open.mp / SA-MP) as %s ...	加入 PC 服务器 %s:%u (open.mp / SA-MP)，身份为 %s ...
+The last open.mp connection is still closing - PC joins wait for it.	最后一个 open.mp 连接仍在关闭中 - 电脑正在等待。
+PC server: %s	PC服务器：%s
+Left the PC server.	已离开PC服务器。
+Your server already uses port %d - pick another SA-MP port for PC players.	您的服务器已占用端口 %d - 请为 PC 玩家选择另一个 SA-MP 端口。
+SA-MP port %d is busy - PC crossplay is off for now.	SA-MP 端口 %d 繁忙 - PC 跨平台游戏暂时关闭。
+open.mp / SA-MP  (PC crossplay)	open.mp / SA-MP（PC 跨平台游戏）
+Join PC servers (SA-MP 0.3.7 / open.mp) from the phone, or let PC players join your server.	通过手机加入 PC 服务器（SA-MP 0.3.7 / open.mp），或者让 PC 玩家加入你的服务器。
+PC server  (IP:port)	PC服务器（IP:端口）
+PC server password (optional)	PC服务器密码（可选）
+Name on PC servers (RP servers: Firstname_Lastname)	PC服务器上的名称（RP服务器：名字_姓氏）
+empty = your MP name	空 = 您的议员姓名
+Asking the server...	正在向服务器询问……
+Server info	服务器信息
+No answer from %s (offline, or the query port is blocked).	来自 %s 没有响应（离线，或查询端口被阻止）。
+%s  |  %d/%d players  |  ping %d  |  %s%s	%s  |  %d/%d 玩家 | ping %d  |  %s%s
+  |  password	  密码
+Leave the PC server	离开电脑服务器
+Join PC server	加入PC服务器
+Let PC players join my server (SA-MP port %d)	允许PC玩家加入我的服务器（SA-MP端口%d）
+SA-MP port (UDP)	SA-MP 端口（UDP）
+SA-MP port	SA-MP端口
+Starts with the server you host on this phone.	首先，你需要在这台手机上架设服务器。
+PC players add  your-IP:%d  in SA-MP 0.3.7 or the open.mp launcher (same Wi-Fi, or forward the UDP port).	PC 玩家在 SA-MP 0.3.7 或 open.mp 启动器中添加 your-IP:%d（使用相同的 Wi-Fi，或转发 UDP 端口）。
+MTA DayZ models ready (%d).	MTA DayZ 模型已准备就绪（%d）。
+MTA DayZ models: %d of %d downloaded.	MTA DayZ 模型：已下载 %d 个模型（共 %d 个）。
+streamer hook missing	吊钩不见了
+no cache folder	无缓存文件夹
+engine ok	发动机正常
+engine check waiting	发动机检查等待
+engine check FAILED	发动机检查失败
+MTA models: %s (%d) - models stay GTA. See files/TYFMC/MP/dzmodels_log.txt	MTA 模型：%s (%d) - 模型保留在 GTA 中。请参阅 files/TYFMC/MP/dzmodels_log.txt
+MTA models: %s | %d/%d downloaded | %d in game (%d loaded) | %d waiting (in use) | %d failed%s	MTA 模型：%s | %d/%d 已下载 | %d 游戏内（%d 已加载） | %d 等待中（使用中） | %d 失败%s
+ | some without textures	 一些没有纹理。
+ | world textures %s (%d GTA textures replaced)	 | 世界纹理 %s（已替换 %d 个 GTA 纹理）
+not downloaded	未下载
+[Day Z] MTA models: skipped models reset - they are tried again.	[Day Z] MTA 模型：跳过的模型已重置 - 会再次尝试。
+[Day Z] The MTA models setting is OFF (Day Z panel / MP settings).	[Day Z] MTA 模型设置已关闭（Day Z 面板 / MP 设置）。
+Get out of the vehicle to pick it up.	下车去捡。
+You need the gun for that ammo.	你需要那把枪才能发射那些弹药。
+No Man's Land | Metro / S.T.A.L.K.E.R Atmospheric Playlist	无人区 | Metro / STALKER 氛围音乐播放列表
+Lemuria	利莫里亚
+[Day Z] Ambient music: no 	[DayZ] 环境音乐：无 
+[Day Z] Ambient music can't play: %s (see files/TYFMC/MP/dz_music_log.txt)	[Day Z] 环境音乐无法播放：%s（参见 files/TYFMC/MP/dz_music_log.txt）
+Ambient music off.	关闭环境音乐。
+Ambient music on.	播放环境音乐。
+[Day Z] Ambient music stopped: %s (see files/TYFMC/MP/dz_music_log.txt)	[Day Z] 环境音乐已停止：%s（参见 files/TYFMC/MP/dz_music_log.txt）
+NOW PLAYING  -  DAY Z AMBIENT	正在播放 - DAYZ 环境音效
+No Man's Land | Metro / S.T.A.L.K.E.R	无人区 | 地铁 / 潜行者
+by %s  -  %s	通过 %s - %s
+Picked up: %s%s	已拾取：%s%s
+ (x several)	 （x 若干）
+No vehicle near you - the canister is wasted.	附近没有车辆——罐体就浪费了。
+Fuel canister poured: tank %d%%	燃油罐已加注：油箱 %d%%
+YOU ARE DEAD	你死了
+%d DAMAGE INFLICTED	%d 造成的损害
+ZOMBIE KILLED	丧尸被杀死
+The tank is full.	水箱已满。
+Out of fuel - find a fuel canister or a gas station.	没油了——找个燃料罐或者加油站。
+You were stuck - moved a bit.	你之前卡住了——稍微挪动了一下。
+You don't have that.	你没有那个。
+You don't have %s.	你没有%s。
+Unstuck.	脱困。
+Refueling... stay still.	正在加油……请保持静止。
+Points (level %d):	积分（等级 %d）：
+To next level:	更上一层楼：
+Murders:	谋杀案：
+Zombies killed:	击杀僵尸数量：
+Bandits killed:	被击毙的匪徒：
+Headshots:	头像照：
+Humanity:	人类：
+Blood:	血：
+FPS: %d | PING: %d | LOSS: %d%%	帧率：%d | 延迟：%d | 丢包率：%d%%
+USE GPS	使用GPS
+TO UNLOCK MAP	解锁地图
+SPD: %d	SPD：%d
+FUEL %d%%	燃料 %d%%
+PICK UP  %s	领取 %s
+NEARBY / GROUND	附近/地面
+Empty. Loot houses, gas stations and military bases.	空无一人。洗劫房屋、加油站和军事基地。
+Nothing on the ground here.	这里地面上什么都没有。
+PICK UP	捡起
+{FF4444}No cheating{FFFFFF}: no CLEO, mod menus, aimbots, speed / fly hacks (libCheatMenu is blocked).	{FF4444}禁止作弊{FFFFFF}：禁止使用 CLEO、修改菜单、自动瞄准、加速/飞行作弊（libCheatMenu 已被屏蔽）。
+{FF4444}ANTI-RELOG{FFFFFF}: leaving the game during combat = {FF4444}your survivor dies{FFFFFF}.	{FF4444}防重新登录{FFFFFF}: 在战斗中离开游戏 = {FF4444}你的幸存者死亡{FFFFFF}。
+{FFFF00}No bug abuse{FFFFFF}: no glitching into walls or under the map - report it to an {33CC55}admin{FFFFFF}.	{FFFF00}禁止滥用漏洞{FFFFFF}：禁止穿墙或进入地图下方 - 向 {33CC55}管理员{FFFFFF}报告。
+{FFFF00}No spawn killing{FFFFFF} at the 15 spawn points or on fresh survivors.	{FFFF00}禁止在15个重生点或新生幸存者处进行重生杀戮{FFFFFF}。
+{FFFF00}Parties{FFFFFF}: max 4 survivors. Don't pretend to be another party.	{FFFF00}队伍{FFFFFF}：最多4名幸存者。不要冒充其他队伍。
+{FFFF00}Respect everyone{FFFFFF}: no insults, racism, threats or harassment.	{FFFF00}尊重所有人{FFFFFF}：不得侮辱、种族主义、威胁或骚扰。
+{FFFF00}No spam{FFFFFF}: no flooding, caps lock or advertising other servers.	{FFFF00}禁止垃圾邮件{FFFFFF}：禁止刷屏、使用大写字母或宣传其他服务器。
+{FFFF00}Don't pretend to be staff{FFFFFF} (admin, moderator or the bot {00BFFF}Broker{FFFFFF}).	{FFFF00}不要假装是工作人员{FFFFFF}（管理员、主持人或机器人{00BFFF}经纪人{FFFFFF}）。
+{FFFF00}Listen to the {33CC55}admins{FFFFFF}: a kick waits {FF9900}4:29{FFFFFF}, 3 fly / teleport kicks = {FF4444}permanent ban{FFFFFF}.	{FFFF00}听从{33CC55}管理员{FFFFFF}的指示：踢人等待{FF9900}4:29{FFFFFF}，3次飞行/传送踢人={FF4444}永久封禁{FFFFFF}。
+{33CC55}Survive, loot, trust no one{FFFFFF} - and have fun.	{33CC55}生存，掠夺，不要相信任何人{FFFFFF} - 尽情享受吧。
+{FFFFFF}PROJECT DAY Z LEGACY - RULES	{FFFFFF}项目 DAY Z 遗产 - 规则
+PROJECT DAY Z  -  CONTROL PANEL	项目日 Z - 控制面板
+Level %d  -  %d points  (%d to the next level)	等级 %d - %d 分（%d 分升至下一级）
+Alive: %u min   Blood: %d / 12000   Hunger: %d%%   Thirst: %d%%	存活时间：%u 分钟 血液：%d / 12000 饥饿：%d%% 口渴：%d%%
+Zombies killed: %d   Bandits killed: %d   Murders: %d   Headshots: %d	击杀僵尸：%d 击杀匪徒：%d 谋杀：%d 爆头：%d
+Humanity: %d (%s)	人类：%d (%s)
+INFECTED - find Antibiotics (/cure).	感染 - 查找抗生素 (/cure)。
+Carry: %.2f / %.2f KG   Bag level %d   GPS: %s	携带重量：%.2f / %.2f 公斤 行李等级：%d GPS：%s
+TOP SURVIVORS	顶级幸存者
+Your party: %d / 4 members	您的队伍：%d / 4 位成员
+You are solo.	你是独自一人。
+Invite a survivor:	邀请一位幸存者：
+Tap a command to run it (44+). Commands that need a name / text: type them in the chat.	点击命令即可运行（44+）。需要名称/文本的命令：请在聊天框中输入。
+FPS | PING	帧率 | 延迟
+Damage numbers	损失数字
+Compass	罗盘
+Blood screen + drops	血液筛查+滴剂
+Title logo	标题标志
+3D radar (GPS)	3D雷达（GPS）
+Ambient music (No Man's Land - Lemuria)	环境音乐（无人之地 - 利莫里亚）
+MTA DayZ models	MTA DayZ 模型
+Retry skipped models	重试跳过的模型
+Project Day Z Legacy - gamemode Proper DAYZ. Based on Project DayZ SA-MP, made for MP by JebetrexxMC.	Project Day Z Legacy——真正的DAYZ游戏模式。基于Project DayZ SA-MP，由JebetrexxMC制作，专为多人游戏模式打造。
+Ambient music: No Man's Land | Metro / S.T.A.L.K.E.R Atmospheric Playlist by Lemuria - youtu.be/aVTcVx1570w (streamed from the MP media host over Wi-Fi / mobile data; a copy at files/TYFMC/MP/dz_ambient.mp3 is used instead if you have one).	环境音乐：无人之地 | Metro / STALKER 氛围播放列表，作者 Lemuria - youtu.be/aVTcVx1570w（通过 Wi-Fi / 移动数据从 MP 媒体主机流式传输；如果您有文件，则使用 files/TYFMC/MP/dz_ambient.mp3 中的副本）。
+Global network (4.05): libks, signalwire-c, FreeSWITCH (SignalWire), Eclipse Mosquitto, EMQX, MQTTX, Mainflux, awesome-mqtt, vps-hosting-providers, Sidekick, Aeon-MLTB, whmcs-vps-reseller.	全球网络（4.05）：libks、signalwire-c、FreeSWITCH（SignalWire）、Eclipse Mosquitto、EMQX、MQTTX、Mainflux、awesome-mqtt、vps-hosting-providers、Sidekick、Aeon-MLTB、whmcs-vps-reseller。
+Download progress	下载进度
+Connecting to GitHub - getting the resource list...	正在连接到 GitHub - 获取资源列表...
+Downloading resource 'dayz' (Project Day Z Legacy) - %d files	正在下载资源“dayz”（Project Day Z Legacy） - %d 个文件
+From: %s	来自：%s
+File %d / %d:  %s	文件 %d / %d: %s
+%s / %s   -   %.0f KB/s   -   %d:%02d left	%s / %s - %.0f KB/s - %d:%02d 左侧
+%d failed	%d 失败
+DOWNLOAD IN BACKGROUND	后台下载
+Saved on the phone - next time it is instant.	已保存到手机中——下次即可立即使用。
+MTA DayZ models %d%%	MTA DayZ 模型 %d%%
+Survive. Loot. Trust no one.	生存。掠夺。不要相信任何人。
+Gamemode: Proper DAYZ  |  Broker 24/7	游戏模式：正版 DAYZ | Broker 24/7
+Downloading...	正在下载……
+Play	玩
+Credits	鸣谢
+Left Project Day Z Legacy.	离开了《Project Day Z Legacy》。
+Back	返回
+Project Day Z Legacy (Proper DAYZ) for MP	Project Day Z Legacy（真正的 DAYZ）多人游戏
+Original Project DayZ SA-MP gamemode - github.com/JebetrexxMC/Project-DayZ-SAMP	原版 Project DayZ SA-MP 游戏模式 - github.com/JebetrexxMC/Project-DayZ-SAMP
+MP, the Broker 24/7 servers, the HUD and the cabin - JebetrexxMC	MP、经纪人 24/7 服务器、HUD 和驾驶舱 - JebetrexxMC
+Psdk / AML mod loader - the AndroidModLoader team	Psdk / AML 模块加载器 - AndroidModLoader 团队
+Ambient music: No Man's Land | Metro / S.T.A.L.K.E.R Atmospheric Playlist - Lemuria (youtube.com/@lemurian.archives, youtu.be/aVTcVx1570w)	环境音乐：无人之地 | 地铁 / 潜行者氛围音乐播放列表 - Lemuria (youtube.com/@lemurian.archives, youtu.be/aVTcVx1570w)
+Global network (4.05): signalwire/libks, signalwire/signalwire-c, signalwire/freeswitch, eclipse-mosquitto/mosquitto, emqx/emqx, emqx/MQTTX, mainflux/mainflux, awesome-mqtt/awesome-mqtt, qfft560/vps-hosting-providers, MightyMoud/sidekick, AeonOrg/Aeon-MLTB, Rad-Web-Hosting/whmcs-vps-reseller (github.com)	全球网络 (4.05): signalwire/libks、signalwire/signalwire-c、signalwire/freeswitch、eclipse-mosquitto/mosquitto、emqx/emqx、emqx/MQTTX、mainflux/mainflux、awesome-mqtt/awesome-mqtt、qfft560/vps-hosting-providers、MightyMoud/sidekick、AeonOrg/Aeon-MLTB、Rad-Web-Hosting/whmcs-vps-reseller (github.com)
+Thanks to every survivor testing the server.	感谢每一位参与服务器测试的幸存者。
+Title logo in game	游戏中的标题标志
+Press PLAY: you wake up at 1 of 15 random places (or where you logged out alive).	按下 PLAY 键：你会在 15 个随机地点中的 1 个地点醒来（或者在你活着登出的地方）。
+Your gear stays on your body. A new survivor wakes up soon.	你的装备会留在身上。一位新的幸存者即将醒来。
+SPAWN: %s	生成：%s
+Weapon - %d rounds per magazine	武器 - 每弹匣%d发
+Melee weapon	近战武器
+%d rounds for the %s	%d 轮，用于 %s
+Restores %d%% hunger	恢复%d%%饥饿值
+Restores %d%% thirst	恢复%d%%口渴
+Heals %d blood - stops the bleeding	治愈%d血 - 止血
+Heals %d blood - stops the pain (camera sway)	治愈%d血 - 止痛（镜头晃动）
+Heals %d blood - stops bleeding + pain	治愈%d出血 - 止血止痛
+Cures the infection	治愈感染
+Backpack - carry %d KG	背包 - 可携带 %d 公斤
++%d armour - stops headshots	+%d护甲 - 防止爆头
++%d armour	+%d 护甲
+Unlocks the map (key 7)	解锁地图（钥匙 7）
++%d%% fuel for the car next to you	旁边那辆车的油量 +%d%%
+Revives a downed party member (+%d%% HP) - fixes bones	复活一名倒地的队友（+%d%% 生命值） - 修复骨骼
+Revives a downed party member (+%d%% HP)	复活一名倒地的队友（+%d%% 生命值）
+Clothes - almost invisible when still	衣服——静止时几乎隐形
+Clothes - harder to see	衣服——更难看清
+Clothes - change your skin	衣服——改变你的肤色
+Trash - collect 5 cans: Litterbug	垃圾——收集5个垃圾桶：乱扔垃圾者
+Warms you up (+3 C), cures the cold	让你暖和起来（+3摄氏度），治愈感冒
+Fixes the tyres of the car next to you	帮你修好旁边那辆车的轮胎
++400 engine health (needs a Toolbox)	引擎健康度+400（需要工具箱）
++200 vehicle health (needs a Toolbox)	车辆生命值+200（需要工具箱）
+Fill it at a petrol station or SIPHON a car	在加油站加油或用虹吸管从汽车中抽取燃油
+Area 69 + the carrier: the alarm stays silent	69区+运营商：警报保持静默
+Look far (tap USE to toggle)	远眺（点击“使用”切换）
+Shows the distance to what you aim at	显示到目标的距离
+Repairs: needed for engines and scrap metal	维修：发动机和废金属需要维修
+The compass (key 8)	指南针（图例 8）
+A paper map of San Andreas	圣安地列斯的一张纸质地图
+Shows the time	显示时间
+Item	项目
+You are DOWN - wait for your party to revive you.	你倒下了——等待你的队友把你救活。
+Your helmet stopped a headshot.	你的头盔挡住了一枪爆头。
+You need a medicine: Morphine, Epinephrine or a Blood bag.	你需要药物：吗啡、肾上腺素或血袋。
+You lose blood: BLEEDING - use a Bandage.	出血：出血 - 使用绷带。
+You lose blood: you are COLD - get in a car, sprint or use a Heat Pack.	你失血了：你感到寒冷——上车、奔跑或使用暖包。
+You lose blood: you are starving or THIRSTY - eat and drink.	你失血了：你饿了或者渴了——吃东西喝水。
+You lose blood: you are INFECTED - find Antibiotics.	你失血了：你感染了——赶紧找抗生素。
+You broke your legs - Morphine fixes them.	你摔断了腿——吗啡可以治好它们。
+You are BLEEDING - use a Bandage (it stops by itself after a minute).	你正在流血——请使用创可贴（一分钟后会自动止血）。
+Fractured arm - Morphine fixes it.	手臂骨折——吗啡可以治好它。
+The bleeding stopped.	出血停止了。
+KNOCKED DOWN	被击倒
+%s is DOWN - revive them with a medicine.	%s 已倒下 - 用药物使其恢复。
+%s revived you.	%s 让你复活了。
+You revived %s (+150 humanity).	你复活了%s（+150人性）。
+bleeding stopped 	出血停止了。 
+pain gone 	疼痛消失了 
+bones fixed 	骨骼固定 
+warm 	温暖的 
+The tank is full. %s	水箱已满。%s
+ALARM - %s: the zombies are coming!	警报 - %s：僵尸来了！
+No vehicle next to you - %s wasted.	旁边没有车辆 - 浪费了 %s 个停车位。
+Tyres fixed.	轮胎已修好。
+%s fitted: vehicle health %d.	%s 已安装：车辆健康状况 %d。
+[DayZAdmin] The vehicles were respawned.	[DayZAdmin] 车辆已重新生成。
+Body of %s	%s 主体
+TAP AGAIN TO GIVE UP	再次点击即可放弃。
+GIVE UP	放弃
+REVIVE  %s	复活 %s
+CHECK BODY	检查身体
+REVIVING %s	复苏 %s
+YOU ARE DOWN	你倒下了
+Bleeding out in %d:%02d	在 %d:%02d 中流血不止
+Wait for your party: Morphine, Epinephrine or a Blood bag gets you up (+50% HP).	等待你的队友：吗啡、肾上腺素或血袋可以让你恢复生命值（+50% HP）。
+You have no party - nobody can revive you.	你没有党派——没人能救你。
+%s  -  %dm	%s - %d米
+DOWN  %dm	向下 %d米
+GPS OFF (7)	GPS关闭（7）
+RANGE %.0f m	范围 %.0f 米
+RANGE ---	范围  - -
+ACHIEVEMENT UNLOCKED	成就已解锁
+DISCONNECT = DEATH	断线=死亡
+Military rucksack	军用背包
+Assault pack	突击包
+Small backpack	小背包
+Pockets	口袋
+(%d) Inventory	（%d）库存
+Tap an item to see what it does.	点击物品即可查看其功能。
+FOOD / DRINKS	食物/饮料
+TREAT %s	处理 %s
+This vehicle has not enough fuel to siphon.	这辆车没有足够的燃料进行虹吸。
+GROUND (%d)	地面（%d）
+BAG (%d)	包（%d）
+Empty. Loot houses, petrol stations and bases.	空无一人。搜刮房屋、加油站和基地。
+Body of %s  -  CHECK BODY	%s 主体 - 检查主体
+* tap an item to open its options (right mouse button on PC)	* 点击项目即可打开其选项（PC 端使用鼠标右键）
+Party	派对
+Nick	缺口
+Level	等级
+Kills	杀戮
+Zombies killed	丧尸被杀死
+Alive time	活着的时间
+Ping	平
+  [DOWN]	  [向下]
+  [lobby]	  [大厅]
+TAB - close the list.  Tap a row to select a player.  Red names = bandits.	TAB键 - 关闭列表。点击一行选择玩家。红色名字代表强盗。
+DEBUG MONITOR	调试监视器
+Veteran	老将
+Hardcore	硬核
+Blood	血
+Food	食物
+Water	水
+Temperature	温度
+Humanity	人类
+%d (%d pts)	%d（%d 分）
+Headshots	头像照
+Murders	谋杀案
+Bandits killed	强盗被杀
+Confirmed kills	已确认击杀
+Revives	复活
+Alive (h:m)	活着（h:m）
+Bleeding 	出血 
+Pain 	疼痛 
+Legs 	腿 
+Arm 	手臂 
+Infected	已感染
+Condition	健康）状况
+Healthy	健康
+Difficulty	困难
+%d | %d ms	%d | %d 毫秒
+%d / %d unlocked	%d / %d 已解锁
+Skill points: %d   (1 per level)	技能点数：%d（每级1点）
+SELECT YOUR SPAWN	选择你的出生点
+Black	黑色的
+White	白色的
+Silver	银
+Red	红色的
+Blue	蓝色的
+Navy	海军
+Green	绿色的
+Yellow	黄色的
+Pink	粉色的
+Mega Vil // Cardealer	Mega Vil // 卡牌交易员
+Broker MQQ // Cardealer	经纪商 MQQ // 信用卡交易商
+%s - receptionist	%s - 接待员
+(Sell Vehicle)	（出售车辆）
+Select	选择
+Sell Vehicle	出售车辆
+The dealer pays half of the price.	经销商支付一半的价格。
+Sell %s	出售 %s
+Sell %s - $%d	卖出 %s - $%d
+No vehicles in your garage.	您的车库里没有车辆。
+My Vehicles is empty (/savecar keeps a car, or buy one here).	我的车辆为空（/savecar 保留一辆车，或在此处购买一辆车）。
+[DEALER] %s costs $%d - not enough money (cash + bank).	[DEALER] %s 花费 $%d - 钱不够（现金 + 银行存款）。
+[DEALER] Your garage is full - sell one first (Sell Vehicle).	[DEALER] 您的车库已满 - 请先卖掉一辆（出售车辆）。
+[DEALER] %s costs $%d - you have $%d.	[DEALER] %s 花费 $%d - 你有 $%d。
+[DEALER] Paid $%d - your %s (%s) is in My Vehicles (%d/%d), /mv.	[DEALER] 已支付 $%d - 您的 %s (%s) 位于我的车辆 (%d/%d), /mv 中。
+[DEALER] Paid $%d - enjoy your %s. (My Vehicles is full: /mv to make room, then /savecar.)	[DEALER] 已支付 $%d - 请尽情享受您的 %s。（我的车辆已满：请 /mv 腾出空间，然后 /savecar。）
+%u Kg Trunk Capacity	%u 公斤行李箱容量
+Cardealer	发牌员
+Access Showroom	参观展厅
+Only on the default server and Mega Vil.	仅在默认服务器和 Mega Vil 上。
+[DEALER] Spots reset to their original positions (no wall check). /dealerspot auto to check them again.	[DEALER] 标记点重置到原始位置（不进行墙壁检查）。/dealerspot 自动再次检查。
+[DEALER] Wall check on: the spots are checked again when you are near a dealership.	[DEALER] 墙体检查开启：当您靠近经销商时，这些点位将再次被检查。
+/dealerspot - show the spots, /dealerspot reset - original positions, /dealerspot auto - wall check again	/dealerspot - 显示位置，/dealerspot 重置 - 恢复原始位置，/dealerspot 自动 - 再次检查墙壁
+[DEALER] Mode: %s. (/dealerspot reset | auto)	[DEALER] 模式：%s。（/dealerspot 重置 | 自动）
+original positions	原始位置
+wall check	墙体检查
+%s: not checked yet (go there).	%s：尚未检查（前往此处）。
+%s: receptionist %.1f %.1f %.1f%s, car %.1f %.1f %.1f%s	%s: 接待员 %.1f %.1f %.1f%s，汽车 %.1f %.1f %.1f%s
+ (moved off a wall)	 （从墙上移开）
+ (original)	 （原来的）
+No ground here	这里没有地面
+The ground is too steep	地面太陡了
+Too close to another foundation	离另一个地基太近了
+Look at the edge of a foundation or a ceiling	看看地基或天花板的边缘。
+A ceiling needs walls under it (or another ceiling)	天花板下方需要墙壁（或其他天花板）。
+Stand next to a doorway without a door	站在一个没有门的门口旁边
+You need a Toolbox in your bag	你的包里需要一个工具箱
+Can't build here	这里不能建造。
+Window	窗户
+Rotate	旋转
+Remove	删除
+Door	门
+Look at one of your pieces to remove it.	查看你的其中一块拼图，把它取下来。
+No door near you.	你附近没有门。
+CLOSE DOOR	关上门
+OPEN DOOR	打开门
+Turn on the Day Z models in the settings to build.	在设置中启用 Day Z 模型即可进行建造。
+Building needs a Toolbox in your bag (gas stations).	建筑行业需要工具箱（加油站）。
+Build mode: pick a piece, look where it goes, PLACE.	建造模式：选择一个部件，查看它的位置，放置。
+dynamic mapping catalog	动态映射目录
+tags+desc	标签+描述
+Loading the model catalog...	正在加载模型目录……
+%u  %s  (txd %s)%s%s%s	%u %s (txd %s)%s%s%s
+%d models match \"%s\" (%d shown). /mapping add <id> puts one in front of you.	%d 个模型与 \"%s\" 匹配（显示 %d）。/mapping 添加 <id> 会将其中一个模型显示在您面前。
+No model matches \"%s\".	没有模型与 \"%s\" 匹配。
+find 	寻找 
+search 	搜索 
+add 	添加 
+Loading the model catalog - try again in a moment (or use the id).	正在加载模型目录 - 请稍后再试（或使用 id）。
+Unknown model. /mapping find <name> lists the ids.	未知型号。/mapping查找<名称>列出ID。
+Model %d is not in this game (SA-MP object?) - others with the pack will see it.	模型 %d 不在此游戏中（SA-MP 对象？） - 其他拥有该包的人将会看到它。
+/mapping add %d %.2f %.2f %.2f %.1f	/mapping 添加 %d %.2f %.2f %.2f %.1f
 You are back (not AFK any more).	你回来了（不再是AFK了）。
 You are AFK (3 minutes without moving). Move to come back.	你AFK了（3分钟不动）。搬回来。
 AFK: you leave the server in 1 minute if you don't move.	AFK：如果你不动，1分钟后你就会离开服务器。
@@ -1174,7 +2263,6 @@ Bike	自行车
 Mountain Bike	山地自行车
 Beagle	比格犬
 Cropduster	农作物喷粉机
-Stunt	特技
 Tanker	油轮
 Roadtrain	公路列车
 Nebula	星云
@@ -1256,7 +2344,6 @@ Police SFPD	警察局
 Police LVPD	警察左心室警察
 Police Ranger	警察游骑兵
 Picador	皮卡多
-Alpha	阿尔法
 Phoenix	凤凰城
 Glendale Shit	格伦代尔屎
 Sadler Shit	萨德勒屎
@@ -1358,7 +2445,6 @@ Best	最佳
 Start	开始
 %s is inside the stadium (interior %d): the race takes you there.	%s 在体育场内（内部 %d）：比赛将带您到达那里。
 %s start is marked on your radar for 90 seconds.	%s开始在您的雷达上标记了 90 秒。
-Race	竞赛
 Where	哪里
 {FFE14D}GTA SA races - /race to queue (%d players)	{FFE14D}GTA SA 比赛 - 排队人数为 /race（%d 名玩家）
 Mark	马克
@@ -1417,7 +2503,6 @@ teleport: 	传送：
 [Spawn] Type /spawn infernus (or any id 400 - 611) for a vehicle, /w all for weapons.	[Spawn] 为车辆输入 /spawn infernus（或任何 id 400 - 611），为武器输入 /w all。
 [Teleport] /ls /sf /lv /chiliad /desert /beach /pizza /gym /ammu /emmet /home ... (/t for all)	[传送] /ls /sf /lv /chiliad /desert /beach /pizza /gym /ammu /emmet /home ...（全部为 /t）
 [World] All cities, shops, gyms, barbers, tattoo, clothes, Pay 'n' Spray and mod garages are open.	[世界] 所有城市、商店、健身房、理发店、纹身店、服装店、Pay 'n' Spray 和改装车库均开放。
-~g~GO!	~g~出发！
 Race over: you died.	比赛结束：你死了。
 Get back in your vehicle within 20 seconds.	在 20 秒内返回车内。
 Left the vehicle: race over.	离开车辆：比赛结束。
@@ -1447,7 +2532,7 @@ Gate	门
 Area 69 North Gate	69区北门
 Area 69 East Gate	69区东门
 gates.txt line:  %.2f %.2f %.2f %.0f 11 My Gate	gates.txt线：%.2f %.2f %.2f %.0f 11 我的门
-Stand in the middle of the gate, facing through it. Put the line in files/MP/gates.txt, then /gates reload.	站在门中间，面朝门外。将行放入 files/MP/gates.txt,，然后重新加载 /gates。
+Stand in the middle of the gate, facing through it. Put the line in files/TYFMC/MP/gates.txt, then /gates reload.	站在大门中间，面向大门。将代码行放入 files/TYFMC/MP/gates.txt 目录，然后执行 /gates 重新加载。
 %d gate teleport(s):	%d 个门传送：
 No house called \"%s\" (/houses lists them).	没有名为 \"%s\" 的房屋（/houses 列出了它们）。
 Stand at a house (or type its name).	站在房子前（或输入它的名字）。
@@ -1483,8 +2568,6 @@ Setup %s: pick the slot size (1x1 - 16x16, each square 2x2 m). Tap a square to l
 Red squares: make the slot 16x16 or smaller and keep it off other houses.	红色方块：将插槽设置​​为 16x16 或更小，并使其远离其他房屋。
 SETUP  [H:%u] %s	设置 [H:%u] %s
 Each square = %.0fx%.0f m. Limit %dx%d.	每个正方形 = %.0fx%.0f 米。限制 %dx%d。
-Width	宽度
-Height	身高
 Turn -15	转-15
 Turn +15	转+15
 Move here	搬到这里
@@ -1505,7 +2588,6 @@ Go inside	进去
 Add in front of me	添加到我前面
 No object picked	没有拾取任何对象
 Turn	转
-Delete	删除
 Door here	门在这里
 Pick an interior first (/edithouseinteriors).	首先选择一个内饰 (/edithouseinteriors)。
 Furniture on its way - move it with /edithouseinteriors.	家具正在路上 - 使用 /edithouseinteriors 移动它。
@@ -1547,6 +2629,59 @@ No object of your house within 6 m.	您家6m范围内无任何物体。
 Use it at (or in) your house: /furnish <low|med|swank>	在您家中使用它：/furnish <low|med|swank>
 Buildings: %s0 = none	建筑物：%s0 = 无
 Use it at your house: /%s <player id>	在你家使用它：/%s <玩家 ID>
+You own this server: /mapedit opens the map editor (add, move, turn and delete objects).	您拥有此服务器：/mapedit 打开地图编辑器（添加、移动、旋转和删除对象）。
+Join your server first.	请先加入服务器。
+The map editor is only for custom servers.	地图编辑器仅适用于自定义服务器。
+This server runs an older MP: it can't keep map objects yet.	此服务器运行的是较旧的多人游戏版本：它还无法保存地图对象。
+Only the host owner of this server can edit its map.	只有服务器的主机所有者才能编辑地图。
+Unknown model id.	未知型号ID。
+Model %d is not in this game.	模型 %d 不在此游戏中。
+The object was successfully created at your position.	对象已成功创建在您的位置。
+No map objects yet - Create one first.	地图上还没有对象——请先创建一个。
+Traffic cone	交通锥
+Explosive barrel	爆炸桶
+Dock barrier	码头屏障
+Jump ramp	跳台
+Big ramp	大坡道
+Water ramp	水坡道
+Chainlink fence	铁丝网围栏
+Electric fence	电围栏
+Small fence	小围栏
+Bollard light	系船灯
+Picnic table	野餐桌
+Street lamp	路灯
+Spotlight tower	聚光塔
+Overhead sign frame	高架标志牌框架
+Speed bump (SA-MP pack)	减速带（SA-MP 套件）
+MAP EDITOR	地图编辑器
+%d objects on this server	此服务器上有 %d 个对象
+model in this game	这款游戏中的模型
+not in this game	不在这个游戏中
+Create in front of me	在我面前创作
+Nearest	最近的
+#%u  model %u	#%u 模型 %u
+Tap an object to select it	点击对象即可选中它
+Move	移动
+%.2g m / %.0f\xC2\xB0	%.2g 米 / %.0f\xC2\xB0
+Rot X	旋转X
+Rot Y	旋转 Y
+Snap to ground	猛然落地
+Duplicate	复制
+Solid (collision)	固体（碰撞）
+Deselect	取消选择
+Tap again: delete ALL objects	再次点击：删除所有对象
+Clear all	全部清除
+Drag the X / Y / Z handles on the object. Tap an object to select it.	拖动对象的 X/Y/Z 控制柄。点击对象即可选中它。
+Map editor: Create an object, or tap one to select it. You now are able to edit your object.	地图编辑器：创建一个对象，或点击一个对象进行选择。现在您可以编辑您的对象了。
+/mapedit - open / close the editor.  /mapedit add <id|name>  /mapedit model <id>  /mapedit find <name>	/mapedit - 打开/关闭编辑器。/mapedit 添加 <id|name> /mapedit 建模 <id> /mapedit 查找 <name>
+/mapedit select (nearest)  /mapedit delete  /mapedit count.  Only the host owner of a custom server can edit.	/mapedit 选择（最近邻） /mapedit 删除 /mapedit 计数。只有自定义服务器的主机所有者才能编辑。
+%d map objects on this server (%d shown near you).	此服务器上有 %d 个地图对象（%d 个显示在您附近）。
+model 	模型 
+Unknown model. /mapedit find <name> lists the ids.	未知型号。/mapedit查找<名称>列出ID。
+Map editor model: %d.	地图编辑器模型：%d。
+Please select the object you'd like to edit - #%u picked.	请选择要编辑的对象 - 已选择 #%u。
+Select an object first.	先选择一个对象。
+/mapedit help	/mapedit 帮助
 Southern San Andreas Super Autos	南圣安地列斯超级汽车
 Legendary Motorsport	传奇赛车运动
 Pedal and Metal	踏板和金属
@@ -1579,6 +2714,70 @@ Hotel room	酒店房间
 Going to your room...	去你的房间...
 Leave room	留出空间
 Computer	电脑
+This server runs MP %s: the HUD settings work once it runs 4.07 (only you see them until then).	此服务器运行 MP %s：HUD 设置一旦运行 4.07 版本即可生效（在此之前只有你自己能看到）。
+(old)	（旧）
+Logo Position X: 0 = left, 50 = centre, 100 = right (now %d)	Logo 位置 X：0 = 左，50 = 中，100 = 右（当前为 %d）
+Logo Position Y: 0 = top, 100 = bottom (now %d)	Logo 位置 Y：0 = 顶部，100 = 底部（当前为 %d）
+Logo Size Z: 10 - 250 %%, 100 = normal (now %d)	Logo 尺寸 Z：10 - 250 %%，100 = 正常（当前为 %d）
+{FFFFFF}Server Logo Position	{FFFFFF}服务器徽标位置
+Set	套装
+Account: %s (id %d) on %s	账户：%s（id %d）于 %s
+Server Logo: MP Launcher > + Add server > scroll down > Import title logo (opens Files) - a PNG (transparent) or JPG. Hide / show it in Textdraw > Logo Server.	服务器徽标：MP启动器 > + 添加服务器 > 向下滚动 > 导入标题徽标（打开文件） - PNG（透明）或 JPG 格式。在 Textdraw > 服务器徽标中隐藏/显示它。
+This server has no rules window (Server settings > Rules window).	此服务器没有规则窗口（服务器设置 > 规则窗口）。
+Only the host owner can open /settings.	只有主机所有者才能打开 /settings。
+Status	状态
+{FFFFFF}Account\t{AAAAAA}%s\n	{FFFFFF}账户\t{AAAAAA}%s\n
+{FFFFFF}Account	{FFFFFF}账户
+{FFFFFF}Textdraw	{FFFFFF}文本绘制
+{FFFFFF}Entering Door\t{FFFFFF}%d second(s)\n	{FFFFFF}进入门\t{FFFFFF}%d秒\n
+{FFFFFF}Entering Door	{FFFFFF}入口门
+{FFFFFF}%d second(s)	{FFFFFF}%d 秒
+{FFFFFF}Server Logo\t%s\n	{FFFFFF}服务器徽标\t%s\n
+{FFFFFF}Server Logo	{FFFFFF}服务器徽标
+{FFFFFF}Server settings (gamemodes / permissions)\t{FFD700}>>\n	{FFFFFF}服务器设置（游戏模式/权限）\t{FFD700}>>\n
+{FFFFFF}Server settings (gamemodes / permissions)	{FFFFFF}服务器设置（游戏模式/权限）
+{FFFFFF}Server rules\t{FFD700}>>\n	{FFFFFF}服务器规则\t{FFD700}>>\n
+{FFFFFF}Server rules	{FFFFFF}服务器规则
+{AAAAAA}Not set >>	{AAAAAA}未设置 >>
+{FFFFFF}Settings Menu	{FFFFFF}设置菜单
+HUD Player was removed in 4.12.5 - your name and id are no longer drawn on the HUD.	HUD Player 已在 4.12.5 版本中移除 - 您的名字和 ID 不再显示在 HUD 上。
+Ammo Info is off on the default server.	默认服务器上的弹药信息已关闭。
+{FFFFFF}HUD Variant - %d	{FFFFFF}HUD变体 - %d
+{FFFFFF}HUD Mode\t%s\n	{FFFFFF}HUD模式\t%s\n
+{FFFFFF}HUD Mode	{FFFFFF}HUD模式
+{FFFFFF}Dollar Cent\t%s\n	{FFFFFF}美元美分\t%s\n
+{FFFFFF}Dollar Cent	{FFFFFF}美元
+{FFFFFF}HUD Player\t%s\n	{FFFFFF}HUD 玩家\t%s\n
+{FFFFFF}HUD Player	{FFFFFF}HUD玩家
+{FFFFFF}Ammo Info\t%s\n	{FFFFFF}弹药信息\t%s\n
+{FFFFFF}Ammo Info	{FFFFFF}弹药信息
+{FFFFFF}Logo Server\t%s\n	{FFFFFF}Logo 服务器\t%s\n
+{FFFFFF}Logo Server	{FFFFFF}Logo 服务器
+{FFFFFF}Logo Position X\t{FFFFFF}%d%%\n	{FFFFFF}Logo 位置 X\t{FFFFFF}%d%%\n
+{FFFFFF}Logo Position X	{FFFFFF}Logo 位置 X
+{FFFFFF}Logo Position Y\t{FFFFFF}%d%%\n	{FFFFFF}Logo 位置 Y\t{FFFFFF}%d%%\n
+{FFFFFF}Logo Position Y	{FFFFFF}Logo 位置 Y
+{FFFFFF}Logo Size Z\t{FFFFFF}%d%%\n	{FFFFFF}Logo 尺寸 Z\t{FFFFFF}%d%%\n
+{FFFFFF}Logo Size Z	{FFFFFF}Logo 尺寸 Z
+{AAAAAA}Removed	{AAAAAA}已移除
+{AAAAAA}Off (default server)	{AAAAAA}关闭（默认服务器）
+{FFFFFF}Settings Menu >> Textdraw	{FFFFFF}设置菜单 >> 文本绘制
+HUD Variant %d (%s) for everyone on this server.	此服务器上的所有人的 HUD 变体 %d (%s)。
+The server HUD is off for everyone on this server.	本服务器上的所有用户都已关闭服务器HUD。
+%sHUD Variant - %d {AAAAAA}(%s)\n	%sHUD 变体 - %d {AAAAAA}(%s)\n
+%sHUD Variant - %d {AAAAAA}(%s)	%sHUD变体 - %d {AAAAAA}(%s)
+{FFFFFF}Hud Mode	{FFFFFF}抬头显示器模式
+Change	改变
+Join a server first.	首先加入服务器。
+Day Z model pack moved into the MP folder. Restart the game once so the normal models come back.	DayZ模型包已移至多人游戏文件夹。请重启游戏一次，以便恢复原有模型。
+Disabled	已禁用
+Mega Vil blue	Mega Vil 蓝色
+Violet	紫色
+Emerald	翠
+Crimson	赤红
+Gold	金子
+Broker MQQ red	经纪商 MQQ 红色
+AMMO %d	弹药 %d
 Grove Street	格罗夫街
 Ganton	甘顿
 Idlewood	艾德伍德
@@ -1610,33 +2809,99 @@ Las Venturas Hospital	拉斯文图拉斯医院
 LV Airport	LV机场
 Emerald Isle	翡翠岛
 V-Rock Hotel	V-洛克酒店
+right after < Spawn >	紧接着 < 生成 >
+not near a spawn	不在刷新点附近
+Still connecting - you can move meanwhile. On a hotspot: the host should keep the game open and the screen on.	仍在连接中——您可以趁此机会移动。使用热点时：主机应保持游戏运行并开启屏幕。
 Spawned at %s.	生成于 %s。
+freeroam,deathmatch,bounty,duels,missions,jobs,24/7	自由漫游、死亡竞赛、赏金、决斗、任务、兼职、全天候 24/7
+Broker MQQ - the main MP server, always online. Free roam, Deathmatch and Bounty Hunter (kill streaks, bounties, duels) with everyone: missions, races, jobs and events.	Broker MQQ——主要的多人游戏服务器，始终在线。自由漫游、死亡竞赛和赏金猎人（连杀奖励、赏金、决斗），与所有人一起体验：任务、比赛、工作和活动。
+Brief Case War	简案战争
+bcw,team,pvp,objective,24/7	bcw、团队、PVP、目标、24/7
+Two teams fight over the briefcase. Grab it, carry it home and hold the line.	两队人马争夺公文包。抢到公文包，把它带回家，守住阵地。
+Call Of Duty: Modern Warfare 3 in San Andreas: classes, killstreaks, ranked matches.	《使命召唤：现代战争3》圣安地列斯版：职业、连杀奖励、排位赛。
+rp,roleplay,jobs,houses,futuristic,24/7	角色扮演、职业、房屋、未来主义、24/7
+Mega Vil Futuristic roleplay: jobs, houses, cars and a city that never sleeps.	Mega Vil 未来主义角色扮演：工作、房屋、汽车和一座不夜城。
+Day Z	DayZ
+dayz,zombies,survival,loot,pvp,24/7	DayZ，僵尸，生存，战利品，玩家对战，24/7
+Project Day Z Legacy: survive the zombies, find loot, build a camp, trust nobody.	Project Day Z Legacy：在僵尸横行的环境中生存下来，寻找战利品，建造营地，不要相信任何人。
+Rocket Soccer	火箭足球
+rocketleague,soccar,cars,ranked,mmr,24/7	火箭联盟、足球、赛车、排位赛、MMR、全天候24/7
+Rocket League: car soccer in San Andreas on a floating pitch high above the Los Santos skyscrapers. Pick a car at Grove Street, boost, jump and score - ranked MMR from Bronze to Supersonic Legend.	《火箭联盟》：在圣安地列斯州洛圣都摩天大楼上空的漂浮球场上进行汽车足球比赛。在格罗夫街选择一辆车，加速、跳跃、得分——排名从青铜到超音速传奇。
+no servers in the answer	答案中没有服务器
+PC server %s:%d (%s). Joins through MP crossplay.	PC服务器%s:%d(%s)。可通过多人跨平台游戏加入。
+Could not read the open.mp list (%s). It tries again in a moment.	无法读取 open.mp 列表 (%s)。稍后将重试。
+No open.mp server matches this filter.	没有 open.mp 服务器符合此筛选条件。
+Reading the open.mp server list...	正在读取 open.mp 服务器列表……
 All	全部
 briefcase war	公文包战争
 modern warfare	现代战争
 mega vil	巨型恶魔
+day z	天 Z
+SERVER IN DEVELOPMENT	服务器正在开发中
+%s is still in development.	%s 仍在开发中。
+This server	此服务器
+The owner is still working on it, so some features may not work yet. You can keep playing.	开发者仍在进行开发，因此部分功能可能尚未开放。您可以继续游玩。
+Updates: mpsamp-open.github.io  |  Discord: %s	更新：mpsamp-open.github.io | Discord：%s
+Password for %s	%s 的密码
 Region: Auto (lowest ping)%s%s. All regions are listed.	区域：汽车（最低 ping）%s%s。所有地区均已列出。
 Region: %s (%d ms). The lobby moves to the %s broker; only %s servers are listed.	区域：%s（%d 毫秒）。大厅移至%s经纪人；仅列出了 %s 个服务器。
 Region: %s. Only %s servers are listed.	区域：%s。仅列出了 %s 个服务器。
+Oceania	大洋洲
+standby - public lobby  |  888	待命 - 公共大厅 | 888
 Auto	汽车
 %s  |  %d servers	%s |  %d台服务器
+public lobby  |  %d servers	公共大厅 | %d 台服务器
 lowest ping  |  %d	最低 ping |  %d
+same server as %s  |  %d	与 %s | %d 相同的服务器
 %d ms  |  %d servers	%d 毫秒 |  %d台服务器
--- ms	——女士
+standby - public lobby	待命 - 公共大厅
+Names hidden: over 100 players	已隐藏姓名：超过 100 名玩家
+(same on the PC launcher)	（PC启动器也一样）
+Join: Player list shows all	加入：玩家列表显示所有
+Gamemode	游戏模式
 Players	玩家
-Ping	平
-Mode	模式
+Map	地图
+Loc	本地
+Tags	标签
+Refreshing the open.mp list... (%d servers now)	正在刷新 open.mp 列表……（当前有 %d 台服务器）
+Could not read the open.mp list%s - tap Refresh	无法读取 open.mp 列表%s - 点击刷新
+ (showing the last one)	 （显示最后一个）
+, with a password	，并带有密码
+, no password	无需密码
+open.mp server list	open.mp 服务器列表
+Password only	仅限密码
+Search open.mp	搜索 open.mp
+Search open.mp servers	搜索 open.mp 服务器
+All servers	所有服务器
+No password	无需密码
   (default)	  （默认）
-  (gamemode)	  （游戏模式）
-  (Roleplay 24/7)	  （角色扮演24/7）
   (yours)	  （你的）
-Freeroam %s%s	自由漫游 %s%s
-(all)	（全部）
- (LAN)	 （局域网）
-Brief Case War	简案战争
-MW3 Team DM	MW3 团队 DM
+Bone County	骨县
+Mega Vil	超级维尔
+SA Wasteland	南澳荒地
+SA Warzone	SA 战区
+San Andreas	圣安地列斯
+Server Description	服务器描述
+No description.	无描述。
+IP: %s:%d	IP：%s:%d
+IP: %s:%d (Wi-Fi)	IP：%s:%d（Wi-Fi）
+IP: %s:%d (open.mp, PC crossplay)	IP：%s:%d（open.mp，PC 跨平台游戏）
+IP: 24/7 internet lobby, port %d	IP：24/7 全天候互联网大厅，端口 %d
+IP: internet lobby, port %d	IP：互联网大厅，端口 %d
+IP: hidden, port %d	IP：隐藏，端口 %d
+Favorite	最喜欢的
+All players (%d)	所有玩家 (%d)
++%d more	+%d 更多
+Join to see who is playing.	加入即可查看谁在玩游戏。
+Nobody inside yet.	里面还没有人。
+No preview	无预览
+Ping stability	Ping值稳定性
+avg %d ms   jitter %d ms	平均延迟 %d 毫秒，抖动 %d 毫秒
+no ping yet	尚未收到 ping 信号
 No server matches \"%s\".	没有服务器与 \"%s\" 匹配。
-No favourite servers yet. Tap + to add one.	还没有最喜欢的服务器。点击 + 添加一个。
+No favourite servers yet. Tap a server and press Favorite, or tap + to add one.	暂无收藏服务器。点击服务器并点击“收藏”，或点击“+”添加。
+No Wi-Fi servers on this network yet. Host: tap Host offline server. Friend: Find host and join.	此网络上暂无 Wi-Fi 服务器。主机：点击“主机离线服务器”。好友：找到主机并加入。
+No internet. Offline play: open the Lan tab (hotspot / same Wi-Fi).	没有网络。离线游玩：打开局域网选项卡（热点/同一Wi-Fi）。
   Nobody on your server yet.	  您的服务器上还没有人。
   Join to see who is playing.	  加入看看谁在玩。
   Select a server.	  选择一个服务器。
@@ -1645,8 +2910,19 @@ Value	价值
 default (always on)	默认（始终开启）
 internet lobby	互联网大厅
 always active	总是活跃的
-San Andreas	圣安地列斯
 server synced	服务器已同步
+24/7 featured (Broker bot, GitHub Actions)	全天候特色服务（经纪人机器人、GitHub Actions）
+Grove Street at night - pick a car	夜幕下的格罗夫街——选辆车
+Sky Pitch above Los Santos	洛圣都上空的空中球场
+5:00, golden goal overtime	5:00，金球制胜加时赛
+MMR, Bronze .. Supersonic Legend	MMR，青铜……超音速传奇
+Octane, Fennec, Dominus, Breakout, Merc, Backfire	Octane、Fennec、Dominus、Breakout、Merc、Backfire
+15 random places	15个随机地点
+houses, 19 gas stations, 10 military bases	住宅、19个加油站、10个军事基地
+everywhere (more at night / in the fog)	到处都是（尤其是在晚上/雾天）
+max 4, unique colours	最多 4 种独特颜色
+disconnect in combat = death	战斗中断开连接=死亡
+off (MP + CLEO + CheatMenu)	关闭（MP + CLEO + 作弊菜单）
 24/7 featured (always on, VPS + Broker)	24/7 精选（始终在线，VPS + 经纪人）
 Roleplay RP (only)	角色扮演 RP（仅限）
 Mega Vil (Los Santos of the future)	Mega Vil（未来的洛桑托斯）
@@ -1666,6 +2942,48 @@ starts at	开始于
 Bone County, San Fierro Bay	圣菲耶罗湾博恩县
 not allowed	不允许
 MP 3.04.6	议员 3.04.6
+Server Management	服务器管理
+Hosted by: 	主办方： 
+ (24/7 bot)  &  [MOD] Trunk (moderator)  &  [ADMIN] SENJI (admin)	 (24/7 bot) & [MOD] Trunk (管理员) & [ADMIN] SENJI (管理员)
+Online 24/7 on the MP console - it never needs a player to start it.	在多人游戏主机上 24/7 全天候在线 - 无需玩家即可启动。
+Hosted by: you (this phone is the host owner)	主机主人：您（此手机为主机所有者）
+Hosted by: the host owner's phone / VPS	托管方：主机所有者的手机/VPS
+Players: %d/%d     Ping: %d ms     Loss: %d%%     Jitter: %d ms%s	玩家数：%d/%d 延迟：%d 毫秒 丢包率：%d%% 抖动：%d 毫秒%s
+     (weak link: syncs sent twice)	     （薄弱环节：同步信息发送了两次）
+Language: All  (fixed - nobody can change it on the featured servers)	语言：全部（固定 - 在特色服务器上任何人均无法更改）
+Language: %s	语言：%s
+You can change these settings (%s).	您可以更改这些设置（%s）。
+host owner	房东
+This server runs an old MP: view only until it updates.	此服务器运行的是旧版 MP：仅供查看，待其更新后再更新。
+View only - %s.	仅查看 - %s。
+only the admin and the moderators change the featured servers	只有管​​理员和版主才能更改特色服务器
+only the host owner changes this server	只有主机所有者才能更改此服务器
+moderator.txt was not accepted here - type /modcheck in the chat to see why.	此处不接受 moderator.txt - 在聊天中输入 /modcheck 查看原因。
+This featured server runs only its own gamemode.	此特色服务器仅运行其自身的游戏模式。
+Rules window after the login	登录后的规则窗口
+MONETLOADER - HG MENU	MONETLOADER - HG 菜单
+HG menu: OFF - never on the MP LAN server, the default server and the featured servers.	HG 菜单：关闭 - 在 MP LAN 服务器、默认服务器和特色服务器上永远不会启用。
+HG menu on this server: %s  (/hg opens it)	此服务器上的 HG 菜单：%s（/hg 打开它）
+OFF (Disable cheats is on)	关闭（禁用作弊已开启）
+OFF (the host switched MonetLoader cheats off)	关闭（主机关闭了 MonetLoader 作弊功能）
+HG menu on by default for my custom servers	我的自定义服务器默认开启了HG菜单
+HG menu on for \"%s\" (Allow CheatMenu + MonetLoader cheats).	HG 菜单已开启，适用于 \"%s\"（允许 CheatMenu + MonetLoader 作弊）。
+On: every new custom server you host starts with \"Allow CheatMenu + MonetLoader cheats\" on, so /hg works there.	开启：您托管的每个新自定义服务器都以 \"允许 CheatMenu + MonetLoader 作弊\" 开启开始，因此 /hg 在那里有效。
+Off: new custom servers start with MonetLoader cheats off (switch them on per server above).	关闭：新建的自定义服务器默认关闭 MonetLoader 作弊功能（可根据需要为每个服务器开启）。
+Switching \"Allow CheatMenu + MonetLoader cheats\" off above (or Disable cheats) stops HG for everyone on the server.	关闭上面的 \"Allow CheatMenu + MonetLoader cheats\"（或禁用作弊）将停止服务器上所有人的 HG。
+Anti-cheat gamemode	反作弊游戏模式
+Anti-cheat %s on \"%s\".	反作弊系统 %s 在 \"%s\" 上。
+Always OFF on the default server.	默认服务器上始终处于关闭状态。
+Always ON on Brief Case War, MW3 and Mega Vil.	在 Brief Case War、MW3 和 Mega Vil 中始终开启。
+Checks: teleport, airbreak, fly (on foot only - helicopters, jets and cars in the air are fine),	检查：瞬间移动、空中刹车、飞行（仅限步行——空中的直升机、喷气式飞机和汽车可以），
+speed, rapid fire, infinite ammo, packet flood. Floating / teleporting: kick, 3 kicks = permanent ban	速度、速射、无限弹药、数据包泛滥。漂浮/瞬移：踢出，3次踢出=永久封禁
+(only [ADMIN] / [MOD] can unban). CLEO menus and libCheatMenu.so / libCheatMenu64.so are blocked.	（只有[ADMIN]/[MOD]可以解封）。CLEO菜单和libCheatMenu.so/libCheatMenu64.so已被屏蔽。
+Login system (authentication)	登录系统（身份验证）
+Off by default. When it is on, new players log in first. It turns off by itself when the	默认关闭。开启后，新玩家优先登录。当……时，此功能会自动关闭。
+last [ADMIN] / [MOD] leaves this server - join again and turn it back on if you need it.	最后 [ADMIN] / [MOD] 离开了此服务器 - 如果需要，请重新加入并重新启用它。
+Map editor (add / move / delete objects)	地图编辑器（添加/移动/删除对象）
+Players (kick / ban / spectate)	玩家（踢出/封禁/观战）
+Ban list	禁入名单
 This server   |   Moderator: 	此服务器|   主持人： 
 Default server   |   Administrator: 	默认服务器 |   管理员： 
   Nobody else on the default server right now.	  目前默认服务器上没有其他人。
@@ -1680,8 +2998,15 @@ Kick	踢
 Ban	班
 Mute	静音
 Unmute	取消静音
-Tap a player, pick a reason, then Kick / Ban / Mute. The 24/7 server keeps its ban list.	点击一个玩家，选择一个原因，然后踢/禁止/静音。 24/7 服务器保留其禁止列表。
-Server settings (gamemodes / permissions / rules)	服务器设置（游戏模式/权限/规则）
+Warn	警告
+Go to	前往
+Get here	到达这里
+Heal	愈合
+Tap a player, pick a reason, then Kick / Ban / Mute / Warn. The 24/7 server keeps its ban list.	点击玩家，选择理由，然后选择踢出/封禁/禁言/警告。服务器全天候运行，并保留封禁列表。
+Chat: /acmds lists every staff command (/sethealth /givecash /fine /makevip /makeadmin /unban ...).	聊天：/acmds 列出了所有员工命令（/sethealth /givecash /fine /makevip /makeadmin /unban ...）。
+Everyone on the PC server: %d players	PC服务器上的所有玩家：%d
+Tap a name = OnPlayerClickPlayer (like the PC Tab list). The players near you also show up in the game.	点击玩家名称 = OnPlayerClickPlayer（类似于PC端的玩家列表）。你附近的玩家也会显示在游戏中。
+Server Management (gamemodes / permissions / rules)	服务器管理（游戏模式/权限/规则）
 moderator.txt has the MP moderator key, but this server didn't give you [MOD] (older MP copy). Type /modcheck, then rejoin.	moderator.txt 拥有 MP 主持人密钥，但该服务器没有为您提供 [MOD]（较旧的 MP 副本）。输入 /modcheck，然后重新加入。
 Player management	球员管理
 The default server has one administrator: [ADMIN] SENJI. Joining first (or hosting it) doesn't make you the host.	默认服务器有一名管理员：[ADMIN] SENJI。首先加入（或主持）并不意味着您就成为主持人。
@@ -1701,30 +3026,130 @@ Ban %s	禁止%s
 Banned %s.	已禁止%s。
 That is you (the administrator).	那就是你（管理员）。
 Tap a player, type or pick a reason, then Kick or Ban. Banned players see the date, you as administrator and the reason.	点击一名玩家，输入或选择原因，然后踢出或禁止。被禁止的玩家会看到日期、您作为管理员以及原因。
+Bans of the server you are on	你所在服务器的封禁
+This server is not hosted by your phone: bans and unbans go to the server itself.	此服务器并非由您的手机托管：封禁和解封操作均由服务器本身执行。
+Online players: Players page -> tap -> Ban. Offline players / any name: here.	在线玩家：玩家页面 -> 点击 -> 封禁。离线玩家/任意名称：点击此处。
+Only [ADMIN], [MOD] or the owner of this server can ban here.	只有[ADMIN]、[MOD]或本服务器所有者才能在此处封禁用户。
+Show the ban list (chat)	显示封禁列表（聊天）
+The ban list is in the chat.	封禁名单在聊天记录里。
+Ban a name (online = kicked at once, or when they join)	封禁用户名（在线封禁 = 立即踢出，或加入时踢出）
+Player name	球员姓名
+Ban name	禁令名称
+Ban sent for %s.	已对 %s 发出封禁。
+Unban this name	解除此名称的封禁
 Ban list  (%d)   |   Administrator: %s	禁止列表 (%d) |   管理员：%s
-Saved in files/MP/bans.txt, used by every server this phone hosts.	保存在该电话托管的每个服务器使用的 files/MP/bans.txt, 中。
+Saved in files/TYFMC/MP/bans.txt, used by every server this phone hosts.	保存在 files/TYFMC/MP/bans.txt 中，该手机托管的每个服务器都使用该文件。
 Ban date	禁令日期
 Administrator	管理员
   Nobody is banned.	  没有人被禁止。
 Unban selected	解禁已选择
 Ban a name (also when that player is offline)	禁止名字（当该玩家离线时也是如此）
-Player name	球员姓名
-Ban name	禁令名称
-Banned the name %s.	禁止使用名称 %s。
+Banned the name %s (kicked if online).	已禁用用户名 %s（如果在线则会被踢出）。
 %s is already banned.	%s 已被禁止。
+no ProjectDayZ folder in that zip	该压缩包里没有 ProjectDayZ 文件夹。
+DAY Z MODEL PACK	DAYZ 模型包
+The Project Day Z models (123 models, textures as PNG, about 50 MB), kept in your MP folder: files/TYFMC/MP/dayz/ProjectDayZ. 	Project Day Z 模型（123 个模型，PNG 纹理，约 50 MB），保存在您的 MP 文件夹中：files/TYFMC/MP/dayz/ProjectDayZ。 
+It never changes the game's models on other servers.	它从不改变其他服务器上的游戏模型。
+Saved in the MP folder.	已保存到 MP 文件夹。
+Files app: %s	文件应用：%s
+could not open the file	无法打开文件
+Copying... %.1f MB	正在复制... %.1f MB
+Unpacking...	拆箱……
+Download the pack again	再次下载软件包
+Download pack (into files/TYFMC/MP/dayz)	下载压缩包（到 files/TYFMC/MP/dayz 文件夹）
+Import pack (zip) - opens Files	导入压缩包（zip） - 打开文件
+application/zip,application/x-zip-compressed,application/x-zip,application/octet-stream	application/zip、application/x-zip-compressed、application/x-zip、application/octet-stream
+The Files app is already open.	文件应用已打开。
+CLOUD STORAGE	云存储
+Server resources from the MP website downloads. They are kept in the game cache.	服务器资源来自多人游戏网站下载，并保存在游戏缓存中。
+No writable cache folder on this phone - nothing can be downloaded.	这部手机上没有可写的缓存文件夹——无法下载任何东西。
+Project Day Z Legacy model pack   %s of %s on this phone   (%d / %d files, %d models)	此手机上的 Project Day Z Legacy 模型包 %s 共 %s 个（%d / %d 个文件，%d 个模型）
+Getting the file list from GitHub...	从GitHub获取文件列表……
+No file list yet.	暂无文件列表。
+The Day Z server download is running - wait for it to finish.	DayZ服务器下载正在进行中——请等待下载完成。
+Downloading %s: %s / %s  (%d / %d files)	正在下载 %s: %s / %s (%d / %d 个文件)
+%d models are in the game right now (Day Z server) - those are kept when you delete.	目前游戏（DayZ 服务器）中有 %d 个模型 - 删除时这些模型会被保留。
+Tap again to delete	再次点击删除
+%s  -  %d models	%s - %d 模型
+%s / %s on the phone  (%d / %d files)	手机上的 %s / %s（%d / %d 个文件）
+Downloaded	下载
+Download	下载
+Download everything	下载所有内容
+Refresh the file list	刷新文件列表
+Files: mpsamp-open.github.io  Host/DayZ/models	文件：mpsamp-open.github.io Host/DayZ/models
+OPEN.MP DEVELOPMENT (CROSSPLAY)	OPEN.MP 开发（跨平台播放）
+MP joins open.mp / SA-MP PC servers and the MP server runs open.mp Pawn gamemodes. 	MP 可以加入 open.mp / SA-MP PC 服务器，MP 服务器运行 open.mp Pawn 游戏模式。 
+These %d repositories (compiler, includes, plugins, SDKs, gamemodes and tools) are what scripts for both 	这些 %d 仓库（编译器、包含文件、插件、SDK、游戏模式和工具）是两者脚本的来源。 
+sides are built with. Tap a category to open it, tap a name to open its page.	页面由多个部分组成。点击类别即可打开，点击名称即可打开其页面。
+MP Multiplayer	多人游戏
+Version %s   -   created by JebetrexxMC	版本 %s - 由 JebetrexxMC 创建
+Multiplayer for GTA San Andreas and GTA Vice City on Android	安卓版 GTA 圣安地列斯和 GTA 罪恶都市多人游戏
+YOUTUBE  @thirtyfoxmc	YOUTUBE @thirtyfoxmc
+DISCORD SERVER	DISCORD 服务器
+OFFICIAL WEBSITE	官方网站
+Website: %s     YouTube: %s     Discord: %s	网站：%s YouTube：%s Discord：%s
+ABOUT THIS MOD	关于此模组
+MP Multiplayer is an independent, non-commercial project designed, programmed and maintained by one developer, 	MP Multiplayer 是一个独立的非商业项目，由一名开发者设计、编程和维护。 
+JebetrexxMC. Every part of it - the networking and sync, the server browser and launcher, the game modes, the 	JebetrexxMC。它的每一个部分——网络和同步、服务器浏览器和启动器、游戏模式等等。 
+dedicated server, the TV Player, the Moquil social app and the tools behind them - is the result of many months 	专用服务器、电视播放器、Moquil社交应用及其背后的工具——这些都是数月努力的成果。 
+of daily work, testing on real phones and fixing problems reported by the community.	日常工作包括：在真机上进行测试，以及修复社区反馈的问题。
+The mod is offered for free so that players can enjoy San Andreas and Vice City together. Updates, fixes and 	该模组免费提供，让玩家可以同时畅玩《圣安地列斯》和《罪恶都市》。更新、修复和 
+announcements are published only through the official channels above.	公告仅通过以上官方渠道发布。
+AUTHORSHIP AND CREDIT	作者身份和署名权
+MP Multiplayer, its code, its interface, its artwork and its name are the original work of JebetrexxMC. 	MP Multiplayer、其代码、界面、美术和名称均为 JebetrexxMC 的原创作品。 
+All rights are reserved by the author.	作者保留所有权利。
+You may share the official download link and make videos, streams and reviews of the mod, as long as the author is credited.	您可以分享官方下载链接，并制作该模组的视频、直播和评测，但必须注明作者。
+Re-uploading the mod or any part of it (libMP, scripts, assets, server files) to another site, channel, group or store requires the author's permission and visible credit to JebetrexxMC with a link to the official source.	将该模组或其任何部分（libMP、脚本、资源、服务器文件）重新上传到其他网站、频道、群组或商店需要获得作者的许可，并注明作者为 JebetrexxMC，同时附上指向官方来源的链接。
+Removing or changing the author's name, claiming the mod as your own, renaming it and presenting it as a new project, or selling it or putting it behind paid links or ad walls is not allowed.	移除或更改作者姓名、声称该模组是自己的作品、将其重命名并作为新项目展示、出售该模组或将其置于付费链接或广告墙之后都是不允许的。
+Edited versions and ports must clearly say they are based on MP Multiplayer by JebetrexxMC.	修改版本和移植版本必须明确注明其基于 JebetrexxMC 的 MP Multiplayer。
+A NOTE ON RE-UPLOADS	关于重新上传的说明
+This project has been copied and re-uploaded by others without permission and without any credit to the person 	该项目已被他人未经许可复制并重新上传，且未注明原作者。 
+who built it. That takes away the recognition for hundreds of hours of unpaid work and often spreads old, broken 	谁建造了它？这抹杀了数百小时无偿劳动的付出，而且常常会传播陈旧、破损的旧观念。 
+or modified files under someone else's name. Re-uploads like that are copyright infringement, and they will be 	或者以他人的名义修改文件。此类重新上传行为构成版权侵权，并将受到处罚。 
+reported to the hosting platform (YouTube, file hosts, app stores and similar) with a takedown request.	向托管平台（YouTube、文件托管网站、应用商店等）提交下架请求。
+If you downloaded MP from somewhere else, please get it from the official source instead - it is always the 	如果您是从其他地方下载的 MP，请改用官方来源——官方来源始终是最佳选择。 
+newest and safest version - and let the author know where you found the copy on Discord. Thank you for 	请下载最新最安全的版本，并告知作者您是从 Discord 上的哪个地方找到的。谢谢！ 
+respecting the work and supporting the original creator.	尊重原作，支持原创作者。
+THIRD-PARTY COMPONENTS	第三方组件
+GTA San Andreas and GTA Vice City are the property of Rockstar Games; MP is a fan-made mod and is not affiliated 	GTA圣安地列斯和GTA罪恶都市是Rockstar Games的财产；多人模式是粉丝制作的模组，与Rockstar Games无关。 
+with or endorsed by Rockstar Games or Take-Two Interactive. MP uses AndroidModLoader, MonetLoader (OSS), Dear ImGui, 	未经 Rockstar Games 或 Take-Two Interactive 授权或认可。MP 使用 AndroidModLoader、MonetLoader (OSS)、Dear ImGui。 
+mbedTLS, Opus, SQLite and other open-source libraries under their own licences; their authors keep full credit 	mbedTLS、Opus、SQLite 和其他开源库均采用各自的许可证；其作者保留全部版权。 
+for their work.	感谢他们的付出。
+(c) JebetrexxMC. All rights reserved.	(c) JebetrexxMC。保留所有权利。
+MP Launcher  v	MP 发射器 v
 Guest	嘉宾
 Not logged in	未登录
 Logged in	已登录
 Log in on a server	登录服务器
-MP Launcher	多人发射器
 powered by HiveMQ/JebetrexxMC	由 HiveMQ/JebetrexxMC 提供支持
-MP Launcher  v	MP 发射器 v
-Search server	搜索服务器
-Nickname	昵称
+No internet - Lan tab: offline play over your hotspot / Wi-Fi (/offline help).	没有互联网 - LAN 选项卡：通过您的热点/Wi-Fi 进行离线游戏（/offline 帮助）。
 Internet	互联网
+Featured	精选
 Favorites	收藏夹
+Lan	兰
 Add server	添加服务器
+Cloud Storage	云存储
 Bans	禁令
+Friends	朋友们
+Chats	聊天
+Communities	社区
+Inbox	收件箱
+Moquil	莫基尔
+About	关于
+Search	搜索
+Search server	搜索服务器
+%d server%s   %d player%s%s	%d 服务器%s %d 玩家%s%s
+   searching...	   正在搜索……
+Connected	已连接
+Nickname	昵称
+Switch account	切换账户
+   (this one)	   （这个）
++ Add account  (%d/%d)	+ 添加账户（%d/%d）
+Logout	注销
+GTA San Andreas multiplayer mod by JebetrexxMC	JebetrexxMC 制作的 GTA San Andreas 多人游戏模组
+Servers: internet lobby (HiveMQ / public MQTT brokers), Wi-Fi (Lan) and saved servers. 	服务器：互联网大厅（HiveMQ / 公共 MQTT 代理）、Wi-Fi（局域网）和已保存的服务器。 
+Logins and Discord verification: the MP Discord bot (max %d game accounts per Discord).	登录和 Discord 验证：MP Discord 机器人（每个 Discord 最多 %d 个游戏帐户）。
+Server backgrounds: Wikimedia Commons photos (see ICONS_CREDITS.txt). Flags: flag-icons (MIT).	服务器背景：维基共享资源照片（参见ICONS_CREDITS.txt）。旗帜：旗帜图标（MIT）。
 Server:	服务器：
 Ban date:	禁令日期：
 Kick date:	踢球日期：
@@ -1741,6 +3166,34 @@ Cheat Menu works only on custom servers whose host turned on \"Cheat Menu\" (Add
 For the default server, remove it from your AML mods folder and restart the game - once it is not loaded any more you can join right away.	对于默认服务器，请将其从 AML mods 文件夹中删除并重新启动游戏 - 一旦不再加载，您就可以立即加入。
 We check this every time you join, so it can't be switched off while playing.	每次您加入时我们都会检查此项，因此在玩游戏时无法将其关闭。
 Got it	明白了
+%s SCORED	%s 得分
+%s  -  %d km/h	%s - %d 公里/小时
+SAVE!  %s	保存！%s
+Shot on Goal  +20	射门得分 +20
+MVP  %s  (%d)	MVP %s (%d)
+%s  %s%d MMR	%s %s%d MMR
+GOAL!	目标！
+into the orange net	进入橙色网
+into the blue net	进入蓝色网
+BUILDING THE ARENA	建造体育馆
+FREE PLAY	免费游戏
+%s \xC2\xB7 BALL %d KM/H	%s \xC2\xB7 球 %d 公里/小时
+LS SKY PITCH	LS 天空音调
+LV AIRPORT	吕宋机场
+GOAL REPLAY	进球回放
+MATCH OVER	比赛结束
+YOUR RANK  %s %s  \xC2\xB7  %d MMR  \xC2\xB7  %u W / %u games	您的排名 %s %s \xC2\xB7 %d MMR \xC2\xB7 %u 胜场 / %u 场
+ROCKET LEAGUE	火箭联盟
+Choose a car.  Settings: /team  /stats  /top  /help	选择一辆车。设置：/team /stats /top /help
+Choose a car, then your game mode and arena	选择车辆，然后选择游戏模式和竞技场
+%s %s  \xC2\xB7  %d MMR	%s %s \xC2\xB7 %d MMR
+Game mode  \xC2\xB7  Arena: Sky Pitch above Los Santos	游戏模式 \xC2\xB7 竞技场：洛圣都上空的空中球场
+RANKED SOCCAR   (up to 8v8)	排位赛足球（最多 8 对 8）
+FREE PLAY   (you and the ball)	自由练习（你和球）
+ANOTHER CAR	另一辆车
+BOOST: hold  \xC2\xB7  JUMP: tap, tap again in the air = dodge  \xC2\xB7  SCORES  \xC2\xB7  /team blue|orange  \xC2\xB7  /ff	加速：按住 \xC2\xB7 跳跃：轻点，空中再轻点 = 闪避 \xC2\xB7 得分 \xC2\xB7 /team 蓝色|橙色 \xC2\xB7 /ff
+MP %s - Rocket League	MP %s - 火箭联盟
+Left Rocket League.	已退出《火箭联盟》。
 JOB: %s	作业：%s
 DERBY: %s	德比：%s
 DM: %s	私信：%s
@@ -1749,6 +3202,25 @@ GET BACK IN YOUR CAR	回到你的车里
 BACK INTO THE ARENA	回到竞技场
 BACK INTO THE DM ZONE  %d	返回 DM 区 %d
 GET BACK IN YOUR VEHICLE  %d	返回您的车内%d
+the neon title menu, no [MultiPlayer] button	霓虹灯标题菜单，没有[多人游戏]按钮
+back to ServerBrowserMode from TYFMC.MP.ini	从 TYFMC.MP.ini 返回 ServerBrowserMode
+ (restart the game to see it)	 （重新启动游戏即可查看）
+neon_mode.txt is in the MP folder: the neon menu stays until you delete it.	neon_mode.txt 在 MP 文件夹中：霓虹菜单会一直保留，直到你将其删除。
+No Wi-Fi / mobile data - playing offline (single player). Turn a network on and open the MP menu to join a server.	无Wi-Fi/移动数据 - 离线游玩（单人模式）。开启网络并打开多人游戏菜单加入服务器。
+Tip: tap a server twice to join it	提示：双击服务器即可加入。
+Tip: featured servers are online 24/7	提示：特色服务器全天候 24 小时在线
+Tip: hold the chat bubble to talk (voice chat)	提示：按住聊天气泡即可说话（语音聊天）
+Tip: Settings > Servers keeps your favourite servers	提示：设置 > 服务器 保存您收藏的服务器
+Tip: /help lists the commands of the server you are on	提示：/help 列出了您当前所在服务器的命令。
+GAMEPLAY TIP	游戏技巧
+LOADING WORLD	正在加载世界
+CONNECTING TO MULTIPLAYER	正在连接到多人游戏
+Multiplayer	多人游戏
+Still connecting to %s...	仍在连接到 %s...
+The game is loaded. Pick a server, or play single player.	游戏已加载。选择服务器，或进行单人游戏。
+Cancel + servers	取消 + 服务器
+Single player	单人游戏
+Pick a server to play, or go back to single player.	选择服务器进行游戏，或者返回单人游戏。
 Wanted players can't join the police.	通缉球员不能加入警察。
 You are a COP: /cuff <id> and /arrest <id> wanted players ($500 a star).	您是一名 COP：/cuff <id> 和 /arrest <id> 通缉球员（每颗星 500 美元）。
 You are a ROBBER: /rob <id> players for cash (it makes you wanted).	您是一名强盗：/rob <id> 玩家，以获取现金（这让您想要）。
@@ -1807,14 +3279,18 @@ Thirst %d%%.	口渴%d%%。
 ~y~Weapon	~y~武器
 ~w~Armour	~w~盔甲
 THIRST %d%%  KILLS %d	口渴%d%%会导致%d死亡
+/storage/emulated/0/AMLMods/	/storage/模拟/0/AMLMods/
+script_name('MP Lua Scripts Loader')	script_name('MP Lua 脚本加载器')
+script_name('MP Mods Loader')	script_name('多人游戏模组加载器')
+Copyright (c) 2016, BlastHack Team	版权所有 (c) 2016，BlastHack 团队
+# Scripts MP has met (a new one starts switched off). Delete this file to switch every script off again.\n	# 脚本 MP 已完成（新脚本已关闭）。删除此文件可再次关闭所有脚本。\n
+# Scripts MP has met (a new one starts switched off). Delete this file to switch every script off again.	# 脚本 MP 已启用（新脚本已关闭）。删除此文件可再次关闭所有脚本。
 My Vehicles is empty: sit in a car and type /savecar (up to %d).	我的车辆是空的：坐在车里并输入 /savecar（最多 %d）。
 #\tVehicle Model\tStatus\tDistance\n	#\t车辆型号\t状态\t距离\n
 Vehicle Model	车辆型号
-Status	状态
 Distance	距离
 {FFFFFF}%c%d:	{FFFFFF}%c%d：
 {FFFFFF}My Vehicles (%d/%d):	{FFFFFF}我的车辆 (%d/%d)：
-Select	选择
 Could not spawn the %s here (try again near it).	无法在此处生成 %s（在其附近重试）。
 Your %s is spawned (%.0f m away).	您的 %s 已生成（%.0f 米远）。
 Somebody is driving it.	有人在驾驶它。
@@ -1826,7 +3302,6 @@ Parking spot saved.	停车位已保存。
 %s\n%s\n{FFFF00}Locate\n{FFFFFF}Park here\n{FF3333}Remove	%s\n%s\n{FFFF00}找到\n{FFFFFF}停在此处\n{FF3333}移除
 {FFFFFF}Park here	{FFFFFF}把车停在这里
 {FFFFFF}Unlock	{FFFFFF}解锁
-Back	返回
 Sit in the car you want to keep, then /savecar.	坐在您想要保留的车上，然后/savecar。
 It is already in My Vehicles.	它已经在“我的车辆”中了。
 My Vehicles is full (%d) - /mv > Remove one first.	我的车辆已满 (%d) - /mv > 首先删除一辆。
@@ -1882,6 +3357,7 @@ Only the Pilot class can fly.	只有飞行员级别可以飞行。
 Only in your own base.	只在自己的基地。
 Next vehicle in %d s.	%d 秒后下一辆车。
 {3CFF6A}MW3 - Aircraft	{3CFF6A}MW3 - 飞机
+Spawn	生成
 Leave the arena / event / duel first.	首先离开竞技场/活动/决斗。
 /%s is not available on Modern Warfare 3. Type /help.	/%s 在《现代战争 3》中不可用。输入 /help。
 %s capturing  %d%%	%s捕获%d%%
@@ -1910,6 +3386,9 @@ Rank %d	排名%d
 Your rank: %s (%d)  -  score %d	您的排名：%s (%d) - 得分 %d
 < TEAM	< 团队
 Left Modern Warfare 3.	左现代战争3。
+{FFA500}FUEL: {FFFFFF}Out of fuel - the engine stopped. Push it to a gas station and /refuel.	{FFA500}燃油：{FFFFFF}燃油耗尽 - 发动机停止运转。将其推到加油站并/refuel。
+{FFA500}FUEL: {FFFFFF}Low fuel (%d%%) - /refuel at a gas station.	{FFA500}燃油：{FFFFFF}燃油不足（%d%%）- /refuel 在加油站。
+{FFA500}GAS STATION: {FFFFFF}/refuel  ($1 a %%, fuel %d%%)	{FFA500}GAS STATION: {FFFFFF}/refuel  ($1 a %%， 燃料 %d%%)
 You slept well: energy 100%%.	您睡得很好：能量 100%%。
 You are hungry: /eat ($25 a meal).	您饿了：/eat（每餐 25 美元）。
 You are tired: stand still to rest, or /sleep in your house.	您累了：站着不动休息，或者/sleep回到家里。
@@ -1917,8 +3396,320 @@ You are not hungry.	你不饿。
 A meal is $25.	一顿饭是25美元。
 You ate a meal ($25). Hunger %d%%.	你吃了一顿饭（25 美元）。饥饿%d%%。
 Resting... (move to stop)	休息中...（移动停止）
+Drive a vehicle first.	先开车。
+A bike has no engine.	自行车没有发动机。
+{FFA500}ENGINE: {FFFFFF}Off.	{FFA500}发动机：{FFFFFF}关闭。
+{FFA500}ENGINE: {FFFFFF}No fuel - /refuel at a gas station.	{FFA500}发动机：{FFFFFF}无燃料 - /refuel在加油站。
+{FFA500}ENGINE: {FFFFFF}On.	{FFA500}发动机：{FFFFFF}开启。
+Drive your vehicle to a gas station first.	先把车开到加油站。
+A bike needs no fuel.	自行车不需要燃料。
+{FFA500}FUEL: {FFFFFF}You are not at a gas station.	{FFA500}燃油：{FFFFFF}您不在加油站。
+{FFA500}FUEL: {FFFFFF}The tank is full.	{FFA500}燃油：{FFFFFF}油箱已满。
+{FFA500}FUEL: {FFFFFF}$1 a %% - you have no money.	{FFA500}FUEL: {FFFFFF}$1 a %% - 你没钱。
+{FFA500}FUEL: {FFFFFF}Refueled for $%d - fuel %d%%.%s	{FFA500}燃油：{FFFFFF}加油花费 $%d - 燃油 %d%%.%s
+  /engine to start it.	  /engine 开始。
 Hunger %d%%  Energy %d%%  (/eat, /sleep, /rest)	饥饿%d%%能量%d%%（/eat、/sleep、/rest）
-Your progress is back: your place, $%d, %d weapon%s, health and hunger.	您的进度又回来了：您的位置、$%d、%d武器%s、健康和饥饿。
+%d mph	%d 每小时
+MP NEON NETWORK	MP霓虹网络
+choose your server	选择您的服务器
+%d SERVERS	%d 服务器
+BACK TO MAIN MENU	返回主菜单
+NEON SERVERS	NEON服务器
+FEATURED	精选
+FAVORITES	收藏夹
+WI-FI / LAN	无线网络/局域网
+SEARCH SERVERS OR ENTER AN ADDRESS	搜索服务器或输入地址
+Search servers or enter an address (ip:port)	搜索服务器或输入地址（IP:端口）
+CONNECT	连接
+FILTERS	过滤器
+SERVERS	服务器
+PLAYERS	球员
+PING	平
+SEARCHING FOR SERVERS...	正在搜索服务器...
+NO SERVER MATCHES THE SEARCH	没有服务器符合搜索条件
+NO SERVERS ONLINE RIGHT NOW	目前没有服务器在线
+NEON FEATURED	霓虹灯特色
+- MS	- 多发性硬化症
+SELECTED SERVER	已选服务器
+%s on MP. %s%s Tap JOIN SERVER to play.	%s 在多人游戏中。%s%s 点击“加入服务器”即可开始游戏。
+Language: 	语言： 
+SERVER LINK	服务器链接
+COPIED	已复制
+COPY LINK	复制链接
+MODE	模式
+REGIONS & LANGUAGES	地区和语言
+ASIA	亚洲
+EUROPE	欧洲
+NORTH AMERICA	北美
+OCEANIA	大洋洲
+Global	全球的
+PLAYING: 	正在播放： 
+CONNECTING	连接
+JOIN SERVER	加入服务器
+NAVIGATE	导航
+HIDE FULL	隐藏全部
+HIDE EMPTY	隐藏空位
+HIDE LOCKED	隐藏已锁定
+Game settings	游戏设置
+on screen	屏幕上
+not shown	未显示
+ENGLISH	英语
+ESPAÑOL	西班牙语
+PORTUGUÊS	葡萄牙语
+FRANÇAIS	法语
+DEUTSCH	德语
+TÜRKÇE	土耳其语
+INDONESIA	印度尼西亚
+FILIPINO	菲律宾人
+ITALIANO	意大利语
+POLSKI	波兰语
+neon logo	霓虹灯标志
+neon items	霓虹灯物品
+Resume	恢复
+New game	新游戏
+Browse servers	浏览服务器
+Quick connect	快速连接
+Quit game	退出游戏
+Quick connect: ip:port (empty = the best featured server)	快速连接：IP:端口（空 = 最佳推荐服务器）
+FIND A WORLD AND JOIN THE STREETS OF SAN	寻找一个世界，加入圣安地列斯的街头
+neon featured	霓虹灯特色
+Neon featured	霓虹灯特色
+%s - %d / %d players	%s - %d / %d 玩家
+Play now	立即畅玩
+Looking for featured servers...	正在寻找特色服务器……
+neon footer	霓虹灯页脚
+V%s \xE2\x80\x94 NEON PREVIEW	V%s \xE2\x80\x94 NEON 预览
+SELECT	选择
+CONFIRM	确认
+NEON MENU	霓虹菜单
+neon backdrop	霓虹灯背景
+neon main	霓虹主线
+neon main done	霓虹主线已完成
+MP Multiplayer %s for GTA San Andreas (Android, AML).\nby JebetrexxMC - mpsamp-open.github.io\nDiscord: %s\n\n	GTA圣安地列斯多人游戏 %s（安卓，AML）。\n作者：JebetrexxMC - mpsamp-open.github.io\nDiscord：%s\n\n
+MP Multiplayer %s for GTA San Andreas (Android, AML).	GTA San Andreas 的多人游戏 %s（Android、AML）。
+by JebetrexxMC - mpsamp-open.github.io	作者：JebetrexxMC - mpsamp-open.github.io
+Discord: %s	Discord：%s
+Neon menu art: San Andreas fan art (GTA V style). Fonts: UnifrakturMaguntia, Cinzel (SIL OFL 1.1).	霓虹灯菜单艺术：圣安地列斯粉丝艺术（GTA V 风格）。字体：UnifrakturMaguntia、Cinzel (SIL OFL 1.1)。
+CLOSE	关闭
+Close GTA San Andreas now? Unsaved progress is lost.	现在关闭GTA圣安地列斯？未保存的游戏进度将会丢失。
+QUIT	辞职
+CANCEL	取消
+the title menu has not been drawn yet	标题菜单尚未绘制。
+mode is default (no neon_mode.txt, ServerBrowserMode = default)	模式为默认模式（无 neon_mode.txt，ServerBrowserMode = default）
+the title menu crashed (caught) - see mp_log.txt \"CRASHED\"	标题菜单崩溃（已捕获） - 请参阅 mp_log.txt \"CRASHED\"
+painted (the Multiplayer loading cover)	涂漆的（多人游戏加载盖）
+the game's main menu is not on screen	游戏主菜单未显示在屏幕上。
+in game (not the title screen)	游戏内（非标题画面）
+the MP server list is open	MP服务器列表已开放
+this game build lacks the drawing functions MP uses	这个游戏版本缺少多人游戏使用的绘图功能。
+files/TYFMC/MP/neon/ textures could not be read	无法读取 files/TYFMC/MP/neon/ textures 文件。
+painted (the NEON MENU pill - Game settings was tapped)	（点击了 NEON MENU 药丸 - 游戏设置）
+, carrying on	继续
+Choose your server	选择您的服务器
+%d SERVER%s	%d 服务器%s
+%d PLAYER%s ONLINE	%d 玩家%s 在线
+ALL SERVERS	所有服务器
+FAVOURITES	收藏夹
+WITH PLAYERS	玩家
+NOT FULL	未满
+LOW PING	低延迟
+REFRESH	刷新
+TAP TO PASTE A SERVER LINK OR ADDRESS	点击粘贴服务器链接或地址
+SERVER	服务器
+REGION	地区
+Online now	现在在线
+Saved server	已保存服务器
+LOCKED - 	已锁定 - 
+WI-FI - 	无线上网 - 
+LOOKING FOR SERVERS...	正在寻找服务器……
+NO SERVER MATCHES THE FILTER	没有服务器符合筛选条件
+NO FAVOURITE SERVERS YET	暂无收藏服务器
+NO SERVERS ON THIS WI-FI	此无线网络上没有服务器
+NO SERVERS FOUND - CHECK YOUR INTERNET	未找到服务器 - 请检查您的网络连接
+All languages	所有语言
+LANGUAGE: %s%s%s	语言：%s%s%s
+   REGION: 	   地区： 
+SELECT A SERVER	选择服务器
+SWIPE	滑动
+DOUBLE TAP	双击
+BACK	后退
+MAIN MENU	主菜单
+CONTROLS	控制
+GAME	游戏
+DISPLAY	展示
+AUDIO	声音的
+MODS	模组
+MULTIPLAYER	多人游戏
+Menu music	菜单音乐
+Menu music volume	菜单音乐音量
+Server region	服务器区域
+AUTO	汽车
+CONTROLS - GAME - DISPLAY - AUDIO - MODS - MULTIPLAYER	控制 - 游戏 - 显示 - 音频 - 模组 - 多人游戏
+Mod option	模组选项
+NO MOD SETTINGS - MODS ADD THEM THROUGH SAUTILS	没有模组设置——模组通过 SAUTILS 添加设置。
+NO MODS FOUND - INSTALL SAUTILS FOR MOD SETTINGS	未找到模组 - 请安装 SAUTILS 以进行模组设置
+NOTHING TO SET HERE	这里没有什么需要设置的。
+THE GAME'S SETTINGS COULD NOT BE READ	游戏设置无法读取。
+GAME OPTIONS	游戏选项
+LB RB	磅 RB
+CHANGE	改变
+BLOCK	堵塞
+SAVED GAME	已保存游戏
+Game	游戏
+START A NEW STORY	开始新故事
+LOAD A SAVED GAME - YOUR STORY PROGRESS	加载已保存的游戏 - 你的故事进度
+LOAD GAME	加载游戏
+NEW GAME	新游戏
+SAVED GAMES	已保存的游戏
+PROGRESS	进步
+EMPTY SLOT	空槽
+SAVE	节省
+IN THE BEGINNING	起初
+Start the story from the first mission: Los Santos, 1992. Your saved games stay in their slots - pick LOAD GAME any time to carry on.	从第一个任务开始故事：洛圣都，1992 年。您的存档将保留在存档槽中 - 随时选择“读取游戏”继续游戏。
+SLOT %d  -  %s	槽位 %d - %s
+Nothing saved here yet. Save in the game to fill it, or start a NEW GAME.	这里还没有保存任何内容。请在游戏中保存以填充此区域，或开始新游戏。
+LAST MISSION	最后的任务
+SAVED	已保存
+FILE	文件
+COMPLETION	完成
+START NEW GAME	开始新游戏
+Pick a saved game, or NEW GAME	选择已保存的游戏，或开始新游戏
+Fonts: UnifrakturMaguntia, Cinzel, Fredoka (SIL OFL 1.1).	字体：UnifrakturMaguntia、Cinzel、Fredoka (SIL OFL 1.1)。
+Start a new game from the first mission?	从第一个任务开始新游戏？
+Your saved games stay in their slots.	您的游戏存档将保留在原位置。
+START	开始
+RESUME	恢复
+BROWSE SERVERS	浏览服务器
+QUICK CONNECT	快速连接
+SETTINGS	设置
+ABOUT	关于
+QUIT GAME	退出游戏
+FIND A WORLD AND JOIN THE STREETS OF SAN ANDREAS	找到一个世界，加入圣安地列斯的街头生活
+Neon account connected%s%s	Neon 账户已连接%s%s
+DISCORD CONNECTED	DISCORD 已连接
+CONNECTING TO MULTIPLAYER%s	正在连接到多人游戏%s
+CONNECTING TO MULTIPLAYER...	正在连接多人游戏...
+Find a world and join the streets of San Andreas.	探索世界，融入圣安地列斯的街头。
+(Ljava/lang/String;)Ljava/lang/String;	（Ljava/lang/String;）Ljava/lang/String;
+MP %s - neon_mode.txt status (MP rewrites this file, delete it any time)\n	MP %s - neon_mode.txt 状态（MP 会重写此文件，可随时删除）\n
+MP %s - neon_mode.txt status (MP rewrites this file, delete it any time)	MP %s - neon_mode.txt 状态（MP 会重写此文件，可随时删除）
+neon_mode.txt   : %s%s\n	neon_mode.txt : %s%s\n
+neon_mode.txt   : %s%s	neon_mode.txt : %s%s
+menu mode       : %s\n	菜单模式：%s\n
+menu mode       : %s	菜单模式：%s
+title hook      : %s\n	标题钩子：%s\n
+title hook      : %s	标题钩子：%s
+drawing         : %s\n	绘图：%s\n
+drawing         : %s	绘图：%s
+textures        : %s%s%s\n	纹理：%s%s%s\n
+textures        : %s%s%s	纹理：%s%s%s
+title frames    : %d checked, %d painted\n	标题框：%d 已选中，%d 已绘制\n
+title frames    : %d checked, %d painted	标题框：%d 已选中，%d 已绘制
+now             : %s\n	现在：%s\n
+now             : %s	现在：%s
+found at 	发现于 
+not found (put it in files/TYFMC/MP/)	未找到（请将其放入 files/TYFMC/MP/ 目录）
+OFF (MobileMenu::Render could not be hooked - mp_log.txt \"Main menu:\" lines say why)	关闭（无法挂钩 MobileMenu::Render - mp_log.txt \"主菜单:\" 行说明了原因）
+game functions missing	游戏功能缺失
+FAILED	失败的
+not loaded yet	尚未加载
+ - missing / unreadable: 	 - 缺失/无法读取： 
+i - news, information	i - 新闻、信息
+! - warning, rules	！- 警告，规则
+heart - health, healing	心脏——健康，疗愈
+car - vehicles, rentals, races	汽车 - 车辆、租赁、比赛
+trophy - events, prizes, levels	奖杯 - 活动、奖品、等级
+drop - effects, drugs, water	滴 - 效果、药物、水
+star - VIP, specials	星级 - VIP，特惠
+money - pay, bonus, shop	钱——工资、奖金、商店
+shield - police, safe zone, protection	盾牌——警察、安全区、保护
+clock - timer, schedule, restart	时钟 - 定时器、日程安排、重启
+bell - reminder	铃铛 - 提醒
+skull - deathmatch, danger, zombies	骷髅头 - 死亡竞赛，危险，僵尸
+gift - giveaway, Christmas	礼物 - 赠品，圣诞节
+megaphone - announcement	扩音器——公告
+BROKER MQQ	经纪商 MQQ
+/notify is for the [ADMIN] and [MOD] of the default server.	/notify 代表默认服务器的 [ADMIN] 和 [MOD]。
+/notify is for the host owner and the staff of this server.	/notify 代表服务器的主机所有者和工作人员。
+The notification system is off on this server (the host owner turns it on: Add server > Gamemodes > Notification system).	此服务器上的通知系统已关闭（主机所有者可将其打开：添加服务器 > 游戏模式 > 通知系统）。
+Notification \"%s\" is set for %s.	已为 %s 设置通知 \"%s\"。
+Notification	通知
+the title of the notification	通知的标题
+pick the icon (info, warning, heart, car, trophy ...)	选择图标（信息、警告、心形、汽车、奖杯……）
+the text everybody reads	人人都读过的文章。
+seconds on screen (3 - 600, default 10)	屏幕显示秒数（3-600秒，默认值10秒）
+when it pops up (AM / PM time picker, or now)	当它弹出时（上午/下午时间选择器，或“现在”）
+when it goes away (AM / PM time picker)	当它消失时（上午/下午时间选择器）
+This featured server has no notification system.	此特色服务器没有通知系统。
+The notification system is off on this server (Add server > Gamemodes > Notification system).	此服务器上的通知系统已关闭（添加服务器 > 游戏模式 > 通知系统）。
+Notifications cleared for everyone.	已清除所有人的通知。
+/notify embed:<title> logo:<icon> message:<text> timer:<seconds> start:<time> end:<time>	/notify 嵌入:<标题> 徽标:<图标> 消息:<文本> 计时器:<秒> 开始:<时间> 结束:<时间>
+e.g. /notify embed:Double pay logo:money message:Every job pays x2 start:2:00 PM end:3:00 PM	例如 /notify 嵌入：双倍报酬 标志：金钱 信息：每份工作报酬翻倍 开始时间：下午 2:00 结束时间：下午 3:00
+logo: %s  -  /notify clear takes them all off.	logo: %s - /notify 清除它们全部。
+/notify: type embed: (title) or message: (text).	/notify: 类型嵌入: (标题) 或消息: (文本)。
+/notify: no logo \"%s\" - pick one from the list under the chat box.	/notify: 无徽标 \"%s\" - 从聊天框下方的列表中选择一个。
+/notify: start:\"%s\" is no time (e.g. start:2:30 PM, start:14:30, start:now, start:+10m).	/notify: start:\"%s\" 表示没有时间（例如 start:2:30 PM、start:14:30、start:now、start:+10m）。
+/notify: end:\"%s\" is no time (e.g. end:3:00 PM).	/notify: end:\"%s\" 不是时间（例如 end:3:00 PM）。
+/notify: at most 24 hours on screen.	/notify：屏幕使用时间最多 24 小时。
+This server runs an older MP (it updates itself in ~10 minutes) - notifications need MP %s.	此服务器运行较旧的 MP（它会在大约 10 分钟内自动更新） - 通知需要 MP %s。
+embed: logo: message: timer: start: end:  -  pop-up for everyone	嵌入：徽标：消息：计时器：开始：结束：- 所有人可见的弹出窗口
+/notify clear	/notify 清除
+take every notification off	关闭所有通知
+ seconds on screen	 屏幕上的几秒钟
+now 	现在 
+right away	马上
+in about %d min	大约在 %d 分钟内
+%d min on screen	%d 屏幕上的分钟
+Start time - when it pops up	开始时间——当它弹出时
+End time - when it goes away	末日——当它消失的时候
+Now	现在
+%s%s%s  -  until %s	%s%s%s - 直到 %s
+Turn on your Mobile Hotspot first (mobile data can stay off), then host.	请先开启您的移动热点（移动数据可以保持关闭），然后再创建主机。
+You already host \"%s\". Friends on your hotspot join %s:%d (Lan tab > Find host and join).	您已拥有 \"%s\" 主机。您热点上的朋友加入 %s:%d（局域网选项卡 > 查找主机并加入）。
+Offline server on your hotspot: friends connect their Wi-Fi to it and join %s:%d.	在您的热点上离线服务器：朋友将他们的 Wi-Fi 连接到它并加入 %s:%d。
+Server on this Wi-Fi: friends on the same Wi-Fi join %s:%d.	此 Wi-Fi 上的服务器：同一 Wi-Fi 上的朋友加入 %s:%d。
+You already play on localhost: \"%s\" (127.0.0.1:%d).	您已在 localhost: \"%s\" (127.0.0.1:%d) 上玩游戏。
+Joining your own server on localhost (127.0.0.1:%d)...	连接到本地主机 (127.0.0.1:%d) 上的您自己的服务器...
+Localhost server: you play at 127.0.0.1:%d. People on the same Wi-Fi / your hotspot can join %s:%d.	本地服务器：您可以在 127.0.0.1:%d 上玩游戏。使用同一 Wi-Fi / 您的热点的人可以加入 %s:%d。
+Localhost server: you play at 127.0.0.1:%d - private, only this phone (no Wi-Fi / hotspot on).	本地服务器：您在 127.0.0.1:%d 上玩游戏 - 私有，仅限此手机（未开启 Wi-Fi / 热点）。
+Connect your Wi-Fi to the host phone's hotspot first (mobile data can stay off).	首先将您的 Wi-Fi 连接到主机手机的热点（移动数据可以保持关闭状态）。
+Looking for the host on this network (%s)...	正在查找此网络上的主机 (%s)...
+Wi-Fi	无线上网
+The host runs another MP version. Both phones need the same MP version (	主机运行的是另一个MP版本。两部手机都需要相同的MP版本（
+No MP server on this network yet. On the host phone: hotspot on, then Lan tab > Host offline server (or /offline host).	此网络上尚无 MP 服务器。在主机手机上：开启热点，然后选择“局域网”选项卡 > “主机离线服务器”（或“/offline 主机”）。
+\"%s\" (%s:%d) has a password: tap it in the Lan list and type it.	\"%s\" (%s:%d) 有密码：在局域网列表中点击它并输入密码。
+%d servers on this network - joining \"%s\" (the others are in the Lan list).	此网络上有 %d 台服务器 - 加入 \"%s\"（其他服务器在局域网列表中）。
+The search did not finish. Tap Find host and join again.	搜索未完成。请点击“查找主机”并重新加入。
+{FFA500}Offline play{FFFFFF} - no internet, no mobile data, no router needed:	{FFA500}离线游戏{FFFFFF} - 无需网络、无需移动数据、无需路由器：
+1. Host phone: Mobile data OFF, Mobile Hotspot ON. In GTA: Lan tab > Host offline server (/offline host).	1. 主机手机：关闭移动数据，开启移动热点。在 GTA 中：局域网选项卡 > 主机离线服务器（/offline 主机）。
+2. Friend: Mobile data OFF, Wi-Fi ON, connect to the host's hotspot. Lan tab > Find host and join (/offline join).	2. 朋友：关闭移动数据，打开 Wi-Fi，连接到主机的热点。局域网选项卡 > 查找主机并加入（/offline 加入）。
+3. Not found? /offline join 192.168.43.1 (the host's IP, shown on its Lan tab). Same MP version on both phones.	3. 未找到？/offline 加入 192.168.43.1（主机 IP 地址，显示在其局域网选项卡中）。两部手机上的 MP 版本相同。
+Alone / no network: Lan tab > Play on localhost (/localhost) - your server on this phone at 127.0.0.1.	单独/无网络：局域网选项卡 > 在本地主机上播放 (/localhost) - 此手机上的服务器位于 127.0.0.1。
+Keep the host's screen on. The default and featured servers need internet (Discord login); your own server does not.	请保持主机屏幕开启。默认服务器和特色服务器需要联网（Discord 登录）；您自己的服务器则不需要。
+No Wi-Fi or hotspot is on%s.	没有 Wi-Fi 或热点%s。
+ (only mobile data)	 （仅限移动数据）
+Hotspot ON (%s): this phone is the host network, your IP %s.	热点开启（%s）：此手机是主机网络，您的 IP 地址为 %s。
+Wi-Fi (%s): your IP %s, the hotspot / router is %s.	Wi-Fi (%s): 您的 IP 地址 %s，热点/路由器为 %s。
+Internet: %s (not needed for your own server).	互联网：%s（您自己的服务器不需要）。
+/offline host | local | join [ip[:port]] | stop | help   (/localhost = play on 127.0.0.1)	/offline 主机 | 本地 | 加入 [ip[:端口]] | 停止 | 帮助 (/localhost = 在 127.0.0.1 上播放)
+OFFLINE PLAY  -  hotspot / same Wi-Fi, no internet needed      Internet: %s	离线游戏 - 热点/同一 Wi-Fi，无需互联网连接 互联网：%s
+No Wi-Fi / hotspot. Host: Mobile Hotspot ON. Friend: Wi-Fi ON and connect to it. Mobile data can be off.	无Wi-Fi/热点。主机：开启移动热点。好友：开启Wi-Fi并连接。移动数据可以关闭。
+You host \"%s\": friends join %s:%d  (%d players)%s	您主持 \"%s\"：好友加入 %s:%d (%d 位玩家)%s
+  - hotspot ON	  - 热点已开启
+Hotspot ON (%s) - your IP %s. Tap Host offline server, friends then tap Find host and join.	热点已开启 (%s) - 您的 IP 地址 %s。点击“创建离线服务器”，然后点击“查找主机”并加入。
+Wi-Fi (%s) - your IP %s, host phone %s. Tap Find host and join.	Wi-Fi (%s) - 您的 IP 地址 %s，主机电话 %s。点击“查找主机”并加入。
+LOCALHOST  127.0.0.1:%d  -  you play on this phone%s	本地主机 127.0.0.1:%d - 你正在使用这台手机玩游戏%s
+; same Wi-Fi / hotspot can join too	同一个Wi-Fi/热点也可以加入。
+ (private, no network)	 （私有，无网络）
+LOCALHOST  127.0.0.1:%d  -  your server on this phone, no Wi-Fi / hotspot / data needed	本地主机 127.0.0.1:%d - 此手机上的服务器，无需 Wi-Fi/热点/数据
+Host offline server	主机离线服务器
+Find host and join	找到房东并加入
+How to (chat)	如何（聊天）
+Playing on localhost	在本地主机上播放
+Play on localhost	在本地主机上播放
+Join 127.0.0.1:%d	加入 127.0.0.1:%d
+Your progress is back: %s$%d, %d weapon%s, health and hunger.	您的进度已恢复：%s$%d，%d 武器%s，生命值和饥饿值。
+your place, 	你的地方， 
 Log in first - your progress is saved to your account.	首先登录 - 您的进度将保存到您的帐户中。
 This server can't save progress (it needs MP 3.39.1).	该服务器无法保存进度（需要 MP 3.39.1）。
 Your saved progress is still loading...	您保存的进度仍在加载中...
@@ -1928,6 +3719,7 @@ Name Tag: Show Yourself	名牌：展示你自己
 Damage Indicator	损坏指示器
 Kill Feed	杀死饲料
 Chat Bubble	聊天泡泡
+Stretch Textdraws (PC)	拉伸文本绘制（PC）
 Voice Chat	语音聊天
 Hit Sound	敲击声
 Chat Timestamp	聊天时间戳
@@ -1935,6 +3727,7 @@ Radar Player Icons	雷达播放器图标
 Global Chat (OOC)	全球聊天 (OOC)
 Google Map Radar	谷歌地图雷达
 PUBG Compass	绝地求生指南针
+Day Z Models (GitHub)	Day Z 模型（GitHub）
 Username	用户名
 Not linked (verify on Discord)	未链接（在 Discord 上验证）
 Enable	启用
@@ -1969,6 +3762,65 @@ Heli Hell	直升机地狱
 8-Track	8轨
 Stadium	体育场
 Dirt Track	土路
+You left Broker MQQ (not registered).	您已离开经纪商 MQQ（未注册）。
+The password needs at least 4 characters.	密码至少需要 4 个字符。
+Type your age (7 - 99).	请输入您的年龄（7-99岁）。
+Could not write register.txt in the MP folder.	无法将 register.txt 写入 MP 文件夹。
+{33CC55}Logged in. {FFFFFF}Welcome back, {FFFF00}%s{FFFFFF}!	{33CC55}已登录。{FFFFFF}欢迎回来，{FFFF00}%s{FFFFFF}！
+Wrong password 5 times. Use Options > Forgot password next time.	密码错误5次。下次请使用“选项”>“忘记密码”。
+Wrong password (%d of 5).	密码错误%d 5）。
+You left Broker MQQ.	您已离开经纪商 MQQ。
+{33CC55}Your new password is saved. {FFFFFF}Logged in as {FFFF00}%s{FFFFFF}.	{33CC55}您的新密码已保存。{FFFFFF}以{FFFF00}%s{FFFFFF}身份登录。
+%s%s%s{FFFFFF}Welcome to {DC2626}Broker MQQ{FFFFFF}, {FFFF00}%s{FFFFFF}!\nThis name is not registered.\n\n{A9C4E4}Create a password for your account:	%s%s%s{FFFFFF}欢迎来到{DC2626}经纪商MQQ{FFFFFF}，{FFFF00}%s{FFFFFF}！\n此名称未注册。\n\n{A9C4E4}请为您的帐户创建密码：
+%s%s%s{FFFFFF}Welcome to {DC2626}Broker MQQ{FFFFFF}, {FFFF00}%s{FFFFFF}!	%s%s%s{FFFFFF}欢迎来到{DC2626}经纪商MQQ{FFFFFF}, {FFFF00}%s{FFFFFF}！
+This name is not registered.	该名称未注册。
+{A9C4E4}Create a password for your account:	{A9C4E4}创建账户密码：
+{FFFFFF}Registering...	{FFFFFF}正在注册...
+Register	登记
+%s%s%s{FFFFFF}How old are you?\n\n{A9C4E4}Type your age:	%s%s%s{FFFFFF}你今年多大？\n\n{A9C4E4}请输入您的年龄：
+%s%s%s{FFFFFF}How old are you?	%s%s%s{FFFFFF}你今年多大？
+{A9C4E4}Type your age:	{A9C4E4}请输入您的年龄：
+{FFFFFF}Registering... (age)	{FFFFFF}正在注册...（年龄）
+Next	下一个
+{FFFFFF}Registering... (gender)	{FFFFFF}正在注册...（性别）
+Done	完毕
+{33CC55}Your account is registered!\n\n{FFFFFF}Name: {FFFF00}%s\n{FFFFFF}Age: {FFFF00}%d\n{FFFFFF}Gender: {FFFF00}%s\n\n{A9C4E4}Saved in the MP folder (register.txt).\nNext time you join you log in with this password.	{33CC55}您的账号已注册！\n\n{FFFFFF}姓名：{FFFF00}%s\n{FFFFFF}年龄：{FFFF00}%d\n{FFFFFF}性别：{FFFF00}%s\n\n{A9C4E4}已保存在 MP 文件夹 (register.txt) 中。\n下次加入时，您可以使用此密码登录。
+{33CC55}Your account is registered!	{33CC55}您的账号已注册！
+{FFFFFF}Name: {FFFF00}%s	{FFFFFF}姓名：{FFFF00}%s
+{FFFFFF}Gender: {FFFF00}%s	{FFFFFF}性别： {FFFF00}%s
+{A9C4E4}Saved in the MP folder (register.txt).	{A9C4E4}已保存到 MP 文件夹 (register.txt)。
+Next time you join you log in with this password.	下次加入时，请使用此密码登录。
+{FFFFFF}Registered	{FFFFFF}已注册
+%s%s%s{FFFFFF}Welcome back to {DC2626}Broker MQQ{FFFFFF}, {FFFF00}%s{FFFFFF}!\nThis account is registered.\n\n{A9C4E4}Type your password to log in:	%s%s%s{FFFFFF}欢迎回到{DC2626}经纪商MQQ{FFFFFF}，{FFFF00}%s{FFFFFF}！\n此账户已注册。\n\n{A9C4E4}请输入密码登录：
+%s%s%s{FFFFFF}Welcome back to {DC2626}Broker MQQ{FFFFFF}, {FFFF00}%s{FFFFFF}!	%s%s%s{FFFFFF}欢迎回到{DC2626}经纪商MQQ{FFFFFF}，{FFFF00}%s{FFFFFF}！
+This account is registered.	此账户已注册。
+{A9C4E4}Type your password to log in:	{A9C4E4}请输入密码登录：
+{FFFFFF}Logging in...	{FFFFFF}正在登录...
+Options	选项
+{FFFFFF}Logging in... (options)	{FFFFFF}正在登录...（选项）
+Forgot password\nCreate new account\nQuit	忘记密码\n创建新账户\n退出
+Create new account	创建新帐户
+%s%s%s{FFFFFF}Forgot your password?\n\n{A9C4E4}Type the username of this account:	%s%s%s{FFFFFF}忘记密码？\n\n{A9C4E4}请输入此帐户的用户名：
+%s%s%s{FFFFFF}Forgot your password?	%s%s%s{FFFFFF}忘记密码了吗？
+{A9C4E4}Type the username of this account:	{A9C4E4}请输入此帐户的用户名：
+{FFFFFF}Forgot password	{FFFFFF}忘记密码
+%s%s%s{FFFFFF}Create a new password for {FFFF00}%s{FFFFFF}:	%s%s%s{FFFFFF}为{FFFF00}%s{FFFFFF}创建一个新密码：
+{FFFFFF}Forgot password (new password)	{FFFFFF}忘记密码（新密码）
+{FFFFFF}Forgot password (confirm)	{FFFFFF}忘记密码（确认）
+{FFFFFF}Type the same new password again:	{FFFFFF}请再次输入相同的新密码：
+{FFFFFF}Create a new account?\n\n{FF4444}The account {FFFF00}%s {FF4444}in register.txt is replaced\n{FF4444}by a new one for {FFFF00}%s{FF4444}.	{FFFFFF}创建新帐户？\n\n{FF4444}帐户 {FFFF00}%s {FF4444}在 register.txt 中被 \n{FF4444}一个新帐户替换，用于 {FFFF00}%s{FF4444}。
+{FFFFFF}Create a new account?	{FFFFFF}创建新账户？
+{FF4444}The account {FFFF00}%s {FF4444}in register.txt is replaced	{FF4444}账户{FFFF00}%s{FF4444}在register.txt中被替换
+{FF4444}by a new one for {FFFF00}%s{FF4444}.	{FF4444}为{FFFF00}%s{FF4444}创建一个新的。
+{FFFFFF}Create new account	{FFFFFF}创建新帐户
+loading feed	装载饲料
+join screen	加入屏幕
+MP login screen	MP登录界面
+another dialog is open	另一个对话框已打开
+no player yet	目前还没有玩家
+3 s in the world	世界排名第3
+connection screen	连接屏幕
+game screen	游戏画面
 Citizen	公民
 New Citizen - %s	新公民 - %s
 %s%s - Lv %d	%s%s - 第 %d 级
@@ -2025,6 +3877,7 @@ Call ended.	通话结束。
 [MECHANIC] Vehicle repaired.	[MECHANIC] 车辆已修理。
 Sit in the vehicle to get it repaired.	坐在车里修理它。
 JAILED  -  %d:%02d	入狱 - %d：%02d
+[DEALER] Your new %s is here.	[DEALER] 你的新 %s 在这里。
 [GARAGE] Your %s is here.	[GARAGE]您的%s在这里。
 [MEGA VIL] You woke up at home.	[MEGA VIL]你在家里醒来。
 [MEGA VIL] Weapons are for on-duty police and soldiers only. Mega Vil is peaceful.	[MEGA VIL]武器仅供执勤警察和士兵使用。 Mega Vil 很平静。
@@ -2103,9 +3956,12 @@ Your id: %d	您的 ID：%d
 %s: id %d, phone %d	%s：ID %d，电话 %d
 MEGA VIL FUTURISTIC - Roleplay 24/7, %d citizens max. The future awaits.	MEGA VIL FUTURISTIC - 角色扮演 24/7，最多 %d 位公民未来在等待着。
 /%s is not available on Mega Vil Futuristic (no cheats / other gamemodes). /help	/%s 不适用于 Mega Vil Futuristic（无作弊/其他游戏模式）。 /help
-Mega Vil	超级维尔
 Futuristic	未来派
-%d  |  Lv %d	%d |  等级%d
+%s : #%d  -  Lv %d	%s : #%d - Lv %d
+ID : #%d  -  Lv %d	ID：#%d - Lv %d
+Cash %s	现金 %s
+Bank %s	银行 %s
+ - On duty	 - 值班中
 Payday in %d:%02d	%d的发薪日：%02d
 VOICE: %s%s	声音：%s%s
 PHONE CALL	电话
@@ -2201,7 +4057,6 @@ Heals %d health	治愈%d健康
 Repairs the car you sit in	修理你坐的车
 Opens your phone	打开你的手机
 Starter pack  -  open it to unpack	入门包 - 打开它以拆包
-Item	项目
 MEGA VIL QUICK MENU	MEGA VIL 快捷菜单
 PLAYER ID	玩家ID
 %d  (%d XP)	%d (%d XP)
@@ -2258,6 +4113,19 @@ PANEL button: bag, documents	PANEL按钮：包、文件
 Welcome to Mega Vil Futuristic Roleplay Server	欢迎来到 Mega Vil 未来角色扮演服务器
 24/7 roleplay city - stay in character, no DM, no cheats	24/7 城市角色扮演 - 保持角色，无DM，无作弊
 /jobs work  -  /gps places  -  /phone  -  PANEL: bag + documents  -  /rules	/jobs 个工作 - /gps 个地点 - /phone - 面板：包 + 文件 - /rules
+Roleplay at all times. Out of character only in /b or /ooc.	始终保持角色扮演。仅在/b或/ooc中脱离角色扮演。
+No deathmatch (DM): no random killing, the city is peaceful.	无死亡竞赛（DM）：无随机杀戮，城市一片和平。
+No cheats, hacks, mod menus, CLEO or bug abuse.	禁止作弊、使用外挂、修改菜单、CLEO 或利用游戏漏洞。
+Respect every citizen - new players too. Help them in /n.	尊重每一位市民——包括新玩家。在/n中帮助他们。
+No powergaming: no unrealistic actions others can't react to.	禁止滥用游戏规则：禁止做出他人无法应对的不切实际的行为。
+No metagaming: your character only knows what it saw in game.	禁止游戏外操作：你的角色只能知道它在游戏中看到的内容。
+Greenzones (green squares on the radar) are safe for everyone.	绿色区域（雷达上的绿色方块）对所有人都是安全的。
+Police / military / medics use their powers only on duty.	警察/军人/医护人员只在执行公务时使用权力。
+No car ramming, no stealing job / faction vehicles without RP.	禁止撞车，禁止在没有角色扮演的情况下偷窃工作/阵营车辆。
+Don't pretend to be staff (admin, moderator or the Broker bot).	请勿冒充工作人员（管理员、版主或经纪人机器人）。
+Listen to admins and moderators. Kick = 4:29 wait, ban = permanent.	听从管理员和版主的指示。踢出账号需等待 4 分 29 秒，封禁账号是永久封禁。
+MEGA VIL  -  CITY RULES	巨型村庄 - 城市规则
+I AGREE - CLOSE	我同意——关闭
 ________ Welcome to Mega Vil Futuristic Roleplay ________	________ 欢迎来到 Mega Vil 未来角色扮演 ________
 Hello %s, you are a citizen of Mega Vil now. This is a 24/7 roleplay city: stay in character.	您好 %s，您现在是 Mega Vil 的公民。这是一个 24/7 的角色扮演城市：保持角色。
 Start: /jobs for work, the PANEL button for your bag + documents, /phone, /gps for every place.	开始：/jobs代表工作，PANEL按钮代表你的包+文件，/phone，/gps代表每个地方。
@@ -2273,9 +4141,9 @@ ______ MEGA VIL RULES ______	______ 超级邪恶规则 ______
 [TAXI] Passenger: \"Thanks, keep the change.\"	[TAXI]乘客：\"谢谢，请保留零钱。\"
 [TAXI] A passenger is waiting (yellow marker). Stop next to them, then drive to the fare marker.	[TAXI] 一名乘客正在等待（黄色标记）。在他们旁边停下来，然后开车到票价标记处。
 [TAXI] Your passenger got hurt - a new one is waiting.	[TAXI]您的乘客受伤了 - 一位新乘客正在等待。
+[TAXI] Passenger in. Drive to the fare marker and stop there.	[TAXI] 乘客进来。开车到票价标记处并停在那里。
 [TAXI] Your car is full.	[TAXI]您的车已满。
 [TAXI] Passenger: \"Where is your taxi?\" (get in a car)	[TAXI]乘客：\"您的出租车在哪里？\"（上车）
-[TAXI] Passenger in. Drive to the fare marker and stop there.	[TAXI] 乘客进来。开车到票价标记处并停在那里。
 [TAXI] Your passenger is out of the car - pick them up again.	[TAXI]您的乘客已下车 - 请再次接载他们。
 Home	首页
 Contacts	联系方式
@@ -2299,7 +4167,6 @@ Tic-Tac-Toe	井字游戏
  wins	 获胜
 Score %d   Best %d%s	得分%d最佳%d%s
    GAME OVER	   游戏结束
-Play	玩
 Tap to play  -  best %d	点按即可播放 - 最佳%d
 %s   Wins %d	%s获胜%d
 You win!	你赢了！
@@ -2411,13 +4278,12 @@ Taxi drivers get your location.	出租车司机可以获取您的位置。
 Call a taxi	叫出租车
 {FF4444}No cheating{FFFFFF}: no hacks, aimbots, mod menus or speed / fly mods.	{FF4444}无作弊{FFFFFF}：无黑客攻击、瞄准机器人、模组菜单或速度/飞行模组。
 {FF4444}No NSFW{FFFFFF}: no adult names, chat, skins or pictures.	{FF4444}禁止 NSFW{FFFFFF}：禁止成人姓名、聊天内容、皮肤或图片。
-{FFFF00}Respect everyone{FFFFFF}: no insults, racism, threats or harassment.	{FFFF00}尊重所有人{FFFFFF}：不得侮辱、种族主义、威胁或骚扰。
 {FFFF00}No spam{FFFFFF}: no flooding the chat, caps lock or advertising other servers.	{FFFF00}禁止垃圾邮件{FFFFFF}：禁止充斥聊天、大写锁定或向其他服务器做广告。
 {FFFF00}No bug abuse{FFFFFF}: report glitches to an {33CC55}admin{FFFFFF}, don't use them.	{FFFF00}禁止滥用错误{FFFFFF}：向{33CC55}管理员{FFFFFF}报告故障，不要使用它们。
 {FFFF00}No spawn killing{FFFFFF} or griefing other players at spawns and safe zones.	{FFFF00}不得在生成点和安全区域杀死生成点{FFFFFF}或伤害其他玩家。
-{FFFF00}Don't pretend to be staff{FFFFFF} (admin, moderator or the bot {00BFFF}Broker{FFFFFF}).	{FFFF00}不要假装是工作人员{FFFFFF}（管理员、主持人或机器人{00BFFF}经纪人{FFFFFF}）。
 {FFFF00}Keep the chat friendly{FFFFFF} and in a language the others understand.	{FFFF00}保持聊天友好{FFFFFF}并使用其他人可以理解的语言。
 {FFFF00}Listen to the {33CC55}admins{FFFF00} and {33CC55}moderators{FFFFFF}: a kick waits {FF9900}4:29{FFFFFF}, a ban is {FF4444}permanent{FFFFFF}.	{FFFF00}听听{33CC55}管理员{FFFF00}和{33CC55}版主{FFFFFF}的意见：踢球等待{FF9900}4:29{FFFFFF}，禁令是{FF4444}永久{FFFFFF}的。
+{FF4444}No unlimited money{FFFFFF}: money cheats / trainers are blocked and the money is taken back.	{FF4444}无无限金钱{FFFFFF}:金钱作弊/修改器将被屏蔽，金钱将被收回。
 {33CC55}Have fun{FFFFFF} and play fair.	{33CC55}玩得开心{FFFFFF}并公平竞争。
 This server has no rules set.	该服务器没有设置规则。
 SAFE ZONE: %s - nobody can hurt you here, weapons are put away.	安全区：%s - 这里没有人可以伤害你，武器已收起。
@@ -2432,7 +4298,6 @@ Races	比赛
 /race queue: 14 players race a GTA SA race	/race 队列：14 名玩家参加 GTA SA 比赛
 Derbies	德比
 /derby: last car standing	/derby：最后一辆车停着
-Deathmatch	死斗
 /dm: deathmatch zones with weapons	/dm：带有武器的死亡竞赛区域
 /job: trucking, quarry, pizza, taxi, medic ...	/job：卡车运输、采石场、披萨、出租车、医疗...
 3D text labels	3D 文本标签
@@ -2448,23 +4313,113 @@ Attack / Defend	攻击/防御
 /ad: attackers take the base checkpoint, defenders hold it (5 min rounds, /vote, /spec)	/ad：攻击者占领基地检查点，防御者守住它（5 分钟回合，/vote、/spec）
 Stunt freeroam	特技自由漫游
 /ramp, /jump, /chiliad, /lv, /sf, /ls, /n nitro, /fix, stunt bonus	/ramp、/jump、/chiliad、/lv、/sf、/ls、/n硝基、/fix、特技奖励
-Drift	漂移
 /drift: drift points + combo, /drifttop (RogueDrifterZ style)	/drift：漂移点 + 组合，/drifttop（RogueDrifterZ 风格）
 Timber (lumberjack)	木材（伐木工）
 /timber: cut trees with a chainsaw, load the logs in the pickup, /unloadtimber at the Timber Storage	/timber：用链锯砍树，将原木装入卡车，/unloadtimber 位于木材仓库
+Notification system	通知系统
+/notify embed: logo: message: timer: start: end: - pop-up notifications from the admin / moderators / host owner (notify.mp3)	/notify 嵌入：徽标：消息：计时器：开始：结束：- 来自管理员/版主/主持人的弹出通知（notify.mp3）
 That gamemode	那个游戏模式
 %s is off on this server. Its host turns gamemodes on in MP Launcher > Add server > Gamemodes.	此服务器上的 %s 已关闭。其主机在 MP Launcher > 添加服务器 > 游戏模式中打开游戏模式。
+This server runs the SA-MP gamemode \"%s\" - every /command goes to it.	此服务器运行 SA-MP 游戏模式 \"%s\" - 每 /command 人都会进入该模式。
+Could not play the server's audio stream.	无法播放服务器的音频流。
+This server spawns you after its login - answer its window (password / register). There is no Spawn button on it, on PC too.	登录后，服务器会弹出窗口（输入密码/注册），然后自动生成你的角色。PC 端也没有“生成”按钮。
+Pick	挑选
+[Social] %s  (MP Launcher > Inbox)	[社交] %s（MP启动器 > 收件箱）
+Online on Moquil	Moquil 在线
+Offline	离线
+Remove?	消除？
+IN PARTY	党内
+You: %s  #%s   %s	你：%s #%s %s
+- online	- 在线的
+- connecting...	正在连接...
+Search player ID or name	搜索玩家ID或姓名
+Search player (ID or name)	搜索玩家（ID 或名称）
+SEARCH RESULTS	搜索结果
+Nobody found. Type the 8 digit ID (like #12345678) or part of the player name. Players show up after they open MP 3.63 once.	未找到玩家。请输入8位ID（例如#12345678）或部分玩家名称。玩家在打开MP 3.63后即可显示。
+FRIEND REQUESTS	好友请求
+SENT REQUESTS	已发送请求
+FRIENDS  %d ONLINE	在线好友 %d
+No friends yet. Search a player above and tap ADD (+). When they accept, you can chat, make group chats and invite them to your party.	还没有好友？在上方搜索玩家，然后点击“添加好友”（+）。对方接受添加后，你们就可以聊天、创建群聊并邀请对方加入你的队伍了。
+Friends from Moquil? Link Moquil with this game (Social > Moquil > link code). Your Moquil friends and chats then show here too.	来自 Moquil 的朋友？将 Moquil 与此游戏关联（社交 > Moquil > 关联代码）。您的 Moquil 好友和聊天记录也会显示在这里。
+%s  -  %d members, %d online	%s  -  %d 成员们， %d 在线的
+Group chat	群聊
+Sure?	当然？
+Add	添加
+No messages yet. Say hi. Messages are end-to-end encrypted and wait for your friends while they are offline.	暂无消息。打个招呼吧。消息采用端到端加密，即使好友离线也能收到。
+Type a message...	输入消息……
+You are not friends any more	你们不再是朋友了
+NEW GROUP CHAT	新群聊
+No chats yet. Open Friends and tap Chat on a friend. Chats from a linked Moquil show here after a few seconds online.	暂无聊天记录。打开“好友”菜单，点击好友的聊天按钮。几秒钟后，即可在此处查看与 Moquil 节目关联的聊天记录。
+[PARTY] 	[派对] 
+[GROUP] 	[团体] 
+You: 	你： 
+pick friends, then Create	选择好友，然后创建
+Group name (optional)	组名（可选）
+Group name	组名
+CREATE GROUP	创建组
+ADD TO GROUP	添加到群组
+TAP A FRIEND TO ADD	点击好友即可添加
+Pick a chat on the left, or tap Chat on a friend.	从左侧选择聊天，或点击好友的聊天按钮。
+up to 5 friends, party chat	最多可与 5 位好友进行派对聊天
+CREATE PARTY	创建政党
+Make a party and invite up to 4 friends. Everyone in the party gets the party chat. Invites need an accept (they show in the Inbox).	创建派对并邀请最多 4 位好友。派对中的每个人都能看到派对聊天内容。邀请需要被接受（会在收件箱中显示）。
+Leave party	离开派对
+INVITE FRIENDS	邀请朋友
+ONLY THE LEADER INVITES	只有领导才会发出邀请。
+Invite	邀请
+PARTY CHAT	派对聊天
+CREATE COMMUNITY	创建社区
+YOUR COMMUNITIES	您的社区
+Join or follow one below.	加入或关注以下群组。
+Nothing new yet.	目前还没有什么新消息。
+Connecting...	正在连接...
+  - joined	  - 加入
+  - following	  - 下列的
+everyone can find it, join or follow it	任何人都可以找到它、加入或关注它。
+Community name	社区名称
+What is it about? (optional)	它讲的是什么？（可选）
+Description	描述
+by %s  #%s   -   %d members   -   %d followers	由 %s #%s - %d 位成员 - %d 位关注者
+Unfollow	取消关注
+Follow	跟随
+Delete?	删除？
+Members: %s	成员：%s
+Write a post to the community...	向社区发帖……
+Post	邮政
+Join to post. Follow to get its new posts in your Inbox.	加入即可发帖。关注即可在收件箱中收到最新帖子。
+No posts yet.	暂无帖子。
+No communities yet. Make the first one.	暂无社区。创建第一个吧。
+Pick a community on the left.	请从左侧选择一个社区。
+%d new	%d 新
+Mark all read	标记为已读
+Nothing here yet. Friend requests, messages, party invites and community posts show up here.	这里目前还没有任何内容。好友请求、消息、派对邀请和社区帖子会显示在这里。
+Open	打开
+Your MP friends, chats, communities and voice on your phone (portrait or landscape) and in any browser.	在您的手机（竖屏或横屏）和任何浏览器中，与您的 MP 好友、聊天、社区和语音互动。
+Log in to Moquil with your MP account. To be the same player there (same #ID, the same friends see you), make a link code here and type it in Moquil > Settings > Connections.	使用您的 MP 账号登录 Moquil。为了确保您在 Moquil 中拥有相同的玩家身份（相同的 #ID，相同的好友可以看到您），请在此处生成一个链接代码，然后在 Moquil > 设置 > 连接中输入该代码。
+Link code - %d:%02d left. Don't show it to anyone: it is your player key.	链接码 - 剩余 %d:%02d 个。请勿向任何人透露：这是您的玩家密钥。
+Copy	复制
+Link Moquil with this game	将 Moquil 与这款游戏关联起来
+A code works for 10 minutes and only once.	优惠码有效期为10分钟，且只能使用一次。
+Connecting to the social server...	正在连接社交服务器……
+MAKE LINK CODE	生成链接代码
+GET MOQUIL (ANDROID)	获取 MOQUIL（安卓版）
+OPEN MOQUIL ON THE WEB	在网页上打开 MOQUIL
+YOUR MOQUIL PROFILE	您的 MOQUIL 个人资料
+Status: %s	状态：%s
+Member since %s	自 %s 年起成为会员
+After linking, your Moquil bio, pronouns and status show here and next to your name in your friends' lists.	关联后，您的 Moquil 个人简介、代词和状态将显示在此处以及您好友列表中您的名字旁边。
 Block menu cheats	阻止菜单作弊
-Allow CheatMenu	允许作弊菜单
+Allow CheatMenu + MonetLoader cheats	允许使用 CheatMenu + MonetLoader 作弊
 AFK tag	AFK 标签
 Show player ids	显示玩家 ID
 Only %s can change these settings.	只有 %s 可以更改这些设置。
 the admin and moderators	管理员和版主
 the server owner	服务器所有者
-The featured servers keep their gamemodes.	特色服务器保留其游戏模式。
-Join a server first.	首先加入服务器。
+The notification system is always on here (the admin and moderators send /notify).	这里的通知系统始终处于开启状态（管理员和版主发送 /notify）。
+This server is older than MP 3.58 (anti-cheat state unknown).	此服务器版本早于 MP 3.58（反作弊状态未知）。
+The anti-cheat is always off on the default server.	默认服务器上的反作弊功能始终关闭。
+The anti-cheat always runs on Brief Case War, MW3 and Mega Vil.	反作弊系统始终在 Brief Case War、MW3 和 Mega Vil 上运行。
 This server still runs MP %s: settings are view only until it updates to 3.39 (the 24/7 servers update by themselves).	该服务器仍然运行 MP %s：设置只能在更新到 3.39 之前查看（24/7 服务器自行更新）。
-(old)	（旧）
 Setting	设置
 State	状态
 {FFFFFF}Gamemode: %s\t%s\n	{FFFFFF}游戏模式：%s\t%s\n
@@ -2473,6 +4428,15 @@ State	状态
 {FFFFFF}Permission: %s	{FFFFFF}权限：%s
 {FFFFFF}Rules window\t%s\n	{FFFFFF}规则窗口\t%s\n
 {FFFFFF}Rules window	{FFFFFF}规则窗口
+{FFFFFF}Gamemode: Anti-cheat\t{AAAAAA}?\n	{FFFFFF}游戏模式：反作弊\t{AAAAAA}?\n
+{FFFFFF}Gamemode: Anti-cheat	{FFFFFF}游戏模式：反作弊
+{AAAAAA}?	{AAAAAA}？
+{FFFFFF}Gamemode: Anti-cheat%s\t%s\n	{FFFFFF}游戏模式：反作弊%s\t%s\n
+{FFFFFF}Gamemode: Anti-cheat%s	{FFFFFF}游戏模式：反作弊%s
+ {AAAAAA}(always on)	 {AAAAAA}（始终开启）
+ {AAAAAA}(always off)	 {AAAAAA}（始终关闭）
+{FFFFFF}Login system (authentication)\t%s\n	{FFFFFF}登录系统（身份验证）\t%s\n
+{FFFFFF}Login system (authentication)	{FFFFFF}登录系统（身份验证）
 {FFFFFF}Server settings %s	{FFFFFF}服务器设置%s
 {33CC55}(you can change them)	{33CC55}（您可以更改它们）
 {AAAAAA}(view only)	{AAAAAA}（仅供查看）
@@ -2493,8 +4457,8 @@ moderator.txt: the MP moderator key was read, but this server didn't give [MOD] 
 moderator.txt: this key is not the MP moderator key and this server's owner hasn't listed it - ask for the MP moderator key.	moderator.txt：此密钥不是 MP 审核者密钥，并且该服务器的所有者尚未列出它 - 请求 MP 审核者密钥。
 Nothing to redo.	没什么可重做的。
 Nothing to undo.	没有什么可以撤销的。
-Could not save files/MP/tde/projects/%s.mptd	无法保存files/MP/tde/projects/%s.mptd
-Saved files/MP/tde/projects/%s.mptd (%d textdraws). Add it to your server: Add server > Plugins > Textdraw.	已保存 files/MP/tde/projects/%s.mptd（%d 个文本绘制）。将其添加到您的服务器：添加服务器 > 插件 > Textdraw。
+Could not save files/TYFMC/MP/tde/projects/%s.mptd	无法保存文件/TYFMC/MP/tde/projects/%s.mptd
+Saved files/TYFMC/MP/tde/projects/%s.mptd (%d textdraws). Add it to your server: Add server > Plugins > Textdraw.	已保存文件/TYFMC/MP/tde/projects/%s.mptd（%d 个文本绘制）。将其添加到您的服务器：添加服务器 > 插件 > 文本绘制。
 New project %s.	新项目%s。
 Editing %s. Tap a textdraw to select it, drag to move. /tde close (saves) - /tde help.	正在编辑%s。点击文本绘制以选择它，拖动以移动。 /tde 关闭（保存）- /tde 帮助。
 Editor closed (saved %s.mptd).	编辑器已关闭（已保存 %s.mptd）。
@@ -2519,7 +4483,6 @@ Use	使用
 New textdraw	新的文本绘制
 Model id (skins 0-311, objects, vehicles 400-611). Now: %d	模型 ID（皮肤 0-311，物体、车辆 400-611）。现在：%d
 Preview model	预览模型
-Set	套装
 Rotation X Y Z and zoom. Now: %.0f %.0f %.0f %.2f	旋转 X Y Z 和缩放。现在：%.0f %.0f %.0f %.2f
 Preview rotation	预览旋转
 Vehicle colours: colour1 colour2 (-1 = random). Now: %d %d	车辆颜色：颜色 1 颜色 2（-1 = 随机）。现在：%d %d
@@ -2540,11 +4503,10 @@ New project name	新项目名称
 No saved projects yet.	尚未保存项目。
 Open project	打开项目
 Delete project	删除项目
-Open	打开
 Save as	另存为
-Exported files/MP/tde/export/%s%s.pwn	已导出files/MP/tde/export/%s%s.pwn
+Exported files/TYFMC/MP/tde/export/%s%s.pwn	导出文件/TYFMC/MP/tde/export/%s%s.pwn
 Could not write %s	无法写入%s
-Put a .mptd, .pwn or .txt export in files/MP/tde/import/ first.	首先将 .mptd、.pwn 或 .txt 导出放入 files/MP/tde/import/ 中。
+Put a .mptd, .pwn or .txt export in files/TYFMC/MP/tde/import/ first.	首先将 .mptd、.pwn 或 .txt 导出文件放入 files/TYFMC/MP/tde/import/ 目录下。
 Import textdraws	导入文本绘图
 Import	进口
 Projects - %s%s	项目 - %s%s
@@ -2570,7 +4532,6 @@ Fine drag	细拖
 Hide the tool bar (tap the corner to show)	隐藏工具栏（点击角落即可显示）
 On	开
 Off	关闭
-Change	改变
 Select a textdraw first (tap it, or List).	首先选择一个文本绘制（点击它，或列表）。
 Textdraw text (~n~ new line, ~r~ red, _ = space)	Textdraw 文本（~n~ 换行，~r~ 红色，_ = 空格）
 Textsize	文字大小
@@ -2582,27 +4543,43 @@ Background / outline colour	背景/轮廓颜色
 Box colour	盒子颜色
 Colour RRGGBBAA (hex)	颜色 RRGGBBAA（十六进制）
 /tde [project] opens the editor, /tde close, /tde save, /tde new <name>, /tde open <name>, /tde export [openmp].	/tde [项目] 打开编辑器，/tde 关闭，/tde 保存，/tde 新建 <name>，/tde 打开 <name>，/tde 导出 [openmp]。
-Files: files/MP/tde/projects/*.mptd - put it on your server with Add server > Plugins > Textdraw > Import file.	文件：files/MP/tde/projects/*.mptd - 通过“添加服务器”>“插件”>“Textdraw”>“导入文件”将其放在您的服务器上。
+Files: files/TYFMC/MP/tde/projects/*.mptd - put it on your server with Add server > Plugins > Textdraw > Import file.	文件：files/TYFMC/MP/tde/projects/*.mptd - 使用“添加服务器”>“插件”>“Textdraw”>“导入文件”将其放在您的服务器上。
 Open the editor first (/tde).	首先打开编辑器 (/tde)。
 Model %d	型号%d
 Could not read the file.	无法读取文件。
 Not a textdraw file (	不是文本绘制文件（
 Could not write to 	无法写入 
-%s.mptd added to files/MP/%s/ (%d textdraws)%s	%s.mptd 添加到 files/MP/%s/（%d 个文本绘制）%s
+%s.mptd added to files/TYFMC/MP/%s/ (%d textdraws)%s	%s.mptd 已添加到 files/TYFMC/MP/%s/ (%d 文本绘制)%s
  - live on your server now	 - 现在就在您的服务器上
 /sdcard/Download/MP Textdraws	/sdcard/下载/MP Textdraws
 /storage/emulated/0/Download/MP Textdraws	/storage/模拟/0/下载/MP 文本绘制
 /sdcard/Download	/sdcard/下载
+/storage/emulated/0/Download	/storage/模拟/0/下载
+/sdcard/Download/MP Gamemodes	/sdcard/下载/多人游戏模式
+Importing %s ... (big servers take a minute)	正在导入 %s ...（大型服务器需要一些时间）
+Gamemode imported: %s. Start (or restart) your server to run it.	游戏模式已导入：%s。启动（或重启）服务器以运行它。
+Import failed: %s	导入失败：%s
+SA-MP gamemode: the PC server in one .rar / .zip (server.cfg, gamemodes/*.amx, filterscripts/, scriptfiles/), or one compiled .amx. 	SA-MP 游戏模式：PC 服务器位于一个 .rar / .zip 文件中（server.cfg、gamemodes/*.amx、filterscripts/、scriptfiles/），或者一个编译好的 .amx 文件。 
+Importing...	输入...
+Import (zip, rar) - opens Files	导入（zip、rar）- 打开文件
+Or pick from Download / files/TYFMC/MP/import	或者从“下载/文件/TYFMC/MP/导入”中选择
+No .rar / .zip / .amx found. Put it in Download or files/TYFMC/MP/import/.	未找到 .rar / .zip / .amx 文件。请将其放入 Download 或 files/TYFMC/MP/import/ 目录。
+Import a SA-MP gamemode	导入 SA-MP 游戏模式
+No gamemode on this server yet (a normal MP server).	该服务器目前还没有游戏模式（普通多人服务器）。
+Gamemode: %s	游戏模式：%s
+Gamemode removed - restart your server.	游戏模式已移除 - 请重启服务器。
+Host tools in game: /mpsamp sql <query> | report | info. Missing natives: mp_samp_report.txt in the gamemode folder.	游戏中的主机工具：/mpsamp sql <查询> | 报告 | 信息。游戏模式文件夹中缺少原生文件：mp_samp_report.txt。
+.pwn files are source code: compile them with pawncc on a PC first.	.pwn 文件是源代码：请先在 PC 上使用 pawncc 编译它们。
 Plugins	插件
-Files for your custom server go to files/MP/%s/.	您的自定义服务器的文件位于 files/MP/%s/.
+Files for your custom server go to files/TYFMC/MP/%s/.	自定义服务器的文件位于 files/TYFMC/MP/%s/。
+Gamemode (zip, rar)	游戏模式（zip、rar）
 This plugin type is not available yet.	此插件类型尚不可用。
 Textdraw: a .mptd saved by /tde (in game) or the MP Textdraw Editor app. Every player on your server sees them.	Textdraw：由 /tde（在游戏中）或 MP Textdraw Editor 应用程序保存的 .mptd。您服务器上的每个玩家都可以看到它们。
 Import file	导入文件
-No .mptd files found. Save one with /tde, or put it in Download/MP Textdraws or files/MP/import/.	未找到 .mptd 文件。使用 /tde 保存一个，或将其放入 Download/MP Textdraws 或 files/MP/import/. 中
+No .mptd files found. Save one with /tde, or put it in Download/MP Textdraws or files/TYFMC/MP/import/.	未找到 .mptd 文件。另存一个文件，文件名为 /tde，或将其放入 Download/MP Textdraws 或 files/TYFMC/MP/import/ 目录。
 Import a textdraw file	导入文本绘制文件
 No textdraw files on this server yet.	此服务器上还没有 textdraw 文件。
-Remove	删除
-Make one: /tde in game (files/MP/tde/projects/), or the MP Textdraw Editor app.	制作一个：游戏中的 /tde（files/MP/tde/projects/), 或 MP Textdraw Editor 应用程序。
+Make one: /tde in game (files/TYFMC/MP/tde/projects/), or the MP Textdraw Editor app.	创建一个：/tde 在游戏（files/TYFMC/MP/tde/projects/）中，或者在 MP Textdraw Editor 应用程序中。
 Birch Tree	白桦树
 Oak Tree	橡树
 Yew Tree	紫杉树
@@ -2614,7 +4591,8 @@ Trees	树木
 {FFA500}JOBINFO: {FFFFFF}Mission trees done. Bring the %d timber to the Timber Storage and /unloadtimber.	{FFA500}JOBINFO：{FFFFFF}任务树已完成。将%d木材带到木材仓库并/unloadtimber。
 {FFA500}GPSINFO: {FFFFFF}Tree %d/%d: a %s%s{FFFFFF} is marked on your radar.	{FFA500}GPSINFO：{FFFFFF}树 %d/%d：您的雷达上标记了 %s%s{FFFFFF}。
 {FFA500}Timber job: {FFFFFF}/timber (start, teleports you to the Timber Storage)  /quitjob  /fixjob  /timbergps	{FFA500}木材作业：{FFFFFF}/timber（开始，将您传送到木材仓库）/quitjob /fixjob /timbergps
-{FFFFFF}/cut (or hold CUT with the chainsaw)  /loadtimber (at the fallen tree)  /unloadtimber (Timber Storage)	{FFFFFF}/cut（或用电锯按住 CUT）/loadtimber（倒下的树处）/unloadtimber（木材仓库）
+{FFFFFF}/cut (or hold CUT with the chainsaw)  /pickuplog (PICK UP, 1-3 logs in your arms)  /putlogs (or CROUCH at the back of the pickup)	{FFFFFF}/cut（或按住电锯的“切割”键）/pickuplog（拿起1-3根木头）/putlogs（或蹲在皮卡车后部）
+{FFFFFF}/unloadtimber (Timber Storage)  /timbercar bobcat | sadler (your job pickup: 422 Bobcat or 543 Sadler)	{FFFFFF}/unloadtimber（木材存储）/timbercar山猫 | 萨德勒（您的作业提货：422 山猫或 543 萨德勒）
 {FFFFFF}/mysalary  /collectsalary (at the storage)  /timberskill  /checkjobcooldown  /timberhelp	{FFFFFF}/mysalary /collectsalary（在仓库）/timberskill /checkjobcooldown /timberhelp
 You cannot cut trees right now - you are on a cooldown (%d s, /checkjobcooldown).	你现在不能砍树 - 你正处于冷却时间（%d 秒，/checkjobcooldown）。
 {FFA500}LUMBERJACK: {FFFFFF}Tree %d/%d, timber %d/%d, paycheck $%.2f. /quitjob to stop.	{FFA500}伐木工：{FFFFFF}树 %d/%d，木材 %d/%d，薪水 $%.2f。 /quitjob 停止。
@@ -2632,6 +4610,11 @@ Mission complete: %d trees. +$150.00 bonus on your paycheck.	任务完成：%d �
 Paycheck (not collected): {33CC55}$%.2f{FFFFFF}   Earned in total: $%.2f	薪水（未领取）：{33CC55}$%.2f{FFFFFF} 总收入：$%.2f
 Timber sold: %d   Trees cut: %d   Woodcutting level %d (%d xp)	出售的木材：%d 砍伐的树木：%d 伐木等级 %d (%d xp)
 Collect it with /collectsalary at the Timber Storage.	使用/collectsalary在木材仓库收集它。
+{FFA500}LUMBERJACK: {FFFFFF}Your job pickup: %s. Use /timbercar bobcat | sadler (you can also drive your own Bobcat / Sadler / Walton / Yosemite).	{FFA500}伐木工：{FFFFFF}您的工作接送：%s。使用/timbercar山猫|萨德勒（您也可以驾驶自己的山猫/萨德勒/沃尔顿/优胜美地）。
+Bobcat (422)	山猫（422）
+Sadler (543)	萨德勒（543）
+{FFA500}LUMBERJACK: {FFFFFF}Your next job pickup is a %s.%s	{FFA500}伐木工：{FFFFFF}你的下一个工作地点是%s。%s
+ (/quitjob and /timber to get it now)	 （输入/quitjob或/timber即可立即获取）
 {FFA500}Woodcutting: {FFFFFF}level %d, %d xp%s.	{FFA500}木刻：{FFFFFF}等级 %d，%d xp%s。
  (oak trees at 20 xp)	 （橡树 20 XP）
  (yew trees at 60 xp)	 （紫杉树 60 XP）
@@ -2649,20 +4632,24 @@ Job state fixed (animation stopped, chainsaw back).	作业状态已修复（动�
 {FFA500}LUMBERJACK: {FFFFFF}You can now sell lumbers again!	{FFA500}伐木工：{FFFFFF}您现在可以再次出售木材了！
 {FFA500}LUMBERJACK: {FFFFFF}You died - the Timber job stopped.	{FFA500}伐木工：{FFFFFF}你死了 - 木材作业停止了。
 Your pickup is gone (the %d timber too). /quitjob and /timber for a new one.	您的皮卡不见了（%d 木材也不见了）。 /quitjob 和 /timber 表示新的。
+{FFA500}LUMBERJACK: {FFFFFF}This %s is your timber pickup now.	{FFA500}伐木工：{FFFFFF}这%s现在是你的木材拾取器了。
 {FFA500}GPSINFO: {FFFFFF}You have arrived!	{FFA500}GPSINFO：{FFFFFF}您已到达！
 You need the chainsaw in your hands (it comes back by itself).	你需要手中的电锯（它会自动回来）。
 {C2A2DA}* %s seizes his chainsaw from behind body, then cut the tree.	{C2A2DA}* %s 从身后抓住他的电锯，然后砍倒树。
 You have chopped down a %s%s{FFFFFF}. TIMBER!	您砍倒了一个%s%s{FFFFFF}。木材！
 ~y~TIMBER!	~y~木材！
-Stand next to the fallen tree.	站在倒下的树旁边。
-Get out of the car to load the timber.	下车去装载木材。
-You need your pickup here (/quitjob, /timber for a new one).	您需要在这里取货（如果是新的，则为 /quitjob、/timber）。
-Bring the pickup closer (within 18 m of the log).	将拾取器靠近（距离原木 18 m 以内）。
-{C2A2DA}AME: {FFFFFF}loads timber in the back of the pickup truck	{C2A2DA}AME：{FFFFFF}在皮卡车后部装载木材
-{FFA500}JOBINFO: {FFFFFF}You've successfully loaded the timber into the car! (total timber: %d/%d)	{FFA500}JOBINFO：{FFFFFF}您已成功将木材装载到车上！ （木材总量：%d/%d）
+{FFA500}JOBINFO: {FFFFFF}The tree broke into 3 logs. PICK UP (1-%d in your arms), stand at the back of the pickup and CROUCH to load them.	{FFA500}工作信息：{FFFFFF}这棵树断成了3根木头。抱起（1-%d根木头），站在皮卡车后，蹲下装车。
+{C2A2DA}* %s lifts a log with both hands (%d/%d in the arms).	{C2A2DA}* %s 用双手举起一根原木（%d/%d 在手臂上）。
+{C2A2DA}AME: {FFFFFF}puts %d log%s in the back of the pickup truck	{C2A2DA}AME：{FFFFFF}将%d日志%s放入皮卡车后部
+{FFA500}JOBINFO: {FFFFFF}You've loaded the timber into the car! (logs: %d/%d)	{FFA500}作业信息：{FFFFFF}您已将木材装入车内！（原木：%d/%d）
 Woodcutting level %d: %s.	伐木等级%d：%s。
 you can cut oak trees now	你现在可以砍橡树了
 you can cut yew trees now	你现在可以砍紫杉树了
+You dropped the logs - you cannot drive with logs in your arms.	你把木头掉地上了——你不能抱着木头开车。
+Stand next to a log to pick it up.	站在原木旁边把它捡起来。
+Your arms are full (%d logs). Bring them to the back of the pickup and crouch.	你的胳膊上已经抱满了（%d根木头）。把它们搬到皮卡车后，然后蹲下。
+Stand at the back of your pickup (the tailgate) and crouch to put the logs in.	站在皮卡车后部（后挡板），蹲下身子把木头放进去。
+The pickup is full (%d/%d). Sell at the Timber Storage, the rest of the logs stay here.	皮卡车已满（%d/%d）。请到木材仓库出售，剩余的木材留在这里。
 Timber Storage	木材储存
 use '/unloadtimber' to sell collected timber	使用“/unloadtimber”出售收集的木材
 Lumberjack	伐木工
@@ -2670,8 +4657,11 @@ Lumberjack	伐木工
 type '/timber' to start the job	输入“/timber”开始作业
 TIMBER %d/%d  TREE %d/%d	木材 %d/%d 树 %d/%d
 Health: %d	健康状况：%d
+PUT IN	普京
+Carrying %d/%d log%s - back of the pickup + CROUCH to load	携带 %d/%d log%s - 皮卡车后部 + 蹲下装载
+Picking up the log	拿起原木
+Loading the logs	正在加载日志
 Cutting tree	砍树
-Loading timber	装载木材
 Broker	经纪人
 {4DD2FF}%s\n{FFFFFF}/job %s  {33CC55}$%d	{4DD2FF}%s\n{FFFFFF}/job %s {33CC55}$%d
 {FFFFFF}/job %s  {33CC55}$%d	{FFFFFF}/job %s {33CC55}$%d
@@ -2708,19 +4698,43 @@ The host turned this gamemode off.	主持人关闭了该游戏模式。
 MP Server	MP服务器
 Bad login ticket.	错误的登录票。
 Login ticket not signed by the MP bot.	登录票证未由 MP 机器人签名。
+the last admin / moderator left	最后一位管理员/版主离开了
+%s is reconnecting to the server...	%s 正在重新连接服务器...
+Always team up with your friends - Mission sync lets two players share a mission.	始终与好友组队——任务同步功能允许两名玩家共享一个任务。
+Remember to report hackers and rule breakers: /report [id] [reason].	请记住举报黑客和违规者：/report [id] [原因]。
+Read the server rules any time with /rules - breaking them can get you kicked or banned.	请随时使用 /rules 阅读服务器规则 - 违反规则可能会被踢出服务器或被封禁。
+Need help? /help lists the commands, /cmds the short list.	需要帮助？/help 列出所有命令，/cmds 列出简短命令。
+Your progress is saved on this server: money, place, weapons, health.	您的游戏进度将保存在此服务器上：金钱、地点、武器、生命值。
+Chat fading off or on: Settings > Display > Chat fade (or /chatfade).	聊天淡入淡出：设置 > 显示 > 聊天淡入淡出（或 /chatfade）。
+My Vehicles: sit in a car and type /savecar, /mv to spawn it again.	我的车辆：坐在车里，输入 /savecar, /mv 即可再次生成车辆。
+Buy a car from the receptionist at Coutt and Schutz (Jefferson, LS) or Otto's Autos (San Fierro).	向 Coutt and Schutz（杰斐逊，LS）或 Otto's Autos（圣菲耶罗）的接待员购买汽车。
+Always roleplay - stay in character, no random deathmatch (RDM) and no car ramming (VDM).	始终保持角色扮演——保持角色设定，禁止随机死亡竞赛（RDM）和车辆冲撞（VDM）。
+Get a job at the Job Centre (GPS), then go on duty to earn money every pay day.	到就业中心（GPS）找份工作，然后每个发薪日去上班挣钱。
+Keep your money safe: deposit it at Mega Bank or any ATM.	为了您的资金安全，请将其存入 Mega Bank 或任何 ATM 机。
+Buy a car from the receptionist at the Budget Car Dealership (Coutt and Schutz, GPS).	从 Budget 汽车经销店（Coutt and Schutz，GPS）的前台购买汽车。
+Hungry or thirsty? Eat and drink at the shops - PANEL > Bag to use items.	饿了或渴了？在商店里吃喝吧 - 面板 > 购物袋里的物品。
+The rules are at the info points in the Mega Vil Plaza - read them before you play.	游戏规则在Mega Vil Plaza的信息点有说明——请在游戏前阅读规则。
+%s reconnected to the server successfully	%s 已成功重新连接到服务器
 admin key	管理密钥
 moderator key	主持人键
-%s %s cheats for everyone.	%s %s 为所有人作弊。
-%s was %s by %s	%s 是 %s，%s
 You are muted by the administrator.	您已被管理员静音。
 %s Administrator: %s  Reason: %s	%s管理员：%s原因：%s
 {FFFFFF}[{FFFF00}SERVER{FFFFFF}]: %s got %s by %s	{FFFFFF}[{FFFF00}服务器{FFFFFF}]：%s 在 %s 之前获得了 %s
 no reason	没有理由
 [SERVER]: %s got %s by %s	[SERVER]：%s 于 %s 获得了 %s
 TURF: %s took %s from %s!	TURF：%s从%s手中夺走了%s！
+(Ljava/lang/String;)Ljava/lang/Object;	（Ljava/lang/String;）Ljava/lang/Object;
+MP chat	MP聊天
+java/lang/Object	java/lang/对象
+java/io/File	java/io/文件
+(Ljava/lang/String;)Ljava/lang/Class;	（Ljava/lang/String；）Ljava/lang/Class；
+no activity	无活动
+could not load the picker	无法加载选择器
+could not load the keyboard helper	无法加载键盘助手
 Section	部分
 Tap to type	点击输入
-Arial (MP)	宋体 (MP)
+window '%s' (hovered id %08x, active id %08x)	窗口“%s”（悬停 ID %08x，活动 ID %08x）
+MP (GTA style)	多人游戏（GTA风格）
 Pricedown (GTA)	降价 (GTA)
 Roboto	罗博托
 Roboto Condensed	机器人压缩版
@@ -2729,13 +4743,66 @@ Mono	单声道
 Coming Soon	即将推出
 Dancing Script	舞蹈剧本
 Carrois Gothic	卡罗斯哥特式
+Arial (old MP font)	Arial（旧版 MP 字体）
+mi lan	米兰
+Your phone's font has only part of this language: some texts stay English.	你的手机字体只包含这种语言的一部分：有些文本仍然是英文。
+Your phone has no font for this language, so the texts stay English. Install a Chinese / Japanese / Korean / Thai system font (or Google's Noto CJK) and pick it again.	您的手机没有此语言的字体，因此文本仍显示为英文。请安装中文/日文/韩文/泰文系统字体（或谷歌的 Noto CJK 字体），然后重新选择。
 Vehicle_%d.png	车辆_%d.png
+GIF loading...	GIF加载中……
 scrolled up - drag down for new messages	向上滚动 - 向下拖动以查看新消息
 MP: Connected to %s  |  %s  |  Players: %d/%d  |  Ping: %d ms%s	MP：已连接到 %s |  %s |  玩家：%d/%d |  Ping：%d 毫秒%s
   |  Host: 	  |  主持人： 
   |  Hosting	  |  托管
 MP: Connecting ...	议员：正在连接...
 MP: Disconnected%s	议员：已断开连接%s
+global click	全局点击
+font texture + new frame	字体纹理 + 新边框
+neon menu	霓虹菜单
+floating menu	浮动菜单
+end frame	末端框架
+Español	西班牙语
+Bahasa Indonesia	印尼语
+Português (Brasil)	葡萄牙语（巴西）
+Portuguese (Brazil)	葡萄牙语（巴西）
+Korean	韩国人
+Chinese (Simplified)	中文（简体）
+Tiếng Việt	越南语
+Vietnamese	越南语
+Japanese	日本人
+Français	法语
+French	法语
+Deutsch	德语
+German	德语
+Italiano	意大利语
+Italian	意大利语
+Türkçe	土耳其语
+Turkish	土耳其
+Polski	波兰语
+Polish	抛光
+Thai	泰国
+Bahasa Melayu	马来语
+Malay	马来语
+Ukrainian	乌克兰
+Nederlands	荷兰语
+Dutch	荷兰语
+Chinese (Traditional)	中文（繁体）
+missing %s	缺失 %s
+bad file %s	文件错误 %s
+can't read %s	无法读取%s
+unknown language %s	未知语言 %s
+game reader	游戏读取器
+game reader, relative path	游戏读取器，相对路径
+MP decoder	MP解码器
+ (built-in)	 （内置）
+the dialog failed	对话失败
+Phone keyboard unavailable: 	电话键盘不可用： 
+< BACK	返回
+Search GIFs: type a word (cat, dance, lol...)_	搜索 GIF：输入一个词（猫、跳舞、哈哈……）
+Search GIFs (tap to type)	搜索 GIF（点击输入）
+Loading GIFs...	正在加载GIF动图……
+Type to search all GIFs	输入搜索所有 GIF
+No GIFs found - try another word	未找到 GIF 图片 - 请尝试其他词语
+No GIFs here	这里没有GIF动图
 Shift	转变
 Space	空间
 <- Del	<- 德尔
