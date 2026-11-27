@@ -26,6 +26,7 @@
 #include "world/game_hooks.h"
 #include "diagnostics/weapon_log.h"
 #include "ui/fx.h"
+#include "ui/ui_common.h"
 
 namespace CoopFusion {
 namespace {
