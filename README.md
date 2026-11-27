@@ -838,6 +838,14 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.75
+- Neon main menu taps on the Red Magic 10S Pro, with Game Space on or off (5.02.74 still didn't take taps there). Two holes were left:
+  - The Android touch hook returned before the neon menu code while MP's HUD was not up yet (the title, before the first in-game frame), so the hook never saw a finger there and the 5.02.74 fallback could never turn on. The neon check now runs first.
+  - A pointer slot that stays "down" (shoulder trigger / overlay / phantom pointer) made the game's pointers table look alive, so the fallback never turned on, and that slot was followed instead of the real finger.
+- The touch hook (Android's own per-finger events, which the game's pointers table is built from) now drives the neon menu. The pointers table only takes over when it sees a press the hook never reported, meaning the hook isn't reached on that game build (logged once in mp_log.txt). In that mode the newest press wins and a slot already held when the menu opened is ignored.
+- Not touched: the loading screens, the neon join and < Spawn >.
+- CamFX 2.4 (JebetrexxMC/CamFX): Car Cam FX no longer resets the camera while the car is still at max speed when you let go of the nitro button or lift off the gas.
+
 ### 5.02.74
 - Neon main menu: the buttons (Resume, New game, Load game, Browse servers, Quick connect, Settings, About, Quit game) can be tapped on every phone again (Red Magic 10S Pro and others). Only touch slot 0 of the game's pointers table was read; the shoulder triggers / game-space overlays hold slot 0 there, so the real finger was never seen. Every slot (0-3) is read now, and when the pointers table never sees a finger the Android touch hook saw, the hook drives the neon menu (logged once in mp_log.txt).
 - A release with no coordinates (-1 / 0,0 on some phones) uses the finger's last spot; pressed on a button and barely moved = its tap.
