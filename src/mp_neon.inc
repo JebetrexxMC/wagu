@@ -2508,12 +2508,69 @@ void MP::NeonTouch(int kind, int finger, float x, float y)   // 4.13.30
     NeonPaint::OnTouch(kind, finger, x, y);
 }
 // game thread (MobileMenu::Update)
+// 5.02.76: Christe Multiplayer (com.christe.mp) starts GTA SA with the server you picked there as Intent extras:
+//   christe_join = "mp|<name>|<port>|<host>"   (an MP server; host empty = found in the lobby by name)
+//                  "omp|<host>|<port>|<name>"  (an open.mp / SA-MP PC server: crossplay)
+//   christe_nick = your MP name (optional)
+// Read once from the game's activity on the title screen (no file in Android/data: Android 11+ blocks that for
+// other apps), the extras are removed after that so a resume never joins again. The join is the neon join.
+static void ChristeIntentTick()
+{
+    static int s_nDone = 0;   // 0 = not read yet, 1 = read
+    if(s_nDone || !NeonTitleCtx() || !s_bMenuMpReady.load()) return;
+    s_nDone = 1;
+    JavaVM* vm = aml->GetJavaVM(); JNIEnv* env = nullptr;
+    if(!vm) return;
+    if(vm->GetEnv((void**)&env, JNI_VERSION_1_6) != JNI_OK || !env) { if(vm->AttachCurrentThread(&env, nullptr) != JNI_OK || !env) return; }
+    jobject act = (jobject)aml->GetCurrentActivity();
+    if(!act) return;
+    if(env->PushLocalFrame(32) != 0) { env->ExceptionClear(); return; }
+    std::string join, nick;
+    jclass aCls = env->FindClass("android/app/Activity");
+    jclass iCls = env->FindClass("android/content/Intent");
+    jmethodID mGet = (aCls && !env->ExceptionCheck()) ? env->GetMethodID(aCls, "getIntent", "()Landroid/content/Intent;") : nullptr;
+    jmethodID mStr = (iCls && !env->ExceptionCheck()) ? env->GetMethodID(iCls, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;") : nullptr;
+    jmethodID mRem = (iCls && !env->ExceptionCheck()) ? env->GetMethodID(iCls, "removeExtra", "(Ljava/lang/String;)V") : nullptr;
+    if(env->ExceptionCheck()) env->ExceptionClear();
+    if(mGet && mStr && mRem)
+    {
+        jobject in = env->CallObjectMethod(act, mGet);
+        if(env->ExceptionCheck()) { env->ExceptionClear(); in = nullptr; }
+        auto Extra = [&](const char* key, std::string& out) {
+            jstring k = env->NewStringUTF(key);
+            jstring v = (jstring)env->CallObjectMethod(in, mStr, k);
+            if(env->ExceptionCheck()) { env->ExceptionClear(); v = nullptr; }
+            if(v) { const char* c = env->GetStringUTFChars(v, nullptr); if(c) { out = c; env->ReleaseStringUTFChars(v, c); } env->CallVoidMethod(in, mRem, k); if(env->ExceptionCheck()) env->ExceptionClear(); }
+        };
+        if(in) { Extra("christe_join", join); Extra("christe_nick", nick); }
+    }
+    env->PopLocalFrame(nullptr);
+    if(env->ExceptionCheck()) env->ExceptionClear();
+    if(!nick.empty() && nick.size() < MP_NAME_LEN) { MP_CopyStr(settings.name, nick.c_str(), sizeof(settings.name)); logger->Info("Christe Multiplayer: name %s", settings.name); }
+    if(join.empty()) return;
+    std::vector<std::string> f; { size_t a = 0; for(;;) { size_t b = join.find('|', a); f.push_back(join.substr(a, b == std::string::npos ? std::string::npos : b - a)); if(b == std::string::npos) break; a = b + 1; } }
+    while(f.size() < 4) f.push_back("");
+    LRow r; memset(&r, 0, sizeof(r));
+    const int port = atoi(f[2].c_str());
+    if(port <= 0 || port > 65535) { logger->Info("Christe Multiplayer: bad join request \"%s\"", join.c_str()); return; }
+    r.port = port;
+    if(f[0] == "omp") { r.kind = 8; MP_CopyStr(r.ip, f[1].c_str(), sizeof(r.ip)); MP_CopyStr(r.name, f[3].empty() ? f[1].c_str() : f[3].c_str(), sizeof(r.name)); }
+    else { r.kind = 1; MP_CopyStr(r.name, f[1].c_str(), sizeof(r.name)); MP_CopyStr(r.ip, f[3].c_str(), sizeof(r.ip)); if(!r.name[0]) MP_CopyStr(r.name, r.ip, sizeof(r.name)); }
+    if(r.kind == 8 && !r.ip[0]) return;
+    if(r.kind == 1 && !r.name[0]) return;
+    logger->Info("Christe Multiplayer: join %s (%s, port %d) from the launcher", r.name, r.kind == 8 ? "open.mp" : "MP", r.port);
+    NeonMusicStop();
+    s_bMenuMpViaApi = true;   // works with MainMenuMultiplayer = 0 too (like PCMenu's MPMultiplayer)
+    NeonJoinRow(r);
+}
+
 void MP::NeonMenuTick()
 {
     NeonFileTick(MP_NowMs());   // 5.01.07: neon_mode.txt added / removed while the title menu is up
     NeonCloseTick(MP_NowMs());  // 5.02.01: Resume / New game / a slot: no pause menu after the load
     const uint64_t now = MP_NowMs();
     PhoneLabTick(now);   // 5.02.68
+    ChristeIntentTick();   // 5.02.76
     NeonMusicMenuTick(now);   // 5.02.06: every menu mode, 4 s + 20 ticks after the title menu first shows
     if(s_nNeonMode == NEON_MODE_DEFAULT) return;   // 4.13.30
     const bool titleUp = s_nNeonTitleMs && now - s_nNeonTitleMs < 600 && NeonTitleCtx();

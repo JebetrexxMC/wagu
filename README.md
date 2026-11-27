@@ -838,6 +838,11 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### 5.02.76
+- **Christe Multiplayer** (new app, `christe/`, package `com.christe.mp`, ChristeMultiplayer.apk): a landscape MP launcher for GTA SA (AML) and Vice City, with SA + VC + PC crossplay. It starts the games you already have installed with their own OBB (main.8 + patch.8 stay in `Android/obb/com.rockstargames.gtasa`, nothing is copied). It has its own `date2` folder (`Android/data/com.christe.mp/date2`: resources, libs, files, configs, mods, scripts) and its own optional OBB (`Android/obb/com.christe.mp`). It picks arm64-v8a (GTA SA 2.10) or armeabi-v7a (GTA SA 2.00) from the game or the phone, and bundles both libMP builds. Also: an animated boot screen, skeleton loading, an offline "something went wrong" screen, communities, Explore Community, region pin, refresh, notifications, a quick-settings gear and a full-screen MP account login / register for guests. See `christe/README.md`.
+- MP: a server picked in Christe Multiplayer is joined from the title screen. The launcher passes `christe_join` / `christe_nick` as Intent extras. MP reads them once from the game's activity, removes them, and runs the normal neon join (Multiplayer load, then the join). This also works with MainMenuMultiplayer = 0.
+- Not touched: the loading screens, the neon join and < Spawn >.
+
 ### 5.02.75
 - Neon main menu taps on the Red Magic 10S Pro, with Game Space on or off (5.02.74 still didn't take taps there). Two holes were left:
   - The Android touch hook returned before the neon menu code while MP's HUD was not up yet (the title, before the first in-game frame), so the hook never saw a finger there and the 5.02.74 fallback could never turn on. The neon check now runs first.
