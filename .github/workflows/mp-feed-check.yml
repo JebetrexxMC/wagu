@@ -1,0 +1,30 @@
+# 5.02.81: MP live feed check - the Discord bot's permissions in the live feed channel, its webhook, the MQTT feed
+# traffic, and an end-to-end test (test event -> the running "MP Discord bot" -> the channel). Run by hand.
+name: MP live feed check
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: discordbot
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -q paho-mqtt
+      - name: Check
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+        run: python discordbot/feedcheck.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: feedcheck
+          path: feedcheck.json
+          if-no-files-found: ignore
