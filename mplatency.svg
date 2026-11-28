@@ -1,0 +1,238 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="648" viewBox="0 0 860 648" font-family="Segoe UI,Helvetica,Arial,sans-serif">
+<rect width="100%" height="100%" rx="10" fill="#0d1117" stroke="#30363d"/>
+<text x="16" y="26" fill="#e6edf3" font-size="16" font-weight="600">MP NetWire latency (mplatency)</text>
+<text x="844" y="26" fill="#8b949e" font-size="12" text-anchor="end">12/12 up, 16 standby, 5 samples each, 2026-11-28 16:36 UTC, from GitHub Actions</text>
+<text x="16" y="48" fill="#8b949e" font-size="11"></text>
+<text x="34" y="48" fill="#8b949e" font-size="11">wire</text>
+<text x="300" y="48" fill="#8b949e" font-size="11">avg ms</text>
+<text x="370" y="48" fill="#8b949e" font-size="11">min</text>
+<text x="440" y="48" fill="#8b949e" font-size="11">max</text>
+<text x="510" y="48" fill="#8b949e" font-size="11">jitter</text>
+<text x="575" y="48" fill="#8b949e" font-size="11">loss</text>
+<text x="640" y="48" fill="#8b949e" font-size="11">location</text>
+<circle cx="21" cy="67" r="5" fill="#3fb950"/>
+<text x="34" y="71" fill="#e6edf3" font-size="12">emqx / EMQX WebSocket</text>
+<text x="300" y="71" fill="#e6edf3" font-size="12">66</text>
+<text x="370" y="71" fill="#e6edf3" font-size="12">57</text>
+<text x="440" y="71" fill="#e6edf3" font-size="12">70</text>
+<text x="510" y="71" fill="#e6edf3" font-size="12">4.2</text>
+<text x="575" y="71" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="71" fill="#e6edf3" font-size="12">Boardman, United States</text>
+<circle cx="21" cy="87" r="5" fill="#3fb950"/>
+<text x="34" y="91" fill="#e6edf3" font-size="12">emqx / EMQX secure WebSocket</text>
+<text x="300" y="91" fill="#e6edf3" font-size="12">68</text>
+<text x="370" y="91" fill="#e6edf3" font-size="12">59</text>
+<text x="440" y="91" fill="#e6edf3" font-size="12">71</text>
+<text x="510" y="91" fill="#e6edf3" font-size="12">3.2</text>
+<text x="575" y="91" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="91" fill="#e6edf3" font-size="12">Boardman, United States</text>
+<circle cx="21" cy="107" r="5" fill="#3fb950"/>
+<text x="34" y="111" fill="#e6edf3" font-size="12">emqx / EMQX MQTT over TLS</text>
+<text x="300" y="111" fill="#e6edf3" font-size="12">68</text>
+<text x="370" y="111" fill="#e6edf3" font-size="12">64</text>
+<text x="440" y="111" fill="#e6edf3" font-size="12">71</text>
+<text x="510" y="111" fill="#e6edf3" font-size="12">2.8</text>
+<text x="575" y="111" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="111" fill="#e6edf3" font-size="12">Boardman, United States</text>
+<circle cx="21" cy="127" r="5" fill="#3fb950"/>
+<text x="34" y="131" fill="#e6edf3" font-size="12">emqx / HiveMQ public secure WebSocket</text>
+<text x="300" y="131" fill="#e6edf3" font-size="12">93</text>
+<text x="370" y="131" fill="#e6edf3" font-size="12">93</text>
+<text x="440" y="131" fill="#e6edf3" font-size="12">94</text>
+<text x="510" y="131" fill="#e6edf3" font-size="12">0.8</text>
+<text x="575" y="131" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="131" fill="#e6edf3" font-size="12">Frankfurt, Germany</text>
+<circle cx="21" cy="147" r="5" fill="#3fb950"/>
+<text x="34" y="151" fill="#e6edf3" font-size="12">lobby / EMQX public lobby</text>
+<text x="300" y="151" fill="#e6edf3" font-size="12">67</text>
+<text x="370" y="151" fill="#e6edf3" font-size="12">58</text>
+<text x="440" y="151" fill="#e6edf3" font-size="12">70</text>
+<text x="510" y="151" fill="#e6edf3" font-size="12">4.8</text>
+<text x="575" y="151" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="151" fill="#e6edf3" font-size="12">Boardman, United States</text>
+<circle cx="21" cy="167" r="5" fill="#3fb950"/>
+<text x="34" y="171" fill="#e6edf3" font-size="12">lobby / Mosquitto public lobby</text>
+<text x="300" y="171" fill="#e6edf3" font-size="12">90</text>
+<text x="370" y="171" fill="#e6edf3" font-size="12">89</text>
+<text x="440" y="171" fill="#e6edf3" font-size="12">91</text>
+<text x="510" y="171" fill="#e6edf3" font-size="12">1.2</text>
+<text x="575" y="171" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="171" fill="#e6edf3" font-size="12">Roubaix, France</text>
+<circle cx="21" cy="187" r="5" fill="#3fb950"/>
+<text x="34" y="191" fill="#e6edf3" font-size="12">lobby / HiveMQ public lobby</text>
+<text x="300" y="191" fill="#e6edf3" font-size="12">93</text>
+<text x="370" y="191" fill="#e6edf3" font-size="12">93</text>
+<text x="440" y="191" fill="#e6edf3" font-size="12">94</text>
+<text x="510" y="191" fill="#e6edf3" font-size="12">0.5</text>
+<text x="575" y="191" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="191" fill="#e6edf3" font-size="12">Frankfurt, Germany</text>
+<circle cx="21" cy="207" r="5" fill="#58a6ff"/>
+<text x="34" y="211" fill="#8b949e" font-size="12">region / Asia broker (MQTT)</text>
+<text x="300" y="211" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="211" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="211" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="211" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="211" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="211" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="227" r="5" fill="#58a6ff"/>
+<text x="34" y="231" fill="#8b949e" font-size="12">region / Asia broker (TLS 8883)</text>
+<text x="300" y="231" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="231" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="231" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="231" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="231" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="231" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="247" r="5" fill="#58a6ff"/>
+<text x="34" y="251" fill="#8b949e" font-size="12">region / Asia website lobby (WSS)</text>
+<text x="300" y="251" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="251" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="251" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="251" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="251" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="251" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="267" r="5" fill="#58a6ff"/>
+<text x="34" y="271" fill="#8b949e" font-size="12">region / Europe broker (MQTT)</text>
+<text x="300" y="271" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="271" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="271" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="271" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="271" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="271" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="287" r="5" fill="#58a6ff"/>
+<text x="34" y="291" fill="#8b949e" font-size="12">region / Europe broker (TLS 8883)</text>
+<text x="300" y="291" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="291" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="291" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="291" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="291" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="291" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="307" r="5" fill="#58a6ff"/>
+<text x="34" y="311" fill="#8b949e" font-size="12">region / Europe website lobby (WSS)</text>
+<text x="300" y="311" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="311" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="311" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="311" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="311" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="311" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="327" r="5" fill="#58a6ff"/>
+<text x="34" y="331" fill="#8b949e" font-size="12">region / NA broker (MQTT)</text>
+<text x="300" y="331" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="331" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="331" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="331" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="331" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="331" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="347" r="5" fill="#58a6ff"/>
+<text x="34" y="351" fill="#8b949e" font-size="12">region / NA broker (TLS 8883)</text>
+<text x="300" y="351" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="351" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="351" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="351" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="351" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="351" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="367" r="5" fill="#58a6ff"/>
+<text x="34" y="371" fill="#8b949e" font-size="12">region / NA website lobby (WSS)</text>
+<text x="300" y="371" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="371" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="371" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="371" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="371" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="371" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="387" r="5" fill="#58a6ff"/>
+<text x="34" y="391" fill="#8b949e" font-size="12">region / Oceania broker (MQTT)</text>
+<text x="300" y="391" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="391" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="391" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="391" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="391" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="391" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="407" r="5" fill="#58a6ff"/>
+<text x="34" y="411" fill="#8b949e" font-size="12">region / Oceania broker (TLS 8883)</text>
+<text x="300" y="411" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="411" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="411" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="411" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="411" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="411" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="427" r="5" fill="#58a6ff"/>
+<text x="34" y="431" fill="#8b949e" font-size="12">region / Oceania website lobby (WSS)</text>
+<text x="300" y="431" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="431" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="431" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="431" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="431" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="431" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="447" r="5" fill="#58a6ff"/>
+<text x="34" y="451" fill="#8b949e" font-size="12">vps / Asia VPS - MP LAN Server</text>
+<text x="300" y="451" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="451" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="451" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="451" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="451" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="451" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="467" r="5" fill="#58a6ff"/>
+<text x="34" y="471" fill="#8b949e" font-size="12">vps / Europe VPS - MP LAN Server</text>
+<text x="300" y="471" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="471" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="471" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="471" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="471" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="471" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="487" r="5" fill="#58a6ff"/>
+<text x="34" y="491" fill="#8b949e" font-size="12">vps / NA VPS - MP LAN Server</text>
+<text x="300" y="491" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="491" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="491" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="491" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="491" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="491" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="507" r="5" fill="#58a6ff"/>
+<text x="34" y="511" fill="#8b949e" font-size="12">vps / Oceania VPS - MP LAN Server</text>
+<text x="300" y="511" fill="#8b949e" font-size="12">standby</text>
+<text x="370" y="511" fill="#8b949e" font-size="12">-</text>
+<text x="440" y="511" fill="#8b949e" font-size="12">-</text>
+<text x="510" y="511" fill="#8b949e" font-size="12">-</text>
+<text x="575" y="511" fill="#8b949e" font-size="12">100%</text>
+<text x="640" y="511" fill="#8b949e" font-size="12">Cagayan de Oro, Philippines</text>
+<circle cx="21" cy="527" r="5" fill="#3fb950"/>
+<text x="34" y="531" fill="#e6edf3" font-size="12">web / MP website (mpsamp-open.github.io)</text>
+<text x="300" y="531" fill="#e6edf3" font-size="12">3.2</text>
+<text x="370" y="531" fill="#e6edf3" font-size="12">2.2</text>
+<text x="440" y="531" fill="#e6edf3" font-size="12">3.8</text>
+<text x="510" y="531" fill="#e6edf3" font-size="12">0.5</text>
+<text x="575" y="531" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="531" fill="#e6edf3" font-size="12">San Francisco, United States</text>
+<circle cx="21" cy="547" r="5" fill="#3fb950"/>
+<text x="34" y="551" fill="#e6edf3" font-size="12">web / GitHub raw (live status files)</text>
+<text x="300" y="551" fill="#e6edf3" font-size="12">3.5</text>
+<text x="370" y="551" fill="#e6edf3" font-size="12">3.1</text>
+<text x="440" y="551" fill="#e6edf3" font-size="12">4.0</text>
+<text x="510" y="551" fill="#e6edf3" font-size="12">0.5</text>
+<text x="575" y="551" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="551" fill="#e6edf3" font-size="12">San Francisco, United States</text>
+<circle cx="21" cy="567" r="5" fill="#3fb950"/>
+<text x="34" y="571" fill="#e6edf3" font-size="12">web / ZeroTier controller API (zerotier…</text>
+<text x="300" y="571" fill="#e6edf3" font-size="12">4.4</text>
+<text x="370" y="571" fill="#e6edf3" font-size="12">3.5</text>
+<text x="440" y="571" fill="#e6edf3" font-size="12">6.4</text>
+<text x="510" y="571" fill="#e6edf3" font-size="12">1.7</text>
+<text x="575" y="571" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="571" fill="#e6edf3" font-size="12">Toronto, Canada</text>
+<circle cx="21" cy="587" r="5" fill="#3fb950"/>
+<text x="34" y="591" fill="#e6edf3" font-size="12">web / open.mp server list API</text>
+<text x="300" y="591" fill="#e6edf3" font-size="12">4.5</text>
+<text x="370" y="591" fill="#e6edf3" font-size="12">3.3</text>
+<text x="440" y="591" fill="#e6edf3" font-size="12">7.5</text>
+<text x="510" y="591" fill="#e6edf3" font-size="12">1.4</text>
+<text x="575" y="591" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="591" fill="#e6edf3" font-size="12">Toronto, Canada</text>
+<circle cx="21" cy="607" r="5" fill="#3fb950"/>
+<text x="34" y="611" fill="#e6edf3" font-size="12">web / bore.pub public tunnel server (TC…</text>
+<text x="300" y="611" fill="#e6edf3" font-size="12">9.2</text>
+<text x="370" y="611" fill="#e6edf3" font-size="12">8.3</text>
+<text x="440" y="611" fill="#e6edf3" font-size="12">9.9</text>
+<text x="510" y="611" fill="#e6edf3" font-size="12">0.9</text>
+<text x="575" y="611" fill="#e6edf3" font-size="12">0%</text>
+<text x="640" y="611" fill="#e6edf3" font-size="12">North Bergen, United States</text>
+<text x="16" y="638" fill="#8b949e" font-size="11">green &lt;120 ms, yellow &lt;250 ms, red slower or lossy, blue standby (public lobby in use), grey down. Pings are from US / EU runners, not from a phone.</text>
+</svg>
