@@ -1,0 +1,65 @@
+MP Multiplayer / AML Multiplayer - Proprietary License
+
+Copyright (c) 2026 JebetrexxMC. All rights reserved.
+
+This repository and everything in it that was written by or for JebetrexxMC (the "Software") is the
+property of JebetrexxMC. That covers the source code (src/, christe/, launcher/, discordbot/, server/,
+net/, HiveMQ/, crossplay/, coopfusion/, moquil/, voicehelper/, textdraweditor/, viceloader/, tools/ and
+the other folders), the build scripts, the MP assets, the scripts, the documentation, the
+compiled libraries (libMP32.so, libMP64.so) and the APKs and packages published in the Releases.
+The source is public so you can read it. It is NOT open source.
+
+1. What you may do
+   a. View and read the Software on GitHub.
+   b. Download the official builds from this repository's Releases and use them on your own devices
+      to play on MP / AML Multiplayer servers.
+   c. Fork the repository on GitHub only as far as GitHub's Terms of Service allow for public
+      repositories (viewing and forking inside GitHub). A fork does not give you any of the rights
+      that section 2 forbids.
+
+2. What you may NOT do without written permission from JebetrexxMC
+   a. Copy the Software, in whole or in part, into any other project, product, mod, launcher, app,
+      server or repository.
+   b. Modify the Software, or publish or distribute modified versions of it.
+   c. Redistribute, re-upload, mirror, sell, rent, sublicense or otherwise share the Software, its
+      builds or its packages, for free or for money, including on other websites, stores, Discord
+      servers, Telegram channels or file hosts.
+   d. Rename or rebrand the Software, or remove or change its name, credits, copyright notices or
+      this license.
+   e. Reverse engineer, decompile or disassemble the compiled libraries or APKs to make a competing
+      or copied product, except where the law of your country allows it and this restriction
+      cannot be waived.
+   f. Use the Software, or any part of it, to train or build another product that copies its
+      features, code or assets.
+   g. Claim the Software, or any part of it, as your own work.
+
+3. Third-party parts
+   Some parts of this repository come from other people and keep their own licenses. Those
+   licenses still apply to those parts, and this license does not take any rights away from
+   their authors. They include, among others, the code under third_party/ and git submodules
+   (open.mp, open.mp-sdk, plugin-sdk, AndroidModLoader, ARMPatch, SAUtils, Dear ImGui,
+   MonetLoader, RakNet, YSI, PawnPlus, Pawn.RakNet, streamer, ColAndreas, sampvoice and
+   others), and the mods credited to their authors. One example is the first person script,
+   which is based on "ZyZ First Person" by ZyZz reincarnate and "Ultimate First Person Mod" by
+   peter_99. This license covers only the work of JebetrexxMC.
+   GTA San Andreas, GTA Vice City and their files are the property of Rockstar Games / Take-Two
+   Interactive. They are not covered or licensed by this license.
+
+4. Contributions
+   Anything you send to this repository (pull requests, patches, issues with code) may be used,
+   changed and published by JebetrexxMC as part of the Software. Sending it means you agree to
+   this.
+
+5. Ending
+   Your permission under section 1 ends at once if you break this license. When it ends you must
+   delete every copy of the Software you have that does not come from section 1.
+
+6. No warranty
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+   BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+   CONNECTION WITH THE SOFTWARE OR THE USE OF IT.
+
+For permission to use, copy or distribute the Software, contact JebetrexxMC on GitHub:
+https://github.com/JebetrexxMC
