@@ -56,6 +56,7 @@ import paho.mqtt.client as mqtt
 from authcore import AuthCore, TOPIC_REQ, TOPIC_RES, MAX_ACCOUNTS
 from ghstore import GhStore
 from livefeed import LiveFeed, TOPIC as FEED_TOPIC
+from lobbystat import LobbyStat, LOBBY_TOPIC
 
 VERSION = "5.02.80"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -108,10 +109,14 @@ class Bridge:
         log.info("broker %s connected (%s)", BROKERS[idx][0], rc)
         c.subscribe(TOPIC_REQ, qos=0)
         c.subscribe(FEED_TOPIC, qos=0)   # 5.02.80: MP live feed (joins, leaves, missions, chat)
+        c.subscribe(LOBBY_TOPIC, qos=0)  # 5.02.80: /status (servers + players online)
 
     def on_message(self, c, idx, msg):
         if msg.topic == FEED_TOPIC:   # 5.02.80
             feed.feed(msg.payload)
+            return
+        if msg.topic.startswith("thirtyfox/mp5/l/"):   # 5.02.80: lobby -> /status
+            lobby.on_message(msg.topic, msg.payload, msg.retain, idx)
             return
         try:
             r = core.handle_frame(msg.payload, idx)
@@ -152,6 +157,7 @@ class Bridge:
 
 
 bridge = Bridge()
+lobby = LobbyStat()   # 5.02.80: /status
 
 
 # ------------------------------------------------------------------ Discord
@@ -1012,6 +1018,47 @@ async def streaming_cmd(inter: discord.Interaction, mode: app_commands.Choice[st
         + ("The **Watch video** panel is posted in the voice channel's chat: one tap opens the video inside the voice channel (Watch Together). "
            if posted else "Could not post the Watch video panel (I need Send Messages + Create Invite in that channel). ")
         + "Stop it with `/streaming off`.", ephemeral=True)
+
+
+# ------------------------------------------------------------------ 5.02.80: /status
+def status_embed() -> discord.Embed:
+    st = lobby.snapshot()
+    sv = st["servers"]
+    e = discord.Embed(title="MP Multiplayer - live status", color=0x2F9BE9 if sv else 0x8B939E,
+                      timestamp=datetime.datetime.now(datetime.timezone.utc))
+    e.description = (f"**{len(sv)}** server{'s' if len(sv) != 1 else ''} online, **{st['players']}** player{'s' if st['players'] != 1 else ''} playing"
+                     + (f" ({st['busy']} with players, {st['slots']} slots)" if sv else "")
+                     + ("\n_The bot started less than a minute ago: still collecting servers._" if st["warm"] else ""))
+    if st["regions"]:
+        e.add_field(name="By region", value="\n".join(f"{r}: {c[0]} servers, {c[1]} players" for r, c in sorted(st["regions"].items(), key=lambda x: -x[1][1])), inline=True)
+    e.add_field(name="Today's peak (UTC)", value=f"{st['peak']['players']} players\n{st['peak']['servers']} servers", inline=True)
+    feedst = feed.stats
+    e.add_field(name="Bot", value=f"MQTT brokers: {bridge.connected()}/3\nLive feed: {'on' if feed.on else 'off'} ({feedst['posted']} posted)\nStarted: {_ago(STARTED)}", inline=True)
+    if sv:
+        lines = []
+        for s in sv[:15]:
+            reg = ["Asia", "EU", "NA", "OCE"][s["region"]] if 0 <= s["region"] < 4 else "World"
+            lines.append(f"`{s['players']:>3}/{s['max']:<3}` {discord.utils.escape_markdown(s['name'])} - {reg}, port {s['port']}")
+        more = len(sv) - 15
+        e.add_field(name="Servers (most players first)", value=("\n".join(lines) + (f"\n...and {more} more" if more > 0 else ""))[:1024], inline=False)
+    else:
+        e.add_field(name="Servers", value="No MP server is announcing right now. Host one in the game (Host) or try again in a minute.", inline=False)
+    e.set_footer(text="MP lobby (Mosquitto / HiveMQ / EMQX) - refreshed every announcement")
+    return e
+
+
+class StatusView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=600)
+
+    @discord.ui.button(label="Refresh", style=discord.ButtonStyle.secondary)
+    async def refresh(self, inter: discord.Interaction, button: discord.ui.Button):
+        await inter.response.edit_message(embed=status_embed(), view=self)
+
+
+@tree.command(name="status", description="MP servers online, players online and more (live)")
+async def status_cmd(inter: discord.Interaction):
+    await inter.response.send_message(embed=status_embed(), view=StatusView())
 
 
 async def _sync_guild(g):

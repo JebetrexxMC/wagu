@@ -28,6 +28,9 @@ Accounts are stored only here (SQLite, password hashed with PBKDF2-SHA256 + salt
 bot talk end-to-end encrypted (ECDH P-256 + AES-256-GCM) over public MQTT brokers; the bot signs a
 one-time login ticket (ECDSA P-256) that the MP server checks. The host never sees a password.
 
+8. Live feed (5.02.80): every MP player's own joins, leaves, missions and chat (never commands) on any server are posted in the channel with ID `1576192312126472323` (`FEED_CHANNEL_ID`, `off` = feed off) through a webhook the bot creates there (`FEED_WEBHOOK_NAME`, default `MP Live Feed`). Each message uses the player's Discord username (from their game account) as the name, with no avatar or profile. Mentions never ping. The bot needs **Manage Webhooks** in that channel; re-invite it with the invite link from the log.
+9. `/status` (5.02.80): servers online, players online, by region, today's peak, the busiest 15 servers and the bot's state, with a Refresh button (everyone can use it).
+
 ## Runs on MP Railway (24/7, our own Railway)
 
 Railway.app no longer takes new accounts, so the bot runs on **MP Railway**: a small self-hosted
