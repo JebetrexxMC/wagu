@@ -136,19 +136,20 @@ void AuthClient::RequestAvatar()
 
 // ---- 5.00.05: saved login sync (MP/auth_service.txt) ---------------------------------------------
 static bool LinkFree(const AuthClient& c) { return c.state == AuthClient::IDLE && !c.statsPending && !c.avatarPending; }
-void AuthClient::Sync(const std::string& tok)
+void AuthClient::Sync(const std::string& tok, const std::string& have)
 {
     if(syncPending || device.empty()) return;
     if(!m_S.ok) AuthCrypto::NewSession(m_S);
     if(!m_S.ok) return;
     syncAsked = tok.size() == 32 ? tok : "";
+    syncHave = have.size() < 400 ? have : have.substr(0, 400);
     syncPending = true; m_nSyncAt = 0; m_nSyncSent = 0;
 }
 void AuthClient::SyncSend(uint64_t now)
 {
     if(LinkFree(*this) && !Online::AuthLinkUp()) Online::AuthLinkStart(m_S.sid);
     m_nSyncSent = now;
-    Send({ { "op", "sync" }, { "sess", syncAsked }, { "rid", "y" }, { "dev", device } });
+    Send({ { "op", "sync" }, { "sess", syncAsked }, { "have", syncHave }, { "rid", "y" }, { "dev", device } });
 }
 void AuthClient::Logout(const std::string& tok)
 {
@@ -270,7 +271,15 @@ void AuthClient::OnAnswer(std::map<std::string, std::string>& a)
     if(op == "sync")     // 5.00.05: answer to Sync() or a push (rid=y) after Discord /forgotpass /forgotuser /create
     {
         syncPending = false;
-        if(!ok) return;
+        // 5.02.81: "not registered" (every account of this phone deleted) / dead=1: the saved login we sent is no
+        // more (account /delete'd, maybe made again with the same name + password = a NEW account): before, a not-ok
+        // answer was dropped, the old login stayed and the profile showed offline for ever
+        syncGone = a["gone"]; syncDead = a["dead"] == "1";
+        if(!ok)
+        {
+            if(a["err"] == "not registered" || syncDead) { syncUser.clear(); syncTok.clear(); syncUsers.clear(); syncDead = !syncAsked.empty(); syncReady = true; }
+            return;
+        }
         syncUser = a["user"]; syncTok = a["sess"]; syncUsers = a["users"]; syncDiscord = a["discord"];
         if(!syncTok.empty()) syncAsked = syncTok;
         syncReady = true;

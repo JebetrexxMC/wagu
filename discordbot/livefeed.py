@@ -55,6 +55,7 @@ class LiveFeed:
         self.queue = None
         self.loop = None
         self.seen = collections.OrderedDict()   # event ids (the same event arrives from up to 3 brokers)
+        self.same = collections.OrderedDict()   # 5.02.81: event content (the phone AND its server both send it)
         self.rate = {}                          # player -> recent post times
         self.hook = None
         self.task = None
@@ -108,6 +109,21 @@ class LiveFeed:
             self.seen.popitem(last=False)
         return False
 
+    def _same(self, ev):
+        """5.02.81: the server (src=s) and the player's phone (5.02.80+) send the same join / leave / chat / mission:
+        one post. Key: type + player name (+ the chat text / mission line), within 45 s."""
+        name = re.sub(r"^\[[^\]]{1,12}\]\s*", "", _clean(ev.get("name"), 32)).lower()
+        t = ev.get("t")
+        body = _clean(ev.get("msg"), 300).lower() if t in ("chat", "mission") else ""
+        key = f"{t}|{name}|{body}"
+        now = time.time()
+        while self.same and next(iter(self.same.values())) < now - 45:
+            self.same.popitem(last=False)
+        if key in self.same:
+            return True
+        self.same[key] = now
+        return False
+
     def _limited(self, who):
         now = time.time()
         q = [t for t in self.rate.get(who, []) if now - t < 60]
@@ -135,7 +151,7 @@ class LiveFeed:
     def _text(self, ev):
         t, msg, srv = ev["t"], _clean(ev.get("msg"), 300), _clean(ev.get("srv"), 40) or "an MP server"
         game = _clean(ev.get("name"), 32)
-        tag = f" ({game})" if game else ""
+        tag = f" ({game}{', PC' if ev.get('pc') else ''})" if game else ""
         if t == "chat":
             return f"**[{srv}]** {discord.utils.escape_mentions(msg)}" if msg else ""
         if t == "join":
@@ -153,6 +169,10 @@ class LiveFeed:
                 ev = json.loads(payload.decode("utf-8", "replace"))
                 if not isinstance(ev, dict) or ev.get("t") not in TYPES or self._dup(_clean(ev.get("id"), 24)):
                     continue
+                if self._same(ev):
+                    self.stats["same"] = self.stats.get("same", 0) + 1
+                    continue
+                self.stats["last"] = time.time()
                 who = self._name_of(ev)
                 text = self._text(ev)
                 if not text or self._limited(who.lower()):

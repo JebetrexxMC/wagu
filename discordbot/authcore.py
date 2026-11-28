@@ -355,7 +355,7 @@ class AuthCore:
             out = []   # its phones that are online: their files lose the saved login of it
             for sid, s in list(self.sessions.items()):
                 if s.get("dev") and self._dev_key(s["dev"]) in keys and s.get("seen", 0) > _now() - 3600:
-                    ans = self._sync_answer(s)
+                    ans = self._sync_answer(s, "", a["user"])   # 5.02.81: "gone" = it: off accounts.txt
                     ans["rid"] = "y"
                     out.append((sid, self.seal(s, ans)))
             return True, a["user"], out
@@ -414,7 +414,17 @@ class AuthCore:
         self.db.execute("INSERT OR REPLACE INTO reissue(dev,user_lc,tok,created,expires) VALUES(?,?,?,?,?)",
                         (dk, user_lc, secrets.token_hex(16), _now(), _now() + REISSUE_TTL))
 
-    def _sync_answer(self, s, sess=""):
+    def _gone(self, have):
+        """5.02.81: names from the phone's accounts.txt that have no account here any more (/delete) -> csv."""
+        out = []
+        for u in (have or "").split(",")[:MAX_ACCOUNTS * 3]:
+            u = u.strip()
+            if u and len(u) <= 32 and not self._account("user_lc", u.lower()) and \
+                    self.db.execute("SELECT 1 FROM deleted WHERE user_lc=? LIMIT 1", (u.lower(),)).fetchone():   # really /delete'd (not a lost database)
+                out.append(u)
+        return ",".join(out)
+
+    def _sync_answer(self, s, sess="", have=""):
         """op=sync: what this phone's MP/auth_service.txt + accounts.txt should say. Only registered phones get
         anything; a saved login waiting for it (reissue) becomes a real one (remember) and is sent again on every
         sync until the phone shows it back (so a missed push loses nothing)."""
@@ -436,18 +446,22 @@ class AuthCore:
                 self.db.execute("INSERT INTO remember(tok,user_lc,dev,created,expires) VALUES(?,?,?,?,?)",
                                 (self._tok_key(tok), user_lc, dk, t, t + REMEMBER_TTL))
         self.db.commit()
+        gone = self._gone(have)
+        # 5.02.81: the saved login the phone sent is not valid (its account was /delete'd - maybe made again with the
+        # same name: that is a new account, the old login can't be used) -> the phone forgets it and shows "log in"
+        dead = "1" if (sess and re.fullmatch(r"[0-9a-f]{32}", sess) and user_lc is None) else ""
         if user_lc:
             a = self._account("user_lc", user_lc)
             self.db.execute("UPDATE devices SET last_seen=? WHERE dev=? AND user_lc=?", (t, dk, user_lc))
             self.db.commit()
             users = [x["user"] for x in self._accounts_of(a["discord_id"])]
             return {"op": "sync", "ok": 1, "user": a["user"], "sess": tok, "users": ",".join(users),
-                    "discord": a["discord_name"], "gender": a["gender"], "age": a["age"]}
+                    "discord": a["discord_name"], "gender": a["gender"], "age": a["age"], "gone": gone, "dead": ""}
         rows = self.db.execute("SELECT user_lc FROM devices WHERE dev=? ORDER BY last_seen DESC", (dk,)).fetchall()
         users = [a["user"] for a in (self._account("user_lc", r[0]) for r in rows) if a]
         if users:   # known phone, logged out: just the names (no login)
-            return {"op": "sync", "ok": 1, "user": "", "sess": "", "users": ",".join(users[:MAX_ACCOUNTS])}
-        return {"op": "sync", "ok": 0, "err": "not registered"}
+            return {"op": "sync", "ok": 1, "user": "", "sess": "", "users": ",".join(users[:MAX_ACCOUNTS]), "gone": gone, "dead": dead}
+        return {"op": "sync", "ok": 0, "err": "not registered", "gone": gone, "dead": dead}
 
     def _pushes_for(self, discord_id):
         """op=sync pushes for every phone of this Discord that is online right now (game / Moquil / Textdraw Editor)."""
@@ -595,7 +609,7 @@ class AuthCore:
         if op == "sync":                                 # 5.00.05: auth_service.txt / accounts.txt of this phone
             if not self._rate(self.fails, "sync:" + sid, 30, 600):
                 return {"ok": 0, "err": "Too many requests. Wait a few minutes."}
-            return self._sync_answer(s, q.get("sess", ""))
+            return self._sync_answer(s, q.get("sess", ""), q.get("have", ""))
         if op == "logout":                               # 5.00.05: Logout on the phone = its saved login ends here too
             tok = q.get("sess", "")
             if s.get("dev"):

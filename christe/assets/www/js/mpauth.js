@@ -76,6 +76,7 @@
   // MPAuth.connect(onEvent) -> client; events: {op:'link', ok}, {op:'down'} and every bot answer (op=gen/verified/login/signup/...)
   function Client(onEvent) { this.on = onEvent || function () {}; this.rid = 0; this.dev = Client.device(); this.bi = 0; this.queue = []; this.linked = false; }
   Client.device = function () {
+    try { if (G.Christe && G.Christe.acctDev) { var gd = G.Christe.acctDev(); if (/^[0-9a-f]{32}$/.test(gd)) return gd; } } catch (e) {}   // 1.5.1: the game's phone id (auth_device.txt): a login here works in the game too
     try { var d = G.localStorage.getItem('mp_auth_dev'); if (!d) { d = b2hex(rnd(16)); G.localStorage.setItem('mp_auth_dev', d); } return d; } catch (e) { return b2hex(rnd(16)); }
   };
   Client.prototype.start = async function () {

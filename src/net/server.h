@@ -117,6 +117,8 @@ public:
     // each phone player here becomes an open.mp NPC there. All calls lock m_Mutex (any thread).
     struct BridgePeer { int slot; char name[MP_NAME_LEN]; uint16_t skin; bool hasSync; SyncData d; bool hasAnim; AnimSync anim; };   // 5.02.27: + strongest anim (SA-MP AnimationID)
     void BridgeEnable(bool on) { m_bBridge = on; }
+    // 5.02.81: Discord live feed from the server itself (joins, leaves, missions, chat of EVERY player, any MP version)
+    void FeedEnable(bool on) { m_bFeed = on; }
     int  BridgeAdd(const char* name, uint32_t color, uint16_t skin, const char* tag = " (PC)");   // -1 = full (5.02.79: tag after the name)
     void BridgeSync(int slot, const SyncData& d, const SyncExt* ext = nullptr);   // 5.02.27: + anims (PC player's ApplyAnimation)
     void BridgeChat(int slot, const char* text);
@@ -283,6 +285,7 @@ private:
         uint64_t     reportMuteUntil;// 3.54: /reportmute
         uint64_t     lastReport;     // 3.54: /report flood guard
         uint64_t     lastPay;        // 4.12.3: /pay flood guard
+        bool         fedJoin;        // 5.02.81: "joined" sent to the Discord live feed (so "left" goes too)
     };
     // ---- 3.39: Home Kit (server_home.inc) ----
     struct HkHome { PktHomeHead h; std::vector<HkObj> obj; };
@@ -362,6 +365,8 @@ private:
     std::string m_sWelcome;
     std::string m_sJoinFmt, m_sLeaveFmt;   // 5.02.41
     std::atomic<uint8_t> m_nGame{0};   // 4.13.35
+    std::atomic<bool> m_bFeed{false};                         // 5.02.81
+    void FeedEv(int slot, const char* type, const char* msg);
     std::atomic<bool> m_bBridge{false};                       // 4.12
     class SampGate* m_pGate = nullptr;                        // 5.02 (set / cleared under m_Mutex)
     PhoneHook* m_pPhoneHook = nullptr;                        // 5.02.79 (set / cleared under m_Mutex)

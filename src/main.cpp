@@ -657,6 +657,9 @@ static inline bool ScreenBlocksGame()
     if(VKeyboard::IsOpen() || FloatMenu::IsModal()) { s_nScreenBlockMs = MP_NowMs(); return true; }
     return s_nScreenBlockMs && MP_NowMs() - s_nScreenBlockMs < 350;   // the release of the last tap too
 }
+// 5.02.81: joystick edge = sprint, a fast joystick flick no longer sprints (Settings > Joystick edge = sprint)
+DECL_HOOK(bool, Pad_GetSprint, void* self)                  { bool o = Pad_GetSprint(self); return Game::StickSprintFilter(o, false, MP::settings.stickSprint && !ScreenBlocksGame()); }
+DECL_HOOK(bool, Pad_SprintJustDown, void* self)             { bool o = Pad_SprintJustDown(self); return Game::StickSprintFilter(o, true, MP::settings.stickSprint && !ScreenBlocksGame()); }
 DECL_HOOK(bool, Pad_CycleWeapL, void* self)                 { return ScreenBlocksGame() ? false : Pad_CycleWeapL(self); }
 DECL_HOOK(bool, Pad_CycleWeapR, void* self)                 { return ScreenBlocksGame() ? false : Pad_CycleWeapR(self); }
 DECL_HOOK(bool, Hid_JustPressed, int m)                     { return ScreenBlocksGame() ? false : Hid_JustPressed(m); }
@@ -1085,6 +1088,14 @@ static void HookTouchInterface()
     HOOK_IF(Widget_IsSwipedUp,     "_ZN7CWidget10IsSwipedUpEv");
     HOOK_IF(Widget_IsSwipedDown,   "_ZN7CWidget12IsSwipedDownEv");
     HOOK_IF(Pad_CycleWeapL,    "_ZN4CPad23CycleWeaponLeftJustDownEv");
+    {   // 5.02.81: joystick edge sprint (const builds export the K variants)
+        int before = hooked;
+        HOOK_IF(Pad_GetSprint, "_ZN4CPad9GetSprintEv");
+        if(hooked == before) HOOK_IF(Pad_GetSprint, "_ZNK4CPad9GetSprintEv");
+        HOOK_IF(Pad_SprintJustDown, "_ZN4CPad14SprintJustDownEv");
+        if(hooked == before + 1) HOOK_IF(Pad_SprintJustDown, "_ZNK4CPad14SprintJustDownEv");
+        logger->Info("5.02.81: joystick edge sprint: %d of 2 sprint checks hooked", hooked - before);
+    }
     HOOK_IF(Pad_CycleWeapR,    "_ZN4CPad24CycleWeaponRightJustDownEv");
     HOOK_IF(Hid_JustPressed,   "_ZN4CHID13IsJustPressedE10HIDMapping");
     HOOK_IF(Hid_Released,      "_ZN4CHID10IsReleasedE10HIDMapping");

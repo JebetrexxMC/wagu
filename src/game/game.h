@@ -311,6 +311,8 @@ namespace Game
     // ---- 2.19 ---------------------------------------------------------------------------------
     void  InitGame219(void* gameHandle);
     bool  GetStick(int& x, int& y);                    // on-foot joystick, -128..128
+    bool  StickSprintFilter(bool orig, bool justDown, bool enabled);   // 5.02.81: CPad::GetSprint / SprintJustDown (edge sprint, no flick sprint)
+    bool  StickSprintActive();                         // 5.02.81: the joystick edge sprint is on right now
     bool  LineOfSightClear(const Vec3& a, const Vec3& b);
     void  SetFixedCamera(const Vec3& pos, const Vec3& look);
     void  RestoreCamera();

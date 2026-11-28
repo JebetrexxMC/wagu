@@ -297,7 +297,74 @@ public class MainActivity extends Activity {
         } catch (Exception e) {}
     }
 
+    // ---- 1.5.1: the MP account files (account.txt + auth_service.txt + accounts.txt + auth_device.txt), the same ones
+    // libMP keeps in files/TYFMC/MP. A login here is written there (and in the GTA SA / VC MP folders this app can
+    // reach): libMP reads them again within 3 s and shows the account online. dev = the game's phone id, so the
+    // saved login made here is valid in the game too (the bot ties a saved login to its phone id).
+    java.util.List<File> acctDirs() {
+        java.util.List<File> o = new java.util.ArrayList<File>();
+        File own = new File(gameData(), "files/TYFMC/MP"); own.mkdirs(); o.add(own);
+        String[] roots = { "/storage/emulated/0/Android/data", "/storage/emulated/0/Android_unprotected/data" };
+        String[] pkgs = { "com.rockstargames.gtasa", "com.rockstargames.gtavc" };
+        for (String r : roots) for (String k : pkgs) {
+            File mp = new File(r + "/" + k + "/files/TYFMC/MP");
+            if (mp.isDirectory() && mp.canWrite()) o.add(mp);
+        }
+        return o;
+    }
+    static String acctVal(File f, String key) {
+        try {
+            java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(f)); String l;
+            while ((l = r.readLine()) != null) if (l.startsWith(key + "=")) { r.close(); return l.substring(key.length() + 1).trim(); }
+            r.close();
+        } catch (Exception e) {}
+        return "";
+    }
+    static void acctPut(File d, String name, String body) { try { FileWriter w = new FileWriter(new File(d, name)); w.write(body); w.close(); } catch (Exception e) {} }
+    static boolean hex32(String t) { return t != null && t.matches("[0-9a-f]{32}"); }
+    String acctDevId() {
+        File own = acctDirs().get(0);
+        String id = acctVal(new File(own, "auth_device.txt"), "dev");
+        if (!hex32(id)) id = acctVal(new File(own, "auth_service.txt"), "dev");
+        for (File d : acctDirs()) { if (hex32(id)) break; id = acctVal(new File(d, "auth_device.txt"), "dev"); }
+        if (!hex32(id)) { byte[] b = new byte[16]; new java.security.SecureRandom().nextBytes(b); StringBuilder sb = new StringBuilder(); for (byte x : b) sb.append(String.format("%02x", x)); id = sb.toString(); }
+        String body = "# MP login: random id of this phone (keeps a Discord /gen across a game restart)\ndev=" + id + "\n";
+        for (File d : acctDirs()) if (!id.equals(acctVal(new File(d, "auth_device.txt"), "dev"))) acctPut(d, "auth_device.txt", body);
+        return id;
+    }
+    JSONObject acctReadJson() {
+        JSONObject o = new JSONObject();
+        try {
+            File own = acctDirs().get(0), sv = new File(own, "auth_service.txt"), ac = new File(own, "account.txt");
+            String user = acctVal(ac, "user"); if (user.isEmpty()) user = acctVal(sv, "user");
+            String login = acctVal(sv, "login"); if (!hex32(login)) login = acctVal(ac, "login");
+            o.put("dir", own.getAbsolutePath()); o.put("user", user); o.put("login", hex32(login) ? login : "");
+            o.put("discord", acctVal(sv, "discord")); o.put("users", acctVal(sv, "users")); o.put("dev", acctDevId());
+            o.put("at", Math.max(sv.lastModified(), ac.lastModified())); o.put("dirs", acctDirs().size());
+        } catch (Exception e) {}
+        return o;
+    }
+    void acctWriteAll(String user, String login, String discord) {
+        user = user == null ? "" : user.replaceAll("[\\r\\n=]", "").trim(); if (!hex32(login)) login = "";
+        discord = discord == null ? "" : discord.replaceAll("[\\r\\n]", "");
+        File own = acctDirs().get(0);
+        java.util.List<String> us = new java.util.ArrayList<String>();
+        if (!user.isEmpty()) us.add(user);
+        for (String x : acctVal(new File(own, "auth_service.txt"), "users").split(",")) { x = x.trim(); boolean dup = x.isEmpty(); for (String y : us) if (y.equalsIgnoreCase(x)) dup = true; if (!dup && us.size() < 3) us.add(x); }
+        StringBuilder csv = new StringBuilder(); for (String x : us) { if (csv.length() > 0) csv.append(','); csv.append(x); }
+        String dev = acctDevId();
+        String svc = "# MP login service (5.00.05): keeps this phone logged in (game, Moquil, MP Textdraw Editor).\n# No password in here. Don't share this file. Deleted? Open the game: it is made again.\n" +
+            "dev=" + dev + "\nuser=" + user + "\nlogin=" + login + "\ndiscord=" + discord + "\nusers=" + csv + "\nupdated=" + (System.currentTimeMillis() / 1000) + "\n";
+        String acc = "# MP login: the account on this phone (no password is kept). Keep this file when you update the mod:\n# the game logs you in by itself. Delete it (or log out) to use another account.\nuser=" + user + "\n" + (login.isEmpty() ? "" : "login=" + login + "\n");
+        StringBuilder al = new StringBuilder(); for (String x : us) al.append(x).append('\n');
+        for (File d : acctDirs()) { acctPut(d, "auth_service.txt", svc); acctPut(d, "account.txt", acc); if (al.length() > 0) acctPut(d, "accounts.txt", al.toString()); }
+        log("1.5.1: account files written (" + (user.isEmpty() ? "logged out" : user) + ", " + acctDirs().size() + " MP folders)");
+    }
+
     class Bridge {
+        @JavascriptInterface public String acctRead() { return acctReadJson().toString(); }   // 1.5.1
+        @JavascriptInterface public String acctDev() { return acctDevId(); }
+        @JavascriptInterface public void acctWrite(String user, String login, String discord) { acctWriteAll(user, login, discord); }
         @JavascriptInterface public String info() {
             try {
                 JSONObject o = new JSONObject();

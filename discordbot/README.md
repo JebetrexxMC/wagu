@@ -29,6 +29,7 @@ bot talk end-to-end encrypted (ECDH P-256 + AES-256-GCM) over public MQTT broker
 one-time login ticket (ECDSA P-256) that the MP server checks. The host never sees a password.
 
 8. Live feed (5.02.80): every MP player's own joins, leaves, missions and chat (never commands) on any server are posted in the channel with ID `1576192312126472323` (`FEED_CHANNEL_ID`, `off` = feed off) through a webhook the bot creates there (`FEED_WEBHOOK_NAME`, default `MP Live Feed`). Each message uses the player's Discord username (from their game account) as the name, with no avatar or profile. Mentions never ping. The bot needs **Manage Webhooks** in that channel; re-invite it with the invite link from the log.
+   5.02.81: the MP servers send these events too (`mp_server --no-feed` = not this server), so the channel fills even when players use older phones; the bot posts the same event only once. **Actions > MP live feed check** checks the bot's permissions in the channel and posts a test message through the running bot.
 9. `/status` (5.02.80): servers online, players online, by region, today's peak, the busiest 15 servers and the bot's state, with a Refresh button (everyone can use it).
 
 ## Runs on MP Railway (24/7, our own Railway)

@@ -2409,6 +2409,7 @@ static int LSectionIcon(const char* t)
     if(!strcasecmp(t, "Chat"))       return IC_CHAT;
     if(!strcasecmp(t, "Player"))     return IC_USER;
     if(!strcasecmp(t, "Cheats"))     return IC_BAN;
+    if(!strcasecmp(t, "Account"))    return IC_USER;    // 5.02.81
     if(!strcasecmp(t, "Language"))   return IC_GLOBE;   // 3.52
     if(!strcasecmp(t, "Sound"))      return IC_PLAY;   // 3.00
     return IC_LIST;

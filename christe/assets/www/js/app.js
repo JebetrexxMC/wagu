@@ -7,7 +7,7 @@
 (function (G, D) {
   'use strict';
   var $ = function (s, r) { return (r || D).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || D).querySelectorAll(s)); };
-  var VERSION = '1.5', MPVER = '5.02.80';
+  var VERSION = '1.5.1', MPVER = '5.02.81';
   var URLS = {
     lobby: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/live-status/status.json',
     f247: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/mp247-data/omp247.json',
@@ -53,6 +53,8 @@
     coopLan: function (id) { setTimeout(function () { G.CX_coopLan(id, JSON.stringify([{ host: '192.168.1.7', port: 6767, name: "Juan's co-op", players: 1, max: 64, ver: '1.1' }])); }, 700); }, coopReady: function () { return ''; },
     mpFiles: function (id) { G.CX_prog(id, 'done', 1, 1, 'MP files ready'); },
     engine: function () { return JSON.stringify({ mode: 'christe', problem: '', proc64: true, mpFiles: true }); }, crashSeen: function () {},
+    acctRead: function () { return JSON.stringify(G.__acct || { dir: '/storage/emulated/0/Android/data/com.christe.mp/files/TYFMC/MP', user: '', login: '', discord: '', users: '', dev: '', at: 0, dirs: 1 }); },
+    acctDev: function () { return ''; }, acctWrite: function (u, l, d) { G.__acct = { dir: '/storage/emulated/0/Android/data/com.christe.mp/files/TYFMC/MP', user: u, login: l, discord: d, users: u, dev: '', at: Date.now(), dirs: 1 }; },
     lan: function (id) { setTimeout(function () { G.CX_lan(id, JSON.stringify([{ host: '192.168.1.5', port: 1922, ping: 4, players: 2, max: 50, region: 1, name: 'MP LAN Server', locked: false, icon: 0, lang: 'Filipino / English', cc: 'ph', mode: 'Freeroam' }])); }, 900); }
   };
   G.CX_got = function (id, code, body) { var f = CB[id]; delete CB[id]; if (f) f(code, body); };
@@ -278,8 +280,25 @@
         '<div class="card"><h3>From the MP mod</h3><div class="kv"><span>Mod</span><span>MP (Multiplayer for GTA SA Android) by ThirtyFoxMC</span><span>Discord</span><span><a data-open-url="' + esc(DISCORD) + '">MP Discord server</a></span><span>Latest MP release</span><span>' + esc(S.relTag || '-') + '</span></div></div>' +
         '<div class="card"><h3>Open source used</h3><div class="kv"><span>Layout</span><span>SA-MP 0.3.7 server browser</span><span>Skin</span><span>MP launcher (libMP): ui_bg.jpg, title.png, icons, flags (lipis/flag-icons, MIT)</span><span>Skeleton loaders</span><span>idea from SkeletonView (Juanpe)</span><span>Server list</span><span>open.mp API, MP lobby (HiveMQ)</span><span>Co-op</span><span>CoopFusion32 by our collaborator (MP crossplays with its servers; the mod itself is unchanged)</span><span>Communities</span><span>MP Social (the same as the game and Moquil)</span></div></div>';
     },
-    settings: function () { return '<div class="ph"><h1>Settings</h1></div>' + (SET[S.setTab] || SET.account)(); }
+    settings: function () { return '<div class="ph"><h1>Settings</h1></div>' + (SET[S.setTab] || SET.account)(); },
+    account: function () { acctSync(false); return '<div class="ph"><h1>Account</h1><span class="sub">One MP account for the game, Moquil and AML Multiplayer</span></div>' + SET.account(); }   // 1.5.1
   };
+  // ---- 1.5.1: the game's account files (account.txt + auth_service.txt in files/TYFMC/MP) <-> this app ----
+  function acctFiles() { try { return JSON.parse(X.acctRead ? X.acctRead() : '{}') || {}; } catch (e) { return {}; } }
+  function acctWrite(user, login, disc) { try { if (X.acctWrite) X.acctWrite(user || '', login || '', disc || ''); } catch (e) {} }
+  // the files win when they are newer (a login / logout in the game, a copied file); the first login here fills them
+  function acctSync(redraw) {
+    var f = acctFiles(), ch = false; if (!f.dir) return f;
+    var fl = /^[0-9a-f]{32}$/.test(f.login || '') ? f.login : '', fu = f.user || '';
+    if (fl && fu && (!S.user || S.user.user.toLowerCase() !== fu.toLowerCase() || S.user.sess !== fl)) {
+      S.user = { user: fu, at: Date.now(), sess: fl, dname: f.discord || '' }; ls('session', S.user); ls('lastUser', fu); S.nick = fu; ls('nick', fu); ch = true;
+      setTimeout(fetchAvatar, 300);
+    } else if (!fl && S.user && S.user.sess && (f.at || 0) > (S.user.at || 0) + 2000) {
+      S.user = null; ls('session', null); ch = true;   // logged out in the game
+    } else if (!fu && S.user && S.user.sess) acctWrite(S.user.user, S.user.sess, S.user.dname);
+    if (ch && redraw) { renderAvatar(); render(); }
+    return f;
+  }
 
   // ---------- 1.3 Communities = MP Social servers (js/soc.js + js/srv.js from Moquil: wagu/soc1/ over MQTT) ----------
   var socT = 0;
@@ -450,7 +469,12 @@
   function sw(id, on) { return '<button class="sw' + (on ? ' on' : '') + '" data-sw="' + id + '"></button>'; }
   var SET = {
     account: function () {
-      return '<div class="card"><h3>MP account</h3>' + (S.user ? opt((S.user.avatar ? '<img class="avBig" src="' + S.user.avatar + '" alt="">' : '') + 'Signed in as ' + esc(S.user.user), S.user.dname ? 'Discord: ' + esc(S.user.dname) + ' &middot; the same account as in the game, Moquil and the MP apps' : S.user.sess ? 'Getting your Discord picture...' : 'Sign out and in again to show your Discord picture', '<button class="btn sm red" data-act="logout">Sign out</button>')
+      var F = acctFiles(), fOn = /^[0-9a-f]{32}$/.test(F.login || '');
+      var files = '<div class="card"><h3>Game account files</h3>' +
+        opt('account.txt + auth_service.txt', F.user ? (fOn ? '<span class="st-ok">' + esc(F.user) + ' - saved login: the game shows it online</span>' : '<span class="st-mid">' + esc(F.user) + ' - logged out</span>') : 'No account in the game files yet', '<button class="btn sm" data-act="acct-reload">Reload</button>') +
+        opt('Folder', esc(F.dir || '') + (F.dirs > 1 ? ' (+ ' + (F.dirs - 1) + ' GTA SA / VC MP folder' + (F.dirs > 2 ? 's' : '') + ')' : ''), '') +
+        opt('New account / another account', 'A login or a new account here replaces the old one in these files; the game reads them again by itself within 3 s', '<button class="btn sm go" data-act="auth-reg">Create account</button><button class="btn sm" data-act="auth">' + (S.user ? 'Switch account' : 'Log in') + '</button>') + '</div>';
+      return files + '<div class="card"><h3>MP account</h3>' + (S.user ? opt((S.user.avatar ? '<img class="avBig" src="' + S.user.avatar + '" alt="">' : '') + 'Signed in as ' + esc(S.user.user), S.user.dname ? 'Discord: ' + esc(S.user.dname) + ' &middot; the same account as in the game, Moquil and the MP apps' : S.user.sess ? 'Getting your Discord picture...' : 'Sign out and in again to show your Discord picture', '<button class="btn sm red" data-act="logout">Sign out</button>')
         : opt('Guest', 'Sign in or create an MP account to keep your name, stats and friends', '<button class="btn sm go" data-act="auth">Sign in</button>')) +
         opt('Name in game', 'The Name: box. Sent to MP when the game starts', '<input class="inp" id="nickInp" style="width:170px" maxlength="23" value="' + esc(nick()) + '"' + (S.user ? ' disabled' : '') + '>') + '</div>';
     },
@@ -527,6 +551,8 @@
     if (a === 'retry') { S.err = ''; loadServers(); render(); }
     else if (a === 'offline-play') play('sa', null);
     else if (a === 'auth') showAuth('login');
+    else if (a === 'auth-reg') showAuth('register');   // 1.5.1
+    else if (a === 'acct-reload') { acctSync(true); render(); toast('Account files read again'); }
     else if (a === 'lan-scan') scanLan();
     else if (a === 'obb-copy' || a === 'obb-import' || a === 'mp-files' || a === 'game-add' || a === 'obb-dl' || a === 'game-dl' || a === 'vc-dl') job(a);
     else if (a === 'go-storage') go('settings', 'storage');
@@ -539,7 +565,7 @@
     else if (a === 'soc-moquil') { if (!X.openApp('com.thirtyfox.moquil')) X.open('https://mpsamp-open.github.io/moquils-web'); }
     else if (a === 'coop-add') coopAdd();
     else if (a === 'obb-access') { call('obbAccess'); toast('Allow "Install unknown apps" / storage, then come back'); }
-    else if (a === 'logout') confirmDlg('Sign out', 'Sign out of your MP account on this phone?', 'Sign out', function () { S.user = null; ls('session', null); renderAvatar(); render(); });
+    else if (a === 'logout') confirmDlg('Sign out', 'Sign out of your MP account on this phone? The game logs out too (account.txt / auth_service.txt).', 'Sign out', function () { var was = S.user; S.user = null; ls('session', null); acctWrite(was ? was.user : '', '', ''); if (was && was.sess) { try { var oc = new MPAuth.Client(function () {}); oc.start(); oc.send({ op: 'logout', sess: was.sess, rid: 'o' }); setTimeout(function () { oc.stop(); }, 8000); } catch (e) {} } renderAvatar(); render(); });
     else if (a === 'open-vc') { if (!X.openApp('com.rockstargames.gtavc')) toast('Vice City is not installed'); }
     else if (a === 'setup') { var r = {}; try { r = JSON.parse(X.setup()); } catch (e) {} readInfo(); toast(r.ok ? 'date2 is ready' : 'date2: ' + (r.err || 'failed')); render(); }
     else if (a === 'quick-sa' || a === 'quick-vc') {
@@ -733,6 +759,7 @@
   }
   function loggedIn(user, sess) {
     S.user = { user: user, at: Date.now(), sess: sess || '' }; ls('session', S.user); ls('lastUser', user); S.nick = user; ls('nick', user);
+    acctWrite(user, sess || '', '');   // 1.5.1: the game uses this login too (it replaces the old account in its files)
     closeAuth(); renderAvatar(); render(); toast('Signed in as ' + user);
     setTimeout(fetchAvatar, 300);
   }
@@ -750,8 +777,9 @@
       if (a.ok === '1' && (a.n | 0) > 0) {
         var b = ''; for (var i = 0; i < (a.n | 0); i++) b += a['p' + i] || '';
         S.user.avatar = 'data:image/png;base64,' + b; S.user.dname = a.dname || ''; S.user.avAt = Date.now();
+        if (S.user.sess && S.user.dname) acctWrite(S.user.user, S.user.sess, S.user.dname);
       } else { S.user.avAt = Date.now(); if (a.relogin === '1') S.user.sess = ''; }
-      ls('session', S.user); renderAvatar(); if (S.page === 'settings') render();
+      ls('session', S.user); renderAvatar(); if (S.page === 'settings' || S.page === 'account') render();
     });
     AVC.start(); AVC.send({ op: 'avatar', sess: S.user.sess, rid: 'a' });
     stopT = setTimeout(function () { if (AVC) { AVC.stop(); AVC = null; } }, 45000);
@@ -855,7 +883,7 @@
     var c = ENG.crash; ENG.crash = ''; call('crashSeen');
     dialog('GTA SA stopped', '<p>GTA SA inside AML Multiplayer closed with an error. Send this to the MP Discord so it can be fixed.</p><pre style="max-height:120px;overflow:auto;font-size:10px;white-space:pre-wrap;background:#0b0d11;padding:6px">' + esc(c) + '</pre>', [['OK', 'go']]);
   }
-  G.CX_resume = function () { readInfo(); if (!LISTS[S.page]) render(); crashCheck(); };
+  G.CX_resume = function () { readInfo(); acctSync(false); if (!LISTS[S.page]) render(); crashCheck(); };
   G.CX_back = function () {
     if (!$('#auth').classList.contains('hide')) { closeAuth(); return true; }
     if (!$('#dlg').classList.contains('hide')) { $('#dlg').classList.add('hide'); return true; }
@@ -867,6 +895,7 @@
   // ---------- boot = the MP loading screen (or date2/resources/startup.mp4) ----------
   function boot() {
     readInfo(); try { X.setup(); } catch (e) {}
+    acctSync(false); setInterval(function () { acctSync(S.page === 'account' || S.page === 'settings'); }, 4000);   // 1.5.1: the account file reader
     $('#verLbl').textContent = INFO.version || VERSION;
     var hp = /[#&]p=([\w-]+)/.exec(location.hash); if (hp) { var pg = hp[1]; if (/^set-/.test(pg)) { S.page = 'settings'; S.setTab = pg.slice(4); } else if (PAGES[pg]) { S.page = pg; if (pg === 'community') S.comm = COMMS[0]; } }
     if (/auth/.test(location.hash)) setTimeout(function () { showAuth('login'); }, 10);

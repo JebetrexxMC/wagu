@@ -49,11 +49,13 @@ public:
     void RestoreSession(const std::string& s) { if(m_Sess.empty()) m_Sess = s; }   // 3.22: auto login after a restart / mod update
 
     // 5.00.05: saved login / account files of this phone, from the bot (op=sync). tok = the saved login we have.
-    void Sync(const std::string& tok);
+    void Sync(const std::string& tok, const std::string& have = std::string());   // 5.02.81: have = accounts.txt (csv): the bot says which are gone
     void Logout(const std::string& tok);            // the saved login ends at the bot too (profile > Logout)
     void UseSession(const std::string& tok);        // a saved login from Sync: use it now (login screen -> ticket)
     bool        syncPending = false, syncReady = false;
     std::string syncUser, syncTok, syncUsers, syncDiscord, syncAsked;
+    std::string syncHave, syncGone;                 // 5.02.81: accounts.txt names sent / the ones deleted at the bot (/delete)
+    bool        syncDead = false;                   // 5.02.81: the saved login we sent ended at the bot (account deleted / made again)
     std::string app = "game";                       // 5.00.05: game-sa / game-vc (the bot lists the phones by it)
 
     State       state = IDLE;

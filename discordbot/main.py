@@ -58,7 +58,7 @@ from ghstore import GhStore
 from livefeed import LiveFeed, TOPIC as FEED_TOPIC
 from lobbystat import LobbyStat, LOBBY_TOPIC
 
-VERSION = "5.02.80"
+VERSION = "5.02.81"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("mpbot")
 
@@ -1033,7 +1033,7 @@ def status_embed() -> discord.Embed:
         e.add_field(name="By region", value="\n".join(f"{r}: {c[0]} servers, {c[1]} players" for r, c in sorted(st["regions"].items(), key=lambda x: -x[1][1])), inline=True)
     e.add_field(name="Today's peak (UTC)", value=f"{st['peak']['players']} players\n{st['peak']['servers']} servers", inline=True)
     feedst = feed.stats
-    e.add_field(name="Bot", value=f"MQTT brokers: {bridge.connected()}/3\nLive feed: {'on' if feed.on else 'off'} ({feedst['posted']} posted)\nStarted: {_ago(STARTED)}", inline=True)
+    e.add_field(name="Bot", value=f"MQTT brokers: {bridge.connected()}/3\nLive feed: {'on' if feed.on else 'off'} ({feedst['posted']} posted{', last ' + _ago(feedst['last']) if feedst.get('last') else ''})\nStarted: {_ago(STARTED)}", inline=True)
     if sv:
         lines = []
         for s in sv[:15]:

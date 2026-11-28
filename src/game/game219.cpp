@@ -5,6 +5,7 @@
 #include <mod/amlmod.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include <sys/uio.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -97,6 +98,51 @@ bool Game::GetStick(int& x, int& y)
     if(!pad) return false;
     x = GetWalkLR_fn(pad); y = GetWalkUD_fn(pad);   // -128..128
     return true;
+}
+
+// ---- 5.02.81: joystick sprint --------------------------------------------------------------------------------
+// Mobile GTA SA sprints from the sprint button AND from its sprint swipe region: a fast flick of the joystick
+// (up or down) gave a short sprint burst, and the legs went walk -> sprint -> run -> walk (wacky). Now:
+//   - joystick at its edge (>= 93 % of the ring, any direction: up, side, down) held 0.18 s = sprint, kept until it
+//     comes back inside 84 % (no on / off flicker right on the edge)
+//   - inside the edge = the game's normal walk / run (the stick decides how fast, like before)
+//   - a fast flick (the stick jumps > 55 % in 0.12 s) can't start a sprint for 0.35 s (the sprint button still can
+//     after that, and it keeps working the whole time once you hold it)
+static bool     s_bEdgeRun = false, s_bEdgePrev = false;
+static uint64_t s_nEdgeSince = 0, s_nFlickUntil = 0, s_nSprintSeen = 0, s_nStickAt = 0;
+static float    s_fMagHist[8] = { 0 }; static uint64_t s_nMagHistAt[8] = { 0 }; static int s_nMagHist = 0;
+static uint64_t SsNow() { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return (uint64_t)t.tv_sec * 1000ull + (uint64_t)(t.tv_nsec / 1000000); }
+static void StickSprintUpdate(uint64_t now)
+{
+    if(now == s_nStickAt) return;   // GetSprint is asked several times a frame
+    s_nStickAt = now;
+    int x = 0, y = 0;
+    if(!Game::GetStick(x, y)) { s_bEdgeRun = false; s_nEdgeSince = 0; return; }
+    float mag = sqrtf((float)(x * x + y * y)) / 128.0f; if(mag > 1.0f) mag = 1.0f;
+    // flick: compare with the stick ~0.12 s ago
+    float ago = mag;
+    for(int i = 0; i < 8; ++i) if(s_nMagHistAt[i] && now - s_nMagHistAt[i] <= 120 && s_fMagHist[i] < ago) ago = s_fMagHist[i];
+    s_fMagHist[s_nMagHist] = mag; s_nMagHistAt[s_nMagHist] = now; s_nMagHist = (s_nMagHist + 1) & 7;
+    if(mag - ago > 0.55f && !s_bEdgeRun) s_nFlickUntil = now + 350;
+    if(mag >= 0.93f) { if(!s_nEdgeSince) s_nEdgeSince = now; }
+    else if(mag < 0.84f) s_nEdgeSince = 0;
+    s_bEdgeRun = s_nEdgeSince && now - s_nEdgeSince >= 180;
+}
+bool Game::StickSprintActive() { return s_bEdgeRun && SsNow() - s_nStickAt < 500; }
+bool Game::StickSprintFilter(bool orig, bool justDown, bool enabled)
+{
+    if(!enabled) return orig;
+    const uint64_t now = SsNow();
+    StickSprintUpdate(now);
+    if(!justDown)
+    {
+        if(orig && now >= s_nFlickUntil) s_nSprintSeen = now;               // the sprint button is held (not a flick)
+        const bool button = orig && (now >= s_nFlickUntil || (s_nSprintSeen && now - s_nSprintSeen < 120));
+        return s_bEdgeRun || button;
+    }
+    // SprintJustDown: once when the edge sprint starts; the game's own one only outside a flick
+    const bool rise = s_bEdgeRun && !s_bEdgePrev; s_bEdgePrev = s_bEdgeRun;
+    return rise || (orig && now >= s_nFlickUntil);
 }
 
 bool Game::LineOfSightClear(const Vec3& a, const Vec3& b)

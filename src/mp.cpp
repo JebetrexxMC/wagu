@@ -3331,6 +3331,7 @@ static void SendLocalSync(int ped, uint64_t now)
             }
         }
         e.moveState = (uint8_t)Game::GetPedMoveState(ped);
+        if(e.moveState == 6 && Game::StickSprintActive()) e.moveState = 7;   // 5.02.81: edge sprint: other phones show the sprint, not a run
         e.pedState  = (uint8_t)Game::GetPedState(ped);
         if(inCar)
         {
@@ -5403,6 +5404,7 @@ static bool StartLocalServer(const char* name, int port)
         s_Server.SetSampDir(sr.c_str());
         if(!sr.empty()) SysMsg(COL_SYSTEM, "Loading the SA-MP gamemode of %s ...", name);
     }
+    s_Server.FeedEnable(!DcFeedOff(MP_NowMs()));   // 5.02.81: Discord live feed from your server too (every player)
     if(!s_Server.Start((uint16_t)port, name, ServerLog, maxp, settings.region))
     {
         SysMsg(COL_RED, "Could not start the server on port %d", port);
@@ -6168,7 +6170,7 @@ void MP::SaveConfig()
     F("NametagSize", settings.nametagSize); F("NametagDistance", settings.nametagDistance);
     B("ShowOwnNametag", settings.showOwnTag); B("ShowHealthBars", settings.showHealthBars); B("ShowRadarIcons", settings.showRadarIcons);
     B("ShowChat", settings.showChat); B("ShowKillFeed", settings.showKillFeed); B("ShowStatus", settings.showStatus);
-    B("SyncAnims", settings.syncAnims); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); I("HostGamemodes2", settings.hostModes2); B("HostBrowserFmt", settings.hostBrowserFmt); S("HostJoinFmt", settings.hostJoinFmt); S("HostLeaveFmt", settings.hostLeaveFmt); B("BountyWelcomeOn", settings.bountyWelcomeOn); B("BountySound", settings.bountySound); B("SoloOnJoin", settings.soloOnJoin); S("BountyWelcome", settings.bountyWelcome); B("HostWelcomeOn", settings.hostWelcomeOn); S("HostWelcome", settings.hostWelcome); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); B("HostPcGate", settings.hostPcGate); { char m[12]; snprintf(m, sizeof(m), "%d", settings.hostPcPort); S("HostPcPort", m); } S("PcServer", settings.pcServer); S("PcName", settings.pcName); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
+    B("SyncAnims", settings.syncAnims); B("StickSprint", settings.stickSprint); B("BrokerStandby", settings.brokerStandby); B("SyncEnv", settings.syncEnv); B("SyncNPCs", settings.syncNpcs); B("AllowMissionPair", settings.allowMissionPair); B("AllowCheatMenu", settings.allowCheatMenu); B("HgDefaultOn", settings.hgDefaultOn); B("HostAuth", settings.hostAuth); B("HostCineCam", settings.hostCineCam); B("HostDevStage", settings.hostDevStage); I("HostGamemodes2", settings.hostModes2); B("HostBrowserFmt", settings.hostBrowserFmt); S("HostJoinFmt", settings.hostJoinFmt); S("HostLeaveFmt", settings.hostLeaveFmt); B("BountyWelcomeOn", settings.bountyWelcomeOn); B("BountySound", settings.bountySound); B("SoloOnJoin", settings.soloOnJoin); S("BountyWelcome", settings.bountyWelcome); B("HostWelcomeOn", settings.hostWelcomeOn); S("HostWelcome", settings.hostWelcome); B("PhoneKeyboard", settings.phoneKeyboard); B("HostAntiCheat", settings.hostAc); B("HostPcGate", settings.hostPcGate); { char m[12]; snprintf(m, sizeof(m), "%d", settings.hostPcPort); S("HostPcPort", m); } S("PcServer", settings.pcServer); S("PcName", settings.pcName); { char m[24]; snprintf(m, sizeof(m), "%llX", settings.hostAcMask); S("HostAntiCheatMask", m); } B("HitSound", settings.hitSound); B("DisableCheats", settings.disableCheats);
     F("ChatX", settings.chatX); F("ChatY", settings.chatY); I("Skin", settings.skin);
     I("ChatLines", settings.chatLines); F("ChatSize", settings.chatSize); F("ChatScale", settings.chatScale); F("ChatWidth", settings.chatWidth);   // 2.19.6
     I("ChatFade", settings.chatFade); B("ChatFadeOn", settings.chatFadeOn); B("ChatBackground", settings.chatBg);
@@ -6219,6 +6221,7 @@ static void LoadConfig()
     settings.showChat        = ::cfg->GetBool("ShowChat", true, "MP");
     settings.showKillFeed    = ::cfg->GetBool("ShowKillFeed", true, "MP");
     settings.syncAnims       = ::cfg->GetBool("SyncAnims", true, "MP");
+    settings.stickSprint     = ::cfg->GetBool("StickSprint", true, "MP");   // 5.02.81
     settings.brokerStandby   = ::cfg->GetBool("BrokerStandby", true, "MP");
     settings.syncEnv         = ::cfg->GetBool("SyncEnv", true, "MP");
     settings.syncNpcs        = ::cfg->GetBool("SyncNPCs", true, "MP");
@@ -8460,6 +8463,8 @@ static void SectionDisplay(void*)
         ImGui::Separator();
     }
     changed |= FloatMenu::ToggleSwitch("Kill feed", &settings.showKillFeed);
+    changed |= FloatMenu::ToggleSwitch("Joystick edge = sprint", &settings.stickSprint);   // 5.02.81
+    ImGui::TextDisabled("Push the joystick all the way to its edge (up, side or down) to sprint; inside the edge you walk / run normally. A fast flick no longer sprints by itself.");
     // 3.34: "Connection status" switch removed (the status line is gone)
     const bool lockModes = ModesLocked();   // 3.35
     if(lockModes) { ImGui::TextColored(kYellowTxt, "Server modes are locked on this server (only the owner, [ADMIN] or [MOD])."); ImGui::BeginDisabled(); }
@@ -8876,6 +8881,7 @@ void MP::Init(const char* dataDir)
     char sl[512]; snprintf(sl, sizeof(sl), "%s/servers.txt", s_szDataDir);
     ServerList::Load(sl);
 
+    FloatMenu::AddSection("Account", SectionAccount);   // 5.02.81: log in / new account / log out / switch (account.txt + auth_service.txt)
     FloatMenu::AddSection("Connection", SectionConnection);
     FloatMenu::AddSection("Servers", SectionServers);
     FloatMenu::AddSection("Display", SectionDisplay);

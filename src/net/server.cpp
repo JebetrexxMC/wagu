@@ -5,6 +5,7 @@
 #include "safezone.h"
 #include "admin.h"
 #include "authcrypto.h"   // 3.21.6: login tickets
+#include "online.h"       // 5.02.81: Discord live feed (social link)
 #include <mbedtls/sha256.h>   // 3.24: MW3 stats cards
 #include <sys/resource.h>
 #include <sys/syscall.h>
@@ -536,6 +537,40 @@ void MPServer::AnnounceJoin(int slot)
     pj.type = PKT_PLAYER_JOIN; pj.id = (uint8_t)slot; pj.color = s.color; pj.skin = s.skin;
     MP_CopyStr(pj.name, s.name, MP_NAME_LEN);
     Broadcast(&pj, sizeof(pj), slot);
+    if(!s.fedJoin) { s.fedJoin = true; FeedEv(slot, "join", ""); }   // 5.02.81: Discord live feed
+}
+
+// 5.02.81: Discord live feed straight from the server: every player's join / leave / mission / chat (never
+// commands), whatever MP version their phone runs. Same topic and JSON as the phone's own feed (mp_dcfeed.inc);
+// the bot drops the copy when both send the same event. mp_server: on unless --no-feed / --no-online;
+// a phone host: on unless MP/discord_feed_off.txt.
+static std::string FeedJson(const char* v)
+{
+    std::string o;
+    for(const char* p = v ? v : ""; *p; ++p)
+    {
+        unsigned char c = (unsigned char)*p;
+        if(*p == '{' && strlen(p) >= 8 && p[7] == '}')
+        {   // {RRGGBB} colour codes out
+            bool hex = true; for(int i = 1; i < 7; ++i) if(!isxdigit((unsigned char)p[i])) hex = false;
+            if(hex) { p += 7; continue; }
+        }
+        if(c == '"' || c == '\\') { o += '\\'; o += (char)c; }
+        else if(c < 0x20) { char b[8]; snprintf(b, sizeof(b), "\\u%04x", c); o += b; }
+        else o += (char)c;
+    }
+    return o;
+}
+void MPServer::FeedEv(int slot, const char* type, const char* msg)
+{
+    if(!m_bFeed || slot < 0 || slot >= MP_MAX_PLAYERS) return;
+    const Slot& s = m_Slots[slot];
+    static uint32_t n = 0;
+    char id[24]; snprintf(id, sizeof(id), "s%07x%08x", (unsigned)((MP_NowMs() / 10) & 0xFFFFFFF), (unsigned)(rand() ^ (++n << 20)));
+    std::string j = std::string("{\"v\":1,\"id\":\"") + id + "\",\"t\":\"" + type + "\",\"name\":\"" + FeedJson(s.name) +
+        "\",\"user\":\"" + FeedJson(s.authed ? s.account : "") + "\",\"disc\":\"\",\"srv\":\"" + FeedJson(m_szName) +
+        "\",\"msg\":\"" + FeedJson(msg) + "\",\"ver\":\"" MP_VERSION_STR "\",\"src\":\"s\"" + (s.ghost ? ",\"pc\":1" : "") + "}";
+    Online::SocLinkPub("wagu/feed1/e", j, false);
 }
 
 static void AuthServerName(const char* in, char* out, size_t n)
@@ -628,6 +663,9 @@ void MPServer::Drop(int slot, uint8_t reason)
     for(int i = 0; i < MP_MAX_PLAYERS; ++i) if(m_Slots[i].used && m_Slots[i].pairReq == slot) m_Slots[i].pairReq = MP_INVALID_ID;
     Log("%s (id %d) left (%s)", m_Slots[slot].name, slot, reason == LEAVE_TIMEOUT ? "Lost connection" : (reason == LEAVE_KICK ? "Kicked" : "Quit"));
     SampOnLeave(slot, reason);   // 4.11: OnPlayerDisconnect (0 timeout, 1 quit, 2 kick = SA-MP's)
+    if(m_Slots[slot].fedJoin)   // 5.02.81: Discord live feed
+        FeedEv(slot, "leave", reason == LEAVE_TIMEOUT ? "left the server (lost connection)" : (reason == LEAVE_KICK ? "left the server (kicked)" : "left the server"));
+    m_Slots[slot].fedJoin = false;
     m_Slots[slot].used = false;
     BcwOnLeave(slot);   // 3.04
     Mw3OnLeave(slot);   // 3.23
@@ -1114,6 +1152,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             }
             Slot& s = m_Slots[slot];
             const bool rebind = len >= (int)sizeof(PktJoin6) && (data[offsetof(PktJoin6, flags)] & MP_JOIN_REBIND);   // 3.39: same session, keep the login
+            if(fresh && rebind) s.fedJoin = true;   // 5.02.81: moved here from another copy / host: no new "joined" in Discord
             if(!fresh && !rebind && AuthOn() && s.authed && MP_NowMs() - s.joinedMs > 5000)
             {   // 3.22.1: a new join on an old slot (the game was closed / restarted and came back from the same
                 // relay or NAT address before the slot timed out): log in again like a fresh join. A phone that
@@ -1350,9 +1389,15 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             if(!(p.state & STATUS_MISSION)) p.mission[0] = 0;
             Slot& s = m_Slots[slot];
             if((p.state & STATUS_MISSION) && (!(s.status & STATUS_MISSION) || strcmp(s.mission, p.mission)))
+            {
                 Log("%s started a mission (%s)", s.name, p.mission[0] ? p.mission : "?");
+                char t[64]; snprintf(t, sizeof(t), "started a mission%s%s", p.mission[0] ? ": " : "", p.mission); FeedEv(slot, "mission", t);   // 5.02.81
+            }
             else if(!(p.state & STATUS_MISSION) && (s.status & STATUS_MISSION))
+            {
                 Log("%s ended a mission", s.name);
+                char t[64]; snprintf(t, sizeof(t), "is out of the mission%s%s", s.mission[0] ? " " : "", s.mission); FeedEv(slot, "mission", t);   // 5.02.81
+            }
             s.status = p.state; memcpy(s.mission, p.mission, sizeof(s.mission));
             Broadcast(&p, sizeof(p), slot);
             break;
@@ -1451,6 +1496,7 @@ void MPServer::Handle(const sockaddr_in& from, const uint8_t* data, int len)
             p.id = (uint8_t)slot;
             p.text[MP_CHAT_LEN - 1] = 0;
             Log("[chat] %s: %s", m_Slots[slot].name, p.text);
+            if(p.text[0] != '/' && p.text[0]) FeedEv(slot, "chat", p.text);   // 5.02.81: Discord live feed (never commands)
             if(m_pGate && !m_Slots[slot].ghost && m_pGate->OnChat(slot, p.text)) break;   // 5.02: on a PC server: the chat goes there
             if(m_bBridge && !m_Slots[slot].ghost && p.text[0] != '/') m_BridgeChatOut.emplace_back(slot, std::string(p.text));   // 4.12
             if(IsDayzServer() && DzChat(slot, p.text)) break;

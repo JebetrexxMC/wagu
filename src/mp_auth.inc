@@ -21,6 +21,9 @@ static std::string s_AuthTicket; static uint8_t s_AuthSig[64];
 static bool       s_bAuthTicket = false;
 static std::string s_AuthUser;               // the account this game session is logged in with
 static bool       s_bStatsOpen = false;
+// 5.02.81: Settings > Account: log in / create an account / log out without joining a server ("alone" login)
+static bool       s_bAuthAlone = false, s_bAuthAloneTop = false;
+static char       s_szAloneChal[33] = "";
 static uint64_t   s_nStatsAt = 0;
 
 struct AuthField { char buf[40]; int max; bool secret; bool numeric; const char* title; };
@@ -238,7 +241,7 @@ static void AuthAccountsRemove(const std::string& u)
     AuthAccountsSave(n);
 }
 static void AuthReset();
-static void AuthLogout(const char* switchTo, bool addNew)   // switchTo: the login screen fills it in next time
+static void AuthLogout(const char* switchTo, bool addNew, bool quiet = false)   // switchTo: the login screen fills it in next time
 {
     std::string was = s_AuthUser.empty() ? s_Auth.user : s_AuthUser;
     {   // 5.00.05: the saved login ends at the bot too (this phone is no longer listed for that account)
@@ -253,6 +256,7 @@ static void AuthLogout(const char* switchTo, bool addNew)   // switchTo: the log
     if(switchTo && switchTo[0]) MP_CopyStr(s_AfUser.buf, switchTo, sizeof(s_AfUser.buf));
     AuthAccountWrite(switchTo ? switchTo : "", "");
     AuthServiceWrite(switchTo ? switchTo : "", "", AuthFileValue("auth_service.txt", "discord"), AuthAccountsCsv(), AuthDeviceId());
+    if(quiet) return;   // 5.02.81: Settings > Account goes straight on to its login / new account window
     if(addNew) SysMsg(COL_GREEN, "Logged out. Join a login server and tap \"New account\" to make another account (max %d per Discord).", AUTH_MAX_ACCOUNTS);
     else if(switchTo && switchTo[0]) SysMsg(COL_GREEN, "Switched to %s. Join a server and log in.", switchTo);
     else SysMsg(COL_GREEN, "Logged out%s%s.", was.empty() ? "" : " of ", was.c_str());
@@ -266,6 +270,7 @@ static void AuthReset()
     if(s_Auth.state != AuthClient::IDLE && s_Auth.state != AuthClient::DONE) s_Auth.Stop();
     else s_Auth.state = AuthClient::IDLE;
     s_bAuthReq = false; s_szAuthChal[0] = 0; s_bAuthTicket = false; s_nAuthDoneAt = 0;
+    s_bAuthAlone = false;   // 5.02.81
     s_nAuthJoinAt = MP_NowMs();
     s_pAfEditing = nullptr;
     if(VKeyboard::IsOpen() && !VKeyboard::IsChat()) VKeyboard::Close();
@@ -279,6 +284,7 @@ static void AuthOnPacket(const uint8_t* d, int len)
     {
         PktAuthChal c; memcpy(&c, d, sizeof(c)); c.chal[32] = 0; c.server[31] = 0;
         if(s_bAuthReq && !strcmp(c.chal, s_szAuthChal)) return;   // the same one again (it is repeated)
+        s_bAuthAlone = false;   // 5.02.81: a server login replaces a Settings > Account window
         // 3.39: a new challenge = a new join (rejoin, game restart, relay switch): always the login screen
         s_Auth.ForgetSession(); s_szAuthSavedTok.clear();
         if(s_Auth.state != AuthClient::IDLE && s_Auth.state != AuthClient::DONE) s_Auth.Stop();
@@ -409,6 +415,15 @@ static void ProfileDrawAvatar(ImDrawList* dl, ImVec2 c, float r)
 // /forgotpass, /forgotuser, /create) rewrites auth_service.txt, account.txt and accounts.txt in every MP folder:
 // deleted files come back, a new password keeps the phone logged in.
 static uint64_t s_nAuthSyncAt = 0, s_nAuthStartAt = 0;
+static void AuthAdoptFiles(bool force);   // 5.02.81
+static long long s_nAuthFileSig = -1;     // 5.02.81: account.txt / auth_service.txt size + time (changed on disk?)
+static long long AuthFilesSig()
+{
+    long long sig = 0; struct stat st;
+    for(const char* n : { "auth_service.txt", "account.txt" })
+    { char p[600]; snprintf(p, sizeof(p), "%s/%s", s_szDataDir, n); if(!stat(p, &st)) sig = sig * 31 + (long long)st.st_mtime * 7 + (long long)st.st_size; }
+    return sig;
+}
 static void AuthSyncFrame(uint64_t now)
 {
     if(!s_szDataDir[0]) return;
@@ -420,10 +435,37 @@ static void AuthSyncFrame(uint64_t now)
     if(!s_nAuthStartAt) s_nAuthStartAt = now;
     if((!s_nAuthSyncAt && now - s_nAuthStartAt > 8000) ||
        (s_nAuthSyncAt && s_Auth.state == AuthClient::LOGIN && !s_Auth.LoggedIn() && now - s_nAuthSyncAt > 60000))
-    { s_nAuthSyncAt = now; s_Auth.Sync(AuthSavedToken()); }
+    { s_nAuthSyncAt = now; s_Auth.Sync(AuthSavedToken(), AuthAccountsCsv()); }
     if(!s_Auth.syncReady) return;
     s_Auth.syncReady = false;
     const std::string su = s_Auth.syncUser, st = s_Auth.syncTok;
+    if(!s_Auth.syncGone.empty())
+    {   // 5.02.81: accounts deleted at the bot (/delete) leave accounts.txt (they could be "switched to" and showed offline)
+        std::vector<std::string> keep; const std::string g = "," + s_Auth.syncGone + ",";
+        for(auto& x : AuthAccounts())
+        {
+            std::string k = "," + x + ","; bool gone = false;
+            for(size_t i = 0; i + k.size() <= g.size() && !gone; ++i) gone = !strncasecmp(g.c_str() + i, k.c_str(), k.size());
+            if(!gone) keep.push_back(x);
+            else logger->Info("5.02.81: account %s was deleted at the bot - removed from accounts.txt", x.c_str());
+        }
+        AuthAccountsSave(keep);
+        s_Auth.syncGone.clear();
+    }
+    if(s_Auth.syncDead && su.empty())
+    {   // 5.02.81: the saved login is for an account that was deleted (and maybe made again with the same name and
+        // password - a new account): forget the dead login, keep the name, show "log in" (not a stuck "offline")
+        s_Auth.syncDead = false;
+        const std::string tok = AuthSavedToken(), last = AuthLastUser();
+        if(!s_bAuthReq && (s_Auth.Session() == tok || s_Auth.Session().empty())) { s_Auth.ForgetSession(); s_AuthUser.clear(); }
+        s_szAuthSavedTok.clear(); s_bProfRead = false;
+        AuthAccountWrite(last, "");
+        AuthServiceWrite(last, "", "", AuthAccountsCsv(), AuthDeviceId());
+        logger->Info("5.02.81: the saved login of %s ended at the bot (account deleted / made again): log in again", last.empty() ? "?" : last.c_str());
+        if(!last.empty()) SysMsg(COL_YELLOW, "Your saved login of %s is no longer valid (the account was deleted or made again). Log in again: Settings > Account.", last.c_str());
+        return;
+    }
+    s_Auth.syncDead = false;
     std::vector<std::string> bot;
     for(size_t p = 0; p <= s_Auth.syncUsers.size();)
     {
@@ -445,6 +487,11 @@ static void AuthSyncFrame(uint64_t now)
         AuthServiceWrite(su, st, disc, AuthAccountsCsv(), AuthDeviceId());
         s_szAuthSavedTok = st;
         if(s_bAuthReq) s_Auth.UseSession(st);
+        if(!s_bAuthReq && (s_AuthUser.empty() || !strcasecmp(s_AuthUser.c_str(), su.c_str())))
+        {   // 5.02.81: online with the saved login (top right of the launcher / neon menu, Settings > Account)
+            if(s_Auth.Session() != st) { s_Auth.ForgetSession(); s_Auth.RestoreSession(st); }
+            if(s_AuthUser.empty()) { s_AuthUser = su; s_nAuthDoneAt = now; s_bProfRead = false; }
+        }
         if(!s_AfUser.buf[0] || strcasecmp(s_AfUser.buf, su.c_str())) MP_CopyStr(s_AfUser.buf, su.c_str(), sizeof(s_AfUser.buf));
         logger->Info("5.00.05: saved login of %s synced from the bot", su.c_str());
     }
@@ -462,6 +509,10 @@ static void AuthFrame(uint64_t now)
 {
     if(client.GetState() == NET_DISCONNECTED) { if(s_bAuthReq) AuthReset(); }
     s_Auth.Tick(now);    // (returns at once when nothing is going on)
+    {   // 5.02.81: account.txt / auth_service.txt changed by someone else (another MP folder, AML Multiplayer app)
+        static uint64_t s_nFileAt = 0;
+        if(!s_nFileAt || now - s_nFileAt > 3000) { s_nFileAt = now; AuthAdoptFiles(false); }
+    }
     AuthSyncFrame(now);  // 5.00.05
     ProfileFrame(now);   // 3.24
     if(!s_szAuthSavedTok.empty() && !s_Auth.LoggedIn())
@@ -482,6 +533,26 @@ static void AuthFrame(uint64_t now)
             if(sn[0] && !MP::IsDefaultServer(sn, client.GetPort()) && !MP_IsBcwServerName(sn) && !MP_IsMw3ServerName(sn) && !MP_IsRpServerName(sn) && !MP_IsDzServerName(sn) && !MP_IsLgServerName(sn) && SrvAuthGet(sn, client.GetPort()) > 0)
             { SrvAuthPut(sn, client.GetPort(), false); logger->Info("4.12.4: %s has no login system any more - forgotten", sn); }
         }
+    }
+    if(s_bAuthAlone)
+    {   // 5.02.81: Settings > Account login: the bot said yes (its ticket is for no server - not needed)
+        std::string tp; uint8_t tsig[64];
+        if(s_Auth.TakeTicket(tp, tsig))
+        {
+            s_Auth.ServerResult(true, "");
+            s_nAuthDoneAt = now; s_nAvatarAskAt = 0; s_bProfRead = false;
+            s_AuthUser = !s_Auth.user.empty() ? s_Auth.user : std::string(s_AfUser.buf);
+            AuthSaveUser(s_AuthUser);          // account.txt + auth_service.txt (every MP folder): the new login
+            AuthAccountsTouch(s_AuthUser);
+            s_szAuthSavedTok = s_Auth.Session();
+            s_nAuthFileSig = AuthFilesSig();   // our own write: not "changed by someone else"
+            s_AfPass.buf[0] = 0;
+            if(s_Auth.createdNow) SysMsg(COL_GREEN, "Your account was created successfully. Welcome, %s.", s_AuthUser.c_str());
+            else SysMsg(COL_GREEN, "Logged in as %s.", s_AuthUser.c_str());
+            logger->Info("5.02.81: Settings > Account: logged in as %s (account.txt / auth_service.txt written)", s_AuthUser.c_str());
+        }
+        if(s_Auth.state == AuthClient::DONE && now - s_nAuthDoneAt > 2600) s_bAuthAlone = false;
+        if(s_Auth.state == AuthClient::IDLE) s_bAuthAlone = false;
     }
     if(!s_bAuthReq) return;
     std::string p; uint8_t sig[64];
@@ -527,6 +598,12 @@ static bool AuthJoinSettled()
 }
 static bool AuthScreenUp()
 {
+    if(s_bAuthAlone && !s_bAuthReq)
+    {   // 5.02.81: Settings > Account window
+        if(s_Auth.state == AuthClient::IDLE) return false;
+        if(s_Auth.state == AuthClient::DONE) return s_Auth.createdNow && MP_NowMs() - s_nAuthDoneAt < 2600;
+        return true;
+    }
     if(!s_bAuthReq) return false;
     if(!AuthJoinSettled()) return false;
     if(s_Auth.state == AuthClient::IDLE) return false;
@@ -647,13 +724,122 @@ static void AuthTakeField(AuthField& fd)   // a button pressed while the keyboar
     if(s_pAfEditing == &fd && VKeyboard::IsOpen() && !VKeyboard::IsChat()) { MP_CopyStr(fd.buf, VKeyboard::GetText(), sizeof(fd.buf)); VKeyboard::Close(); s_pAfEditing = nullptr; }
 }
 
+// ---- 5.02.81: Settings > Account ---------------------------------------------------------------------------
+static void RenderAuth();
+static void AuthAloneClose()
+{
+    if(s_Auth.state != AuthClient::IDLE && s_Auth.state != AuthClient::DONE) s_Auth.Stop();
+    else s_Auth.state = AuthClient::IDLE;
+    s_bAuthAlone = false; s_pAfEditing = nullptr;
+    if(VKeyboard::IsOpen() && !VKeyboard::IsChat()) VKeyboard::Close();
+}
+// create = Discord code -> Create your account; else the Login screen (user filled in). A new login replaces the
+// old one on this phone: the old saved login is ended first, then account.txt / auth_service.txt get the new one.
+static void AuthAloneBegin(bool create, const char* user)
+{
+    if(s_bAuthReq) { SysMsg(COL_YELLOW, "Finish the login screen of this server first (or leave the server)."); return; }
+    if(s_Auth.state != AuthClient::IDLE && s_Auth.state != AuthClient::DONE) s_Auth.Stop();
+    const std::string want = user && *user ? std::string(user) : (create ? std::string() : AuthLastUser());
+    if(s_Auth.LoggedIn() || !AuthSavedToken().empty() || !s_AuthUser.empty()) AuthLogout(want.c_str(), create, true);
+    uint8_t r[16];
+    if(!AuthCrypto::Random(r, sizeof(r))) for(int i = 0; i < 16; ++i) r[i] = (uint8_t)(lrand48() >> 3);
+    AuthCrypto::Hex(r, sizeof(r), s_szAloneChal);
+    if(s_Auth.device.empty()) s_Auth.device = AuthDeviceId();
+    s_Auth.ForgetSession(); s_Auth.recover = 0;
+    s_Auth.wantNewAccount = create; s_Auth.prefillUser = want;
+    s_AfUser.buf[0] = 0; s_AfPass.buf[0] = 0;
+    if(!want.empty()) MP_CopyStr(s_AfUser.buf, want.c_str(), sizeof(s_AfUser.buf));
+    s_bAuthAlone = true; s_bAuthAloneTop = true;
+    s_Auth.Begin(s_szAloneChal, "MP account", !create, want.c_str());
+    logger->Info("5.02.81: Settings > Account: %s", create ? "new account" : "login");
+}
+// account.txt / auth_service.txt changed on disk: use the login in them (the "file reader")
+static void AuthAdoptFiles(bool force)
+{
+    if(!s_szDataDir[0]) return;
+    const long long sig = AuthFilesSig();
+    if(!force && sig == s_nAuthFileSig) return;
+    const bool first = s_nAuthFileSig < 0;
+    s_nAuthFileSig = sig;
+    if(first && !force) return;
+    if(s_bAuthReq || s_bAuthAlone) return;   // a login window is up: it writes them itself
+    const std::string tok = AuthSavedToken(), u = AuthLastUser();
+    if(!force && tok == s_szAuthSavedTok && (u.empty() || !strcasecmp(u.c_str(), ProfileUser().c_str()))) return;
+    logger->Info("5.02.81: the account files changed (%s): reading them again", u.empty() ? "no account" : u.c_str());
+    s_Auth.ForgetSession(); s_AuthUser.clear(); s_bProfRead = false;
+    if(AuthIsHex32(tok)) { s_Auth.RestoreSession(tok); s_szAuthSavedTok = tok; }
+    else s_szAuthSavedTok.clear();
+    s_nAuthSyncAt = 0; s_nAuthStartAt = MP_NowMs() - 7000;   // ask the bot in ~1 s: whose login is this? (-> online)
+}
+static void SectionAccount(void*)
+{
+    const std::string u = ProfileUser(), saved = AuthSavedToken();
+    const bool on = s_Auth.LoggedIn() && !s_AuthUser.empty();
+    const std::string disc = !s_Auth.syncDiscord.empty() ? s_Auth.syncDiscord : AuthFileValue("auth_service.txt", "discord");
+    ImGui::TextDisabled("Your MP account (Discord verified). It is kept in account.txt and auth_service.txt in every MP folder of this phone.");
+    ImGui::Dummy(ImVec2(0, UI::S(6)));
+    {
+        ImDrawList* dl = ImGui::GetWindowDrawList(); const float r = UI::S(34);
+        const ImVec2 c0 = ImGui::GetCursorScreenPos();
+        ProfileDrawAvatar(dl, ImVec2(c0.x + r, c0.y + r), r);
+        dl->AddCircleFilled(ImVec2(c0.x + r * 1.72f, c0.y + r * 1.72f), UI::S(8), on ? IM_COL32(67, 181, 129, 255) : IM_COL32(116, 127, 141, 255), 16);
+        ImGui::SetCursorScreenPos(ImVec2(c0.x + r * 2 + UI::S(16), c0.y + UI::S(4)));
+        ImGui::BeginGroup();
+        ImGui::TextUnformatted(u.empty() ? "Guest - not logged in" : u.c_str());
+        if(on) ImGui::TextColored(ImVec4(0.37f, 0.83f, 0.37f, 1), "Online%s%s", disc.empty() ? "" : "  |  Discord @", disc.c_str());
+        else if(!u.empty() && AuthIsHex32(saved)) ImGui::TextColored(ImVec4(0.98f, 0.75f, 0.3f, 1), "Saved login - checking it with the MP bot...");
+        else if(!u.empty()) ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1), "Offline - log in again");
+        else ImGui::TextDisabled("No account on this phone yet");
+        ImGui::EndGroup();
+        ImGui::SetCursorScreenPos(ImVec2(c0.x, c0.y + r * 2 + UI::S(12)));
+        ImGui::Dummy(ImVec2(1, 1));
+    }
+    if(s_bAuthReq) ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "This server has its own login screen open: finish it there.");
+    if(s_bAuthAlone)
+    {
+        ImGui::TextColored(ImVec4(0.55f, 0.75f, 1.0f, 1.0f), "The account window is open.");
+        if(FloatMenu::BigButton("Cancel")) AuthAloneClose();
+    }
+    if(s_bAuthReq || s_bAuthAlone) ImGui::BeginDisabled();
+    if(FloatMenu::BigButton(on ? "Log in to another account" : "Log in")) AuthAloneBegin(false, on ? "" : u.c_str());
+    if(FloatMenu::BigButton("Create a new account")) AuthAloneBegin(true, "");
+    if(s_bAuthReq || s_bAuthAlone) ImGui::EndDisabled();
+    if(!u.empty() || !saved.empty())
+        if(FloatMenu::BigButton("Log out")) { AuthLogout("", false); s_bProfRead = false; s_nAuthFileSig = AuthFilesSig(); }
+    const std::vector<std::string> accs = AuthAccounts();
+    bool others = false;
+    for(auto& a : accs) if(strcasecmp(a.c_str(), u.c_str())) others = true;
+    if(others && !s_bAuthReq && !s_bAuthAlone)
+    {
+        ImGui::Dummy(ImVec2(0, UI::S(6)));
+        ImGui::TextUnformatted("Switch account (accounts on this phone)");
+        for(size_t i = 0; i < accs.size(); ++i)
+        {
+            if(!strcasecmp(accs[i].c_str(), u.c_str())) continue;
+            char b[96]; snprintf(b, sizeof(b), "%s##acc%d", accs[i].c_str(), (int)i);
+            if(FloatMenu::BigButton(b)) AuthAloneBegin(false, accs[i].c_str());
+        }
+        ImGui::TextDisabled("Deleted accounts (Discord /delete) leave this list by themselves.");
+    }
+    ImGui::Dummy(ImVec2(0, UI::S(6)));
+    if(FloatMenu::BigButton("Reload the account files")) { AuthAdoptFiles(true); SysMsg(COL_SYSTEM, "Reading account.txt / auth_service.txt again..."); }
+    ImGui::TextDisabled("A new account.txt / auth_service.txt (copied in, or written by the AML Multiplayer app) is read again by itself within 3 s.");
+    { char p[600]; snprintf(p, sizeof(p), "%s/auth_service.txt", s_szDataDir); ImGui::TextDisabled("%s", p); }
+    RenderAuth();   // the account window (also in the main menu, where the game frame does not draw it)
+}
+
 static void RenderAuth()
 {
-    if(!AuthScreenUp() || !Game::IsReady()) return;
+    if(!AuthScreenUp() || (!Game::IsReady() && !s_bAuthAlone)) return;
+    {   // 5.02.81: drawn by the game frame AND by Settings > Account (main menu): once a frame
+        static int s_nDrawn = -1;
+        if(ImGui::GetFrameCount() == s_nDrawn) return;
+        s_nDrawn = ImGui::GetFrameCount();
+    }
     const ImVec2 ds = ImGui::GetIO().DisplaySize;
     const bool autoLogin = s_Auth.LoggedIn() && (s_Auth.state == AuthClient::LINKING || s_Auth.state == AuthClient::TICKET ||
                            (s_Auth.state == AuthClient::WAIT_SERVER && !s_Auth.createdNow));
-    if((s_Auth.state == AuthClient::LINKING || autoLogin) && s_Auth.err.empty())
+    if((s_Auth.state == AuthClient::LINKING || autoLogin) && s_Auth.err.empty() && !s_bAuthAlone)
     {   // 3.21.7: the login screen opens only once the login server is connected; until then a small line
         // 3.22: a saved login (account.txt) never opens the pop-up at all: "Logging in as NAME..."
         static const char* dots[4] = { "", ".", "..", "..." };
@@ -689,10 +875,11 @@ static void RenderAuth()
     if(VKeyboard::IsOpen() && !VKeyboard::IsChat()) P.p0.y = fmaxf(UI::S(6), fminf(P.p0.y, ds.y - VKeyboard::Height() - h - UI::S(6)));
 
     ImGui::SetNextWindowPos(P.p0); ImGui::SetNextWindowSize(ImVec2(P.w, h));
+    if(s_bAuthAlone && s_bAuthAloneTop) { ImGui::SetNextWindowFocus(); s_bAuthAloneTop = false; }   // 5.02.81: over the settings
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-    if(ImGui::Begin("##MPLogin", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBringToFrontOnFocus))
+    if(ImGui::Begin("##MPLogin", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar | (s_bAuthAlone ? 0 : ImGuiWindowFlags_NoBringToFrontOnFocus)))
     {
         P.dl = ImGui::GetWindowDrawList();
         ImDrawList* dl = P.dl; const AuthLook& L = P.L;
@@ -747,7 +934,7 @@ static void RenderAuth()
         case AuthClient::CODE:
         {
             if(s_Auth.recover) P.Text(s_Auth.recover == 1 ? "Forgot your username? Prove the Discord of your account:" : "Forgot your password? Prove the Discord of your account:", L.dim);
-            else P.Text("This server uses accounts. Verify with Discord first:", L.dim);
+            else P.Text(s_bAuthAlone ? "New MP account. Verify with Discord first:" : "This server uses accounts. Verify with Discord first:", L.dim);
             P.Text("1.  Join the Discord server:", L.text);
             P.Text(MP_AUTH_DISCORD_URL, L.accent, UI::S(32), true);
             P.Text("2.  In the #verification channel type:", L.text);
@@ -770,7 +957,7 @@ static void RenderAuth()
             if(P.Button("New code", P.p0.x + P.pad + halfW + gap, halfW, bh, false)) s_Auth.NewCode();
             P.y += bh + gap;
             if(P.Button(s_Auth.recover ? "Back to Login" : "I have an account: Login", P.p0.x + P.pad, halfW, bh, false)) s_Auth.WantLogin();
-            if(P.Button("Leave server", P.p0.x + P.pad + halfW + gap, halfW, bh, false)) { ImGui::End(); ImGui::PopStyleColor(); ImGui::PopStyleVar(2); LeaveServer("Left the server."); return; }
+            if(P.Button(s_bAuthAlone ? "Close" : "Leave server", P.p0.x + P.pad + halfW + gap, halfW, bh, false)) { ImGui::End(); ImGui::PopStyleColor(); ImGui::PopStyleVar(2); if(s_bAuthAlone) AuthAloneClose(); else LeaveServer("Left the server."); return; }
             break;
         }
         case AuthClient::SIGNUP:
@@ -807,12 +994,12 @@ static void RenderAuth()
                 if(age < AUTH_AGE_MIN || age > AUTH_AGE_MAX) s_Auth.err = "Age must be 10-24.";
                 else s_Auth.Signup(s_AfUser.buf, s_AfPass.buf, kAuthGenders[s_nAfGender], age);
             }
-            if(P.Button("Leave server", P.p0.x + P.pad + halfW + gap, halfW, bh, false)) { ImGui::End(); ImGui::PopStyleColor(); ImGui::PopStyleVar(2); LeaveServer("Left the server."); return; }
+            if(P.Button(s_bAuthAlone ? "Close" : "Leave server", P.p0.x + P.pad + halfW + gap, halfW, bh, false)) { ImGui::End(); ImGui::PopStyleColor(); ImGui::PopStyleVar(2); if(s_bAuthAlone) AuthAloneClose(); else LeaveServer("Left the server."); return; }
             break;
         }
         case AuthClient::LOGIN:
         {
-            P.Text("Welcome back. Log in to play.", L.dim);
+            P.Text(s_bAuthAlone ? "Log in to your MP account (it replaces the one on this phone)." : "Welcome back. Log in to play.", L.dim);
             if(!s_Auth.info.empty()) P.Text(s_Auth.info.c_str(), L.ok, UI::S(26));
             if(!s_Auth.prefillUser.empty() && !s_AfUser.buf[0]) MP_CopyStr(s_AfUser.buf, s_Auth.prefillUser.c_str(), sizeof(s_AfUser.buf));
             P.Field(s_AfUser); P.Field(s_AfPass);
@@ -829,7 +1016,7 @@ static void RenderAuth()
             }
             P.y += bh + gap;
             if(P.Button("New account (Discord code)", P.p0.x + P.pad, halfW, bh, false)) s_Auth.WantNewAccount();
-            if(P.Button("Leave server", P.p0.x + P.pad + halfW + gap, halfW, bh, false)) { ImGui::End(); ImGui::PopStyleColor(); ImGui::PopStyleVar(2); LeaveServer("Left the server."); return; }
+            if(P.Button(s_bAuthAlone ? "Close" : "Leave server", P.p0.x + P.pad + halfW + gap, halfW, bh, false)) { ImGui::End(); ImGui::PopStyleColor(); ImGui::PopStyleVar(2); if(s_bAuthAlone) AuthAloneClose(); else LeaveServer("Left the server."); return; }
             break;
         }
         case AuthClient::RESET:   // 3.56: forgot password -> Discord verified -> new password
@@ -870,8 +1057,8 @@ static void RenderAuth()
             P.Text(s_Auth.err.empty() ? "Login failed." : s_Auth.err.c_str(), L.err, UI::S(30), true);
             P.y = P.p0.y + h - P.pad - bh;
             if(P.Button("Try again", P.p0.x + P.pad, halfW, bh, true))
-            { const std::string last = AuthLastUser(); s_Auth.Begin(s_szAuthChal, client.GetServerName(), !last.empty(), last.c_str()); }
-            if(P.Button("Leave server", P.p0.x + P.pad + halfW + gap, halfW, bh, false)) { ImGui::End(); ImGui::PopStyleColor(); ImGui::PopStyleVar(2); LeaveServer("Left the server."); return; }
+            { const std::string last = AuthLastUser(); if(s_bAuthAlone) s_Auth.Begin(s_szAloneChal, "MP account", !s_Auth.wantNewAccount, last.c_str()); else s_Auth.Begin(s_szAuthChal, client.GetServerName(), !last.empty(), last.c_str()); }
+            if(P.Button(s_bAuthAlone ? "Close" : "Leave server", P.p0.x + P.pad + halfW + gap, halfW, bh, false)) { ImGui::End(); ImGui::PopStyleColor(); ImGui::PopStyleVar(2); if(s_bAuthAlone) AuthAloneClose(); else LeaveServer("Left the server."); return; }
             break;
         }
         }

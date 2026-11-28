@@ -159,6 +159,11 @@ int main(int argc, char** argv)
     for(int i = 1; i + 1 < argc; ++i) if(!strcasecmp(argv[i], "--password")) server.SetPassword(argv[i + 1]);   // 2.19 (max 16 chars)
     for(int i = 1; i + 1 < argc; ++i) if(!strcasecmp(argv[i], "--dz-file")) MPServerSetDzFile(argv[i + 1]);   // 3.58: before Start (it loads them)
     for(int i = 1; i + 1 < argc; ++i) if(!strcasecmp(argv[i], "--lg-file")) MPServerSetLgFile(argv[i + 1]);   // 4.13.4
+    {   // 5.02.81: Discord live feed (joins, leaves, missions, chat of every player) - off: --no-feed
+        bool fd = !offline && !legacy;
+        for(int i = 1; i < argc; ++i) if(!strcasecmp(argv[i], "--no-feed")) fd = false;
+        if(fd) { Online::SocLinkStart(""); server.FeedEnable(true); printf("[MP Server] Discord live feed on (--no-feed = off)\n"); }
+    }
     if(!server.Start((uint16_t)port, name, nullptr, maxPlayers, region)) return 1;
     server.SetIcon(icon);   // 2.24
     // 5.02: --samp-port N [--samp-max N]: PC players with the SA-MP 0.3.7 / open.mp launcher join this
