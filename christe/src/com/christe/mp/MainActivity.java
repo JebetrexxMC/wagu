@@ -410,6 +410,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void obbImport(String id) { importId = id; pickObb(); }
         @JavascriptInterface public void obbAccess() { askObbAccess(); }
         @JavascriptInterface public void gameAdd(String id) { importId = id; pickApk(); }
+        @JavascriptInterface public void obbDownload(final String id) { new Thread(new Runnable() { public void run() { downloadGameFiles(id, false, false); } }).start(); }   // 1.5
+        @JavascriptInterface public void gameDownload(final String id) { new Thread(new Runnable() { public void run() { downloadGameFiles(id, true, false); } }).start(); }   // 1.5: OBBs + GTA SA .apk
+        @JavascriptInterface public void vcDownload(final String id) { new Thread(new Runnable() { public void run() { downloadGameFiles(id, false, true); } }).start(); }   // 1.5
         @JavascriptInterface public void editionSwitch(String id, String to) { switchEdition(id, "32".equals(to) ? "32" : "64"); }
         @JavascriptInterface public void gameRemove() { File f = importedApk(); f.setWritable(true); f.delete(); prefs.edit().putString("gamelib_stamp", "").apply(); }
         @JavascriptInterface public void mpFiles(final String id) { new Thread(new Runnable() { public void run() { downloadMpFiles(id); } }).start(); }
@@ -821,6 +824,87 @@ public class MainActivity extends Activity {
             }
             progress(id, "done", total, total, "Game files ready");
         } catch (Exception e) { progress(id, "error", done, total, String.valueOf(e.getMessage())); }
+    }
+    // ---- 1.5: game files + GTA SA straight from the wagu releases (no picking / uploading big files by hand) ----
+    // main.8 + patch.8 (release v5.02.74) into AML Multiplayer's own OBB folder, the GTA SA AML .apk for this CPU
+    // (release v5.02.77: 2.10 on 64-bit, 2.00 on 32-bit) as the in-app copy, Vice City's main.11 OBB (v4.13.51).
+    // Resumes a cut download (HTTP Range), checks the free space first, never touches the installed games.
+    static final String REL = "https://github.com/JebetrexxMC/wagu/releases/download/";
+    static final String URL_MAIN = REL + "v5.02.74/main.8.com.rockstargames.gtasa.obb";
+    static final String URL_PATCH = REL + "v5.02.74/patch.8.com.rockstargames.gtasa.obb";
+    static final String URL_SA64 = REL + "v5.02.77/GTASA.2.10.AML1.4.0.FLA7.6.Unprot.Fix.apk";
+    static final String URL_SA32 = REL + "v5.02.77/GTASA.2.00.AML1.4.0.FLA7.6.Unprot.apk";
+    static final String URL_VC = REL + "v4.13.51/main.11.com.rockstargames.gtavc.obb";
+    long headSize(String url) {
+        try {
+            java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+            c.setRequestMethod("HEAD"); c.setInstanceFollowRedirects(true); c.setConnectTimeout(15000); c.setReadTimeout(15000);
+            c.setRequestProperty("User-Agent", "AMLMultiplayer");
+            long n = c.getContentLength(); try { n = Long.parseLong(c.getHeaderField("Content-Length")); } catch (Exception e) {}
+            c.disconnect(); return n;
+        } catch (Exception e) { return -1; }
+    }
+    // one file: url -> to (via to.part, resumed); base / total = the whole job's progress
+    boolean fetch(String id, String url, File to, String label, long base, long total) throws Exception {
+        File tmp = new File(to.getPath() + ".part");
+        to.getParentFile().mkdirs();
+        for (int attempt = 0; attempt < 6; attempt++) {
+            long have = tmp.isFile() ? tmp.length() : 0;
+            java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+            c.setInstanceFollowRedirects(true); c.setConnectTimeout(20000); c.setReadTimeout(30000);
+            c.setRequestProperty("User-Agent", "AMLMultiplayer");
+            if (have > 0) c.setRequestProperty("Range", "bytes=" + have + "-");
+            try {
+                int code = c.getResponseCode();
+                if (code == 416) { c.disconnect(); break; }   // already complete
+                if (code != 200 && code != 206) throw new java.io.IOException("HTTP " + code + " for " + label);
+                if (code == 200) have = 0;   // no resume on this server: from the start
+                InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(tmp, have > 0);
+                byte[] b = new byte[1 << 20]; int n; long done = have, last = 0;
+                while ((n = in.read(b)) > 0) { out.write(b, 0, n); done += n; if (done - last > (4 << 20)) { last = done; progress(id, "download", base + done, total, label); } }
+                in.close(); out.close(); c.disconnect();
+                break;
+            } catch (java.io.IOException e) {
+                c.disconnect();
+                if (attempt == 5) throw e;
+                log("download " + label + " cut (" + e.getMessage() + "), resuming");
+                try { Thread.sleep(2000L * (attempt + 1)); } catch (InterruptedException ie) {}
+            }
+        }
+        if (to.isFile()) { to.setWritable(true); to.delete(); }
+        return tmp.renameTo(to);
+    }
+    long freeAt(File d) { try { d.mkdirs(); android.os.StatFs st = new android.os.StatFs(d.getAbsolutePath()); return st.getAvailableBytes(); } catch (Exception e) { return Long.MAX_VALUE; } }
+    void downloadGameFiles(String id, boolean withApk, boolean withVc) {
+        try {
+            java.util.List<String[]> jobs = new java.util.ArrayList<String[]>();
+            File m = ownObbFile("main"), p = ownObbFile("patch");
+            if (!m.isFile() && gameObb("main") == null) jobs.add(new String[] { URL_MAIN, m.getAbsolutePath(), "main.8 OBB" });
+            if (!p.isFile() && gameObb("patch") == null) jobs.add(new String[] { URL_PATCH, p.getAbsolutePath(), "patch.8 OBB" });
+            if (withApk) jobs.add(new String[] { proc64() ? URL_SA64 : URL_SA32, new File(importedApk().getPath() + ".dl").getAbsolutePath(), proc64() ? "GTA SA 2.10 (64-bit)" : "GTA SA 2.00 (32-bit)" });
+            if (withVc) { File vd = getObbDir() == null ? new File(Environment.getExternalStorageDirectory(), "Android/obb/" + getPackageName()) : getObbDir(); jobs.add(new String[] { URL_VC, new File(new File(vd, "vc"), "main.11.com.rockstargames.gtavc.obb").getAbsolutePath(), "Vice City OBB" }); }
+            if (jobs.isEmpty()) { progress(id, "done", 1, 1, "Game files are already there"); return; }
+            long total = 0; long[] sz = new long[jobs.size()];
+            for (int i = 0; i < jobs.size(); i++) { sz[i] = headSize(jobs.get(i)[0]); if (sz[i] > 0) total += sz[i]; }
+            File obbDir = m.getParentFile();
+            if (total > 0 && freeAt(obbDir) < total + (200L << 20)) { progress(id, "error", 0, total, "Not enough free space: " + (total >> 20) + " MB needed"); return; }
+            long base = 0;
+            for (int i = 0; i < jobs.size(); i++) {
+                String[] j = jobs.get(i); File to = new File(j[1]);
+                if (!fetch(id, j[0], to, j[2], base, total)) throw new java.io.IOException("could not save " + j[2]);
+                base += sz[i] > 0 ? sz[i] : to.length();
+                if (to.getName().endsWith(".dl")) {   // the GTA SA .apk: the same checks as Add GTA SA
+                    PackageInfo pi = getPackageManager().getPackageArchiveInfo(to.getAbsolutePath(), 0);
+                    java.util.List<String> one = new java.util.ArrayList<String>(); one.add(to.getAbsolutePath());
+                    if (pi == null || apkAbis(one).length() == 0) { to.delete(); throw new java.io.IOException("the downloaded GTA SA is not a game APK"); }
+                    File dst = importedApk(); if (dst.isFile()) { dst.setWritable(true); dst.delete(); }
+                    to.renameTo(dst); dst.setReadOnly();
+                    prefs.edit().putString("game_src", "imported").putString("gamelib_stamp", "").apply();
+                    log("GTA SA downloaded: " + pi.packageName + " " + pi.versionName + " " + dst.length());
+                }
+            }
+            progress(id, "done", total, total, "Game files ready - tap Play");
+        } catch (Exception e) { progress(id, "error", 0, 0, "Download failed: " + e.getMessage() + " (tap again to resume)"); }
     }
     String importId = "";
     static final int REQ_OBB = 41, REQ_APK = 42;

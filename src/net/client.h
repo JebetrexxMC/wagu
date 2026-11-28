@@ -147,6 +147,8 @@ private:
     uint64_t    m_nLastAutoRe = 0;    // last new-socket re-attach
     int         m_nUnknownPongs = 0;  // pongs that said "this address has no slot here"
     int         m_nAutoReN = 0;       // re-attaches this session
+    bool        m_bRelayJoin = false; // 5.02.80: joined through the online relay
+    uint64_t    m_nConnTickAt = 0, m_nConnectFirst = 0;   // 5.02.80: connect clock (paused while the lobby link is down)
     uint32_t    m_nNetGenSeen = 0;    // 4.05.8: Online::NetGeneration() at the last check
     uint64_t    m_nNetChangedMs = 0;  // 4.05.8
     // 4.05.8: link quality + redundancy

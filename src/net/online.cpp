@@ -2730,6 +2730,7 @@ bool Online::IsRelayIp(const char* ip)
     return (ntohl(a.s_addr) & 0xFFFF0000u) == RELAY_NET;
 }
 
+static void JoinTargetLocked(uint32_t tok);
 bool Online::OpenProxy(const char* relayIp, uint16_t port, uint16_t* localPort)
 {
     in_addr a;
@@ -2749,6 +2750,16 @@ bool Online::OpenProxy(const char* relayIp, uint16_t port, uint16_t* localPort)
     (void)port;
     s_ProxyFd = fd; s_ProxyToken = tok; s_bProxyPeer = false;
     // 2.20: the host relays on its region's broker; go there (the net thread switches)
+    JoinTargetLocked(tok);
+    return true;
+}
+
+// 5.02.80: where the lobby link must be for this join. A server listed on a far region (EU / NA / Oceania seen from
+// Asia, or the other way) is joined on that region only when its broker answers; a region in standby / not reachable
+// from this phone sends the join over the public lobby the host is also seen on, never a wait on a dead broker
+// (that was the endless "Connecting..."). s_M is held.
+static void JoinTargetLocked(uint32_t tok)
+{
     auto li = s_List.find(tok);
     // 5.01.04: only a listing read ON a regional broker moves us to its region (a host on the public lobby still
     // sends its menu region in the listing - that broker is not where it relays)
@@ -2757,9 +2768,22 @@ bool Online::OpenProxy(const char* relayIp, uint16_t port, uint16_t* localPort)
     // 5.01.04: to the public broker it was seen on (mosquitto / hivemq / emqx), also when we are on another free one
     auto pi = s_PubList.find(tok);
     s_bJoinPublic = (li == s_List.end() || !li->second.confirmed || MP_NowMs() - li->second.lastSeen > LIST_FRESH_MS) && pi != s_PubList.end();
+    // 5.02.80: its region is far / in standby (no answer to the region ping) but the public lobby has it: go there
+    if(!s_bJoinPublic && s_nJoinRegion >= 0 && s_bPingedOnce && !RegionUp(s_nJoinRegion) && pi != s_PubList.end())
+    {
+        OLOG("5.02.80: the server's region %d does not answer from here - joining it over the public lobby", s_nJoinRegion);
+        s_bJoinPublic = true;
+    }
     s_nJoinPubGroup = s_bJoinPublic ? pi->second.src : -1;
     if(s_bJoinPublic) { s_nJoinRegion = -1; OLOG("4.06: joining a server of the public lobby (%d) - moving the lobby link there", s_nJoinPubGroup); }
-    return true;
+}
+
+// 5.02.80: the relayed game went quiet (auto reconnect): look again where its host relays now (it may have moved
+// region / public broker) and measure the regions again, so the lobby link follows it instead of waiting forever
+void Online::RelayStalled()
+{
+    { std::lock_guard<std::mutex> lk(s_M); if(s_ProxyFd >= 0 && s_ProxyToken) JoinTargetLocked(s_ProxyToken); }
+    s_bPingNow = true;
 }
 
 void Online::CloseProxy()

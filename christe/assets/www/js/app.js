@@ -7,7 +7,7 @@
 (function (G, D) {
   'use strict';
   var $ = function (s, r) { return (r || D).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || D).querySelectorAll(s)); };
-  var VERSION = '1.4.1', MPVER = '5.02.79';
+  var VERSION = '1.5', MPVER = '5.02.80';
   var URLS = {
     lobby: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/live-status/status.json',
     f247: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/mp247-data/omp247.json',
@@ -47,6 +47,7 @@
     play: function () { return 'ok'; }, openApp: function () { return false; }, open: function (u) { G.open(u, '_blank'); }, toast: function (t) { toast(t); }, exit: function () {}, log: function () {},
     obb: function () { return JSON.stringify({ main: { own: 1970000000, game: 1970000000, ownPath: '/storage/emulated/0/Android/obb/com.christe.mp/main.8.com.christe.mp.obb' }, patch: { own: 0, game: 625000000, ownPath: '/storage/emulated/0/Android/obb/com.christe.mp/patch.8.com.christe.mp.obb' }, ready: true, canAsk: true, gameAdded: true, gameImported: true, gameSize: 1.6e9, gameNeed: 'any GTA SA AML .apk: 2.10 (64-bit) or 2.00 (32-bit), AML Multiplayer switches its CPU mode to fit', edition: '64', has32: true, gameAbi: '32-bit only (armeabi-v7a)', editionNeed: G.location.hash.indexOf('ed32') >= 0 ? '32' : '', editionText: 'This GTA SA is 32-bit (GTA SA 2.00, no arm64-v8a). AML Multiplayer switches itself to 32-bit mode to run it: Android asks once to reinstall AML Multiplayer, your settings, game files and the added GTA SA stay.' }); },
     obbCopy: function (id) { var d = 0; var t = setInterval(function () { d += 0.2; G.CX_prog(id, d >= 1 ? 'done' : 'copy', d * 2.6e9, 2.6e9, d >= 1 ? 'Game files ready' : 'main'); if (d >= 1) clearInterval(t); }, 400); },
+    obbDownload: function (id) { var d = 0; var t = setInterval(function () { d += 0.25; G.CX_prog(id, d >= 1 ? 'done' : 'download', d * 2.6e9, 2.6e9, d >= 1 ? 'Game files ready - tap Play' : 'main.8 OBB'); if (d >= 1) clearInterval(t); }, 400); }, gameDownload: function (id) { var d = 0; var t = setInterval(function () { d += 0.25; G.CX_prog(id, d >= 1 ? 'done' : 'download', d * 2.6e9, 2.6e9, d >= 1 ? 'Game files ready - tap Play' : 'main.8 OBB'); if (d >= 1) clearInterval(t); }, 400); }, vcDownload: function (id) { var d = 0; var t = setInterval(function () { d += 0.25; G.CX_prog(id, d >= 1 ? 'done' : 'download', d * 2.6e9, 2.6e9, d >= 1 ? 'Game files ready - tap Play' : 'main.8 OBB'); if (d >= 1) clearInterval(t); }, 400); },
     obbImport: function (id) { G.CX_prog(id, 'cancel', 0, 0, ''); }, obbAccess: function () {}, gameAdd: function (id) { G.CX_prog(id, 'cancel', 0, 0, ''); }, gameRemove: function () {},
     coopInfo: function (id, h, p) { setTimeout(function () { G.CX_coop(id, JSON.stringify({ ok: true, name: 'CoopFusion LAN', players: 2, max: 8, ver: '1.1', ms: 40 })); }, 300); },
     coopLan: function (id) { setTimeout(function () { G.CX_coopLan(id, JSON.stringify([{ host: '192.168.1.7', port: 6767, name: "Juan's co-op", players: 1, max: 64, ver: '1.1' }])); }, 700); }, coopReady: function () { return ''; },
@@ -374,7 +375,7 @@
     var st = OBB.gameImported ? '<span class="st-ok">Added to AML Multiplayer' + (OBB.gameVersion ? ' v' + esc(OBB.gameVersion) : '') + (OBB.gameSize ? ' (' + gb(OBB.gameSize) + ')' : '') + '</span>' : '<span class="st-bad">Not added yet</span>';
     return '<div class="card"><h3>GTA SA game</h3>' + opt('GTA San Andreas', st + '<br>Works with ' + esc(OBB.gameNeed || 'GTA SA AML') + '. Pick your own GTA SA .apk once: AML Multiplayer keeps its own copy and always runs that one inside; it never opens or uses the GTA SA app. (Rockstar\'s game is not shipped with AML Multiplayer, you add the copy you own.)' +
       (j ? '<div class="prog"><i style="width:' + (j.total ? Math.round(j.done * 100 / j.total) : 0) + '%"></i></div><span id="jobMsg">' + esc(j.msg || '') + '</span>' : ''),
-      '<button class="btn sm go" data-act="game-add"' + (S.job ? ' disabled' : '') + '>' + ic('plus') + (OBB.gameImported ? 'Replace' : 'Add GTA SA') + '</button>' + (OBB.gameImported ? '<button class="btn sm red" data-act="game-remove">Remove</button>' : '')) + '</div>';
+      (OBB.gameImported ? '' : '<button class="btn sm go" data-act="game-dl"' + (S.job ? ' disabled' : '') + '>' + ic('download') + 'Download</button>') + '<button class="btn sm' + (OBB.gameImported ? ' go' : '') + '" data-act="game-add"' + (S.job ? ' disabled' : '') + '>' + ic('plus') + (OBB.gameImported ? 'Replace' : 'Add GTA SA') + '</button>' + (OBB.gameImported ? '<button class="btn sm red" data-act="game-remove">Remove</button>' : '')) + '</div>';
   }
   function hasObb() { return OBB.ready || (OBB.main && (OBB.main.own > 0 || OBB.main.game > 0)); }
   function gameCard(g) {
@@ -397,9 +398,9 @@
   function obbCard() {
     var j = S.job;
     return '<div class="card"><h3>GTA SA game files</h3>' + obbRow('main') + obbRow('patch') +
-      '<div class="opt"><div class="ol"><b>Get the game files</b><span>Copy them from the installed GTA SA, or pick the main.8 / patch.8 files. Android 11+ may need "Allow access" first.</span>' +
+      '<div class="opt"><div class="ol"><b>Get the game files</b><span>Download them in the app (main.8 1.97 GB + patch.8 625 MB from the MP releases, resumes if cut), copy them from the installed GTA SA, or pick the files. Android 11+ may need "Allow access" to copy.</span>' +
       (j ? '<div class="prog"><i style="width:' + (j.total ? Math.round(j.done * 100 / j.total) : 0) + '%"></i></div><span id="jobMsg">' + esc(j.msg || '') + '</span>' : '') + '</div>' +
-      '<button class="btn sm go" data-act="obb-copy"' + (j ? ' disabled' : '') + '>' + ic('download') + 'Copy</button><button class="btn sm" data-act="obb-import"' + (j ? ' disabled' : '') + '>' + ic('folder') + 'Import</button>' + (OBB.canAsk ? '<button class="btn sm" data-act="obb-access">Allow access</button>' : '') + '</div></div>';
+      '<button class="btn sm go" data-act="obb-dl"' + (j ? ' disabled' : '') + '>' + ic('download') + 'Download</button><button class="btn sm" data-act="obb-copy"' + (j ? ' disabled' : '') + '>' + ic('download') + 'Copy</button><button class="btn sm" data-act="obb-import"' + (j ? ' disabled' : '') + '>' + ic('folder') + 'Import</button>' + (OBB.canAsk ? '<button class="btn sm" data-act="obb-access">Allow access</button>' : '') + '</div></div>';
   }
   function engineCard() {
     return '<div class="card"><h3>MP files</h3>' + opt('MP data (files/TYFMC/MP)', ENG.mpFiles ? '<span class="st-ok">ready</span>' : '<span class="st-mid">not downloaded yet - MP downloads what it needs on first start, or get it all now</span>', '<button class="btn sm" data-act="mp-files">' + ic('download') + 'Download</button>') + '</div>';
@@ -519,7 +520,7 @@
       S.job.done = done; S.job.total = total; S.job.msg = kind === 'edition' ? 'Preparing ' + (msg || '') : (state === 'download' ? 'Downloading ' : 'Copying ') + (msg || '') + ' ' + gb(done) + (total > 0 ? ' / ' + gb(total) : '');
       var b = $('.prog i'); if (b) b.style.width = (total ? Math.round(done * 100 / total) : 0) + '%'; var m = $('#jobMsg'); if (m) m.textContent = S.job.msg;
     };
-    var fn = { 'obb-copy': 'obbCopy', 'obb-import': 'obbImport', 'mp-files': 'mpFiles', 'game-add': 'gameAdd', edition: 'editionSwitch' }[kind];
+    var fn = { 'obb-copy': 'obbCopy', 'obb-import': 'obbImport', 'mp-files': 'mpFiles', 'game-add': 'gameAdd', edition: 'editionSwitch', 'obb-dl': 'obbDownload', 'game-dl': 'gameDownload', 'vc-dl': 'vcDownload' }[kind];
     if (!call(fn, id, arg)) { delete PROG[id]; S.job = null; render(); toast('Update AML Multiplayer for this'); }
   }
   function act(a) {
@@ -527,7 +528,7 @@
     else if (a === 'offline-play') play('sa', null);
     else if (a === 'auth') showAuth('login');
     else if (a === 'lan-scan') scanLan();
-    else if (a === 'obb-copy' || a === 'obb-import' || a === 'mp-files' || a === 'game-add') job(a);
+    else if (a === 'obb-copy' || a === 'obb-import' || a === 'mp-files' || a === 'game-add' || a === 'obb-dl' || a === 'game-dl' || a === 'vc-dl') job(a);
     else if (a === 'go-storage') go('settings', 'storage');
     else if (a === 'edition') { var ot = OBB.edition === '32' ? '64' : '32'; if (OBB.editionNeed === ot) job('edition', ot); else confirmDlg('Switch CPU mode', 'Reinstall AML Multiplayer in ' + edName(ot) + '? Your settings, game files and the added GTA SA stay. ' + (ot === '32' ? 'It runs 32-bit GTA SA 2.00 only.' : 'It runs 64-bit GTA SA 2.10.'), 'Switch', function () { job('edition', ot); }); }
     else if (a === 'game-remove') confirmDlg('Remove GTA SA', 'Remove the GTA SA copy that was added to AML Multiplayer? Your game files and saves stay.', 'Remove', function () { call('gameRemove'); readInfo(); render(); });
@@ -561,8 +562,8 @@
       return;
     }
     if (game === 'sa' && (inApp() || OBB.gameImported) && !hasObb()) {
-      dialog('GTA SA game files', '<p>GTA SA inside AML Multiplayer needs its game files (main.8 and patch.8). Copy them from the installed GTA SA or pick the files once.</p>', [['Cancel', ''], ['Import', ''], ['Copy', 'go']], function (i) {
-        if (i === 1) { go('settings', 'storage'); job('obb-import'); } else if (i === 2) { go('settings', 'storage'); job('obb-copy'); }
+      dialog('GTA SA game files', '<p>GTA SA inside AML Multiplayer needs its game files (main.8 and patch.8). Download them here (about 2.6 GB, no upload), copy them from the installed GTA SA or pick the files once.</p>', [['Cancel', ''], ['Import', ''], ['Copy', ''], ['Download', 'go']], function (i) {
+        if (i === 1) { go('settings', 'storage'); job('obb-import'); } else if (i === 2) { go('settings', 'storage'); job('obb-copy'); } else if (i === 3) { go('settings', 'storage'); job(OBB.gameImported ? 'obb-dl' : 'game-dl'); }
       });
       return;
     }

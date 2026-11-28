@@ -17,6 +17,8 @@
                 (a new saved login goes to their MP/auth_service.txt). /resetpass = the same form
   /streaming on|off - 4.13.16: (server managers) the bot joins a voice channel and plays the YouTube live 24/7
   /changelog  - 4.13.20: (server managers) posts the mod release changelog (wagu docs/discord/changelog.md) with @everyone
+  live feed   - 5.02.80: every MP player's join / leave / mission / chat on any server, posted in FEED_CHANNEL_ID
+                (default 1576192312126472323) through a bot-made webhook under the player's Discord username
   /check      - 5.01.03: (only the CHECK_ROLE_ID role, default 1562343934590713937) every MP game account with its
                 Discord username: all, one member: or search: (MP name / Discord name / id); pages + CSV, only you see it
 
@@ -53,8 +55,9 @@ import paho.mqtt.client as mqtt
 
 from authcore import AuthCore, TOPIC_REQ, TOPIC_RES, MAX_ACCOUNTS
 from ghstore import GhStore
+from livefeed import LiveFeed, TOPIC as FEED_TOPIC
 
-VERSION = "5.01.03"
+VERSION = "5.02.80"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("mpbot")
 
@@ -104,8 +107,12 @@ class Bridge:
     def on_connect(self, c, idx, flags, rc, props=None):
         log.info("broker %s connected (%s)", BROKERS[idx][0], rc)
         c.subscribe(TOPIC_REQ, qos=0)
+        c.subscribe(FEED_TOPIC, qos=0)   # 5.02.80: MP live feed (joins, leaves, missions, chat)
 
     def on_message(self, c, idx, msg):
+        if msg.topic == FEED_TOPIC:   # 5.02.80
+            feed.feed(msg.payload)
+            return
         try:
             r = core.handle_frame(msg.payload, idx)
         except Exception:
@@ -156,6 +163,7 @@ NO_CONTENT_FLAG = os.path.join(DATA_DIR, "no_message_content")
 AUTO_REPLY = os.environ.get("AUTO_REPLY", "1").strip().lower() not in ("0", "off", "no", "false")
 intents.message_content = AUTO_REPLY and not os.path.exists(NO_CONTENT_FLAG)
 client = discord.Client(intents=intents)
+feed = LiveFeed(client, core)   # 5.02.80: MP live feed -> FEED_CHANNEL_ID (webhook)
 tree = app_commands.CommandTree(client)
 synced = {"cmds": [], "guilds": 0, "at": 0}
 
@@ -1022,7 +1030,7 @@ async def _sync_guild(g):
 @client.event
 async def on_ready():
     log.info("Logged in as %s, in %d server(s) - MP bot %s %s", client.user, len(client.guilds), VERSION, COMMIT)
-    log.info("Invite link (bot + slash commands): https://discord.com/oauth2/authorize?client_id=%s&scope=bot+applications.commands&permissions=281752005249025", client.user.id)
+    log.info("Invite link (bot + slash commands): https://discord.com/oauth2/authorize?client_id=%s&scope=bot+applications.commands&permissions=281752542119937", client.user.id)
     for g in client.guilds:   # guild sync: the commands show up at once
         await _sync_guild(g)
     synced["guilds"], synced["at"] = len(client.guilds), int(time.time())
@@ -1036,6 +1044,7 @@ async def on_ready():
             log.info("removed the old global command copies (no more double /gen)")
     except Exception as e:
         log.warning("global commands: %s", e)
+    feed.start()   # 5.02.80
     if not getattr(client, "_beacon", None):
         client._beacon = asyncio.create_task(beacon())
     if not getattr(client, "_repush", None):

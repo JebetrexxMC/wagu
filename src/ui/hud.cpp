@@ -636,13 +636,20 @@ static Jar s_IconsJar, s_VehJar, s_BgJar;   // 4.04: s_BgJar = files/TYFMC/MP/bg
 struct IconSlot { RwRaster* r = nullptr; ImVec2 uv{1, 1}; bool tried = false; };
 static IconSlot s_Icons[MP_ICON_MAX + 1];
 static uint32_t s_nIconLoadFrame = 0;
+// 5.02.80: the neon title menu (no ImGui frame running there: GImGui may still be null) loads pictures too -
+// a frame number from ImGui when it runs, else a 30 ms time slot, so one file per slot, never a null ImGui read
+static uint32_t LoadSlot()
+{
+    if(GImGui && GImGui->FrameCount > 0) return (uint32_t)GImGui->FrameCount;
+    return 0x80000000u | (uint32_t)(MP_NowMs() / 30);
+}
 void* HUD::ServerIcon(int id, ImVec2* uv)
 {
     if(id < 0 || id > MP_ICON_MAX) id = 0;
     IconSlot& s = s_Icons[id];
     if(!s.tried)
     {
-        uint32_t fr = (uint32_t)ImGui::GetFrameCount();
+        uint32_t fr = LoadSlot();
         if(s_nIconLoadFrame == fr) return id ? ServerIcon(0, uv) : nullptr;   // next frame
         s_nIconLoadFrame = fr;
         s.tried = true;
@@ -703,7 +710,7 @@ void* HUD::Texture(const char* file, ImVec2* uv)
     for(int i = 0; i < s_nNamedTex; ++i)
         if(!strcmp(s_NamedTex[i].file, file)) { if(uv) *uv = s_NamedTex[i].uv; return (void*)s_NamedTex[i].r; }
     if(s_nNamedTex >= (int)(sizeof(s_NamedTex) / sizeof(s_NamedTex[0]))) return nullptr;
-    uint32_t fr = (uint32_t)ImGui::GetFrameCount();
+    uint32_t fr = LoadSlot();
     if(s_nIconLoadFrame == fr) return nullptr;   // one file per frame
     s_nIconLoadFrame = fr;
     NamedTex& t = s_NamedTex[s_nNamedTex++];
@@ -747,7 +754,7 @@ void* HUD::VehiclePic(int model, ImVec2* uv)
     VehPic& v = s_VehPic[model - 400];
     if(!v.tried)
     {
-        uint32_t fr = (uint32_t)ImGui::GetFrameCount();
+        uint32_t fr = LoadSlot();
         if(s_nIconLoadFrame == fr) return nullptr;   // next frame
         s_nIconLoadFrame = fr;
         v.tried = true;

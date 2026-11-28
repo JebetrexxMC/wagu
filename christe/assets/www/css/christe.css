@@ -108,9 +108,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .trow { height: 30px; font-size: 12px; cursor: pointer; background: var(--row1); position: relative; isolation: isolate; border-bottom: 1px solid rgba(0,0,0,.35); }
 .trow:nth-child(even) { background: var(--row2); } .trow > span { position: relative; }
 /* 1.2: the MP mod's server picture (bg_server.jar) behind every row, fading into the table like the MP launcher */
-.trow .rbg { position: absolute; left: 0; top: 0; bottom: 0; width: calc(100% - 342px); max-width: 420px; z-index: -2; background: center / cover no-repeat;
+.trow .rbg { position: absolute; left: 0; top: 0; bottom: 0; width: calc(100% - 350px); max-width: 420px; min-width: 60px; z-index: -2; background: center / cover no-repeat; display: block; overflow: hidden;
   /* 1.3: the picture stays under HostName and fades out on its right edge (like the MP mod), never under Gamemode */
   -webkit-mask-image: linear-gradient(90deg, #000 0, #000 55%, transparent 100%); mask-image: linear-gradient(90deg, #000 0, #000 55%, transparent 100%); }
+/* 1.5: the right-edge fade is also painted (old Android WebViews ignore mask-image): the picture melts into the row colour like the MP mod (fade 0.55) */
+.trow { --rowc: rgb(20,23,28); } .trow:nth-child(even) { --rowc: rgb(27,31,37); }
+.trow .rbg::after { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 45%; background: linear-gradient(90deg, rgba(12,14,18,0) 0, var(--rowc) 100%); }
+/* 1.5: Gamemode never sits on the picture and never runs into Players */
+.trow .md { min-width: 0; max-width: 100%; padding-left: 2px; text-shadow: 0 1px 2px #000; }
+.trow .nm { padding-right: 4px; }
+@media (max-width: 620px) { .thead, .trow { grid-template-columns: 18px minmax(0, 1fr) minmax(0, 82px) 56px 40px 0 26px; } .thead > span:nth-child(6), .trow .lg { visibility: hidden; overflow: hidden; } .trow .rbg { width: calc(100% - 228px); } }
 .trow::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(12,14,18,.15) 0, rgba(12,14,18,.5) 22%, rgba(12,14,18,.88) 46%, rgba(12,14,18,.93) 100%); }
 .trow .nm .t { font-weight: 600; text-shadow: 0 1px 2px #000; }
 .trow.sel { background: rgba(126,178,226,.26) !important; box-shadow: inset 3px 0 0 var(--neon); }

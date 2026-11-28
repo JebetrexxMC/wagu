@@ -59,6 +59,7 @@ namespace Online
     void SetHostStart(uint32_t unixStart);   // 2.27: listing "proto:icon@start:language"   // 2.25: language shown in everyone's server list        // 2.24: 0 = default icon, 1..250 = icon_N.png (sent with the listing)
 
     bool IsRelayIp(const char* ip);    // 127.77.x.y
+    void RelayStalled();               // 5.02.80: the relayed game went quiet: follow its host's broker again, ping the regions now
     // 3.11: the 24/7 server behind this relay address answers over direct UDP (ipNet, measured rtt)
     bool DirectAddr(const char* relayIp, uint16_t port, uint32_t* ipNet, int* rttMs);
     void DirectFailed(const char* relayIp);   // a direct join / session failed: relay for 10 min

@@ -17,7 +17,85 @@ static bool s_bNeonHidden = false;                   // "Game settings": the gam
 static LRow s_NeonPending;
 static char s_szNeonSearch[64] = "";
 static bool s_bNeonQuickAfterLoad = false;   // 4.13.28: Quick connect tapped on the title
-static int  s_nNeonList = 0;                         // 0 all, 1 featured, 2 favourites, 3 Wi-Fi
+static int  s_nNeonList = 0;                         // 0 all, 1 featured, 2 favourites, 3 Wi-Fi, 4 co-op (5.02.80)
+#define NEON_LISTS 5
+// 5.02.80: the CO-OP tab (like AML Multiplayer > Co-op): CoopFusion32 servers from coopfusion/servers.json on GitHub
+// + files/TYFMC/MP/coop_servers.txt ("host:port name" a line). Read on a background thread, every 60 s while shown.
+#define NEON_COOP_URL "https://raw.githubusercontent.com/JebetrexxMC/wagu/main/coopfusion/servers.json"
+struct NeonCoopSrv { std::string name, host; int port; };
+static std::mutex s_NeonCoopM;
+static std::vector<NeonCoopSrv> s_NeonCoop;
+static std::atomic<bool> s_bNeonCoopBusy{false};
+static uint64_t s_nNeonCoopAt = 0;
+static std::string NeonJsonStr(const std::string& o, const char* key)
+{
+    std::string k = std::string("\"") + key + "\"";
+    size_t p = o.find(k); if(p == std::string::npos) return "";
+    p = o.find(':', p + k.size()); if(p == std::string::npos) return "";
+    ++p; while(p < o.size() && (o[p] == ' ' || o[p] == '\t')) ++p;
+    if(p < o.size() && o[p] == '"') { size_t e = o.find('"', p + 1); return e == std::string::npos ? "" : o.substr(p + 1, e - p - 1); }
+    size_t e = p; while(e < o.size() && (isdigit((unsigned char)o[e]) || o[e] == '-')) ++e;
+    return o.substr(p, e - p);
+}
+static void NeonCoopLoad()
+{
+    if(s_bNeonCoopBusy.exchange(true)) return;
+    s_nNeonCoopAt = MP_NowMs();
+    std::thread([]()
+    {
+        std::vector<NeonCoopSrv> out;
+        auto add = [&](const std::string& h, int port, const std::string& nm)
+        {
+            if(h.empty() || port <= 0 || port > 65535) return;
+            for(auto& q : out) if(q.host == h && q.port == port) return;
+            out.push_back({ nm.empty() ? h + ":" + std::to_string(port) : nm, h, port });
+        };
+        std::string body, why;
+        if(Online::HttpsFetch(NEON_COOP_URL, body, 8000, why, 64 * 1024, nullptr))
+        {
+            size_t at = body.find("\"servers\"");
+            while(at != std::string::npos)
+            {
+                size_t a = body.find('{', at); if(a == std::string::npos) break;
+                size_t b = body.find('}', a); if(b == std::string::npos) break;
+                std::string o = body.substr(a, b - a + 1);
+                const std::string ps = NeonJsonStr(o, "port");
+                add(NeonJsonStr(o, "host"), ps.empty() ? 6767 : atoi(ps.c_str()), NeonJsonStr(o, "name"));
+                at = b + 1;
+            }
+        }
+        char path[512]; snprintf(path, sizeof(path), "%s/coop_servers.txt", MP::DataDir());
+        if(FILE* f = fopen(path, "r"))
+        {
+            char ln[256];
+            while(fgets(ln, sizeof(ln), f))
+            {
+                char host[128] = "", nm[96] = ""; int port = 6767;
+                if(ln[0] == '#' || sscanf(ln, "%127[^: \t\r\n]:%d %95[^\r\n]", host, &port, nm) < 1) continue;
+                add(host, port, nm);
+            }
+            fclose(f);
+        }
+        { std::lock_guard<std::mutex> lk(s_NeonCoopM); s_NeonCoop.swap(out); }
+        s_bNeonCoopBusy = false;
+    }).detach();
+}
+static void NeonCoopRows(std::vector<LRow>& out)
+{
+    if(!s_nNeonCoopAt || MP_NowMs() - s_nNeonCoopAt > 60000) NeonCoopLoad();
+    std::lock_guard<std::mutex> lk(s_NeonCoopM);
+    for(auto& c : s_NeonCoop)
+    {
+        LRow r; memset(&r, 0, sizeof(r));
+        r.kind = 9; r.live = true; r.internet = true; r.ping = -1; r.region = -1; r.maxp = 64;
+        MP_CopyStr(r.name, c.name.c_str(), sizeof(r.name));
+        MP_CopyStr(r.ip, c.host.c_str(), sizeof(r.ip)); r.port = c.port;
+        MP_CopyStr(r.mode, "Co-op (story)", sizeof(r.mode));
+        MP_CopyStr(r.desc, "CoopFusion32 co-op server - crossplay through MP", sizeof(r.desc));
+        r.bg = "bg_default.jpg";
+        out.push_back(r);
+    }
+}
 static bool s_bNeonListOpen = false, s_bNeonFilterOpen = false;
 static bool s_bNeonHideFull = false, s_bNeonHideEmpty = false, s_bNeonHideLocked = false;
 static char s_szNeonSelKey[64] = "";
@@ -148,6 +226,7 @@ static void NeonBuild(std::vector<LRow>& out)
     if(s_nNeonList == 0) { s_nInetSub = 0; LBuildRows(LT_INTERNET, nearby, tmp); for(auto& r : tmp) add(r); }
     if(s_nNeonList == 0 || s_nNeonList == 3) { LBuildRows(LT_LAN, nearby, tmp); for(auto& r : tmp) add(r); }
     if(s_nNeonList == 2) { LBuildRows(LT_FAVORITES, nearby, tmp); for(auto& r : tmp) add(r); }
+    if(s_nNeonList == 4) { tmp.clear(); NeonCoopRows(tmp); for(auto& r : tmp) add(r); }   // 5.02.80
     s_nInetSub = sub; s_nSortCol = sc; MP_CopyStr(s_szSearch, keep, sizeof(s_szSearch));
     const bool addr = NeonIsAddress(s_szNeonSearch);
     std::vector<LRow> f;
@@ -247,7 +326,7 @@ static void NeonBrowser(ImDrawList* dl, ImVec2 ds)
     dl->AddRectFilled(ta, tb, IM_COL32(13, 14, 17, 240), 5 * u);
     dl->AddRect(ta, tb, kNLine, 5 * u, 0, 1.2f * u);
     const float tcy = (ta.y + tb.y) * 0.5f;
-    static const char* const kLists[4] = { "NEON SERVERS", "FEATURED", "FAVORITES", "WI-FI / LAN" };
+    static const char* const kLists[NEON_LISTS] = { "NEON SERVERS", "FEATURED", "FAVORITES", "WI-FI / LAN", "CO-OP" };
     {
         NeonText(dl, uf, 11 * u, ImVec2(X(78), tcy - 7 * u), IM_COL32(180, 182, 188, 255), kLists[s_nNeonList], 3.2f * u);
         const float w = NeonTextW(uf, 11 * u, kLists[s_nNeonList], 3.2f * u);
@@ -486,9 +565,9 @@ static void NeonBrowser(ImDrawList* dl, ImVec2 ds)
     // dropdowns (on top)
     if(s_bNeonListOpen)
     {
-        const ImVec2 a(X(66), tb.y + 4 * u), b(X(300), tb.y + 4 * u + 4 * 40 * u);
+        const ImVec2 a(X(66), tb.y + 4 * u), b(X(300), tb.y + 4 * u + NEON_LISTS * 40 * u);
         dl->AddRectFilled(a, b, IM_COL32(12, 13, 16, 252), 5 * u); dl->AddRect(a, b, kNLine, 5 * u, 0, 1.1f * u);
-        for(int k = 0; k < 4; ++k)
+        for(int k = 0; k < NEON_LISTS; ++k)
         {
             const ImVec2 ia(a.x, a.y + k * 40 * u), ib(b.x, ia.y + 40 * u);
             if(k == s_nNeonList) dl->AddRectFilled(ImVec2(ia.x + 2 * u, ia.y + 2 * u), ImVec2(ib.x - 2 * u, ib.y - 2 * u), IM_COL32(40, 36, 26, 255), 4 * u);
@@ -1413,9 +1492,11 @@ static void NeonPIni(const LRow& r, float x0, float y0, float sz)
 }
 // 5.02.78: the bg_server.jar picture of a row (like the MP launcher's CS:GO rows) instead of the initials tile: cover-cropped,
 // the right part fading out into the row so the name / gamemode text never sits on a hard picture edge
+static bool s_bNeonRowBgOff = false;   // 5.02.80: a crash while the Browse page drew pictures -> plain rows (the neon menu stays)
 static bool NeonPRowBg(const LRow& r, float x0, float y0, float x1, float y1, float fade, uint8_t alpha)
 {
     using namespace NeonPaint;
+    if(s_bNeonRowBgOff) return false;
     ImVec2 uv(1, 1); void* rs = LRowPreview(r, &uv); if(!rs) rs = LRowBg(r, &uv);
     const Tex* t = rs ? FromRaster(rs, 512, 256) : nullptr;
     if(!t || x1 <= x0 || y1 <= y0) return false;
@@ -1518,14 +1599,14 @@ static void NeonPBrowse(float W, float H)
         NeonPText(F_CAPS, a, x, 54 * u, fs, NC(200, 202, 208), 1.6f * u, true);
     }
     // ---- the tools: list / refresh / search (paste) / CONNECT / FILTERS
-    static const char* const kTabs[] = { "ALL SERVERS", "FEATURED", "FAVOURITES", "WI-FI" };
+    static const char* const kTabs[] = { "ALL SERVERS", "FEATURED", "FAVOURITES", "WI-FI", "CO-OP" };
     static const char* const kFilt[] = { "FILTERS", "WITH PLAYERS", "NOT FULL", "LOW PING" };
-    if(K & NK_LB) { s_nNeonList = (s_nNeonList + 3) % 4; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
-    if(K & NK_RB) { s_nNeonList = (s_nNeonList + 1) % 4; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
+    if(K & NK_LB) { s_nNeonList = (s_nNeonList + NEON_LISTS - 1) % NEON_LISTS; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
+    if(K & NK_RB) { s_nNeonList = (s_nNeonList + 1) % NEON_LISTS; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
     const float ty0 = 116 * u, ty1 = 152 * u, lx0 = L - 14 * u, lx1 = fmaxf(W * 0.635f, lx0 + 560 * u), rx0 = lx1 + 18 * u, rx1 = W - L + 14 * u;
     {
         char lab[40]; snprintf(lab, sizeof(lab), "%s  v", kTabs[s_nNeonList]);
-        if(NeonPChip(lab, lx0, ty0, lx0 + 190 * u, ty1, u, false, false)) { s_nNeonList = (s_nNeonList + 1) % 4; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
+        if(NeonPChip(lab, lx0, ty0, lx0 + 190 * u, ty1, u, false, false)) { s_nNeonList = (s_nNeonList + 1) % NEON_LISTS; s_nNTBuiltAt = 0; s_nNTSel = 0; s_fNTScroll = 0; }
         if(NeonPChip("REFRESH", lx0 + 200 * u, ty0, lx0 + 310 * u, ty1, u, false, s_nNTFocus == 2 && NeonPadUI())) doRefresh = true;
         const float sx0 = lx0 + 320 * u, sx1 = lx1 - 8 * u;
         Quad(sx0, ty0, sx1, ty1, TM_GLASS(130)); NeonPFrame(sx0, ty0, sx1, ty1, 1.1f * u, s_bNTPasteWait ? NB_BLUE() : TM_EDGE(48));
@@ -1650,7 +1731,7 @@ static void NeonPBrowse(float W, float H)
     {
         const bool early = MP_NowMs() - s_nNTOpenAt < 4000;
         const char* m = early ? "LOOKING FOR SERVERS..." : (s_szNeonSearch[0] ? "NO SERVER MATCHES THE SEARCH" : s_nNTFilter ? "NO SERVER MATCHES THE FILTER" :
-                        (s_nNeonList == 2 ? "NO FAVOURITE SERVERS YET" : (s_nNeonList == 3 ? "NO SERVERS ON THIS WI-FI" : "NO SERVERS FOUND - CHECK YOUR INTERNET")));
+                        (s_nNeonList == 2 ? "NO FAVOURITE SERVERS YET" : (s_nNeonList == 3 ? "NO SERVERS ON THIS WI-FI" : s_nNeonList == 4 ? (s_bNeonCoopBusy ? "LOOKING FOR CO-OP SERVERS..." : "NO CO-OP SERVER ONLINE - ADD ONE TO coop_servers.txt") : "NO SERVERS FOUND - CHECK YOUR INTERNET")));
         const float fs = 14 * u, w = TextW(F_CAPS, m, fs, 1.8f * u);
         NeonPText(F_CAPS, m, (lx0 + lx1 - w) * 0.5f, (ly0 + ly1) * 0.5f - fs, fs, NC(160, 164, 172), 1.8f * u);
     }
@@ -2613,6 +2694,13 @@ void MP::NeonMenuTick()
     ChristeIntentTick();   // 5.02.76
     NeonMusicMenuTick(now);   // 5.02.06: every menu mode, 4 s + 20 ticks after the title menu first shows
     if(s_nNeonMode == NEON_MODE_DEFAULT) return;   // 4.13.30
+    // 5.02.80: Browse servers crashed the title frame (caught) -> the game's own menu came up instead of the list.
+    // Turn the row pictures off and bring the neon menu back on the Browse page (HUD allows 3 retries a run).
+    if(HUD::TitleMenuBroken() && s_nNT == NT_BROWSE && !s_bNeonRowBgOff)
+    {
+        s_bNeonRowBgOff = true;
+        if(HUD::TitleMenuRetry()) logger->Info("Neon menu: Browse servers crashed while drawing server pictures - plain rows now, the list stays");
+    }
     const bool titleUp = s_nNeonTitleMs && now - s_nNeonTitleMs < 600 && NeonTitleCtx();
     if(titleUp) NotifySoundFetch();
     if(s_bNeonToastSound && titleUp)

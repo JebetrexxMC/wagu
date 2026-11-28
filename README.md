@@ -838,6 +838,16 @@ Built into libMP and mp_server (no separate program), on [open.mp's RakNet](http
 
 ## Changelog
 
+### MP 5.02.80 + AML Multiplayer 1.5
+- **Neon Browse servers** no longer drops you on the game's default main menu. The Browse page painted server pictures before RenderWare was ready on the title screen, and that caught crash switched the neon menu off. RenderWare is now set up first, picture loading no longer reads ImGui on the title, and if drawing pictures ever fails the list stays up with plain rows.
+- **Co-op tab in the mod**: the neon browser has a CO-OP list (LB / RB or the list menu) with the CoopFusion32 servers from `coopfusion/servers.json` and your own `MP/coop_servers.txt` (`host:port name`, one per line), the same as AML Multiplayer > Co-op.
+- **Far-region joins stop looping on "Connecting..."**: a server on a region broker that does not answer from your phone (standby, or EU / NA / Oceania from Asia and back) is joined over the public lobby it is also listed on. The connect clock pauses while the lobby link moves to the far broker (30 s hard limit). Auto reconnect on relayed games follows the host's broker, and after 6 failed re-attaches (70 s) it rejoins for real instead of reconnecting for 5 minutes. A featured server that is offline waits 1 minute (was 3).
+- **Discord live feed**: your own joins, leaves, missions and chat on any server (never commands) go to the MP Discord bot. The bot posts them in channel `1576192312126472323` through a webhook it creates there, named with your Discord username, with no avatar and no profile. Turn it off with `MP/discord_feed_off.txt`. The bot needs Manage Webhooks (the new invite link in its log includes it).
+- **AML Multiplayer server rows**: the bg_server picture fades out on its right edge on every WebView, and Gamemode never overlaps the picture or Players. Narrow screens hide the Language column.
+- **No more uploading big files**: Settings > Storage > **Download** gets main.8 + patch.8 (release v5.02.74) into AML Multiplayer's own OBB folder, and GTA SA > **Download** also gets the GTA SA AML .apk for your CPU (2.10 64-bit / 2.00 32-bit, release v5.02.77). Downloads check free space and resume where they were cut.
+- `include/plugin-sdk-sa/`: GTA SA / VC class headers from plugin-sdk-sa (reference layouts; Android addresses still come from AML).
+- Not touched: the loading screens, the neon join and < Spawn >.
+
 ### AML Multiplayer 1.4.1
 - **One APK again**: `AMLMultiplayer-32bit.apk` is gone. `AMLMultiplayer.apk` carries both MP builds (`lib/arm64-v8a/libMP64.so` and `lib/armeabi-v7a/libMP32.so`).
 - A GTA SA with no arm64-v8a (GTA SA 2.00, 32-bit) works on a 64-bit phone. AML Multiplayer reinstalls its own APK in 32-bit mode, with Android's CPU override (the same as `adb install --abi armeabi-v7a`), and Android keeps that mode for later updates. Switching back to 64-bit works the same way. Nothing is downloaded, and settings, game files and the added GTA SA stay. If an Android build blocks the override, the app shows the `adb install --abi` command instead.

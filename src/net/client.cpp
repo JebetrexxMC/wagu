@@ -8,12 +8,15 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <algorithm>
 #include <chrono>
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <linux/sockios.h>
 
 #define CONNECT_TIMEOUT_MS 10000
+#define CONNECT_HARD_MS    30000   // 5.02.80: a relayed join waits for a far lobby broker, but never "Connecting..." forever
+#define AUTORE_GIVEUP_MS   70000   // 5.02.80: 6 re-attaches and still nothing: rejoin for real instead of 5 min of reconnecting
 #define JOIN_RETRY_MS      1000
 #define PING_INTERVAL_MS   1000
 
@@ -66,6 +69,7 @@ bool MPClient::Connect(const char* host, uint16_t port, const char* name, uint16
     m_bDirect = false; m_bDirectFellBack = false; m_bGotReply = false; m_nFallbackVia = 0; m_nAltSeen = 0;
     m_nNetGenSeen = Online::NetGeneration(); m_nNetChangedMs = 0;   // 4.05.8
     m_nLastPong = 0; m_nLastAutoRe = 0; m_nUnknownPongs = 0; m_nAutoReN = 0;   // 5.02.73
+    m_bRelayJoin = viaLocalPort != 0; m_nConnTickAt = MP_NowMs();   // 5.02.80
     memset(m_Pings, 0, sizeof(m_Pings)); m_nPingRec = 0; m_nLossPct = 0; m_nJitter = 0; m_fJitter = 0; m_nLastRtt = -1; m_bWeakLink = false; m_nDupLen = 0;
 
     if(m_nDirectIp)   // 3.11: straight to the 24/7 server's public address (relay only as fallback)
@@ -110,7 +114,7 @@ bool MPClient::Connect(const char* host, uint16_t port, const char* name, uint16
     MP_CopyStr(m_szName, name, sizeof(m_szName));
     m_nPort = port; m_nSkin = skin; m_nColor = color;
     m_eState = NET_CONNECTING;
-    m_nConnectStart = MP_NowMs();
+    m_nConnectStart = MP_NowMs(); m_nConnectFirst = m_nConnectStart;
     m_nLastJoinSend = 0;
     m_nMyId = MP_INVALID_ID;
     m_nLastGamePoll = MP_NowMs();
@@ -186,6 +190,7 @@ void MPClient::AutoReconnect(uint64_t now, const char* why)
     }
     m_nAltSeen = 0; m_nUnknownPongs = 0; m_nLastPong = now;   // give the new path 12 s
     ++m_nAutoReN;
+    if(!m_bDirect && m_Server.sin_addr.s_addr == htonl(0x7F000001u)) Online::RelayStalled();   // 5.02.80: relayed: the new socket alone does not help
     (void)why;   // (the reason is for reading the code: the client has no log)
     SendJoin(MP_JOIN_REBIND);
     SendJoin(MP_JOIN_REBIND);   // UDP: twice
@@ -453,7 +458,11 @@ void MPClient::Poll(INetEvents* ev)
 
     if(m_eState == NET_CONNECTING)
     {
-        if(now - m_nConnectStart > CONNECT_TIMEOUT_MS) { Disconnect(false); ev->OnConnectFailed(); return; }
+        // 5.02.80: a relayed join (internet server) may first need the lobby link to move to a far broker (EU / NA /
+        // Oceania / public); the 10 s only count while that link is up, never more than 30 s in all
+        if(m_bRelayJoin && !m_bGotReply && !Online::IsConnected()) m_nConnectStart += std::min<uint64_t>(now - m_nConnTickAt, 1000);
+        m_nConnTickAt = now;
+        if(now - m_nConnectStart > CONNECT_TIMEOUT_MS || now - m_nConnectFirst > CONNECT_HARD_MS) { Disconnect(false); ev->OnConnectFailed(); return; }
         // 3.11: direct UDP got no answer (UDP blocked on this network?) -> use the relay from now on
         if(m_bDirect && !m_bGotReply && m_nFallbackVia && now - m_nConnectStart > 2500)
         {
@@ -513,6 +522,10 @@ void MPClient::Poll(INetEvents* ev)
             if(quiet > 12000) AutoReconnect(now, "no packets from the server");
             else if(noPong) AutoReconnect(now, "no pong from the server");
         }
+        if(quiet < 3000 && m_nAutoReN) m_nAutoReN = 0;   // 5.02.80: it came back
+        // 5.02.80: re-attaching to a server that forgot us (restart, other region host) never ends; after 6 tries and
+        // 70 s of silence the client leaves and the normal rejoin / takeover (OnLostServer) runs instead
+        if(m_nAutoReN >= 6 && quiet > AUTORE_GIVEUP_MS) { m_bReconnecting = false; Disconnect(false); ev->OnLostConnection(); return; }
         // 4.13.22: no "Lost connection (Timeout)" any more: keep the session and keep trying (the server keeps
         // the slot, the gamemode and the world for MP_RECONNECT_GRACE_MS too); give up only after that
         if(quiet > MP_TIMEOUT_MS && m_nServerBuild >= 33900 && quiet <= MP_RECONNECT_GRACE_MS)

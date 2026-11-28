@@ -22,6 +22,7 @@
 extern "C" unsigned long crc32(unsigned long crc, const unsigned char* buf, unsigned int len);   // 4.13.15: zlib (Co-op story saves; zlib.h defines "far")
 #include <unistd.h>
 #include <thread>
+#include <deque>
 #include <unordered_map>
 #include <vector>
 #include "mp.h"
@@ -173,6 +174,8 @@ static bool DupFallBack();    // 3.23.5
 static void ProcessLan(uint64_t now);
 static void CrossplayTick(uint64_t now);   // 5.02 (mp_crossplay.inc)
 static void CoopFusionTick(uint64_t now);  // 5.02.79 (mp_coopfusion.inc)
+static void DcFeed(const char* type, const char* text);   // 5.02.80 (mp_dcfeed.inc): live feed -> Discord
+static void DcFeedTick(uint64_t now);
 static void OfflineTick(uint64_t now); static bool OfflineCommand(const char* cmd, const char* arg); static float OfflineCard(float w); static bool OffNoInternet();   // 5.02.40 (mp_offline.inc)
 static void RunHostRequest();   // 3.21.2: host / stop from the Add server page, run on the game frame
 
@@ -552,6 +555,7 @@ static void JoinLeaveMsg(const char* name, bool join, const char* why)
 static void FinishJoin()
 {
     SysMsg(COL_GREEN, "Connected successfully!");
+    DcFeed("join", "joined the server");   // 5.02.80
     if(s_szCustomWelcome[0]) { const std::string wt = WelcomeFill(s_szCustomWelcome); SysMsg(COL_WHITE, "{FFFFFF}%s", wt.c_str()); s_szCustomWelcome[0] = 0; }   // 5.00.08: the owner's own message
     else if(MP::IsOnDefault())
     {   // 5.02.31: the default server (Broker MQQ) welcome, Classic Roleplay / CoolZ style
@@ -2905,6 +2909,7 @@ public:
         s_szDirectRelay[0] = 0;
         // decide before the player list is cleared (takeover order = player id order)
         StopFeed(); JoinOverlayCancel();
+        DcFeed("leave", "left the server (lost connection)");   // 5.02.80
         if(!OnLostServer()) SysMsg(COL_RED, "Could not reconnect to the server.");
         ClearAllPlayers();
     }
@@ -5072,6 +5077,7 @@ int MP_DzPackMigrate();   // mp_launcher.inc
 #include "mp_safezone.inc"  // 3.21: hospital safe zones + 5 s spawn protection
 #include "mp_markers.inc"   // 3.21: SA-MP style red checkpoint beams for races, derbies, DM, jobs
 #include "mp_auth.inc"      // 3.21.6: login system (Discord code, sign up, login, /stats)
+#include "mp_dcfeed.inc"    // 5.02.80: joined / left / mission / chat -> the MP Discord live feed
 #include "mp_home.inc"      // 3.39: Home Kit (/create house, /setup, /buyhouse, /edithouse, /edithouseinteriors)
 #include "mp_needs.inc"     // 3.39: hunger + energy HUD
 #include "mp_mv.inc"        // 3.39: /mv My Vehicles
@@ -5194,6 +5200,7 @@ static void LeaveServer(const char* msg)
 {
     s_nNearbyTime = 0;   // 3.53.1: the launcher list rescans right away (no old player count)
     if(client.GetState() == NET_DISCONNECTED) return;
+    if(client.GetState() == NET_CONNECTED) DcFeed("leave", "left the server");   // 5.02.80
     s_Prog.sendAt = 0; ProgSendNow();   // 3.39.1: the last save before leaving (the server keeps it)
     client.Disconnect(true);
     ClearAllPlayers();
@@ -5694,13 +5701,16 @@ static int FindExact(const std::vector<LanServer>& list, const char* name, int p
 static bool FeaturedWait(const char* name, int port)
 {
     if(!FeaturedName(name, port)) return false;
-    if(++s_nFeatWaitTries > 36)
+    // 5.02.80: 1 minute (was 3): a featured server listed only on a far region / another lobby was a long "Connecting...";
+    // the regions are measured again on the 2nd try so a reachable path (region or public lobby) is found
+    if(s_nFeatWaitTries == 1) Online::RelayStalled();
+    if(++s_nFeatWaitTries > 12)
     {
         s_nFeatWaitTries = 0; s_bTakeoverPending = false;
         SysMsg(COL_RED, "\"%s\" is offline right now: its 24/7 console (" MP_BOT_NAME ") is not running. Try again in a few minutes.", name);
         return true;
     }
-    if(s_nFeatWaitTries == 1) SysMsg(COL_YELLOW, "\"%s\" is hosted 24/7 by " MP_BOT_NAME " - waiting for it to come online...", name);
+    if(s_nFeatWaitTries == 1) SysMsg(COL_YELLOW, "\"%s\" is hosted 24/7 by " MP_BOT_NAME " - waiting for it to come online (up to 1 min, tap Connecting to cancel)...", name);
     if(name != s_szLostServerName) MP_CopyStr(s_szLostServerName, name, sizeof(s_szLostServerName));
     s_nLostPort = port;
     s_bTakeoverPending = true;
@@ -5949,6 +5959,7 @@ static void ProcessLan(uint64_t now)
     ProcessBrokerStandby(now);
     CrossplayTick(now);   // 5.02: open.mp / SA-MP crossplay
     CoopFusionTick(now);  // 5.02.79: CoopFusion32 crossplay
+    DcFeedTick(now);      // 5.02.80: Discord live feed
     OfflineTick(now);     // 5.02.40: offline hotspot play
     // online lobby: announce the server this phone hosts (player count refreshed every 0.5 s)
     {
@@ -6136,6 +6147,7 @@ void MP::SendChat(const char* text)
     c.type = PKT_CHAT; c.id = myId;
     MP_CopyStr(c.text, text, MP_CHAT_LEN);
     client.Send(&c, sizeof(c));
+    if(text[0] != '/' && text[0] != '!') DcFeed("chat", text);   // 5.02.80: your chat (never commands) to the Discord live feed
 }
 
 // ------------------------------------------------------------------------------------------

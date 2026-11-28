@@ -354,6 +354,10 @@ static void NeonPaintFn(void*) { MP::NeonPaintMenu(s_nPaintWant); }
 DECL_HOOKv(MobileMenu_Render, void* self)
 {
     int paint = 0;
+    // 5.02.80: the neon Browse page paints server pictures (HUD::Texture -> RwImageCreate...): the RenderWare
+    // pointers must be resolved first, the title has no Render2dStuff pass to do it (that crash turned the neon
+    // menu off and showed the game's own menu when Browse servers was tapped)
+    if(!s_bRWReady) { InitRenderWareFunctions(); s_bRWReady = true; }
     if(!HUD::TitleMenuBroken())
     {
         if(s_nMenuRenderCalls < 2) logger->Info("Neon menu: MobileMenu::Render frame %d (checking the title menu)", s_nMenuRenderCalls + 1);
