@@ -1,0 +1,20 @@
+{
+ "online": true,
+ "players": 0,
+ "max": 100,
+ "name": "MP Crossplay 24/7 [PC + Mobile]",
+ "addr": "wap-fresh.tun.ply.gg:56616",
+ "port": 56616,
+ "mobile_port": 7780,
+ "region": "Asia",
+ "gamemode": "simpletdm",
+ "tunnel": "playit",
+ "server": "open.mp 1.6.7 + mp-crossplay",
+ "clients": [
+  "open.mp launcher",
+  "SA-MP 0.3.7",
+  "SA-MP 0.3.DL",
+  "MP for Android"
+ ],
+ "updated": 1795883422
+}

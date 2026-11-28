@@ -1,0 +1,36 @@
+{
+ "state": "online",
+ "agent": "playit 2.0.2 (release v5.02.30, linux-amd64)",
+ "port": 7778,
+ "proto": "udp",
+ "addr": "wap-fresh.tun.ply.gg:56616",
+ "claim_url": "",
+ "expires": 0,
+ "link_min": 5,
+ "account": "verified",
+ "tunnels": [
+  {
+   "name": "Gta sa",
+   "proto": "udp",
+   "local": "127.0.0.1:56616",
+   "addr": "wap-fresh.tun.ply.gg:56616",
+   "disabled": false
+  }
+ ],
+ "log": [
+  "WARN playit_agent_core::agent_control::maintained_control: control session expired; reconnecting reason=SessionNotSetup",
+  " connected; tunnels loaded agent_id=debeb5a5-2f9d-4f99-9eb5-7e2905e9fcd6 tunnel_count=1 pending_tunnel_count=0 disabled_tunnel_count=0 account_status=\"verified\"",
+  "WARN playit_agent_core::agent_control::maintained_control: control session expired; reconnecting reason=SessionNotSetup",
+  "INFO playitd: Received shutdown signal, shutting down signal=\"SIGTERM\"",
+  "INFO playitd::ipc_server: IPC server shutting down",
+  "INFO playitd::daemon: playitd shutdown complete",
+  "INFO playitd::daemon: Starting playitd socket_path=Some(\"/home/runner/work/wagu/wagu/server/run/playit.sock\") secret_path=None version=2.0.2",
+  "::address_selector: failed to send initial ping error=Os { code: 101, kind: NetworkUnreachable, message: \"Network is unreachable\" } addr=[2602:fbaf:830::1]:5525",
+  "ERROR playit_agent_core::agent_control::address_selector: failed to ping tunnel server",
+  "WARN playit_agent_core::agent_control::maintained_control: control session expired; reconnecting reason=SessionNotSetup",
+  " connected; tunnels loaded agent_id=debeb5a5-2f9d-4f99-9eb5-7e2905e9fcd6 tunnel_count=1 pending_tunnel_count=0 disabled_tunnel_count=0 account_status=\"verified\"",
+  "WARN playit_agent_core::agent_control::maintained_control: control session expired; reconnecting reason=SessionNotSetup"
+ ],
+ "note": "PC players: wap-fresh.tun.ply.gg:56616",
+ "updated": 1795883366
+}
