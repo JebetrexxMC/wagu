@@ -58,7 +58,7 @@ from ghstore import GhStore
 from livefeed import LiveFeed, TOPIC as FEED_TOPIC
 from lobbystat import LobbyStat, LOBBY_TOPIC
 
-VERSION = "5.02.81"
+VERSION = "5.02.82"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("mpbot")
 
@@ -1201,6 +1201,11 @@ async def beacon():
                 "ping": round(client.latency * 1000) if client.latency == client.latency else -1,
                 "started": STARTED, "ts": int(time.time()),
                 "content": bool(intents.message_content), "autoreply": AUTO_STATS, "py": platform.python_version(), "stream": STREAM_URL,
+                # 5.02.82: the /status "Live feed" line (on / posted / last) for the feed check workflow
+                "feed": {"on": feed.on, "posted": feed.stats.get("posted", 0), "last": int(feed.stats.get("last") or 0),
+                         "same": feed.stats.get("same", 0), "dropped": feed.stats.get("dropped", 0),
+                         "errors": feed.stats.get("errors", 0), "line": "Live feed: " + ("on" if feed.on else "off") + " ("
+                         + str(feed.stats.get("posted", 0)) + " posted" + (", last " + _ago(feed.stats["last"]) if feed.stats.get("last") else "") + ")"},
             }
             bridge.publish_status(doc)
         except Exception as e:

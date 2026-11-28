@@ -35,13 +35,17 @@ def gtx(text, tl):
     return gtx_single(text, tl)
 
 def gtx_html(text, tl):
+    # the key comes from the environment (GOOGLE_TRANSLATE_KEY), never from the source; without it the
+    # single-request endpoint below is used
+    key = os.environ.get('GOOGLE_TRANSLATE_KEY', '').strip()
+    if not key: raise RuntimeError('GOOGLE_TRANSLATE_KEY not set')
     # the batch endpoint the browser translate uses (one line = one item; it reads HTML, so < > & are escaped)
     import html
     lines = text.split('\n')
     body = json.dumps([[[html.escape(l, quote=False) for l in lines], 'en', tl], 'te_lib']).encode()
     for k in range(4):
         try:
-            req = urllib.request.Request('https://translate-pa.googleapis.com/v1/translateHtml', data=body, headers={'Content-Type': 'application/json+protobuf', 'X-Goog-API-Key': 'AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520', 'User-Agent': 'Mozilla/5.0'})
+            req = urllib.request.Request('https://translate-pa.googleapis.com/v1/translateHtml', data=body, headers={'Content-Type': 'application/json+protobuf', 'X-Goog-API-Key': key, 'User-Agent': 'Mozilla/5.0'})
             d = json.loads(urllib.request.urlopen(req, timeout=60).read().decode('utf-8'))
             out = [html.unescape(x) for x in d[0]]
             if len(out) == len(lines): return '\n'.join(o.replace('\n', ' ') for o in out)

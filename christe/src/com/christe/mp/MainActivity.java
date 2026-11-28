@@ -473,6 +473,10 @@ public class MainActivity extends Activity {
             return "noinapp:" + why;
         }
         @JavascriptInterface public String obb() { return obbStatus().toString(); }
+        @JavascriptInterface public void autoSetup(final String id) { new Thread(new Runnable() { public void run() {   // 1.5.2
+            JSONObject r = MainActivity.this.autoSetup(id);
+            progress(id, r.optBoolean("ready") ? "done" : "error", 1, 1, r.toString());
+        }}).start(); }
         @JavascriptInterface public void obbCopy(final String id) { new Thread(new Runnable() { public void run() { copyGameObb(id); } }).start(); }
         @JavascriptInterface public void obbImport(String id) { importId = id; pickObb(); }
         @JavascriptInterface public void obbAccess() { askObbAccess(); }
@@ -651,7 +655,104 @@ public class MainActivity extends Activity {
                 if (pi != null) { ApplicationInfo ai = pi.applicationInfo; ai.sourceDir = ai.publicSourceDir = imp.getAbsolutePath(); ai.splitSourceDirs = null; ai.nativeLibraryDir = null; return ai; }
             } catch (Exception e) {}
         }
+        String link = prefs.getString("game_linked", "");   // 1.5.2: automatic setup linked an installed GTA SA (split APK)
+        if (link.length() > 0) {
+            try { ApplicationInfo ai = getPackageManager().getApplicationInfo(link, 0); if (new File(ai.sourceDir).canRead()) return ai; } catch (Exception e) {}
+        }
         return null;
+    }
+    // ---- 1.5.2: automatic game setup (no picking / uploading the GTA SA .apk or the OBB by hand) ----
+    // GTA SA: an installed GTA SA AML app (any package whose APK has lib/<abi>/libGTASA.so) or a GTA SA .apk lying in
+    // Download / GTASA / the storage root is added by itself: a single APK is copied in (read-only, like Add GTA SA),
+    // a split install is linked (its APKs are read where Android keeps them). Game files: the OBB is read IN PLACE
+    // (Android/obb/<game>, Android_unprotected, Download, GTASA, the storage root) - nothing is copied. On Android 11+
+    // reading Android/obb of another app needs "Install unknown apps" for AML Multiplayer (REQUEST_INSTALL_PACKAGES).
+    static final String[] OBB_SPOTS = { "Download", "GTASA", "", "Android_unprotected/obb/com.rockstargames.gtasa" };
+    File looseObb(String kind) {
+        String sd = Environment.getExternalStorageDirectory().getAbsolutePath(), n = kind + ".8.com.rockstargames.gtasa.obb";
+        for (String d : OBB_SPOTS) { File f = new File(d.length() == 0 ? sd : sd + "/" + d, n); if (f.isFile() && f.canRead() && f.length() > 0) return f; }
+        return null;
+    }
+    boolean obbBlocked() {   // the game's own OBB is there but Android hides it from AML Multiplayer
+        if (Build.VERSION.SDK_INT < 30) return false;
+        String sd = Environment.getExternalStorageDirectory().getAbsolutePath();
+        File f = new File(sd + "/Android/obb/" + prefs.getString("sa_pkg", SA), "main.8." + prefs.getString("sa_pkg", SA) + ".obb");
+        if (f.canRead()) return false;
+        try { return !getPackageManager().canRequestPackageInstalls(); } catch (Exception e) { return true; }
+    }
+    java.util.List<String[]> gameCandidates() {   // {kind, package or path, label}
+        java.util.List<String[]> l = new java.util.ArrayList<String[]>();
+        String want = proc64() ? "arm64-v8a" : "armeabi-v7a", other = proc64() ? "armeabi-v7a" : "arm64-v8a";
+        java.util.List<String> pk = new java.util.ArrayList<String>();
+        pk.add(prefs.getString("sa_pkg", SA)); if (!pk.contains(SA)) pk.add(SA);
+        try { for (ApplicationInfo ai : getPackageManager().getInstalledApplications(0)) if (!pk.contains(ai.packageName) && ai.packageName.toLowerCase().contains("gtasa")) pk.add(ai.packageName); } catch (Exception e) {}
+        for (int pass = 0; pass < 2; pass++)
+            for (String p : pk) {
+                try {
+                    ApplicationInfo ai = getPackageManager().getApplicationInfo(p, 0);
+                    boolean hit = false;
+                    for (String a : apks(ai)) if (zipHas(a, "lib/" + (pass == 0 ? want : other) + "/libGTASA.so")) hit = true;
+                    if (!hit && pass == 0 && ai.nativeLibraryDir != null && new File(ai.nativeLibraryDir, "libGTASA.so").isFile() && ai.nativeLibraryDir.contains(proc64() ? "arm64" : "arm")) hit = true;
+                    if (hit) l.add(new String[] { "app", p, p });
+                } catch (Exception e) {}
+            }
+        String sd = Environment.getExternalStorageDirectory().getAbsolutePath();
+        for (String d : new String[] { sd + "/Download", sd + "/GTASA", sd, new File(date2(), "files").getAbsolutePath() }) {
+            File[] fs = new File(d).listFiles(); if (fs == null) continue;
+            for (File f : fs) {
+                String n = f.getName().toLowerCase();
+                if (!f.isFile() || !n.endsWith(".apk") || !(n.contains("gta") || n.contains("sa")) || f.length() < (10L << 20)) continue;
+                if (zipHas(f.getAbsolutePath(), "lib/" + want + "/libGTASA.so") || zipHas(f.getAbsolutePath(), "lib/" + other + "/libGTASA.so")) l.add(new String[] { "file", f.getAbsolutePath(), f.getName() });
+            }
+        }
+        return l;
+    }
+    JSONObject autoSetup(String id) {
+        JSONObject r = new JSONObject();
+        try {
+            migrateObb();
+            String how = "";
+            if (gameAi(prefs.getString("sa_pkg", SA)) != null) how = "already";
+            else {
+                for (String[] c : gameCandidates()) {
+                    if (c[0].equals("app")) {
+                        ApplicationInfo ai = getPackageManager().getApplicationInfo(c[1], 0);
+                        if (ai.splitSourceDirs == null || ai.splitSourceDirs.length == 0) {
+                            if (copyApkIn(new FileInputStream(ai.sourceDir), new File(ai.sourceDir).length(), id)) { how = "copied " + c[1]; break; }
+                        } else {
+                            prefs.edit().putString("game_linked", c[1]).putString("sa_pkg", c[1]).putString("gamelib_stamp", "").apply();
+                            how = "linked " + c[1]; break;
+                        }
+                    } else if (copyApkIn(new FileInputStream(c[1]), new File(c[1]).length(), id)) { how = "copied " + c[2]; break; }
+                }
+            }
+            r.put("game", how);
+            String obb = ownObbFile("main").isFile() ? "own" : gameObb("main") != null ? "in place" : "";
+            r.put("obb", obb);
+            r.put("obbBlocked", obb.length() == 0 && obbBlocked());
+            r.put("ready", gameAi(prefs.getString("sa_pkg", SA)) != null && obb.length() > 0);
+            log("1.5.2 automatic setup: game=" + how + " obb=" + obb + " blocked=" + r.optBoolean("obbBlocked"));
+        } catch (Exception e) { try { r.put("err", String.valueOf(e.getMessage())); } catch (Exception x) {} }
+        return r;
+    }
+    // the same checks as Add GTA SA, for an APK read from a stream (installed app or a file found on the phone)
+    boolean copyApkIn(InputStream in, long total, String id) {
+        File to = importedApk(), tmp = new File(to.getPath() + ".part");
+        try {
+            OutputStream out = new FileOutputStream(tmp);
+            byte[] b = new byte[1 << 20]; int r; long done = 0, last = 0;
+            while ((r = in.read(b)) > 0) { out.write(b, 0, r); done += r; if (done - last > (8 << 20)) { last = done; progress(id, "copy", done, total, "GTA SA"); } }
+            in.close(); out.close();
+            java.util.List<String> one = new java.util.ArrayList<String>(); one.add(tmp.getAbsolutePath());
+            String g = apkAbis(one);
+            PackageInfo pi = getPackageManager().getPackageArchiveInfo(tmp.getAbsolutePath(), 0);
+            if (pi == null || g.length() == 0 || ("32".equals(g) && !has32()) || ("64".equals(g) && !has64())) { tmp.delete(); return false; }
+            if (to.isFile()) { to.setWritable(true); to.delete(); }
+            tmp.renameTo(to); to.setReadOnly();
+            prefs.edit().putString("game_src", "auto").putString("game_linked", "").putString("gamelib_stamp", "").apply();
+            log("GTA SA added automatically: " + pi.packageName + " " + pi.versionName + " " + to.length());
+            return true;
+        } catch (Exception e) { tmp.delete(); log("automatic GTA SA copy: " + e); return false; }
     }
     // 1.3: the game files folder for the fastman92 settings, relative to Android/obb (see GameEnv)
     String obbDirFor() {
@@ -659,7 +760,10 @@ public class MainActivity extends Activity {
         if (ownObbFile("main").isFile()) return getPackageName();
         if (new File(sd + "/Android_unprotected/obb/" + g, "main.8." + g + ".obb").isFile()) return "../../Android_unprotected/obb/" + g;
         if (new File(sd + "/Android/obb/" + g, "main.8." + g + ".obb").canRead()) return g;
+        if (!g.equals(o) && new File(sd + "/Android/obb/" + o, "main.8." + o + ".obb").canRead()) return o;
         if (new File(sd + "/GTASA", "main.8." + o + ".obb").isFile()) return "../../GTASA";
+        if (new File(sd + "/Download", "main.8." + o + ".obb").isFile()) return "../../Download";   // 1.5.2
+        if (new File(sd, "main.8." + o + ".obb").isFile()) return "../..";
         return getPackageName();
     }
     File gameLibDir(String abi) { return new File(getDir("gamelib", MODE_PRIVATE), abi); }
@@ -837,8 +941,8 @@ public class MainActivity extends Activity {
         String sd = Environment.getExternalStorageDirectory().getAbsolutePath(), g = prefs.getString("sa_pkg", SA), n = kind + ".8." + g + ".obb";
         String[] dirs = { sd + "/Android/obb/" + g, sd + "/Android_unprotected/obb/" + g, sd + "/Android_unprotected/data/" + g + "/obb" };
         for (String d : dirs) { File f = new File(d, n); if (f.isFile() && f.canRead()) return f; }
-        File f = new File(sd + "/GTASA", kind + ".8.com.rockstargames.gtasa.obb");
-        return f.isFile() && f.canRead() ? f : null;
+        if (!g.equals(SA)) { File f = new File(sd + "/Android/obb/" + SA, kind + ".8." + SA + ".obb"); if (f.isFile() && f.canRead()) return f; }
+        return looseObb(kind);   // 1.5.2: GTASA, Download, the storage root (read in place)
     }
     File ownObbFile(String kind) { File d = getObbDir(); if (d == null) d = new File(Environment.getExternalStorageDirectory(), "Android/obb/" + getPackageName()); d.mkdirs(); return new File(d, kind + ".8.com.rockstargames.gtasa.obb"); }
     // 1.3: the AML loaders open <kind>.8.com.rockstargames.gtasa.obb; 1.1/1.2 saved <kind>.8.com.christe.mp.obb
@@ -861,6 +965,8 @@ public class MainActivity extends Activity {
             }
             o.put("ready", ownObbFile("main").isFile() || gameObb("main") != null);
             o.put("canAsk", Build.VERSION.SDK_INT >= 23);
+            o.put("obbBlocked", !ownObbFile("main").isFile() && gameObb("main") == null && obbBlocked());   // 1.5.2
+            o.put("gameLinked", prefs.getString("game_linked", ""));
             ApplicationInfo ai = gameAi(prefs.getString("sa_pkg", SA));
             o.put("gameAdded", ai != null); o.put("gameImported", isImported(ai));
             if (ai != null) { File a = new File(ai.sourceDir); o.put("gameSize", a.length()); try { PackageInfo gp = getPackageManager().getPackageArchiveInfo(a.getAbsolutePath(), 0); if (gp != null && gp.versionName != null) o.put("gameVersion", gp.versionName); } catch (Exception e) {} }

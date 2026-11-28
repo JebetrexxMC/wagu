@@ -15,6 +15,7 @@ TOKEN = os.environ.get("DISCORD_TOKEN", "").strip()
 CH = os.environ.get("FEED_CHANNEL_ID", "1576192312126472323").strip()
 API = "https://discord.com/api/v10"
 TOPIC = "wagu/feed1/e"
+STATUS = "wagu/railway/discordpy-bot/status"   # the bot's retained beacon (5.02.82+: carries the /status feed line)
 BROKERS = [("broker.hivemq.com", 1883), ("test.mosquitto.org", 1883), ("broker.emqx.io", 1883)]
 BITS = {"ADMINISTRATOR": 1 << 3, "VIEW_CHANNEL": 1 << 10, "SEND_MESSAGES": 1 << 11, "EMBED_LINKS": 1 << 14,
         "READ_MESSAGE_HISTORY": 1 << 16, "MANAGE_ROLES": 1 << 28, "MANAGE_WEBHOOKS": 1 << 29}
@@ -102,11 +103,13 @@ def main():
 
     # MQTT: listen on the feed topic, then publish one test event (the running bot should post it)
     got = []
+    beacon = {}
     cs = []
     for i, (h, port) in enumerate(BROKERS):
         c = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"mpfeedchk-{os.getpid()}-{i}")
-        c.on_connect = lambda c, u, f, rc, p=None: c.subscribe(TOPIC)
-        c.on_message = lambda c, u, msg, i=i: got.append((BROKERS[i][0], msg.payload[:200]))
+        c.on_connect = lambda c, u, f, rc, p=None: (c.subscribe(TOPIC), c.subscribe(STATUS))
+        c.on_message = lambda c, u, msg, i=i: (beacon.__setitem__("doc", msg.payload) if msg.topic == STATUS
+                                               else got.append((BROKERS[i][0], msg.payload[:200])))
         try:
             c.connect_async(h, port, 30); c.loop_start(); cs.append(c)
         except Exception as e:
@@ -114,7 +117,7 @@ def main():
     time.sleep(8)
     tid = "chk%x" % int(time.time())
     ev = {"v": 1, "id": tid, "t": "join", "name": "FeedCheck", "user": "", "disc": "MP feed check",
-          "srv": "live feed test " + time.strftime("%H:%M UTC", time.gmtime()), "msg": "", "ver": "check", "src": "s"}
+          "srv": "live feed test " + time.strftime("%H:%M:%S UTC", time.gmtime()) + " " + tid, "msg": "", "ver": "check", "src": "s"}
     for c in cs:
         if c.is_connected():
             c.publish(TOPIC, json.dumps(ev))
@@ -125,7 +128,7 @@ def main():
         s, msgs = api("GET", f"/channels/{CH}/messages?limit=10")
         if s == 200:
             for x in msgs:
-                if ("live feed test" in (x.get("content") or "") or "feed check" in ((x.get("author") or {}).get("username") or "").lower()) and x.get("timestamp", "") >= time.strftime("%Y-%m-%dT%H", time.gmtime(t0)):
+                if tid in (x.get("content") or ""):   # 5.02.82: only this run's own test event (not an older one)
                     seen = True
                     R["e2e_by"] = (x.get("author") or {}).get("username"); R["e2e_webhook"] = bool(x.get("webhook_id"))
     R["e2e"] = seen
@@ -136,6 +139,17 @@ def main():
     print("feed events seen on the brokers in ~75 s:", len(got), "(real players:", R["mqtt_real_events"], ")")
     for g in got[:10]:
         print("  ", g)
+    time.sleep(15)   # the beacon is sent every 30 s: get one from after the test event
+    try:
+        d = json.loads(beacon.get("doc") or b"{}")
+        if "s" in d:
+            d = json.loads(d["s"])
+        R["bot"] = {k: d.get(k) for k in ("online", "ver", "commit", "started", "ts", "brokers")}
+        R["status_feed"] = d.get("feed")
+        print("bot beacon:", R["bot"])
+        print("/status feed line:", (d.get("feed") or {}).get("line", "(bot older than 5.02.82: no feed line in the beacon)"))
+    except Exception as e:
+        print("beacon:", e)
     R["ok"] = seen
     with open("feedcheck.json", "w") as f:
         json.dump(R, f, indent=1)

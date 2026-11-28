@@ -7,7 +7,7 @@
 (function (G, D) {
   'use strict';
   var $ = function (s, r) { return (r || D).querySelector(s); }, $$ = function (s, r) { return Array.prototype.slice.call((r || D).querySelectorAll(s)); };
-  var VERSION = '1.5.1', MPVER = '5.02.81';
+  var VERSION = '1.5.2', MPVER = '5.02.82';
   var URLS = {
     lobby: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/live-status/status.json',
     f247: 'https://raw.githubusercontent.com/JebetrexxMC/wagu/mp247-data/omp247.json',
@@ -48,7 +48,7 @@
     obb: function () { return JSON.stringify({ main: { own: 1970000000, game: 1970000000, ownPath: '/storage/emulated/0/Android/obb/com.christe.mp/main.8.com.christe.mp.obb' }, patch: { own: 0, game: 625000000, ownPath: '/storage/emulated/0/Android/obb/com.christe.mp/patch.8.com.christe.mp.obb' }, ready: true, canAsk: true, gameAdded: true, gameImported: true, gameSize: 1.6e9, gameNeed: 'any GTA SA AML .apk: 2.10 (64-bit) or 2.00 (32-bit), AML Multiplayer switches its CPU mode to fit', edition: '64', has32: true, gameAbi: '32-bit only (armeabi-v7a)', editionNeed: G.location.hash.indexOf('ed32') >= 0 ? '32' : '', editionText: 'This GTA SA is 32-bit (GTA SA 2.00, no arm64-v8a). AML Multiplayer switches itself to 32-bit mode to run it: Android asks once to reinstall AML Multiplayer, your settings, game files and the added GTA SA stay.' }); },
     obbCopy: function (id) { var d = 0; var t = setInterval(function () { d += 0.2; G.CX_prog(id, d >= 1 ? 'done' : 'copy', d * 2.6e9, 2.6e9, d >= 1 ? 'Game files ready' : 'main'); if (d >= 1) clearInterval(t); }, 400); },
     obbDownload: function (id) { var d = 0; var t = setInterval(function () { d += 0.25; G.CX_prog(id, d >= 1 ? 'done' : 'download', d * 2.6e9, 2.6e9, d >= 1 ? 'Game files ready - tap Play' : 'main.8 OBB'); if (d >= 1) clearInterval(t); }, 400); }, gameDownload: function (id) { var d = 0; var t = setInterval(function () { d += 0.25; G.CX_prog(id, d >= 1 ? 'done' : 'download', d * 2.6e9, 2.6e9, d >= 1 ? 'Game files ready - tap Play' : 'main.8 OBB'); if (d >= 1) clearInterval(t); }, 400); }, vcDownload: function (id) { var d = 0; var t = setInterval(function () { d += 0.25; G.CX_prog(id, d >= 1 ? 'done' : 'download', d * 2.6e9, 2.6e9, d >= 1 ? 'Game files ready - tap Play' : 'main.8 OBB'); if (d >= 1) clearInterval(t); }, 400); },
-    obbImport: function (id) { G.CX_prog(id, 'cancel', 0, 0, ''); }, obbAccess: function () {}, gameAdd: function (id) { G.CX_prog(id, 'cancel', 0, 0, ''); }, gameRemove: function () {},
+    obbImport: function (id) { G.CX_prog(id, 'cancel', 0, 0, ''); }, obbAccess: function () {}, autoSetup: function (id) { setTimeout(function () { G.CX_prog(id, 'done', 1, 1, JSON.stringify({ game: 'already', obb: 'in place', ready: true })); }, 300); }, gameAdd: function (id) { G.CX_prog(id, 'cancel', 0, 0, ''); }, gameRemove: function () {},
     coopInfo: function (id, h, p) { setTimeout(function () { G.CX_coop(id, JSON.stringify({ ok: true, name: 'CoopFusion LAN', players: 2, max: 8, ver: '1.1', ms: 40 })); }, 300); },
     coopLan: function (id) { setTimeout(function () { G.CX_coopLan(id, JSON.stringify([{ host: '192.168.1.7', port: 6767, name: "Juan's co-op", players: 1, max: 64, ver: '1.1' }])); }, 700); }, coopReady: function () { return ''; },
     mpFiles: function (id) { G.CX_prog(id, 'done', 1, 1, 'MP files ready'); },
@@ -391,10 +391,12 @@
   }
   function addGameCard() {
     var j = S.job && S.job.kind === 'game-add' ? S.job : null;
-    var st = OBB.gameImported ? '<span class="st-ok">Added to AML Multiplayer' + (OBB.gameVersion ? ' v' + esc(OBB.gameVersion) : '') + (OBB.gameSize ? ' (' + gb(OBB.gameSize) + ')' : '') + '</span>' : '<span class="st-bad">Not added yet</span>';
-    return '<div class="card"><h3>GTA SA game</h3>' + opt('GTA San Andreas', st + '<br>Works with ' + esc(OBB.gameNeed || 'GTA SA AML') + '. Pick your own GTA SA .apk once: AML Multiplayer keeps its own copy and always runs that one inside; it never opens or uses the GTA SA app. (Rockstar\'s game is not shipped with AML Multiplayer, you add the copy you own.)' +
+    var st = OBB.gameImported ? '<span class="st-ok">Added to AML Multiplayer' + (OBB.gameVersion ? ' v' + esc(OBB.gameVersion) : '') + (OBB.gameSize ? ' (' + gb(OBB.gameSize) + ')' : '') + '</span>' : OBB.gameLinked ? '<span class="st-ok">Found on this phone: ' + esc(OBB.gameLinked) + ' (read where it is)</span>' : '<span class="st-bad">Not added yet</span>';
+    st += '<br>' + (hasObb() ? '<span class="st-ok">Game files found' + (OBB.main && OBB.main.own ? '' : ' - read in place, nothing copied') + '</span>' : OBB.obbBlocked ? '<span class="st-mid">Game files are in Android/obb: allow "Install unknown apps" (Find automatically) to read them in place</span>' : '<span class="st-mid">No game files found yet</span>');
+    return '<div class="card"><h3>GTA SA game</h3>' + opt('GTA San Andreas', st + '<br>Works with ' + esc(OBB.gameNeed || 'GTA SA AML') + '. Find automatically picks up the GTA SA you already have (installed, or a GTA SA .apk in Download / GTASA) and reads its game files (main.8 / patch.8) where they are, so nothing is uploaded or copied. Or pick your own GTA SA .apk. It always runs inside AML Multiplayer and never opens the GTA SA app. (Rockstar\'s game is not shipped with AML Multiplayer, you add the copy you own.)' +
       (j ? '<div class="prog"><i style="width:' + (j.total ? Math.round(j.done * 100 / j.total) : 0) + '%"></i></div><span id="jobMsg">' + esc(j.msg || '') + '</span>' : ''),
-      (OBB.gameImported ? '' : '<button class="btn sm go" data-act="game-dl"' + (S.job ? ' disabled' : '') + '>' + ic('download') + 'Download</button>') + '<button class="btn sm' + (OBB.gameImported ? ' go' : '') + '" data-act="game-add"' + (S.job ? ' disabled' : '') + '>' + ic('plus') + (OBB.gameImported ? 'Replace' : 'Add GTA SA') + '</button>' + (OBB.gameImported ? '<button class="btn sm red" data-act="game-remove">Remove</button>' : '')) + '</div>';
+      '<button class="btn sm go" data-act="game-auto"' + (S.job ? ' disabled' : '') + '>' + ic('search') + 'Find automatically</button>' +
+      (OBB.gameImported ? '' : '<button class="btn sm" data-act="game-dl"' + (S.job ? ' disabled' : '') + '>' + ic('download') + 'Download</button>') + '<button class="btn sm' + (OBB.gameImported ? ' go' : '') + '" data-act="game-add"' + (S.job ? ' disabled' : '') + '>' + ic('plus') + (OBB.gameImported ? 'Replace' : 'Add GTA SA') + '</button>' + (OBB.gameImported ? '<button class="btn sm red" data-act="game-remove">Remove</button>' : '')) + '</div>';
   }
   function hasObb() { return OBB.ready || (OBB.main && (OBB.main.own > 0 || OBB.main.game > 0)); }
   function gameCard(g) {
@@ -554,6 +556,7 @@
     else if (a === 'auth-reg') showAuth('register');   // 1.5.1
     else if (a === 'acct-reload') { acctSync(true); render(); toast('Account files read again'); }
     else if (a === 'lan-scan') scanLan();
+    else if (a === 'game-auto') autoSetup(function (r) { readInfo(); render(); if (r.obbBlocked) obbAsk(function () { readInfo(); render(); }); else toast(r.ready ? 'GTA SA is ready to play' : r.game ? 'GTA SA found, game files not found yet' : 'No GTA SA found on this phone: Add GTA SA or Download'); });
     else if (a === 'obb-copy' || a === 'obb-import' || a === 'mp-files' || a === 'game-add' || a === 'obb-dl' || a === 'game-dl' || a === 'vc-dl') job(a);
     else if (a === 'go-storage') go('settings', 'storage');
     else if (a === 'edition') { var ot = OBB.edition === '32' ? '64' : '32'; if (OBB.editionNeed === ot) job('edition', ot); else confirmDlg('Switch CPU mode', 'Reinstall AML Multiplayer in ' + edName(ot) + '? Your settings, game files and the added GTA SA stay. ' + (ot === '32' ? 'It runs 32-bit GTA SA 2.00 only.' : 'It runs 64-bit GTA SA 2.10.'), 'Switch', function () { job('edition', ot); }); }
@@ -574,11 +577,44 @@
     }
   }
 
+  // ---------- 1.5.2: automatic game setup (installed GTA SA / an .apk on the phone, OBB read where it is) ----------
+  function autoSetup(cb) {
+    if (!X.autoSetup) { cb({}); return; }
+    var id = 'auto' + Date.now();
+    toast('Looking for GTA SA and its game files...');
+    PROG[id] = function (state, done, total, msg) {
+      if (state === 'copy') return;
+      var r = {}; try { r = JSON.parse(msg) || {}; } catch (e) {}
+      if (/^(copied|linked)/.test(r.game || '')) toast('GTA SA found: ' + r.game.replace(/^copied /, 'added ').replace(/^linked /, 'using '));
+      if (r.obb === 'in place') toast('Game files found: read where they are (nothing copied)');
+      cb(r);
+    };
+    X.autoSetup(id);
+  }
+  function obbAsk(then) {
+    dialog('Read the GTA SA game files', '<p>Your GTA SA game files are in Android/obb, but Android only lets AML Multiplayer read them there after you allow <b>Install unknown apps</b> for it. Allow it once and the game loads them in place: nothing is uploaded or copied.</p>', [['Cancel', ''], ['Allow', 'go']], function (i) {
+      if (i !== 1) { S.autoTried = false; return; }
+      X.obbAccess();
+      S.afterAccess = then;
+    });
+  }
+  function autoBoot() {   // once at start: no dialogs, just get ready if everything is on the phone already
+    readInfo();
+    if (saReady() && hasObb()) return;
+    autoSetup(function (r) { readInfo(); if (S.page === 'settings') render(); });
+  }
+
   // ---------- play / join (the MP loading screen while it starts) ----------
   function inApp() { return !ENG.problem; }
   function play(game, row, pass) {
     readInfo();
     var inf = game === 'vc' ? INFO.vc : INFO.sa;
+    if (game === 'sa' && (!saReady() || !hasObb()) && !S.autoTried) {   // 1.5.2: find the game and its files by itself first
+      S.autoTried = true;
+      autoSetup(function (r) { readInfo(); if (r.obbBlocked) obbAsk(function () { play(game, row, pass); }); else play(game, row, pass); });
+      return;
+    }
+    S.autoTried = false;
     if (game === 'sa' && !saReady()) {
       dialog('Add GTA San Andreas', '<p>Add your GTA SA once: pick its .apk (' + esc(OBB.gameNeed || 'GTA SA AML') + '). AML Multiplayer keeps a copy and runs it inside, no GTA SA app needed.</p>', [['Cancel', ''], ['Add GTA SA', 'go']], function (i) { if (i === 1) { go('settings', 'storage'); job('game-add'); } });
       return;
@@ -883,7 +919,7 @@
     var c = ENG.crash; ENG.crash = ''; call('crashSeen');
     dialog('GTA SA stopped', '<p>GTA SA inside AML Multiplayer closed with an error. Send this to the MP Discord so it can be fixed.</p><pre style="max-height:120px;overflow:auto;font-size:10px;white-space:pre-wrap;background:#0b0d11;padding:6px">' + esc(c) + '</pre>', [['OK', 'go']]);
   }
-  G.CX_resume = function () { readInfo(); acctSync(false); if (!LISTS[S.page]) render(); crashCheck(); };
+  G.CX_resume = function () { readInfo(); acctSync(false); if (S.afterAccess && !OBB.obbBlocked) { var f = S.afterAccess; S.afterAccess = null; setTimeout(f, 300); } if (!LISTS[S.page]) render(); crashCheck(); };
   G.CX_back = function () {
     if (!$('#auth').classList.contains('hide')) { closeAuth(); return true; }
     if (!$('#dlg').classList.contains('hide')) { $('#dlg').classList.add('hide'); return true; }
@@ -908,7 +944,7 @@
     var tipT = setInterval(function () { tip = (tip + 1) % TIPS.length; $('#bootTip').textContent = TIPS[tip]; }, 2400);
     var pctT = setInterval(function () { var cap = S.loaded || S.err ? 100 : 90; pct = Math.min(cap, pct + 3); $('#bootPct').textContent = pct; $('#bootBar').style.width = pct + '%'; }, 70);
     var done = false;
-    function handoff() { if (done) return; done = true; clearInterval(tipT); clearInterval(pctT); $('#app').classList.remove('hide'); B.classList.add('out'); setTimeout(function () { B.remove(); crashCheck(); }, 650); }
+    function handoff() { if (done) return; done = true; clearInterval(tipT); clearInterval(pctT); $('#app').classList.remove('hide'); B.classList.add('out'); setTimeout(function () { B.remove(); crashCheck(); autoBoot(); }, 650); }
     var vid = X.startupVideo && X.startupVideo();
     if (vid) {
       var V = $('#bootVid'); V.classList.remove('hide'); $('#bootArt').classList.add('hide'); V.src = vid;

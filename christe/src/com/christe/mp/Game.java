@@ -67,7 +67,10 @@ public class Game extends com.rockstargames.gtasa.GTASA {
             ownDir + "/" + kind + ".8.com.christe.mp.obb",
             sd + "/Android_unprotected/obb/" + g + "/" + kind + ".8." + g + ".obb",
             sd + "/Android/obb/" + g + "/" + kind + ".8." + g + ".obb",
+            sd + "/Android/obb/" + o + "/" + kind + ".8." + o + ".obb",
             sd + "/GTASA/" + kind + ".8." + o + ".obb",
+            sd + "/Download/" + kind + ".8." + o + ".obb",   // 1.5.2: read in place, never copied
+            sd + "/" + kind + ".8." + o + ".obb",
             sd + "/Android_unprotected/data/" + g + "/obb/" + kind + ".8." + g + ".obb",
         };        if (orig != null && new File(orig).canRead()) return orig;
         for (String p : c) { File f = new File(p); if (f.isFile() && f.canRead()) return p; }
