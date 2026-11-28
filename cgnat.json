@@ -1,0 +1,63 @@
+{
+ "time": 1795875012,
+ "host": "mpsamp.duckdns.org",
+ "ip": "143.44.193.152",
+ "ping_ms": null,
+ "trace_reached": false,
+ "trace_last_hop": null,
+ "trace_last_ip": null,
+ "ports": {
+  "22": {
+   "state": "filtered",
+   "reason": "no-response",
+   "ttl": null
+  },
+  "80": {
+   "state": "filtered",
+   "reason": "no-response",
+   "ttl": null
+  },
+  "443": {
+   "state": "filtered",
+   "reason": "no-response",
+   "ttl": null
+  },
+  "1883": {
+   "state": "closed",
+   "reason": "reset",
+   "ttl": 46
+  },
+  "7547": {
+   "state": "filtered",
+   "reason": "no-response",
+   "ttl": null
+  },
+  "8080": {
+   "state": "filtered",
+   "reason": "no-response",
+   "ttl": null
+  },
+  "8883": {
+   "state": "closed",
+   "reason": "reset",
+   "ttl": 47
+  },
+  "8884": {
+   "state": "filtered",
+   "reason": "no-response",
+   "ttl": null
+  },
+  "23456": {
+   "state": "filtered",
+   "reason": "no-response",
+   "ttl": null
+  },
+  "51821": {
+   "state": "filtered",
+   "reason": "no-response",
+   "ttl": null
+  }
+ },
+ "verdict": "SOMETHING ANSWERS",
+ "why": "ports refused (RST, ttl [46, 47]) - either your router owns this IP and nothing is forwarded, or Converge's CGNAT box refuses for many homes. The phone check decides."
+}
